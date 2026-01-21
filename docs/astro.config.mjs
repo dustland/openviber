@@ -12,11 +12,18 @@ export default defineConfig({
   integrations: [
     starlight({
       title: 'Viber',
+      logo: {
+        src: './src/assets/logo.png',
+      },
+      favicon: '/favicon.png',
       description: 'Multi-agent collaboration framework for vibe working',
       social: [
-        { icon: 'github', label: 'GitHub', href: 'https://github.com/user/viber' },
+        { icon: 'github', label: 'GitHub', href: 'https://github.com/tiwater/viber' },
       ],
       head: [],
+      components: {
+        Header: './src/components/header.astro',
+      },
       sidebar: [
         {
           label: 'Getting Started',
@@ -51,12 +58,10 @@ export default defineConfig({
         },
         {
           label: 'Playground',
-          slug: 'playground',
+          link: '/playground',
         },
       ],
-      customCss: [
-        './src/styles/custom.css',
-      ],
+
     }),
     svelte(),
   ],

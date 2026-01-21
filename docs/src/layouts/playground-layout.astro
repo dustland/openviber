@@ -1,0 +1,99 @@
+---
+/**
+ * Minimal layout for the Playground page
+ * Uses Starlight's theme system for consistent theming
+ */
+import '../styles/playground.css';
+
+import Header from "../components/header.astro";
+
+interface Props {
+  title?: string;
+}
+
+const { title = "Playground" } = Astro.props;
+const currentPath = Astro.url.pathname;
+---
+
+<!doctype html>
+<html lang="en" data-theme>
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="description"
+      content="Viber Playground - Interactive agent demo"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <title>{title} | Viber</title>
+    <script is:inline>
+      // Sync theme with Starlight's theme system
+      function initTheme() {
+        const theme = localStorage.getItem("starlight-theme") ||
+          (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        document.documentElement.setAttribute("data-theme", theme);
+        if (theme === "dark") {
+          document.documentElement.classList.add("dark");
+        } else {
+          document.documentElement.classList.remove("dark");
+        }
+      }
+
+      initTheme();
+
+      // Listen for theme changes from Starlight (storage event from other tabs)
+      window.addEventListener("storage", (e) => {
+        if (e.key === "starlight-theme") {
+          initTheme();
+        }
+      });
+      
+      // Listen for theme changes from same page (custom event if we implemented a toggler)
+      // For now, this is enough to respect the user's preference from the docs site.
+    </script>
+  </head>
+  <body>
+    <div class="layout">
+      <Header />
+      <main>
+        <slot />
+      </main>
+    </div>
+  </body>
+</html>
+
+<style>
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    font-family:
+      -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica,
+      Arial, sans-serif;
+    background: var(--sl-color-bg);
+    color: var(--sl-color-text);
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease;
+  }
+
+  .layout {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+
+  main {
+    flex: 1;
+    overflow: auto; 
+    /* Allow scrolling inside main if content overflows */
+  }
+</style>

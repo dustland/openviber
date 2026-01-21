@@ -1,6 +1,7 @@
-# Viber
+<img src="docs/src/assets/logo.png" alt="Viber Logo" width="100" />
 
-**Multi-agent collaboration framework supporting React and Svelte**
+
+**Agent Framework supporting React and Svelte**
 
 Viber is a flexible multi-agent AI framework for building collaborative AI applications. It provides:
 

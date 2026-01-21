@@ -1,0 +1,458 @@
+---
+import Header from "../components/header.astro";
+import TryAgentSection from "../components/try-agent-section.svelte";
+import '../styles/playground.css';
+import { ChevronRight, Bot, Hammer, Box, Zap, Code2, Activity } from "lucide-svelte";
+
+const title = "Viber | Agent Framework for Vibe Working";
+
+const features = [
+  {
+    icon: "Bot",
+    title: "Multi-Agent System",
+    description: "Define and orchestrate multiple AI agents that collaborate to solve complex tasks"
+  },
+  {
+    icon: "Hammer",
+    title: "Tool Framework",
+    description: "Decorator-based tool definitions with full Zod schema validation"
+  },
+  {
+    icon: "Box",
+    title: "Space Management",
+    description: "Organize conversations, artifacts, and tasks in isolated workspaces"
+  },
+  {
+    icon: "Zap",
+    title: "Reactive State",
+    description: "Zustand-based state management with real-time updates"
+  },
+  {
+    icon: "Code2",
+    title: "Framework Agnostic",
+    description: "Works seamlessly with React, Svelte, or vanilla JavaScript"
+  },
+  {
+    icon: "Activity",
+    title: "Streaming Support",
+    description: "Built-in streaming for real-time AI responses and progress updates"
+  }
+];
+---
+
+<!doctype html>
+<html lang="en" data-theme>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <title>{title}</title>
+    <meta name="description" content="Viber - Multi-agent collaboration framework for vibe working" />
+    <script is:inline>
+      function initTheme() {
+        const theme = localStorage.getItem("starlight-theme") ||
+          (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        document.documentElement.setAttribute("data-theme", theme);
+        if (theme === "dark") {
+          document.documentElement.classList.add("dark");
+        } else {
+          document.documentElement.classList.remove("dark");
+        }
+      }
+      initTheme();
+      window.addEventListener("storage", (e) => {
+        if (e.key === "starlight-theme") initTheme();
+      });
+    </script>
+  </head>
+  <body>
+    <div class="layout">
+      <Header />
+      <main>
+
+        <!-- Hero Section -->
+        <section class="hero">
+          <div class="hero-content">
+            <h1 class="hero-title">Viber</h1>
+            <p class="hero-tagline">
+              Multi-agent collaboration framework for vibe working.
+              <br />
+              Build, orchestrate, and deploy autonomous agents with ease.
+            </p>
+            <div class="hero-actions">
+              <a href="/getting-started/installation/" class="btn-primary">
+                Get Started
+                <ChevronRight class="icon" />
+              </a>
+              <a href="/playground/" class="btn-secondary">
+                Try Playground
+              </a>
+            </div>
+          </div>
+        </section>
+
+        <!-- Try Agent Section -->
+        <section class="try-agent">
+          <div class="container">
+            <TryAgentSection client:load />
+          </div>
+        </section>
+
+        <!-- Features Section -->
+        <section class="features">
+          <div class="container">
+            <h2 class="section-title">Why Choose Viber?</h2>
+            <div class="features-grid">
+              {features.map((feature) => {
+                const Icon = {
+                  Bot, Hammer, Box, Zap, Code2, Activity
+                }[feature.icon];
+                
+                return (
+                  <div class="feature-card">
+                    <span class="feature-icon">
+                      <Icon size={32} />
+                    </span>
+                    <h3 class="feature-title">{feature.title}</h3>
+                    <p class="feature-description">{feature.description}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        <!-- Quick Start Section -->
+        <section class="quickstart">
+          <div class="container">
+            <h2 class="section-title">Quick Start</h2>
+            <div class="code-block">
+              <pre><code>npm install viber
+
+import {"{"} Agent, Space {"}"} from 'viber';
+
+const agent = new Agent({"{"} 
+  name: 'Assistant',
+  model: 'openai:gpt-4o',
+  systemPrompt: 'You are a helpful assistant.'
+{"}"});
+
+const result = await agent.streamText({"{"} 
+  messages: [{"{"} role: 'user', content: 'Hello!' {"}"}]
+{"}"});</code></pre>
+            </div>
+            <div class="quickstart-link">
+              <a href="/getting-started/quick-start/" class="link">
+                Read the full guide →
+              </a>
+            </div>
+          </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="cta">
+          <div class="container">
+            <h2 class="cta-title">Ready to Build Agents?</h2>
+            <p class="cta-description">
+              Start building powerful multi-agent applications with Viber's comprehensive framework
+            </p>
+            <div class="cta-actions">
+              <a href="/getting-started/installation/" class="btn-primary">
+                Read Documentation
+              </a>
+              <a href="/api/" class="btn-secondary">
+                API Reference
+              </a>
+            </div>
+          </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+          <div class="container">
+            <p>© 2024 Viber. MIT License.</p>
+          </div>
+        </footer>
+      </main>
+    </div>
+  </body>
+</html>
+
+<style>
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html, body {
+    height: 100%;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+    background: var(--sl-color-bg);
+    color: var(--sl-color-text);
+  }
+
+  .layout {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  main {
+    flex: 1;
+  }
+
+  .container {
+    max-width: 72rem;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+
+  /* Hero Section */
+  .hero {
+    padding: 6rem 1.5rem;
+    text-align: center;
+    background: var(--sl-color-bg);
+  }
+
+  .hero-content {
+    max-width: 48rem;
+    margin: 0 auto;
+  }
+
+  .hero-title {
+    font-size: 4rem;
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.025em;
+    background: linear-gradient(135deg, var(--sl-color-accent) 0%, #22d3ee 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 1.5rem;
+  }
+
+  .hero-tagline {
+    font-size: 1.25rem;
+    line-height: 1.75;
+    color: var(--sl-color-gray-2);
+    margin-bottom: 2.5rem;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--sl-color-white);
+    background: var(--sl-color-accent);
+    border-radius: 0.5rem;
+    text-decoration: none;
+    transition: opacity 0.2s ease;
+  }
+
+  .btn-primary:hover {
+    opacity: 0.9;
+  }
+
+  .btn-primary :global(.icon) {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.75rem 1.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--sl-color-text);
+    border: 1px solid var(--sl-color-hairline);
+    border-radius: 0.5rem;
+    text-decoration: none;
+    transition: background-color 0.2s ease;
+  }
+
+  .btn-secondary:hover {
+    background: var(--sl-color-gray-6);
+  }
+
+  /* Features Section */
+  .features {
+    padding: 5rem 1.5rem;
+    background: var(--sl-color-bg);
+  }
+
+  .section-title {
+    font-size: 2rem;
+    font-weight: 700;
+    text-align: center;
+    color: var(--sl-color-text);
+    margin-bottom: 3rem;
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .feature-card {
+    padding: 1.5rem;
+    background: var(--sl-color-bg-nav);
+    border: 1px solid var(--sl-color-hairline);
+    border-radius: 0.75rem;
+    transition: border-color 0.2s ease;
+  }
+
+  .feature-card:hover {
+    border-color: var(--sl-color-accent);
+  }
+
+  .feature-icon {
+    font-size: 2rem;
+    display: block;
+    margin-bottom: 1rem;
+  }
+
+  .feature-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--sl-color-text);
+    margin-bottom: 0.5rem;
+  }
+
+  .feature-description {
+    font-size: 0.875rem;
+    color: var(--sl-color-gray-2);
+    line-height: 1.6;
+  }
+
+  /* Quick Start Section */
+  .quickstart {
+    padding: 5rem 1.5rem;
+    background: var(--sl-color-gray-6);
+  }
+
+  .code-block {
+    max-width: 40rem;
+    margin: 0 auto;
+    background: var(--sl-color-bg);
+    border: 1px solid var(--sl-color-hairline);
+    border-radius: 0.5rem;
+    overflow: hidden;
+  }
+
+  .code-block pre {
+    padding: 1.5rem;
+    overflow-x: auto;
+    font-size: 0.875rem;
+    line-height: 1.7;
+  }
+
+  .code-block code {
+    font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+    color: var(--sl-color-text);
+  }
+
+  .quickstart-link {
+    text-align: center;
+    margin-top: 2rem;
+  }
+
+  .link {
+    color: var(--sl-color-accent);
+    text-decoration: none;
+    font-weight: 500;
+    transition: opacity 0.2s ease;
+  }
+
+  .link:hover {
+    opacity: 0.8;
+    text-decoration: underline;
+  }
+
+  /* CTA Section */
+  .cta {
+    padding: 4rem 1.5rem;
+    background: linear-gradient(135deg, var(--sl-color-accent), color-mix(in srgb, var(--sl-color-accent) 70%, #22d3ee));
+    text-align: center;
+  }
+
+  .cta-title {
+    font-size: 2rem;
+    font-weight: 600;
+    color: var(--sl-color-white);
+    margin-bottom: 1rem;
+  }
+
+  .cta-description {
+    font-size: 1rem;
+    color: var(--sl-color-white);
+    opacity: 0.9;
+    margin-bottom: 2rem;
+    max-width: 36rem;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .cta-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .cta .btn-primary {
+    background: var(--sl-color-white);
+    color: var(--sl-color-accent);
+  }
+
+  .cta .btn-secondary {
+    border-color: rgba(255,255,255,0.3);
+    color: var(--sl-color-white);
+  }
+
+  .cta .btn-secondary:hover {
+    background: rgba(255,255,255,0.1);
+  }
+
+  /* Footer */
+  .footer {
+    padding: 2rem 1.5rem;
+    background: var(--sl-color-bg);
+    border-top: 1px solid var(--sl-color-hairline);
+    text-align: center;
+  }
+
+  .footer p {
+    font-size: 0.875rem;
+    color: var(--sl-color-gray-2);
+  }
+
+  @media (max-width: 768px) {
+    .hero-title {
+      font-size: 2.5rem;
+    }
+
+    .section-title {
+      font-size: 1.75rem;
+    }
+
+    .features-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

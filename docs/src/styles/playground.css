@@ -32,122 +32,109 @@
   --radius-radius: var(--radius);
 }
 
-/* Fallback Starlight variables for standalone pages */
-@layer base {
-  :root {
-    --sl-color-bg: #ffffff;
-    --sl-color-bg-nav: #f8f9fa;
-    --sl-color-text: #1e293b;
-    --sl-color-text-invert: #ffffff;
-    --sl-color-text-accent: #3b82f6;
-    --sl-color-gray-1: #f1f5f9;
-    --sl-color-gray-2: #e2e8f0;
-    --sl-color-gray-3: #cbd5e1;
-    --sl-color-gray-4: #94a3b8;
-    --sl-color-gray-5: #64748b;
-    --sl-color-gray-6: #475569;
-    --sl-color-hairline: #e2e8f0;
-    --sl-color-accent: #3b82f6;
-    --sl-color-accent-low: #bfdbfe;
-    --sl-color-accent-high: #2563eb;
-    --sl-color-white: #ffffff;
-    --sl-color-black: #000000;
-  }
+--sl-color-gray-6: #475569;
+--sl-color-hairline: #e2e8f0;
+--sl-color-accent: #3b82f6;
+--sl-color-accent-low: #bfdbfe;
+--sl-color-accent-high: #2563eb;
+--sl-color-white: #ffffff;
+--sl-color-black: #000000;
+}
 
-  :root[data-theme='dark'] {
-    --sl-color-bg: #0a0a0a;
-    --sl-color-bg-nav: #121212;
-    /* Slightly easier to distinguish from bg */
-    --sl-color-text: #ffffff;
-    /* Pure white for main text */
-    --sl-color-text-invert: #000000;
-    --sl-color-text-accent: #60a5fa;
-    --sl-color-gray-1: #18181b;
-    --sl-color-gray-2: #27272a;
-    --sl-color-gray-3: #52525b;
-    /* Lighter borders */
-    --sl-color-gray-4: #a1a1aa;
-    /* Much lighter muted text */
-    --sl-color-gray-5: #d4d4d8;
-    /* Even lighter for icons */
-    --sl-color-gray-6: #e4e4e7;
-    --sl-color-hairline: #27272a;
-    --sl-color-accent: #60a5fa;
-    --sl-color-accent-low: #1e3a8a;
-    --sl-color-accent-high: #93c5fd;
-    --sl-color-white: #ffffff;
-    --sl-color-black: #000000;
-  }
+:root[data-theme='dark'] {
+  --sl-color-bg: #0a0a0a;
+  --sl-color-bg-nav: #121212;
+  /* Slightly easier to distinguish from bg */
+  --sl-color-text: #ffffff;
+  /* Pure white for main text */
+  --sl-color-text-invert: #000000;
+  --sl-color-text-accent: #60a5fa;
+  --sl-color-gray-1: #18181b;
+  --sl-color-gray-2: #27272a;
+  --sl-color-gray-3: #52525b;
+  /* Lighter borders */
+  --sl-color-gray-4: #a1a1aa;
+  /* Much lighter muted text */
+  --sl-color-gray-5: #d4d4d8;
+  /* Even lighter for icons */
+  --sl-color-gray-6: #e4e4e7;
+  --sl-color-hairline: #27272a;
+  --sl-color-accent: #60a5fa;
+  --sl-color-accent-low: #1e3a8a;
+  --sl-color-accent-high: #93c5fd;
+  --sl-color-white: #ffffff;
+  --sl-color-black: #000000;
+}
 
-  /* Shadcn Variable Mapping */
-  :root {
-    --background: var(--sl-color-bg);
-    --foreground: var(--sl-color-text);
+/* Shadcn Variable Mapping */
+:root {
+  --background: var(--sl-color-bg);
+  --foreground: var(--sl-color-text);
 
-    --card: var(--sl-color-bg-nav);
-    --card-foreground: var(--sl-color-text);
+  --card: var(--sl-color-bg-nav);
+  --card-foreground: var(--sl-color-text);
 
-    --popover: var(--sl-color-bg-nav);
-    --popover-foreground: var(--sl-color-text);
+  --popover: var(--sl-color-bg-nav);
+  --popover-foreground: var(--sl-color-text);
 
-    --primary: var(--sl-color-accent);
-    --primary-foreground: var(--sl-color-text-invert);
+  --primary: var(--sl-color-accent);
+  --primary-foreground: var(--sl-color-text-invert);
 
-    --secondary: var(--sl-color-gray-2);
-    /* Darker background for secondary */
-    --secondary-foreground: var(--sl-color-text);
-    /* White text */
+  --secondary: var(--sl-color-gray-2);
+  /* Darker background for secondary */
+  --secondary-foreground: var(--sl-color-text);
+  /* White text */
 
-    /* Fixed muted foreground to be visible */
-    --muted: var(--sl-color-gray-1);
-    --muted-foreground: #a1a1aa;
-    /* Explicitly lighter gray for readability */
+  /* Semantic overrides */
+  --muted: var(--sl-color-gray-1);
+  --muted-foreground: #d4d4d8;
+  /* Zinc 300 - significantly brighter for visibility */
 
-    --accent: var(--sl-color-gray-2);
-    --accent-foreground: var(--sl-color-text);
+  --accent: var(--sl-color-gray-2);
+  --accent-foreground: var(--sl-color-text);
 
-    /* Constructive/Destructive fallback colors */
-    --destructive: #ef4444;
-    --destructive-foreground: #fafafa;
+  /* Constructive/Destructive fallback colors */
+  --destructive: #ef4444;
+  --destructive-foreground: #fafafa;
 
-    --border: var(--sl-color-hairline);
-    --input: var(--sl-color-gray-2);
-    --ring: var(--sl-color-accent);
+  --border: var(--sl-color-hairline);
+  --input: var(--sl-color-gray-2);
+  --ring: var(--sl-color-accent);
 
-    --radius: 0.5rem;
-  }
+  --radius: 0.5rem;
+}
 
-  :root[data-theme='dark'] {
-    --background: var(--sl-color-bg);
-    --foreground: var(--sl-color-text);
+:root[data-theme='dark'] {
+  --background: var(--sl-color-bg);
+  --foreground: var(--sl-color-text);
 
-    --card: #141414;
-    /* Distinct card background */
-    --card-foreground: var(--sl-color-text);
+  --card: #141414;
+  /* Distinct card background */
+  --card-foreground: var(--sl-color-text);
 
-    --popover: #141414;
-    --popover-foreground: var(--sl-color-text);
+  --popover: #141414;
+  --popover-foreground: var(--sl-color-text);
 
-    --primary: var(--sl-color-accent);
-    --primary-foreground: #000000;
+  --primary: var(--sl-color-accent);
+  --primary-foreground: #000000;
 
-    --secondary: #27272a;
-    --secondary-foreground: #ffffff;
+  --secondary: #27272a;
+  --secondary-foreground: #ffffff;
 
-    --muted: #27272a;
-    --muted-foreground: #a1a1aa;
-    /* High contrast muted text */
+  --muted: #27272a;
+  --muted-foreground: #a1a1aa;
+  /* High contrast muted text */
 
-    --accent: #27272a;
-    --accent-foreground: #ffffff;
+  --accent: #27272a;
+  --accent-foreground: #ffffff;
 
-    --destructive: #7f1d1d;
-    --destructive-foreground: #fafafa;
+  --destructive: #7f1d1d;
+  --destructive-foreground: #fafafa;
 
-    --border: #27272a;
-    --input: #27272a;
-    --ring: var(--sl-color-accent-high);
-  }
+  --border: #27272a;
+  --input: #27272a;
+  --ring: var(--sl-color-accent-high);
+}
 }
 
 @layer base {

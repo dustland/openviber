@@ -1,0 +1,32 @@
+# Default MCP Server Runtime Configurations
+# This file contains runtime configuration for MCP servers
+# Schemas are defined in defaults/tools/{tool-id}.yaml files
+version: "1.0"
+
+# MCP Server runtime configs
+tools:
+  - id: office
+    enabled: true
+    config: {}
+
+  - id: postgres
+    enabled: false  # Disabled by default, requires database credentials
+    config: {}
+
+  - id: dbgate
+    enabled: true
+    config: {}
+
+  - id: playwright
+    enabled: true
+    config:
+      browser: chromium
+      headless: true
+
+  - id: github
+    enabled: false  # Disabled by default, requires personal access token
+    config: {}
+
+  - id: supabase
+    enabled: false  # Disabled by default, requires access token
+    config: {}

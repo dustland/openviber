@@ -1,0 +1,99 @@
+---
+title: Architecture
+description: Viber system architecture and design principles
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+## Overview
+
+Viber is a lightweight, modular framework for building multi-agent AI applications. It provides the infrastructure for teams of AI agents to collaborate on complex tasks.
+
+## Core Concepts
+
+### Agent
+
+An **Agent** is a specialized entity designed to perform specific tasks. Each agent has:
+
+- **Role Definition**: Clear purpose defined by system prompt
+- **Tool Access**: Set of tools it can use
+- **LLM Connection**: Interface to language models
+- **Stateless Design**: No memory between invocations (context provided at runtime)
+
+### Space
+
+A **Space** is an isolated workspace that encapsulates:
+
+- **Artifacts**: Generated files and outputs
+- **History**: Conversation and task logs
+- **Configuration**: Space-specific settings
+
+### Tool
+
+A **Tool** extends agent capabilities with:
+
+- **Schema Validation**: Zod-based parameter validation
+- **Type Safety**: Full TypeScript support
+- **Sandboxed Execution**: Secure runtime environment
+
+## Layered Architecture
+
+```
+┌─────────────────────────────────────────┐
+│           Application Layer             │
+│     (React / Svelte / Vanilla JS)       │
+├─────────────────────────────────────────┤
+│          Framework Adapters             │
+│    (viber/react, viber/svelte)          │
+├─────────────────────────────────────────┤
+│              Core Engine                │
+│   (Agent, Space, Tool, Streaming)       │
+├─────────────────────────────────────────┤
+│           LLM Providers                 │
+│   (OpenAI, Anthropic, Google, etc.)     │
+└─────────────────────────────────────────┘
+```
+
+## Design Principles
+
+<Aside type="note">
+  Viber follows a "batteries included but removable" philosophy.
+</Aside>
+
+1. **Framework Agnostic**: Core logic works with any UI framework
+2. **Type-First**: Full TypeScript support with Zod schemas
+3. **Streaming Native**: Real-time responses as first-class citizens
+4. **Composable**: Small, focused modules that combine flexibly
+5. **Observable**: Built-in event system for debugging and monitoring
+
+## Data Flow
+
+```
+User Input
+    ↓
+Agent.streamText()
+    ↓
+┌─────────────┐
+│  LLM Call   │ ←→ Tool Execution (if needed)
+└─────────────┘
+    ↓
+Stream Events → UI Updates
+    ↓
+Space Persistence (artifacts, history)
+```
+
+## Multi-Agent Collaboration
+
+Agents can collaborate through:
+
+1. **Task Handoff**: Natural language delegation
+2. **Shared Spaces**: Common artifact storage
+3. **Event Bus**: Cross-agent communication
+
+```typescript
+const team = {
+  lead: new Agent({ name: 'Lead', ... }),
+  writer: new Agent({ name: 'Writer', ... }),
+  reviewer: new Agent({ name: 'Reviewer', ... }),
+};
+```

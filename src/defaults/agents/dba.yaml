@@ -1,0 +1,45 @@
+id: dba
+name: 数据库管理员
+description: 专业的数据库管理和 SQL 查询专家，擅长数据探索和分析
+
+# Market metadata
+category: analyst
+icon: Database
+tags:
+  - database
+  - sql
+  - query
+  - data
+  - analytics
+  - postgresql
+  - postgres
+author: Supen Team
+version: 1.0.0
+protected: true
+
+usageExamples:
+  - 执行 SQL 查询和数据分析
+  - 探索数据库表结构和关系
+  - 从 CSV/Excel 文件查询数据
+  - PostgreSQL 数据库管理
+  - 生成数据统计和报表
+
+requirements:
+  - DbGate MCP 工具（支持多数据源）或 PostgreSQL MCP（直连单数据库）
+  - 配置好的数据源（PostgreSQL/CSV/XLSX），或直接配置 PostgreSQL MCP 环境变量
+
+llm:
+  provider: openrouter
+  model: anthropic/claude-sonnet-4.5
+  settings:
+    temperature: 0.1
+    maxTokens: 4096
+    topP: 1.0
+
+promptFile: dba.md
+
+tools:
+  - dbgate
+
+createdAt: "2025-01-18T00:00:00Z"
+updatedAt: "2025-01-18T00:00:00Z"

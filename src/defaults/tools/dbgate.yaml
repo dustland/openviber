@@ -1,0 +1,44 @@
+id: dbgate
+name: DbGate
+description: 通用数据源访问工具，支持 CSV、XLSX、PostgreSQL 数据库的 SQL 查询。
+version: "1.0.0"
+type: mcp
+category: data
+icon: /images/dbgate.webp
+status: active
+transport: stdio
+command: /Users/hugh/tc/supen/mcp-servers/dbgate/dbgate-mcp.sh
+args: []
+enabled: true
+configSchema:
+  - field: dataDirectory
+    label: 数据目录
+    type: string
+    required: false
+    placeholder: "/path/to/data"
+    help: "包含 CSV、XLSX 文件和数据库连接配置的目录"
+    envVar: DBGATE_DATA_DIR
+  - field: enableAutoDiscovery
+    label: 启用自动发现
+    type: boolean
+    required: false
+    help: "自动发现数据目录中的所有数据源"
+    defaultValue: true
+tags:
+  - 数据库
+  - 数据源
+  - 查询
+  - 数据分析
+  - 表格文件
+features:
+  - CSV 文件查询
+  - XLSX 文件查询
+  - PostgreSQL 数据库访问
+  - 数据结构发现
+  - SQL 查询执行
+  - 连接管理
+  - 多数据源支持
+requirements:
+  - platform: ["windows", "macos", "linux"]
+  - runtime: "node-18+"
+  - memory: "256MB"

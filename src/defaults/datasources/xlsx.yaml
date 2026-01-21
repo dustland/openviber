@@ -1,0 +1,52 @@
+id: xlsx
+name: Excel/XLSX 文件
+description: 导入和分析 Excel 表格文件，支持多个工作表和复杂数据结构
+type: file
+category: file
+icon: xlsx
+status: active
+provider: Microsoft
+features:
+  - 多工作表
+  - 公式计算
+  - 图表透视表
+configSchema:
+  - field: file
+    label: XLSX 文件
+    type: file
+    required: true
+    placeholder: 选择 Excel 文件
+    accept: ".xlsx,.xls"
+  - field: sheetName
+    label: 工作表名称
+    type: select
+    required: false
+    default: "自动检测"
+    options:
+      - "自动检测"
+      - "Sheet1"
+      - "数据"
+  - field: hasHeader
+    label: 包含表头
+    type: boolean
+    default: true
+    required: false
+  - field: startRow
+    label: 起始行
+    type: number
+    default: 1
+    required: false
+  - field: endRow
+    label: 结束行
+    type: number
+    required: false
+    placeholder: 留空表示读取到最后一行
+  - field: encoding
+    label: 字符编码
+    type: select
+    options:
+      - UTF-8
+      - GBK
+      - GB2312
+    default: UTF-8
+    required: false

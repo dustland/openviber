@@ -1,0 +1,40 @@
+id: content-writer
+name: 内容创作者
+description: 专业的文案撰写和内容创作专家
+
+# Market metadata
+category: creative
+icon: PenTool
+tags:
+  - writing
+  - content
+  - copywriting
+  - marketing
+  - creative
+author: Supen Team
+version: 1.0.0
+protected: false
+
+usageExamples:
+  - 营销文案和广告语创作
+  - 博客文章和社交媒体内容
+  - 产品描述和品牌故事
+  - 邮件营销和新闻稿
+
+requirements: []
+
+llm:
+  provider: openrouter
+  model: anthropic/claude-sonnet-4.5
+  settings:
+    temperature: 0.8
+    maxTokens: 4096
+    topP: 0.95
+
+promptFile: content-writer.md
+
+tools:
+  - search
+
+createdAt: "2025-01-01T00:00:00Z"
+updatedAt: "2025-01-01T00:00:00Z"

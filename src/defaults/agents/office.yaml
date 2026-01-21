@@ -1,0 +1,41 @@
+id: office
+name: Office 助手
+description: 专业的 Office 文档处理专家
+
+# Market metadata
+category: assistant
+icon: FileText
+tags:
+  - office
+  - documents
+  - excel
+  - word
+  - powerpoint
+author: Supen Team
+version: 1.0.0
+protected: true
+
+usageExamples:
+  - 处理 Excel 表格和数据分析
+  - 创建和编辑 Word 文档
+  - 生成 PowerPoint 演示文稿
+  - 文档格式转换和批处理
+
+requirements:
+  - office-mcp 工具
+
+llm:
+  provider: openrouter
+  model: openai/gpt-4o
+  settings:
+    temperature: 0.3
+    maxTokens: 4096
+    topP: 1.0
+
+promptFile: office.md
+
+tools:
+  - office
+
+createdAt: "2025-01-01T00:00:00Z"
+updatedAt: "2025-01-01T00:00:00Z"

@@ -1,0 +1,52 @@
+id: office
+name: Office
+description: 创建和编辑 Word、Excel、PowerPoint 文档，支持高级格式化和自动化操作。
+version: "1.2.0"
+type: mcp
+category: document
+icon: office
+status: active
+transport: stdio
+command: npx
+args: [office-mcp]
+enabled: true
+configSchema:
+  - field: workingDirectory
+    label: 工作目录
+    type: string
+    required: false
+    placeholder: "~/Documents"
+    help: "文档操作的默认工作目录"
+    envVar: OFFICE_MCP_WORKING_DIR
+    defaultValue: "~/Documents"
+  - field: templateDirectory
+    label: 模板目录
+    type: string
+    required: false
+    placeholder: "~/Documents/Templates"
+    help: "文档模板存储目录"
+    envVar: OFFICE_MCP_TEMPLATE_DIR
+    defaultValue: "~/Documents/Templates"
+  - field: enableAutoSave
+    label: 启用自动保存
+    type: boolean
+    required: false
+    help: "自动保存编辑的文档"
+    defaultValue: true
+tags:
+  - 办公
+  - 文档
+  - 表格
+  - 演示文稿
+  - 生产力
+features:
+  - 文档创建和编辑
+  - 格式转换 (DOCX, XLSX, PPTX)
+  - 模板管理
+  - 批量处理
+  - 高级格式化
+  - 表格和图表生成
+requirements:
+  - platform: ["windows", "macos", "linux"]
+  - runtime: "dotnet-8.0"
+  - memory: "512MB"

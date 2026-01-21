@@ -1,0 +1,43 @@
+id: web-researcher
+name: 网络研究员
+description: 擅长网络搜索和信息收集的研究专家
+
+# Market metadata
+category: analyst
+icon: Search
+tags:
+  - research
+  - web
+  - search
+  - analysis
+  - information
+author: Supen Team
+version: 1.0.0
+protected: true
+
+usageExamples:
+  - 深度网络调研和信息汇总
+  - 竞品分析和市场研究
+  - 学术文献搜索和整理
+  - 实时新闻和趋势追踪
+
+requirements:
+  - search 工具
+  - web 工具
+
+llm:
+  provider: openrouter
+  model: openai/gpt-4o
+  settings:
+    temperature: 0.5
+    maxTokens: 8192
+    topP: 0.9
+
+promptFile: web-researcher.md
+
+tools:
+  - search
+  - web
+
+createdAt: "2025-01-01T00:00:00Z"
+updatedAt: "2025-01-01T00:00:00Z"

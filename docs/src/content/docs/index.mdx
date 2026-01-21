@@ -1,0 +1,50 @@
+---
+title: Viber
+description: Multi-agent collaboration framework for vibe working
+template: splash
+hero:
+  tagline: Build collaborative AI applications with React and Svelte
+  actions:
+    - text: Get Started
+      link: /getting-started/installation/
+      icon: right-arrow
+    - text: View on GitHub
+      link: https://github.com/user/viber
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Features
+
+<CardGrid stagger>
+  <Card title="🤖 Agent System" icon="rocket">
+    Define and orchestrate multiple AI agents with natural language handoffs
+  </Card>
+  <Card title="🛠️ Tool Framework" icon="setting">
+    Decorator-based tool definitions with automatic Zod schema generation
+  </Card>
+  <Card title="📦 Space Management" icon="document">
+    Organize conversations, artifacts, and tasks in isolated workspaces
+  </Card>
+  <Card title="🎯 Framework Agnostic" icon="puzzle">
+    Works seamlessly with React, Svelte, or vanilla JavaScript
+  </Card>
+</CardGrid>
+
+## Quick Example
+
+```typescript
+import { Agent, streamText } from 'viber';
+
+const agent = new Agent({
+  name: 'Assistant',
+  model: 'openai:gpt-4o',
+  systemPrompt: 'You are a helpful assistant.',
+});
+
+const result = await agent.streamText({
+  messages: [{ role: 'user', content: 'Hello!' }],
+});
+```

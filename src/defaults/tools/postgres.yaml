@@ -1,0 +1,58 @@
+id: postgres
+name: PostgreSQL
+description: 直接连接 PostgreSQL 数据库执行查询，无需配置数据源。支持表结构查询和 SQL 执行。
+version: "1.0.0"
+type: mcp
+category: data
+icon: /images/postgresql.png
+status: active
+transport: stdio
+command: npx
+args:
+  - "@ahmedmustahid/postgres-mcp-server"
+  - stdio
+enabled: false
+configSchema:
+  - field: connectionString
+    label: 连接字符串
+    type: string
+    required: true
+    placeholder: "postgresql://postgres:[YOUR_PASSWORD]@db.xxxxx.supabase.co:5432/postgres"
+    help: "PostgreSQL 连接字符串（URI 格式）"
+    envVar: POSTGRES_URL
+tags:
+  - database
+  - 数据库
+  - postgresql
+  - postgres
+  - sql
+  - 查询
+  - 数据分析
+features:
+  - PostgreSQL 数据库查询
+  - 表结构检查
+  - 只读 SQL 查询执行
+  - 数据库资源发现
+  - 无需数据源配置
+requirements:
+  - platform: ["windows", "macos", "linux"]
+  - runtime: "node-18+"
+  - PostgreSQL 数据库访问
+usageNotes: |
+  ## 配置说明
+
+  在启用此工具前，需要配置 PostgreSQL 连接字符串：
+
+  - `POSTGRES_URL`: PostgreSQL 连接字符串（URI 格式）
+    - 格式：`postgresql://用户名:密码@主机:端口/数据库`
+    - 示例（Supabase）：`postgresql://postgres:your_password@db.xxxxx.supabase.co:5432/postgres`
+    - 示例（本地）：`postgresql://postgres:password@localhost:5432/mydb`
+
+  ## 与数据源的区别
+
+  - **PostgreSQL MCP**: 直接连接单个数据库，无需配置数据源，适合快速查询
+  - **数据源 + DbGate**: 支持多个数据库和文件，统一管理，适合复杂场景
+
+  ## 安全提示
+
+  此工具仅支持只读查询，不能执行 INSERT/UPDATE/DELETE 等修改操作。

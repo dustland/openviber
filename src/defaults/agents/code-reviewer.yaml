@@ -1,0 +1,43 @@
+id: code-reviewer
+name: 代码审查员
+description: 专业的代码审查和质量分析专家
+
+# Market metadata
+category: developer
+icon: FileSearch
+tags:
+  - code-review
+  - quality
+  - best-practices
+  - refactoring
+  - security
+author: Supen Team
+version: 1.0.0
+protected: true
+
+usageExamples:
+  - 代码质量审查和改进建议
+  - 识别潜在的 bug 和安全问题
+  - 代码风格和最佳实践检查
+  - 重构建议和性能优化
+
+requirements:
+  - file 工具
+  - GitHub 访问权限
+
+llm:
+  provider: openrouter
+  model: anthropic/claude-sonnet-4.5
+  settings:
+    temperature: 0.2
+    maxTokens: 8192
+    topP: 0.95
+
+promptFile: code-reviewer.md
+
+tools:
+  - file
+  - github
+
+createdAt: "2025-01-01T00:00:00Z"
+updatedAt: "2025-01-01T00:00:00Z"

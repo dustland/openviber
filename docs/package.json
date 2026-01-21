@@ -1,0 +1,23 @@
+{
+  "name": "viber-docs",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "^0.37.3",
+    "@astrojs/svelte": "^7.0.9",
+    "astro": "^5.1.9",
+    "svelte": "^5.16.1",
+    "viber": "file:.."
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.0.0",
+    "tailwindcss": "^4.0.0"
+  }
+}

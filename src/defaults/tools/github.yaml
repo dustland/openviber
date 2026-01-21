@@ -1,0 +1,41 @@
+id: github
+name: GitHub
+description: 访问和管理 GitHub 仓库、搜索代码、创建 Issue、管理 Pull Request、浏览仓库内容，支持完整的代码审查工作流。
+version: "1.0.0"
+type: mcp
+category: development
+icon: /images/github.png
+status: active
+transport: stdio
+command: npx
+args: ["-y", "@modelcontextprotocol/server-github"]
+enabled: true
+configSchema:
+  - field: personalAccessToken
+    label: Personal Access Token
+    type: password
+    required: true
+    placeholder: "ghp_xxxxxxxxxxxxxxxxxxxx"
+    help: "GitHub 个人访问令牌（需要 repo 权限）。在 GitHub Settings > Developer settings > Personal access tokens 中创建"
+    envVar: GITHUB_PERSONAL_ACCESS_TOKEN
+tags:
+  - 代码托管
+  - 仓库
+  - 代码审查
+  - 版本控制
+  - 协作
+  - 拉取请求
+  - 问题追踪
+features:
+  - 仓库访问和浏览
+  - 代码搜索
+  - 文件操作 (读取、创建、更新)
+  - Issue 管理
+  - Pull Request 管理
+  - 分支操作
+  - 代码审查工作流
+requirements:
+  - platform: ["windows", "macos", "linux"]
+  - runtime: "node-18+"
+  - memory: "256MB"
+  - auth: "GitHub Personal Access Token (repo scope)"

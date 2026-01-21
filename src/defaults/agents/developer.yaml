@@ -1,0 +1,18 @@
+id: developer
+name: 开发者
+description: 擅长代码生成、调试和优化
+
+llm:
+  provider: openrouter
+  model: google/gemini-2.0-flash-exp:free
+  settings:
+    temperature: 0.3
+    maxTokens: 8192
+    topP: 0.95
+
+promptFile: developer.md
+
+tools:
+  - search
+  - file
+

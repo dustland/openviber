@@ -1,0 +1,24 @@
+id: content-creation
+category: 创意
+name: 内容创作
+description: 专业的内容写作和编辑工作区
+icon: PenTool
+agents:
+  - content-writer
+quickMessages:
+  - 帮我写一篇关于人工智能的博客文章
+  - 帮我创作一段产品营销文案
+  - 帮我撰写一份技术文档
+  - 帮我策划本周的社交媒体内容
+
+# Marketplace metadata
+tags:
+  - 写作
+  - 内容
+  - 创意
+author: Supen 团队
+featured: true
+downloads: 0
+rating: 0
+preview:
+  image: /templates/content-creation.png

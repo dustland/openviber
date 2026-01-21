@@ -1,0 +1,143 @@
+---
+title: Types
+description: TypeScript type definitions for Viber
+---
+
+## Message Types
+
+### Message
+
+```typescript
+interface Message {
+  id: string;
+  role: 'user' | 'assistant' | 'system' | 'tool';
+  content: string;
+  createdAt?: Date;
+}
+```
+
+### ToolMessage
+
+```typescript
+interface ToolMessage extends Message {
+  role: 'tool';
+  toolCallId: string;
+  toolName: string;
+}
+```
+
+---
+
+## Agent Types
+
+### AgentConfig
+
+```typescript
+interface AgentConfig {
+  name: string;
+  model: string;
+  systemPrompt?: string;
+  tools?: Tool[];
+  temperature?: number;
+  maxTokens?: number;
+  topP?: number;
+  frequencyPenalty?: number;
+  presencePenalty?: number;
+}
+```
+
+### StreamTextResult
+
+```typescript
+interface StreamTextResult {
+  textStream: AsyncIterable<string>;
+  fullStream: AsyncIterable<StreamEvent>;
+  text: Promise<string>;
+  usage: Promise<TokenUsage>;
+}
+```
+
+---
+
+## Tool Types
+
+### Tool
+
+```typescript
+interface Tool<TParams = unknown, TResult = unknown> {
+  name: string;
+  description: string;
+  parameters: ZodSchema<TParams>;
+  execute: (params: TParams) => Promise<TResult>;
+}
+```
+
+### ToolCall
+
+```typescript
+interface ToolCall {
+  id: string;
+  name: string;
+  arguments: Record<string, unknown>;
+}
+```
+
+### ToolResult
+
+```typescript
+interface ToolResult {
+  toolCallId: string;
+  result: unknown;
+}
+```
+
+---
+
+## Space Types
+
+### SpaceConfig
+
+```typescript
+interface SpaceConfig {
+  name: string;
+  rootPath: string;
+  maxHistoryItems?: number;
+  autoSaveInterval?: number;
+}
+```
+
+### Artifact
+
+```typescript
+interface Artifact {
+  name: string;
+  path: string;
+  size: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+---
+
+## Stream Event Types
+
+### StreamEvent
+
+```typescript
+type StreamEvent =
+  | { type: 'text-delta'; textDelta: string }
+  | { type: 'tool-call'; toolCallId: string; toolName: string; args: unknown }
+  | { type: 'tool-result'; toolCallId: string; result: unknown }
+  | { type: 'finish'; usage: TokenUsage };
+```
+
+### TokenUsage
+
+```typescript
+interface TokenUsage {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+}
+```

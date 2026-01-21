@@ -1,0 +1,18 @@
+id: researcher
+name: 研究员
+description: 擅长信息研究和分析
+
+llm:
+  provider: openai
+  model: gpt-4o
+  settings:
+    temperature: 0.5
+    maxTokens: 8192
+    topP: 0.9
+
+
+tools:
+  - file
+  - search
+  - web
+

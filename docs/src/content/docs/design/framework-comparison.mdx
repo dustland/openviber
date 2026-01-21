@@ -1,0 +1,92 @@
+---
+title: Framework Comparison
+description: Compare Viber with other multi-agent frameworks
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+## Viber vs. Other Frameworks
+
+### Feature Comparison
+
+| Feature | Viber | LangChain | AutoGen | CrewAI |
+|---------|-------|-----------|---------|--------|
+| **Language** | TypeScript | Python/JS | Python | Python |
+| **Streaming** | Native | Partial | Limited | Limited |
+| **React/Svelte** | Built-in | Community | None | None |
+| **Tool Schema** | Zod | Pydantic | Custom | Pydantic |
+| **Multi-Agent** | ✓ | ✓ | ✓ | ✓ |
+| **Type Safety** | Full | Partial | Partial | Partial |
+
+### When to Choose Viber
+
+<Aside type="tip">
+  Viber is ideal for TypeScript-first teams building interactive AI applications.
+</Aside>
+
+**Choose Viber when you need:**
+
+- 🎯 **TypeScript-first development** with full type safety
+- ⚡ **Real-time streaming** with React or Svelte
+- 🔧 **Zod-based tool schemas** for runtime validation
+- 📦 **Lightweight footprint** without heavy dependencies
+- 🎨 **UI framework integration** out of the box
+
+**Consider alternatives when:**
+
+- You're working in a Python-only environment
+- You need extensive pre-built agent chains
+- You require specific enterprise integrations
+
+## Philosophy Differences
+
+### Viber: Composable Primitives
+
+```typescript
+// Viber emphasizes composition
+const agent = new Agent({ tools: [myTool] });
+const result = await agent.streamText({ messages });
+```
+
+### LangChain: Chain-Based
+
+```python
+# LangChain uses chains and abstractions
+chain = LLMChain(llm=llm, prompt=prompt)
+result = chain.run(input)
+```
+
+### AutoGen: Conversation-Centric
+
+```python
+# AutoGen focuses on agent conversations
+agent.initiate_chat(recipient, message)
+```
+
+## Migration Guides
+
+### From LangChain
+
+```typescript
+// LangChain (Python)
+// tool = StructuredTool.from_function(func, args_schema=Schema)
+
+// Viber
+const tool = tool({
+  name: 'my_tool',
+  parameters: z.object({ input: z.string() }),
+  execute: async (params) => { /* ... */ },
+});
+```
+
+### From Vercel AI SDK
+
+Viber builds on top of the Vercel AI SDK patterns:
+
+```typescript
+// Vercel AI SDK
+import { streamText } from 'ai';
+
+// Viber (compatible API)
+import { streamText } from 'viber';
+```

@@ -1,0 +1,61 @@
+id: playwright
+name: Playwright
+description: 使用 Microsoft Playwright 进行浏览器自动化、截图和网页交互，支持全页面截图、元素截图、表单填充等。
+version: "1.0.0"
+type: mcp
+category: browser
+icon: playwright
+status: active
+transport: stdio
+command: npx
+args: ["@playwright/mcp@latest"]
+enabled: true
+configSchema:
+  - field: browser
+    label: 浏览器类型
+    type: select
+    required: false
+    placeholder: chromium
+    help: "用于自动化的浏览器引擎"
+    defaultValue: chromium
+    options:
+      - value: chromium
+        label: Chromium
+        description: "默认浏览器，兼容性最佳"
+      - value: firefox
+        label: Firefox
+        description: "Mozilla Firefox 浏览器"
+      - value: webkit
+        label: WebKit
+        description: "Safari 的浏览器引擎"
+  - field: headless
+    label: 无头模式
+    type: boolean
+    required: false
+    help: "在无头模式下运行浏览器（无可见 UI）"
+    defaultValue: true
+  - field: screenshotPath
+    label: 截图目录
+    type: string
+    required: false
+    placeholder: "./screenshots"
+    help: "保存截图的目录路径"
+    envVar: PLAYWRIGHT_SCREENSHOT_DIR
+tags:
+  - 浏览器
+  - 自动化
+  - 截图
+  - 网页
+  - 测试
+features:
+  - 浏览器自动化和导航
+  - 全页面和元素截图
+  - 表单填充和交互
+  - PDF 生成
+  - 多标签页管理
+  - 网络请求监控
+  - JavaScript 执行
+requirements:
+  - platform: ["windows", "macos", "linux"]
+  - runtime: "node-18+"
+  - memory: "512MB"

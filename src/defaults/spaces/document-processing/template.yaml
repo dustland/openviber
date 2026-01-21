@@ -1,0 +1,25 @@
+id: document-processing
+category: 生产力
+name: 文档处理
+description: 专业的 Office 文档处理工作区
+icon: FileText
+agents:
+  - office
+quickMessages:
+  - 帮我分析这个 Excel 表格的数据趋势
+  - 帮我美化这个 Word 文档的格式和排版
+  - 优化这个 PPT 的结构和视觉效果
+  - 从这个文档中提取关键信息并总结
+
+# Marketplace metadata
+tags:
+  - 办公
+  - 文档
+  - Excel
+  - Word
+author: Supen 团队
+featured: true
+downloads: 0
+rating: 0
+preview:
+  image: /templates/document-processing.png

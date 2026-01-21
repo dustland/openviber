@@ -1,0 +1,264 @@
+- id: openai
+  name: OpenAI
+  description: GPT-5 and advanced reasoning models
+  enabled: true
+  endpoint: https://api.openai.com/v1
+  models:
+    - id: gpt-5
+      name: GPT-5
+      enabled: true
+      isDefault: true
+    - id: gpt-4o
+      name: GPT-4o
+      enabled: true
+    - id: gpt-4o-mini
+      name: GPT-4o Mini
+      enabled: true
+    - id: o3-mini
+      name: O3 Mini
+      enabled: true
+    - id: o1-pro
+      name: O1 Pro
+      enabled: true
+    - id: o1
+      name: O1
+      enabled: true
+    - id: o1-mini
+      name: O1 Mini
+      enabled: true
+  settings:
+    temperature: 0.7
+    maxTokens: 4096
+    topP: 1.0
+
+- id: anthropic
+  name: Anthropic
+  description: Claude 4 series with hybrid architecture and extended thinking
+  enabled: false
+  endpoint: https://api.anthropic.com/v1
+  models:
+    - id: claude-opus-4-1-20250805
+      name: Claude Opus 4.1
+      enabled: true
+      isDefault: true
+    - id: claude-opus-4-20250522
+      name: Claude Opus 4
+      enabled: true
+    - id: claude-sonnet-4-20250522
+      name: Claude Sonnet 4
+      enabled: true
+    - id: claude-sonnet-3-7-20250224
+      name: Claude Sonnet 3.7
+      enabled: true
+    - id: claude-3-5-sonnet-20241022
+      name: Claude 3.5 Sonnet
+      enabled: true
+    - id: claude-3-5-haiku-20241022
+      name: Claude 3.5 Haiku
+      enabled: true
+  settings:
+    temperature: 0.7
+    maxTokens: 8192
+    topP: 1.0
+
+- id: deepseek
+  name: DeepSeek
+  description: Cost-effective high-performance models
+  enabled: true
+  endpoint: https://api.deepseek.com
+  models:
+    - id: deepseek-r1
+      name: DeepSeek R1
+      enabled: true
+      isDefault: true
+    - id: deepseek-v3
+      name: DeepSeek V3.1
+      enabled: true
+    - id: deepseek-chat
+      name: DeepSeek Chat
+      enabled: true
+    - id: deepseek-reasoner
+      name: DeepSeek Reasoner
+      enabled: true
+  settings:
+    temperature: 0.7
+    maxTokens: 4096
+    topP: 0.95
+
+- id: google
+  name: Google
+  description: Gemini multimodal models with reasoning
+  enabled: false
+  endpoint: https://generativelanguage.googleapis.com
+  models:
+    - id: gemini-2.5-pro
+      name: Gemini 2.5 Pro
+      enabled: true
+      isDefault: true
+    - id: gemini-2.0-flash-thinking
+      name: Gemini 2.0 Flash Thinking
+      enabled: true
+    - id: gemini-2.0-flash-exp
+      name: Gemini 2.0 Flash
+      enabled: true
+  settings:
+    temperature: 0.7
+    maxTokens: 8192
+    topP: 1.0
+
+- id: qwen
+  name: Qwen
+  description: Alibaba Cloud language models
+  enabled: false
+  endpoint: https://dashscope.aliyuncs.com/api/v1
+  models:
+    - id: qwen-max
+      name: Qwen Max
+      enabled: true
+      isDefault: true
+    - id: qwen-plus
+      name: Qwen Plus
+      enabled: true
+    - id: qwen-turbo
+      name: Qwen Turbo
+      enabled: true
+  settings:
+    temperature: 0.7
+    maxTokens: 8192
+    topP: 0.8
+
+- id: openrouter
+  name: OpenRouter
+  description: Access 100+ models from multiple providers
+  enabled: true
+  endpoint: https://openrouter.ai/api/v1
+  models:
+    # Claude 4 Models (Released May-August 2025)
+    - id: anthropic/claude-opus-4-1-20250805
+      name: Claude Opus 4.1
+      enabled: true
+      isDefault: true
+      capabilities: [text, code, reasoning]
+    - id: anthropic/claude-opus-4-20250522
+      name: Claude Opus 4
+      enabled: true
+      capabilities: [text, code, reasoning]
+    - id: anthropic/claude-sonnet-4-20250522
+      name: Claude Sonnet 4
+      enabled: true
+      capabilities: [text, code, reasoning]
+    - id: anthropic/claude-sonnet-3-7-20250224
+      name: Claude Sonnet 3.7
+      enabled: true
+      capabilities: [text, code, reasoning]
+    - id: anthropic/claude-3.5-sonnet
+      name: Claude 3.5 Sonnet
+      enabled: true
+      capabilities: [text, code]
+    - id: anthropic/claude-3.5-haiku
+      name: Claude 3.5 Haiku
+      enabled: true
+      capabilities: [text]
+    # OpenAI GPT-5 and Reasoning Models (August 2025)
+    - id: openai/gpt-5
+      name: GPT-5
+      enabled: true
+      capabilities: [text, code, reasoning, tools]
+    - id: openai/gpt-5-mini
+      name: GPT-5 Mini
+      enabled: true
+      capabilities: [text, code, reasoning, tools]
+    - id: openai/gpt-5-nano
+      name: GPT-5 Nano
+      enabled: true
+      capabilities: [text, code]
+    - id: openai/gpt-4o
+      name: GPT-4o
+      enabled: true
+      capabilities: [text, image, code]
+    - id: openai/gpt-4o-mini
+      name: GPT-4o Mini
+      enabled: true
+      capabilities: [text, image, code]
+    - id: openai/o3-mini
+      name: O3 Mini
+      enabled: true
+      capabilities: [text, reasoning]
+    - id: openai/o1-pro
+      name: O1 Pro
+      enabled: true
+      capabilities: [text, reasoning]
+    - id: openai/o1
+      name: O1
+      enabled: true
+      capabilities: [text, reasoning]
+    - id: openai/o1-mini
+      name: O1 Mini
+      enabled: true
+      capabilities: [text, reasoning]
+    # Google Gemini 2.5
+    - id: google/gemini-2.5-pro
+      name: Gemini 2.5 Pro
+      enabled: true
+      capabilities: [text, image, audio, video, code]
+    - id: google/gemini-2.0-flash-thinking
+      name: Gemini 2.0 Flash Thinking
+      enabled: true
+      capabilities: [text, image, reasoning]
+    - id: google/gemini-2.0-flash-exp:free
+      name: Gemini 2.0 Flash (Free)
+      enabled: true
+      capabilities: [text, image]
+    # DeepSeek Latest Models
+    - id: deepseek/deepseek-r1
+      name: DeepSeek R1
+      enabled: true
+      capabilities: [text, code, reasoning]
+    - id: deepseek/deepseek-v3
+      name: DeepSeek V3.1
+      enabled: true
+      capabilities: [text, code]
+    - id: deepseek/deepseek-chat
+      name: DeepSeek Chat
+      enabled: true
+      capabilities: [text]
+    # Meta LLaMA 4
+    - id: meta-llama/llama-4-405b
+      name: Llama 4 405B
+      enabled: true
+      capabilities: [text, image, audio, video, code]
+    - id: meta-llama/llama-3.3-70b-instruct
+      name: Llama 3.3 70B
+      enabled: true
+      capabilities: [text, code]
+    # xAI Grok Models
+    - id: x-ai/grok-3
+      name: Grok 3
+      enabled: true
+      capabilities: [text, code, reasoning]
+    - id: x-ai/grok-2
+      name: Grok 2
+      enabled: true
+      capabilities: [text, code]
+    # Qwen Models
+    - id: qwen/qwen-2.5-72b-instruct
+      name: Qwen 2.5 72B
+      enabled: true
+      capabilities: [text, code]
+    - id: qwen/qwen-2.5-coder-32b-instruct
+      name: Qwen 2.5 Coder 32B
+      enabled: true
+      capabilities: [text, code]
+    # Other Models
+    - id: mistralai/mistral-large
+      name: Mistral Large
+      enabled: true
+      capabilities: [text, code]
+    - id: cohere/command-r-plus
+      name: Command R+
+      enabled: true
+      capabilities: [text, code]
+  settings:
+    temperature: 0.7
+    maxTokens: 4096
+    topP: 1.0

@@ -2,6 +2,7 @@ import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import svelte from '@astrojs/svelte';
 import tailwindcss from '@tailwindcss/vite';
+import node from '@astrojs/node';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -33,6 +34,16 @@ export default defineConfig({
           ],
         },
         {
+          label: 'Tutorials',
+          items: [
+            { label: 'First Agent', slug: 'tutorials/1-first-agent' },
+            { label: 'Multi-Agent', slug: 'tutorials/2-multi-agent' },
+            { label: 'Custom Tools', slug: 'tutorials/3-custom-tools' },
+            { label: 'Configuration', slug: 'tutorials/4-configuration' },
+            { label: 'Complex Systems', slug: 'tutorials/91-comprehensive-systems' },
+          ],
+        },
+        {
           label: 'Guides',
           items: [
             { label: 'Agents', slug: 'guides/agents' },
@@ -47,13 +58,22 @@ export default defineConfig({
           items: [
             { label: 'Overview', slug: 'api' },
             { label: 'Types', slug: 'api/types' },
+            { label: 'Glossary', slug: 'reference/glossary' },
           ],
         },
         {
           label: 'Design',
           items: [
+            { label: 'Philosophy', slug: 'design/philosophy' },
             { label: 'Architecture', slug: 'design/architecture' },
             { label: 'Framework Comparison', slug: 'design/framework-comparison' },
+            { label: 'Communication', slug: 'design/communication' },
+            { label: 'Memory', slug: 'design/memory' },
+            { label: 'Message Parts', slug: 'design/message-parts' },
+            { label: 'Package Structure', slug: 'design/package-structure' },
+            { label: 'Security', slug: 'design/security' },
+            { label: 'Task Lifecycle', slug: 'design/task-lifecycle' },
+            { label: 'Tool Execution', slug: 'design/tool-execution' },
           ],
         },
         {
@@ -65,7 +85,10 @@ export default defineConfig({
     }),
     svelte(),
   ],
-  output: 'static',
+  adapter: node({
+    mode: 'standalone',
+  }),
+  output: 'server',
   server: {
     port: 6006,
     host: true,
@@ -79,9 +102,14 @@ export default defineConfig({
     ],
     resolve: {
       alias: {
-        'viber/svelte': path.resolve(__dirname, '../src/svelte/index.ts'),
-        'viber': path.resolve(__dirname, '../src/index.ts'),
+        // 'viber/svelte': path.resolve(__dirname, '../src/svelte/index.ts'),
+        // 'viber': path.resolve(__dirname, '../src/index.ts'),
         '$lib': path.resolve(__dirname, './src/lib'),
+      },
+    },
+    build: {
+      rollupOptions: {
+        external: ['path'],
       },
     },
   },

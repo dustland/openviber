@@ -1,0 +1,686 @@
+---
+title: "Advanced: Comprehensive Systems"
+---
+
+
+**⏱️ Time: 60 minutes | 🎯 Goal: Build a scalable, production-ready system**
+
+Time to build something serious! In this tutorial, you'll create a comprehensive research system with multiple features, demonstrating how all Viber concepts work together.
+
+## What You'll Learn
+
+- Advanced multi-agent workflows
+- Persistent storage with Supabase
+- Error handling and resilience
+- Production deployment patterns
+- Interactive CLI applications
+
+## Prerequisites
+
+- Completed all previous tutorials
+- Understanding of TypeScript and async/await
+- An LLM API key
+- (Optional) Supabase account for cloud storage
+
+---
+
+## Project Overview
+
+We'll build a **Research Assistant** that:
+
+- Maintains persistent research projects
+- Coordinates multiple research phases
+- Saves and organizes findings
+- Provides an interactive CLI interface
+- Can be resumed across sessions
+
+## Step 1: Project Setup
+
+```bash
+mkdir research-assistant
+cd research-assistant
+pnpm init
+pnpm add viber @viber/tools dotenv
+pnpm add -D typescript tsx @types/node
+```
+
+Create the project structure:
+
+```
+research-assistant/
+├── src/
+│   ├── index.ts           # Main entry point
+│   ├── research.ts        # Research workflow
+│   ├── interactive.ts     # Interactive CLI
+│   └── utils/
+│       └── logger.ts      # Logging utility
+├── .env
+├── package.json
+└── tsconfig.json
+```
+
+## Step 2: Create Utility Functions
+
+Create `src/utils/logger.ts`:
+
+```typescript
+const LOG_LEVELS = {
+  debug: 0,
+  info: 1,
+  warn: 2,
+  error: 3,
+};
+
+const currentLevel = LOG_LEVELS[process.env.LOG_LEVEL || "info"] || 1;
+
+export const logger = {
+  debug: (message: string, ...args: unknown[]) => {
+    if (currentLevel <= 0) console.log(`🔍 ${message}`, ...args);
+  },
+  info: (message: string, ...args: unknown[]) => {
+    if (currentLevel <= 1) console.log(`ℹ️  ${message}`, ...args);
+  },
+  warn: (message: string, ...args: unknown[]) => {
+    if (currentLevel <= 2) console.warn(`⚠️  ${message}`, ...args);
+  },
+  error: (message: string, ...args: unknown[]) => {
+    if (currentLevel <= 3) console.error(`❌ ${message}`, ...args);
+  },
+  success: (message: string, ...args: unknown[]) => {
+    console.log(`✅ ${message}`, ...args);
+  },
+};
+```
+
+## Step 3: Create the Research Workflow
+
+Create `src/research.ts`:
+
+```typescript
+import { XAgent, Space } from "viber";
+import { logger } from "./utils/logger.js";
+
+export interface ResearchResult {
+  topic: string;
+  findings: string;
+  analysis: string;
+  report: string;
+}
+
+export class ResearchWorkflow {
+  private xAgent: XAgent;
+  private space: Space;
+
+  constructor(xAgent: XAgent) {
+    this.xAgent = xAgent;
+    this.space = xAgent.getSpace();
+  }
+
+  static async create(topic: string): Promise<ResearchWorkflow> {
+    logger.info(`Creating new research project: ${topic}`);
+    const xAgent = await XAgent.start(`Research: ${topic}`);
+    return new ResearchWorkflow(xAgent);
+  }
+
+  static async resume(spaceId: string): Promise<ResearchWorkflow> {
+    logger.info(`Resuming research project: ${spaceId}`);
+    const xAgent = await XAgent.resume(spaceId);
+    return new ResearchWorkflow(xAgent);
+  }
+
+  get spaceId(): string {
+    return this.space.spaceId;
+  }
+
+  get topic(): string {
+    return this.space.goal;
+  }
+
+  async conductResearch(): Promise<string> {
+    logger.info("Phase 1: Conducting research...");
+    
+    const stream = await this.xAgent.streamText({
+      messages: [
+        {
+          role: "user",
+          content: `Please conduct comprehensive research on: ${this.topic}
+
+Focus on:
+1. Current state and recent developments
+2. Key statistics and data
+3. Major players and stakeholders
+4. Challenges and opportunities
+5. Future trends
+
+Provide detailed, well-organized findings.`,
+        },
+      ],
+      metadata: { mode: "agent", requestedAgent: "X" },
+    });
+
+    let result = "";
+    process.stdout.write("\n📚 Research Findings:\n");
+    process.stdout.write("─".repeat(40) + "\n");
+
+    for await (const chunk of stream.textStream) {
+      process.stdout.write(chunk);
+      result += chunk;
+    }
+    console.log("\n");
+
+    return result;
+  }
+
+  async analyzeFindings(): Promise<string> {
+    logger.info("Phase 2: Analyzing findings...");
+
+    const stream = await this.xAgent.streamText({
+      messages: [
+        {
+          role: "user",
+          content: `Based on the research you've gathered, please provide:
+
+1. **Key Insights**: What are the most important takeaways?
+2. **Patterns & Trends**: What patterns emerge from the data?
+3. **Implications**: What does this mean for stakeholders?
+4. **Recommendations**: What actions should be considered?
+
+Provide a structured analysis.`,
+        },
+      ],
+      metadata: { mode: "agent", requestedAgent: "X" },
+    });
+
+    let result = "";
+    process.stdout.write("\n🔍 Analysis:\n");
+    process.stdout.write("─".repeat(40) + "\n");
+
+    for await (const chunk of stream.textStream) {
+      process.stdout.write(chunk);
+      result += chunk;
+    }
+    console.log("\n");
+
+    return result;
+  }
+
+  async generateReport(): Promise<string> {
+    logger.info("Phase 3: Generating report...");
+
+    const stream = await this.xAgent.streamText({
+      messages: [
+        {
+          role: "user",
+          content: `Create a comprehensive research report based on our findings and analysis.
+
+Structure:
+1. **Executive Summary** (2-3 paragraphs)
+2. **Introduction** (background and methodology)
+3. **Key Findings** (organized by theme)
+4. **Analysis** (insights and implications)
+5. **Recommendations** (actionable next steps)
+6. **Conclusion**
+
+Make it professional and ready for stakeholders.`,
+        },
+      ],
+      metadata: { mode: "agent", requestedAgent: "X" },
+    });
+
+    let result = "";
+    process.stdout.write("\n📄 Research Report:\n");
+    process.stdout.write("─".repeat(40) + "\n");
+
+    for await (const chunk of stream.textStream) {
+      process.stdout.write(chunk);
+      result += chunk;
+    }
+    console.log("\n");
+
+    return result;
+  }
+
+  async runFullWorkflow(): Promise<ResearchResult> {
+    console.log("\n" + "═".repeat(50));
+    console.log("🔬 Starting Full Research Workflow");
+    console.log("═".repeat(50));
+    console.log(`📋 Topic: ${this.topic}`);
+    console.log(`🆔 Space: ${this.spaceId}\n`);
+
+    const findings = await this.conductResearch();
+    const analysis = await this.analyzeFindings();
+    const report = await this.generateReport();
+
+    // Save progress
+    await this.save();
+
+    console.log("═".repeat(50));
+    logger.success("Research workflow completed!");
+    console.log(`💾 Space ID: ${this.spaceId}`);
+    console.log("═".repeat(50) + "\n");
+
+    return {
+      topic: this.topic,
+      findings,
+      analysis,
+      report,
+    };
+  }
+
+  async chat(message: string): Promise<string> {
+    const stream = await this.xAgent.streamText({
+      messages: [{ role: "user", content: message }],
+      metadata: { mode: "agent", requestedAgent: "X" },
+    });
+
+    let result = "";
+    for await (const chunk of stream.textStream) {
+      process.stdout.write(chunk);
+      result += chunk;
+    }
+    console.log("\n");
+
+    return result;
+  }
+
+  async save(): Promise<void> {
+    await this.space.persistState();
+    logger.success(`Saved: ${this.spaceId}`);
+  }
+
+  getStatus(): {
+    spaceId: string;
+    topic: string;
+    messageCount: number;
+  } {
+    return {
+      spaceId: this.spaceId,
+      topic: this.topic,
+      messageCount: this.space.history.messages.length,
+    };
+  }
+}
+```
+
+## Step 4: Create the Interactive CLI
+
+Create `src/interactive.ts`:
+
+```typescript
+import "dotenv/config";
+import * as readline from "readline";
+import { ResearchWorkflow } from "./research.js";
+import { logger } from "./utils/logger.js";
+
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
+
+function prompt(question: string): Promise<string> {
+  return new Promise((resolve) => {
+    rl.question(question, resolve);
+  });
+}
+
+function printMenu() {
+  console.log("\n📋 Commands:");
+  console.log("  new <topic>    - Start a new research project");
+  console.log("  resume <id>    - Resume an existing project");
+  console.log("  research       - Run research phase");
+  console.log("  analyze        - Run analysis phase");
+  console.log("  report         - Generate final report");
+  console.log("  full           - Run complete workflow");
+  console.log("  ask <question> - Ask a follow-up question");
+  console.log("  status         - Show project status");
+  console.log("  save           - Save current progress");
+  console.log("  quit           - Exit");
+}
+
+async function main() {
+  console.log("\n" + "═".repeat(50));
+  console.log("🔬 Viber Research Assistant");
+  console.log("═".repeat(50));
+  console.log("A comprehensive research workflow tool");
+  
+  let workflow: ResearchWorkflow | null = null;
+
+  // Check for existing space ID
+  const existingId = process.env.SPACE_ID;
+  if (existingId) {
+    const resume = await prompt(
+      `\n📂 Found existing project: ${existingId}\nResume? (y/n): `
+    );
+    if (resume.toLowerCase() === "y") {
+      try {
+        workflow = await ResearchWorkflow.resume(existingId);
+        logger.success(`Resumed project: ${workflow.topic}`);
+      } catch (error) {
+        logger.error(`Failed to resume: ${error}`);
+      }
+    }
+  }
+
+  printMenu();
+
+  while (true) {
+    const input = await prompt("\n> ");
+    const [command, ...args] = input.trim().split(" ");
+
+    try {
+      switch (command.toLowerCase()) {
+        case "new": {
+          const topic = args.join(" ");
+          if (!topic) {
+            console.log("Usage: new <research topic>");
+            break;
+          }
+          workflow = await ResearchWorkflow.create(topic);
+          logger.success(`Created new project: ${workflow.spaceId}`);
+          break;
+        }
+
+        case "resume": {
+          const spaceId = args[0];
+          if (!spaceId) {
+            console.log("Usage: resume <space-id>");
+            break;
+          }
+          workflow = await ResearchWorkflow.resume(spaceId);
+          logger.success(`Resumed: ${workflow.topic}`);
+          break;
+        }
+
+        case "research": {
+          if (!workflow) {
+            console.log("❌ No active project. Use 'new' or 'resume' first.");
+            break;
+          }
+          await workflow.conductResearch();
+          break;
+        }
+
+        case "analyze": {
+          if (!workflow) {
+            console.log("❌ No active project. Use 'new' or 'resume' first.");
+            break;
+          }
+          await workflow.analyzeFindings();
+          break;
+        }
+
+        case "report": {
+          if (!workflow) {
+            console.log("❌ No active project. Use 'new' or 'resume' first.");
+            break;
+          }
+          await workflow.generateReport();
+          break;
+        }
+
+        case "full": {
+          if (!workflow) {
+            console.log("❌ No active project. Use 'new' or 'resume' first.");
+            break;
+          }
+          await workflow.runFullWorkflow();
+          break;
+        }
+
+        case "ask": {
+          if (!workflow) {
+            console.log("❌ No active project. Use 'new' or 'resume' first.");
+            break;
+          }
+          const question = args.join(" ");
+          if (!question) {
+            console.log("Usage: ask <your question>");
+            break;
+          }
+          console.log("\n🤖 XAgent: ");
+          await workflow.chat(question);
+          break;
+        }
+
+        case "status": {
+          if (!workflow) {
+            console.log("❌ No active project.");
+            break;
+          }
+          const status = workflow.getStatus();
+          console.log("\n📊 Project Status:");
+          console.log(`   Space ID: ${status.spaceId}`);
+          console.log(`   Topic: ${status.topic}`);
+          console.log(`   Messages: ${status.messageCount}`);
+          break;
+        }
+
+        case "save": {
+          if (!workflow) {
+            console.log("❌ No active project.");
+            break;
+          }
+          await workflow.save();
+          break;
+        }
+
+        case "help":
+        case "?":
+          printMenu();
+          break;
+
+        case "quit":
+        case "exit":
+          if (workflow) {
+            console.log("\n💾 Saving project...");
+            await workflow.save();
+            console.log(`\nResume later with: SPACE_ID=${workflow.spaceId}`);
+          }
+          console.log("\nGoodbye! 👋");
+          rl.close();
+          return;
+
+        default:
+          if (input.trim()) {
+            console.log("Unknown command. Type 'help' for available commands.");
+          }
+      }
+    } catch (error) {
+      logger.error(`Error: ${error}`);
+    }
+  }
+}
+
+main().catch(console.error);
+```
+
+## Step 5: Create the Main Entry Point
+
+Create `src/index.ts`:
+
+```typescript
+import "dotenv/config";
+import { ResearchWorkflow } from "./research.js";
+import { logger } from "./utils/logger.js";
+
+async function main() {
+  console.log("\n🔬 Viber Research Assistant - Quick Demo\n");
+
+  // Get topic from command line or use default
+  const topic = process.argv[2] || "Artificial Intelligence in Healthcare";
+
+  logger.info(`Starting research on: ${topic}`);
+
+  // Create a new research workflow
+  const workflow = await ResearchWorkflow.create(topic);
+
+  // Run the full workflow
+  const result = await workflow.runFullWorkflow();
+
+  // Print summary
+  console.log("\n📝 Summary:");
+  console.log(`   Topic: ${result.topic}`);
+  console.log(`   Space ID: ${workflow.spaceId}`);
+  console.log(`\nTo resume this project later:`);
+  console.log(`   SPACE_ID=${workflow.spaceId} pnpm interactive`);
+}
+
+main().catch(console.error);
+```
+
+## Step 6: Configure the Project
+
+Update `package.json`:
+
+```json
+{
+  "name": "research-assistant",
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "interactive": "tsx src/interactive.ts",
+    "dev": "tsx watch src/index.ts"
+  }
+}
+```
+
+Create `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "esModuleInterop": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "outDir": "dist"
+  },
+  "include": ["src/**/*"]
+}
+```
+
+Create `.env`:
+
+```bash
+OPENAI_API_KEY=sk-your-key
+LOG_LEVEL=info
+```
+
+## Step 7: Run the Application
+
+### Quick Demo
+
+```bash
+pnpm start "Climate Change Solutions"
+```
+
+### Interactive Mode
+
+```bash
+pnpm interactive
+```
+
+You'll see:
+
+```
+══════════════════════════════════════════════════
+🔬 Viber Research Assistant
+══════════════════════════════════════════════════
+A comprehensive research workflow tool
+
+📋 Commands:
+  new <topic>    - Start a new research project
+  resume <id>    - Resume an existing project
+  research       - Run research phase
+  ...
+
+> new Renewable Energy Trends 2024
+✅ Created new project: space_abc123xyz
+
+> full
+══════════════════════════════════════════════════
+🔬 Starting Full Research Workflow
+══════════════════════════════════════════════════
+📋 Topic: Research: Renewable Energy Trends 2024
+🆔 Space: space_abc123xyz
+
+ℹ️  Phase 1: Conducting research...
+
+📚 Research Findings:
+────────────────────────────────────────
+[XAgent provides comprehensive research]
+
+ℹ️  Phase 2: Analyzing findings...
+...
+```
+
+## Step 8: Production Enhancements
+
+### Add Error Handling
+
+```typescript
+// In research.ts
+async conductResearch(): Promise<string> {
+  try {
+    // ... existing code
+  } catch (error) {
+    logger.error(`Research failed: ${error}`);
+    throw new Error(`Research phase failed: ${error}`);
+  }
+}
+```
+
+### Add Graceful Shutdown
+
+```typescript
+// In interactive.ts
+process.on("SIGINT", async () => {
+  console.log("\n\nInterrupt received...");
+  if (workflow) {
+    console.log("💾 Saving project...");
+    await workflow.save();
+    console.log(`Space ID: ${workflow.spaceId}`);
+  }
+  process.exit(0);
+});
+```
+
+## 🎉 Congratulations!
+
+You've built a comprehensive, production-ready research system! Here's what you accomplished:
+
+✅ **Multi-phase research workflow**  
+✅ **Interactive CLI interface**  
+✅ **Persistent project management**  
+✅ **Error handling and logging**  
+✅ **Graceful shutdown handling**  
+
+## 💡 Key Patterns Used
+
+1. **Workflow Class**: Encapsulates the multi-step research process
+2. **Static Factory Methods**: `create()` and `resume()` for initialization
+3. **Interactive CLI**: readline-based command interface
+4. **Logging**: Structured logging with levels
+5. **Error Boundaries**: Try-catch at command level
+
+## 🚀 Extensions
+
+Ideas for expanding this project:
+
+- **Export to PDF**: Generate PDF reports using puppeteer
+- **Email Integration**: Send reports via email
+- **Web Interface**: Build a Next.js frontend
+- **Database Integration**: Store results in a database
+- **Scheduled Research**: Run research on a schedule
+
+## 📚 Related Resources
+
+- [SDK Reference](/sdk) — Complete API documentation
+- [React Integration](/sdk/react) — Build web UIs
+- [Example Projects](https://github.com/tiwater/viber/tree/main/examples) — More examples
+
+---
+
+🎊 **Congratulations on completing the Viber tutorial series!** You now have the skills to build sophisticated AI agent systems.

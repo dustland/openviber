@@ -8,8 +8,6 @@
   import { ArrowRight } from "lucide-svelte";
 
   // Use VITE_ or PUBLIC_ prefix depending on Astro config, keeping it simple check content
-  const API_KEY = import.meta.env.PUBLIC_OPENROUTER_API_KEY;
-
   let isCreating = $state(false);
   let messages = $state<any[]>([]);
 
@@ -71,28 +69,23 @@
 
   async function handleCreateXAgent(prompt: string) {
     if (!prompt.trim()) return;
+
     if (isCreating) return;
 
     isCreating = true;
     messages = [...messages, { role: "user", content: prompt }];
 
     try {
-      const response = await fetch(
-        "https://openrouter.ai/api/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${API_KEY}`,
-            "HTTP-Referer": window.location.origin,
-            "X-Title": "Viber Playground",
-          },
-          body: JSON.stringify({
-            model: "openai/gpt-3.5-turbo", // Cost effective for demo, allow upgrade later
-            messages: [{ role: "user", content: prompt }],
-          }),
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify({
+          model: "openai/gpt-3.5-turbo",
+          messages: [{ role: "user", content: prompt }],
+        }),
+      });
 
       if (!response.ok) {
         throw new Error(`API Error: ${response.status}`);
@@ -117,7 +110,7 @@
   }
 </script>
 
-<div class="flex flex-col min-h-[600px] bg-background text-foreground">
+<div class="flex flex-col min-h-[600px] bg-background text-foreground relative">
   <div class="flex-1 flex flex-col items-center justify-center px-4 py-12">
     <div class="w-full max-w-4xl space-y-8">
       <!-- Hero / Conversation -->

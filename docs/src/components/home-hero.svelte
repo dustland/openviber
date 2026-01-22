@@ -1,5 +1,5 @@
 <script lang="ts">
-  import ChatInput from "./playground/chat-input.svelte";
+  import ChatInput from "./chat-input.svelte";
   import { ArrowRight } from "lucide-svelte";
 
   function handleSendMessage(prompt: string) {

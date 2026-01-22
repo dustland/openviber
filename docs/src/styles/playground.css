@@ -32,13 +32,15 @@
   --radius-radius: var(--radius);
 }
 
---sl-color-gray-6: #475569;
---sl-color-hairline: #e2e8f0;
---sl-color-accent: #3b82f6;
---sl-color-accent-low: #bfdbfe;
---sl-color-accent-high: #2563eb;
---sl-color-white: #ffffff;
---sl-color-black: #000000;
+:root {
+  /* Starlight overrides */
+  --sl-color-gray-6: #475569;
+  --sl-color-hairline: #e2e8f0;
+  --sl-color-accent: #3b82f6;
+  --sl-color-accent-low: #bfdbfe;
+  --sl-color-accent-high: #2563eb;
+  --sl-color-white: #ffffff;
+  --sl-color-black: #000000;
 }
 
 :root[data-theme='dark'] {
@@ -134,7 +136,7 @@
   --border: #27272a;
   --input: #27272a;
   --ring: var(--sl-color-accent-high);
-}
+
 }
 
 @layer base {

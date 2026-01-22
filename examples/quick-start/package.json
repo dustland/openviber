@@ -1,0 +1,21 @@
+{
+  "name": "quick-start",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Minimal VibeX example - get started in 5 minutes",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "basic": "tsx src/basic.ts",
+    "stream": "tsx src/stream.ts",
+    "resume": "tsx src/resume.ts"
+  },
+  "dependencies": {
+    "viber": "workspace:*",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.0",
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0"
+  }
+}

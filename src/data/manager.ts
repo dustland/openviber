@@ -80,7 +80,7 @@ export class ViberDataManager {
       throw new Error("createServerSync() can only be called on the server");
     }
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { getServerDataAdapter } = require("@/viber/data/factory");
+    const { getServerDataAdapter } = require("./factory");
     return new ViberDataManager(getServerDataAdapter());
   }
 

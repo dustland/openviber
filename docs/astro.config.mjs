@@ -95,7 +95,7 @@ export default defineConfig({
   },
   vite: {
     ssr: {
-      noExternal: ['viber'],
+      noExternal: ['viber', 'nanoid'],
     },
     plugins: [
       tailwindcss(),

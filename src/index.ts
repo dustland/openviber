@@ -24,8 +24,8 @@ export { getModelProvider, parseModelString } from "./core/provider";
 export type { ModelProvider } from "./core/provider";
 export * from "./core/tool";
 
-// Stream text function - re-export from AI SDK
-export { streamText } from "ai";
+// AI SDK Core - re-export from AI SDK v6
+export { streamText, generateText, Output, ToolLoopAgent, stepCountIs } from "ai";
 
 // Data Management
 export * from "./data/manager";

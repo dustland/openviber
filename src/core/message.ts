@@ -1,8 +1,8 @@
 /**
- * Message types for Viber - Using AI SDK v5 types directly
+ * Message types for Viber - Using AI SDK v6 types directly
  */
 
-import type { CoreMessage } from 'ai';
+import type { ModelMessage } from 'ai';
 
 // Extend CoreMessage to include our metadata
 export interface ViberMessage {
@@ -250,7 +250,7 @@ export class ConversationHistory {
     this.messages = [];
   }
 
-  toCoreMessages(): CoreMessage[] {
+  toModelMessages(): ModelMessage[] {
     // Convert to AI SDK format, cleaning content appropriately
     return this.messages
       .map(msg => {
@@ -287,6 +287,6 @@ export class ConversationHistory {
           content: cleanContent,
         };
       })
-      .filter(msg => msg !== null) as CoreMessage[];
+      .filter(msg => msg !== null) as ModelMessage[];
   }
 }

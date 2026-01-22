@@ -3,7 +3,7 @@
  * Handles token counting, message compression, and context window management
  */
 
-import type { CoreMessage } from "ai";
+import type { ModelMessage } from "ai";
 
 /**
  * Simple token estimation (4 chars ≈ 1 token)
@@ -52,9 +52,9 @@ export function calculateContextBudget(
  * Compress messages to fit within context window
  */
 export async function compressMessages(
-  messages: CoreMessage[],
+  messages: ModelMessage[],
   budget: ContextBudget
-): Promise<CoreMessage[]> {
+): Promise<ModelMessage[]> {
   // Calculate current token usage
   let totalTokens = messages.reduce(
     (sum, msg) => sum + estimateTokenCount(JSON.stringify(msg)),
@@ -74,7 +74,7 @@ export async function compressMessages(
   if (messages.length > 10) {
     const summaryResult = await summarizeConversation(messages.slice(0, -8));
     if (summaryResult) {
-      const compressedMessages: CoreMessage[] = [
+      const compressedMessages: ModelMessage[] = [
         {
           role: "system",
           content: `[Previous conversation summary: ${summaryResult}]`,
@@ -119,7 +119,7 @@ export async function compressMessages(
  * Summarize a conversation (placeholder - should use LLM in production)
  */
 async function summarizeConversation(
-  messages: CoreMessage[]
+  messages: ModelMessage[]
 ): Promise<string | null> {
   // In production, this should use an LLM to generate a proper summary
   // For now, just extract key points
@@ -145,7 +145,7 @@ async function summarizeConversation(
  * Validate final context before sending to LLM
  */
 export function validateContext(
-  messages: CoreMessage[],
+  messages: ModelMessage[],
   budget: ContextBudget
 ): { valid: boolean; reason?: string } {
   const messageTokens = messages.reduce(

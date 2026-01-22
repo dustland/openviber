@@ -7,7 +7,7 @@
  */
 
 import { generateText, streamText } from "ai";
-import type { LanguageModel, CoreMessage } from "ai";
+import type { LanguageModel, ModelMessage } from "ai";
 import { getViberPath } from "../config";
 import { AgentConfig } from "./config";
 import { ConversationHistory, ViberMessage } from "./message";
@@ -391,8 +391,8 @@ export class Agent {
     // Generate a message ID that includes the agent name
     const agentPrefix = this.name.toLowerCase().replace(/\s+/g, "-");
 
-    // Convert ViberMessage[] to CoreMessage[] ONLY here, right before AI SDK call
-    const modelMessages: CoreMessage[] = viberMessages
+    // Convert ViberMessage[] to ModelMessage[] ONLY here, right before AI SDK call
+    const modelMessages: ModelMessage[] = viberMessages
       .filter((m) => m.role !== "tool") // Skip tool messages
       .map((m) => ({
         role: m.role as "system" | "user" | "assistant",
@@ -417,7 +417,7 @@ export class Agent {
       toolChoice: "auto", // Explicitly set tool choice mode
       maxSteps: 5, // Allow up to 5 tool call steps
       temperature: this.temperature,
-      maxTokens: this.maxTokens,
+      maxOutputTokens: this.maxTokens,
       topP: this.topP,
       frequencyPenalty: this.frequencyPenalty,
       presencePenalty: this.presencePenalty,
@@ -435,17 +435,17 @@ export class Agent {
           toolCalls.forEach((toolCall) => {
             console.log(`[${this.name}] Tool Call:`, {
               toolName: toolCall.toolName,
-              args: toolCall.args,
+              input: toolCall.input,
               // Focus on filepath-related arguments
               hasFilePath:
-                toolCall.args &&
-                typeof toolCall.args === "object" &&
-                ("filepath" in toolCall.args ||
-                  "file_path" in toolCall.args ||
-                  "path" in toolCall.args),
+                toolCall.input &&
+                typeof toolCall.input === "object" &&
+                ("filepath" in toolCall.input ||
+                  "file_path" in toolCall.input ||
+                  "path" in toolCall.input),
               pathValues:
-                toolCall.args && typeof toolCall.args === "object"
-                  ? Object.entries(toolCall.args)
+                toolCall.input && typeof toolCall.input === "object"
+                  ? Object.entries(toolCall.input)
                     .filter(
                       ([key]) =>
                         key.toLowerCase().includes("path") ||
@@ -464,8 +464,8 @@ export class Agent {
           toolResults.forEach((result, index) => {
             console.log(`[${this.name}] Tool Result [${index}]:`, {
               toolName: result.toolName,
-              hasResult: result.result !== undefined,
-              result: result.result,
+              hasOutput: result.output !== undefined,
+              output: result.output,
             });
           });
         }
@@ -529,8 +529,8 @@ export class Agent {
     const model = this.getModel({ spaceId, userId: enrichedMetadata.userId });
     const tools = await this.getTools({ spaceId });
 
-    // Convert ViberMessage[] to CoreMessage[] ONLY here, right before AI SDK call
-    const modelMessages: CoreMessage[] = viberMessages
+    // Convert ViberMessage[] to ModelMessage[] ONLY here, right before AI SDK call
+    const modelMessages: ModelMessage[] = viberMessages
       .filter((m) => m.role !== "tool") // Skip tool messages
       .map((m) => ({
         role: m.role as "system" | "user" | "assistant",

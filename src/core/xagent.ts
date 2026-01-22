@@ -13,7 +13,7 @@ import { Space } from "./space";
 import { getServerDataAdapter } from "../data/factory";
 import { Plan } from "./plan";
 import { Task, TaskStatus } from "./task";
-import { generateObject } from "ai";
+import { generateText, Output } from "ai";
 import { z } from "zod";
 import type { ParallelTask } from "./collaboration";
 
@@ -483,7 +483,7 @@ export class XAgent extends Agent {
       ),
     });
 
-    const result = await generateObject({
+    const result = await generateText({
       model: this.getModel(),
       system:
         this.getSystemPrompt() +
@@ -491,11 +491,11 @@ export class XAgent extends Agent {
       prompt: `Goal: ${planGoal}\n\nAvailable agents: ${Array.from(
         this.space.agents.keys()
       ).join(", ")}`,
-      schema: planSchema,
+      output: Output.object({ schema: planSchema }),
     });
 
-    // Create Plan with Tasks - cast result.object to inferred schema type
-    const planData = result.object as z.infer<typeof planSchema>;
+    // Create Plan with Tasks - cast result.output to inferred schema type
+    const planData = result.output as z.infer<typeof planSchema>;
     const tasks = planData.tasks.map(
       (taskData: z.infer<typeof planSchema>['tasks'][number]) =>
         new Task({
@@ -587,17 +587,17 @@ Preserve tasks that are still relevant.
 Modify, remove, or add tasks as needed to better achieve the goal.
 `;
 
-    const result = await generateObject({
+    const result = await generateText({
       model: this.getModel(),
       system:
         this.getSystemPrompt() +
         "\n\nAdapt the existing plan based on user feedback.",
       prompt,
-      schema: adaptSchema,
+      output: Output.object({ schema: adaptSchema }),
     });
 
-    // Apply adaptations - cast result.object to inferred schema type
-    const adaptData = result.object as z.infer<typeof adaptSchema>;
+    // Apply adaptations - cast result.output to inferred schema type
+    const adaptData = result.output as z.infer<typeof adaptSchema>;
     const adaptedTasks: Task[] = [];
 
     // Keep preserved tasks

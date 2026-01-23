@@ -23,6 +23,8 @@ export interface Artifact {
 export interface PlaygroundSpace {
   messages: Message[];
   artifacts: Artifact[];
+  streamingContent: string; // Current streaming message content
+  isStreaming: boolean;
   config: {
     model: string;
     agentName: string;
@@ -35,8 +37,10 @@ function createDefaultSpace(): PlaygroundSpace {
   return {
     messages: [],
     artifacts: [],
+    streamingContent: '',
+    isStreaming: false,
     config: {
-      model: 'openai:gpt-4o',
+      model: 'anthropic/claude-sonnet-4',
       agentName: 'Assistant',
     },
   };
@@ -48,7 +52,14 @@ function loadFromStorage(): PlaygroundSpace {
   try {
     const stored = localStorage.getItem(SPACE_KEY);
     if (stored) {
-      return JSON.parse(stored);
+      const parsed = JSON.parse(stored);
+      // Ensure new fields exist
+      return {
+        ...createDefaultSpace(),
+        ...parsed,
+        streamingContent: '',
+        isStreaming: false,
+      };
     }
   } catch (e) {
     console.warn('Failed to load space from localStorage:', e);
@@ -60,7 +71,9 @@ function saveToStorage(space: PlaygroundSpace) {
   if (typeof window === 'undefined') return;
 
   try {
-    localStorage.setItem(SPACE_KEY, JSON.stringify(space));
+    // Don't persist streaming state
+    const { streamingContent, isStreaming, ...persistable } = space;
+    localStorage.setItem(SPACE_KEY, JSON.stringify(persistable));
   } catch (e) {
     console.warn('Failed to save space to localStorage:', e);
   }
@@ -94,6 +107,55 @@ function createPlaygroundStore() {
         saveToStorage(updated);
         return updated;
       });
+    },
+
+    // Start streaming a new assistant message
+    startStreaming() {
+      update(space => ({
+        ...space,
+        streamingContent: '',
+        isStreaming: true,
+      }));
+    },
+
+    // Append content to the streaming message
+    appendStreamingContent(chunk: string) {
+      update(space => ({
+        ...space,
+        streamingContent: space.streamingContent + chunk,
+      }));
+    },
+
+    // Finish streaming and save the message
+    finishStreaming() {
+      update(space => {
+        if (space.streamingContent) {
+          const newMessage: Message = {
+            id: crypto.randomUUID(),
+            role: 'assistant',
+            content: space.streamingContent,
+            timestamp: Date.now(),
+          };
+          const updated = {
+            ...space,
+            messages: [...space.messages, newMessage],
+            streamingContent: '',
+            isStreaming: false,
+          };
+          saveToStorage(updated);
+          return updated;
+        }
+        return { ...space, isStreaming: false, streamingContent: '' };
+      });
+    },
+
+    // Cancel streaming
+    cancelStreaming() {
+      update(space => ({
+        ...space,
+        streamingContent: '',
+        isStreaming: false,
+      }));
     },
 
     // Add an artifact
@@ -165,3 +227,4 @@ function createPlaygroundStore() {
 }
 
 export const playgroundStore = createPlaygroundStore();
+

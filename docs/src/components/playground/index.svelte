@@ -42,6 +42,7 @@
         body: JSON.stringify({
           model: "anthropic/claude-sonnet-4",
           messages: conversationHistory,
+          stream: true,
         }),
       });
 
@@ -49,12 +50,74 @@
         throw new Error(`API Error: ${response.status}`);
       }
 
-      const data = await response.json();
-      const message = data.choices?.[0]?.message;
+      // Handle streaming response
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error("No response body");
+      }
 
-      // Handle tool calls from the LLM
-      if (message?.tool_calls && message.tool_calls.length > 0) {
-        for (const toolCall of message.tool_calls) {
+      playgroundStore.startStreaming();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let toolCalls: any[] = [];
+      let hasToolCalls = false;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            const data = line.slice(6).trim();
+            if (data === "[DONE]") continue;
+
+            try {
+              const parsed = JSON.parse(data);
+              const delta = parsed.choices?.[0]?.delta;
+
+              // Handle content streaming
+              if (delta?.content) {
+                playgroundStore.appendStreamingContent(delta.content);
+              }
+
+              // Handle tool calls
+              if (delta?.tool_calls) {
+                hasToolCalls = true;
+                for (const tc of delta.tool_calls) {
+                  const index = tc.index ?? 0;
+                  if (!toolCalls[index]) {
+                    toolCalls[index] = {
+                      id: tc.id || "",
+                      function: { name: "", arguments: "" },
+                    };
+                  }
+                  if (tc.function?.name) {
+                    toolCalls[index].function.name = tc.function.name;
+                  }
+                  if (tc.function?.arguments) {
+                    toolCalls[index].function.arguments +=
+                      tc.function.arguments;
+                  }
+                }
+              }
+            } catch (e) {
+              // Skip invalid JSON
+            }
+          }
+        }
+      }
+
+      // Finish streaming and save message
+      playgroundStore.finishStreaming();
+
+      // Process tool calls after streaming completes
+      if (hasToolCalls && toolCalls.length > 0) {
+        const artifactNames: string[] = [];
+        for (const toolCall of toolCalls) {
           if (toolCall.function?.name === "create_artifact") {
             try {
               const args = JSON.parse(toolCall.function.arguments);
@@ -63,38 +126,24 @@
                 args.content,
                 args.file_type || "text",
               );
+              artifactNames.push(args.filename);
             } catch (e) {
               console.error("Failed to parse tool call:", e);
             }
           }
         }
 
-        // If there's also text content, show it
-        if (message.content) {
-          playgroundStore.addMessage("assistant", message.content);
-        } else {
-          // Acknowledge the artifact creation
-          const artifactNames = message.tool_calls
-            .filter((tc: any) => tc.function?.name === "create_artifact")
-            .map((tc: any) => {
-              try {
-                return JSON.parse(tc.function.arguments).filename;
-              } catch {
-                return "file";
-              }
-            });
+        // Add acknowledgment message if artifacts were created
+        if (artifactNames.length > 0) {
           playgroundStore.addMessage(
             "assistant",
-            `I've created ${artifactNames.join(", ")} in your workspace. You can view and edit the files in the panel on the right.`,
+            `✨ Created ${artifactNames.join(", ")} in your workspace.`,
           );
         }
-      } else {
-        // Regular text response
-        const aiContent = message?.content || "No response received.";
-        playgroundStore.addMessage("assistant", aiContent);
       }
     } catch (error: any) {
       console.error("Chat error:", error);
+      playgroundStore.cancelStreaming();
       playgroundStore.addMessage(
         "assistant",
         `Sorry, I encountered an error: ${error.message}`,

@@ -11,7 +11,7 @@
   let { onSendMessage, isLoading = false }: Props = $props();
 
   const space = $derived($playgroundStore);
-  const hasMessages = $derived(space.messages.length > 0);
+  const hasMessages = $derived(space.messages.length > 0 || space.isStreaming);
 
   const samplePrompts = [
     "Write a product requirements document for a task management app",
@@ -19,6 +19,17 @@
     "Create a weekly meal plan with shopping list",
     "Draft a cold outreach email for potential investors",
   ];
+
+  // Auto-scroll to bottom when new messages arrive
+  let messagesContainer: HTMLDivElement;
+  $effect(() => {
+    if (
+      messagesContainer &&
+      (space.messages.length > 0 || space.streamingContent)
+    ) {
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+  });
 </script>
 
 <div class="chat-zone">
@@ -45,7 +56,7 @@
     </div>
   {:else}
     <!-- Messages -->
-    <div class="messages-container">
+    <div class="messages-container" bind:this={messagesContainer}>
       {#each space.messages as message (message.id)}
         <div
           class="message"
@@ -60,25 +71,36 @@
             {/if}
           </div>
           <div class="message-content">
-            <div class="message-role">
-              {message.role === "user" ? "You" : "Assistant"}
+            <div class="message-header">
+              <span class="message-role">
+                {message.role === "user" ? "You" : "Assistant"}
+              </span>
             </div>
             <div class="message-text">{message.content}</div>
           </div>
         </div>
       {/each}
 
-      {#if isLoading}
-        <div class="message assistant">
+      <!-- Streaming message -->
+      {#if space.isStreaming}
+        <div class="message assistant streaming">
           <div class="message-avatar">
             <Bot size={16} />
           </div>
           <div class="message-content">
-            <div class="message-role">Assistant</div>
-            <div class="message-text typing">
-              <span class="dot"></span>
-              <span class="dot"></span>
-              <span class="dot"></span>
+            <div class="message-header">
+              <span class="message-role">Assistant</span>
+              <span class="streaming-indicator">
+                <span class="pulse"></span>
+                Generating...
+              </span>
+            </div>
+            <div class="message-text">
+              {#if space.streamingContent}
+                {space.streamingContent}<span class="cursor"></span>
+              {:else}
+                <span class="thinking">Thinking...</span>
+              {/if}
             </div>
           </div>
         </div>
@@ -90,7 +112,7 @@
   <div class="input-container">
     <ChatInput
       {onSendMessage}
-      {isLoading}
+      isLoading={isLoading || space.isStreaming}
       placeholder={hasMessages
         ? "Continue the conversation..."
         : "Describe what you want to build..."}
@@ -177,16 +199,28 @@
   .messages-container {
     flex: 1;
     overflow-y: auto;
-    padding: 1.5rem;
+    padding: 1.5rem 2rem;
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 1.5rem;
   }
 
   .message {
     display: flex;
-    gap: 0.75rem;
-    max-width: 85%;
+    gap: 1rem;
+    max-width: 90%;
+    animation: fadeIn 0.2s ease;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   .message.user {
@@ -200,14 +234,19 @@
 
   .message-avatar {
     flex-shrink: 0;
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     background: var(--sl-color-gray-5);
     color: var(--sl-color-text);
+  }
+
+  .message.user .message-avatar {
+    background: var(--sl-color-accent);
+    color: white;
   }
 
   .message.assistant .message-avatar {
@@ -222,78 +261,108 @@
   .message-content {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 0.375rem;
+    min-width: 0;
+  }
+
+  .message-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
   }
 
   .message-role {
     font-size: 0.75rem;
     font-weight: 600;
     color: var(--sl-color-gray-2);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
   }
 
-  .message.user .message-role {
-    text-align: right;
+  .message.user .message-header {
+    justify-content: flex-end;
+  }
+
+  .streaming-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.6875rem;
+    color: var(--sl-color-accent);
+    font-weight: 500;
+  }
+
+  .pulse {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--sl-color-accent);
+    animation: pulse 1.5s infinite;
+  }
+
+  @keyframes pulse {
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.5;
+      transform: scale(0.8);
+    }
   }
 
   .message-text {
-    padding: 0.75rem 1rem;
-    border-radius: 1rem;
+    padding: 0.875rem 1.125rem;
+    border-radius: 1.25rem;
     font-size: 0.9375rem;
-    line-height: 1.5;
+    line-height: 1.6;
     white-space: pre-wrap;
+    word-break: break-word;
   }
 
   .message.user .message-text {
     background: var(--sl-color-accent);
     color: white;
-    border-bottom-right-radius: 0.25rem;
+    border-bottom-right-radius: 0.375rem;
   }
 
   .message.assistant .message-text {
     background: var(--sl-color-gray-6);
     color: var(--sl-color-text);
-    border-bottom-left-radius: 0.25rem;
+    border-bottom-left-radius: 0.375rem;
+    border: 1px solid var(--sl-color-gray-5);
   }
 
-  /* Typing indicator */
-  .typing {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 0.875rem 1rem;
+  .message.streaming .message-text {
+    background: linear-gradient(
+      135deg,
+      var(--sl-color-gray-6) 0%,
+      oklch(0.95 0.02 280) 100%
+    );
   }
 
-  .dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--sl-color-gray-3);
-    animation: bounce 1.4s infinite ease-in-out both;
+  .cursor {
+    display: inline-block;
+    width: 2px;
+    height: 1.1em;
+    background: var(--sl-color-accent);
+    margin-left: 2px;
+    animation: blink 0.8s infinite;
+    vertical-align: text-bottom;
   }
 
-  .dot:nth-child(1) {
-    animation-delay: 0s;
-  }
-  .dot:nth-child(2) {
-    animation-delay: 0.16s;
-  }
-  .dot:nth-child(3) {
-    animation-delay: 0.32s;
-  }
-
-  @keyframes bounce {
+  @keyframes blink {
     0%,
-    80%,
     100% {
-      transform: scale(0.6);
-      opacity: 0.4;
-    }
-    40% {
-      transform: scale(1);
       opacity: 1;
     }
+    50% {
+      opacity: 0;
+    }
+  }
+
+  .thinking {
+    color: var(--sl-color-gray-3);
+    font-style: italic;
   }
 
   /* Input Container */

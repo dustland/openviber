@@ -53,6 +53,8 @@ export async function POST({ request }: { request: Request }) {
     });
   }
 
+  const isStreaming = body.stream === true;
+
   try {
     // Add system prompt and tools to the request
     const enhancedBody = {
@@ -62,7 +64,8 @@ export async function POST({ request }: { request: Request }) {
         ...body.messages
       ],
       tools,
-      tool_choice: "auto"
+      tool_choice: "auto",
+      stream: isStreaming
     };
 
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -76,11 +79,23 @@ export async function POST({ request }: { request: Request }) {
       body: JSON.stringify(enhancedBody),
     });
 
-    const data = await response.json();
-    return new Response(JSON.stringify(data), {
-      status: response.status,
-      headers: { "Content-Type": "application/json" },
-    });
+    if (isStreaming) {
+      // Pass through the SSE stream
+      return new Response(response.body, {
+        status: response.status,
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          "Connection": "keep-alive",
+        },
+      });
+    } else {
+      const data = await response.json();
+      return new Response(JSON.stringify(data), {
+        status: response.status,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
   } catch (error: any) {
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,

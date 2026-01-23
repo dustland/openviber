@@ -180,19 +180,20 @@
   }
 
   .sample-prompt {
-    padding: 0.625rem 1rem;
+    padding: 0.75rem 1.25rem;
     font-size: 0.875rem;
     color: var(--sl-color-text);
-    background: var(--sl-color-gray-6);
-    border: 1px solid var(--sl-color-gray-5);
+    background: rgba(255, 255, 255, 0.05);
+    border: none;
     border-radius: 2rem;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(8px);
   }
 
   .sample-prompt:hover {
-    background: var(--sl-color-gray-5);
-    border-color: var(--sl-color-accent);
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
   }
 
   /* Messages */
@@ -326,10 +327,9 @@
   }
 
   .message.assistant .message-text {
-    background: var(--sl-color-gray-6);
+    background: rgba(255, 255, 255, 0.05);
     color: var(--sl-color-text);
     border-bottom-left-radius: 0.375rem;
-    border: 1px solid var(--sl-color-gray-5);
   }
 
   .message.streaming .message-text {

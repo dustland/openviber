@@ -2,6 +2,21 @@
   import { playgroundStore, type Message } from "$lib/stores/playground-store";
   import ChatInput from "../chat-input.svelte";
   import { User, Sparkles } from "lucide-svelte";
+  import { marked } from "marked";
+
+  // Configure marked for safe rendering
+  marked.setOptions({
+    breaks: true,
+    gfm: true,
+  });
+
+  function renderMarkdown(content: string): string {
+    try {
+      return marked.parse(content) as string;
+    } catch {
+      return content;
+    }
+  }
 
   interface Props {
     onSendMessage: (content: string) => void;
@@ -23,11 +38,15 @@
   // Auto-scroll to bottom when new messages arrive
   let messagesContainer: HTMLDivElement;
   $effect(() => {
-    if (
-      messagesContainer &&
-      (space.messages.length > 0 || space.streamingContent)
-    ) {
-      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    // Track dependencies
+    const _messages = space.messages.length;
+    const _streaming = space.streamingContent;
+
+    if (messagesContainer) {
+      // Use requestAnimationFrame to ensure DOM has updated
+      requestAnimationFrame(() => {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      });
     }
   });
 </script>
@@ -74,7 +93,9 @@
                 {message.role === "user" ? "You" : "Assistant"}
               </span>
             </div>
-            <div class="message-text">{message.content}</div>
+            <div class="message-text markdown-content">
+              {@html renderMarkdown(message.content)}
+            </div>
           </div>
         </div>
       {/each}
@@ -90,9 +111,11 @@
                 Generating...
               </span>
             </div>
-            <div class="message-text">
+            <div class="message-text markdown-content">
               {#if space.streamingContent}
-                {space.streamingContent}<span class="cursor"></span>
+                {@html renderMarkdown(space.streamingContent)}<span
+                  class="cursor"
+                ></span>
               {:else}
                 <span class="thinking">Thinking...</span>
               {/if}
@@ -314,20 +337,18 @@
   .message.user .message-text {
     background: var(--sl-color-accent);
     color: white;
-    border-bottom-right-radius: 0.375rem;
   }
 
   .message.assistant .message-text {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.08);
     color: var(--sl-color-text);
-    border-bottom-left-radius: 0.375rem;
   }
 
   .message.streaming .message-text {
     background: linear-gradient(
       135deg,
       var(--sl-color-gray-6) 0%,
-      oklch(0.95 0.02 280) 100%
+      var(--sl-color-gray-5) 100%
     );
   }
 
@@ -360,5 +381,218 @@
   .input-container {
     padding: 1rem 1rem 1.5rem;
     background: var(--sl-color-bg);
+  }
+
+  /* Markdown Content Styles */
+  .markdown-content {
+    white-space: normal;
+  }
+
+  .markdown-content :global(> *:first-child) {
+    margin-top: 0;
+  }
+
+  .markdown-content :global(> *:last-child) {
+    margin-bottom: 0;
+  }
+
+  .markdown-content :global(p) {
+    margin: 0 0 0.875em;
+    line-height: 1.65;
+  }
+
+  .markdown-content :global(h1),
+  .markdown-content :global(h2),
+  .markdown-content :global(h3),
+  .markdown-content :global(h4) {
+    margin: 1.25em 0 0.625em;
+    font-weight: 700;
+    line-height: 1.35;
+    letter-spacing: -0.01em;
+  }
+
+  .markdown-content :global(h1) {
+    font-size: 1.375em;
+  }
+  .markdown-content :global(h2) {
+    font-size: 1.1875em;
+  }
+  .markdown-content :global(h3) {
+    font-size: 1.0625em;
+  }
+  .markdown-content :global(h4) {
+    font-size: 1em;
+    opacity: 0.9;
+  }
+
+  .markdown-content :global(ul),
+  .markdown-content :global(ol) {
+    margin: 0.75em 0;
+    padding-left: 1.75em;
+  }
+
+  .markdown-content :global(li) {
+    margin: 0.375em 0;
+    line-height: 1.55;
+  }
+
+  .markdown-content :global(li::marker) {
+    color: var(--sl-color-accent);
+  }
+
+  .message.user .markdown-content :global(li::marker) {
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  /* Inline code */
+  .markdown-content :global(code) {
+    font-family: "SF Mono", "Fira Code", "JetBrains Mono", var(--sl-font-mono);
+    font-size: 0.85em;
+    padding: 0.2em 0.45em;
+    background: var(--sl-color-gray-5);
+    border-radius: 0.35em;
+    font-weight: 500;
+  }
+
+  .message.user .markdown-content :global(code) {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+  }
+
+  /* Code blocks */
+  .markdown-content :global(pre) {
+    margin: 1em 0;
+    padding: 1em 1.25em;
+    background: var(--sl-color-black);
+    border-radius: 0.625em;
+    overflow-x: auto;
+    border: 1px solid var(--sl-color-gray-5);
+  }
+
+  .message.user .markdown-content :global(pre) {
+    background: rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+
+  .markdown-content :global(pre code) {
+    padding: 0;
+    background: none;
+    font-size: 0.8125em;
+    line-height: 1.6;
+    color: var(--sl-color-gray-1);
+  }
+
+  .message.user .markdown-content :global(pre code) {
+    color: rgba(255, 255, 255, 0.95);
+  }
+
+  /* Blockquotes */
+  .markdown-content :global(blockquote) {
+    margin: 1em 0;
+    padding: 0.75em 1em;
+    background: var(--sl-color-gray-6);
+    border-left: 4px solid var(--sl-color-accent);
+    border-radius: 0 0.5em 0.5em 0;
+    font-style: italic;
+  }
+
+  .message.user .markdown-content :global(blockquote) {
+    background: rgba(255, 255, 255, 0.1);
+    border-left-color: rgba(255, 255, 255, 0.6);
+  }
+
+  .markdown-content :global(blockquote p) {
+    margin: 0;
+  }
+
+  /* Links */
+  .markdown-content :global(a) {
+    color: var(--sl-color-accent);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.15s ease;
+  }
+
+  .markdown-content :global(a:hover) {
+    border-bottom-color: var(--sl-color-accent);
+  }
+
+  .message.user .markdown-content :global(a) {
+    color: white;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .markdown-content :global(strong) {
+    font-weight: 700;
+  }
+
+  .markdown-content :global(em) {
+    font-style: italic;
+  }
+
+  /* Horizontal rule */
+  .markdown-content :global(hr) {
+    margin: 1.5em 0;
+    border: none;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      var(--sl-color-gray-4) 20%,
+      var(--sl-color-gray-4) 80%,
+      transparent 100%
+    );
+  }
+
+  /* Tables */
+  .markdown-content :global(table) {
+    width: 100%;
+    margin: 1em 0;
+    border-collapse: collapse;
+    font-size: 0.875em;
+    border-radius: 0.5em;
+    overflow: hidden;
+  }
+
+  .markdown-content :global(thead) {
+    background: var(--sl-color-gray-5);
+  }
+
+  .message.user .markdown-content :global(thead) {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  .markdown-content :global(th),
+  .markdown-content :global(td) {
+    padding: 0.625em 0.875em;
+    border: 1px solid var(--sl-color-gray-5);
+    text-align: left;
+  }
+
+  .message.user .markdown-content :global(th),
+  .message.user .markdown-content :global(td) {
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+
+  .markdown-content :global(th) {
+    font-weight: 600;
+  }
+
+  .markdown-content :global(tbody tr:hover) {
+    background: var(--sl-color-gray-6);
+  }
+
+  /* Task lists */
+  .markdown-content :global(input[type="checkbox"]) {
+    margin-right: 0.5em;
+    accent-color: var(--sl-color-accent);
+  }
+
+  /* Images */
+  .markdown-content :global(img) {
+    max-width: 100%;
+    border-radius: 0.5em;
+    margin: 0.75em 0;
   }
 </style>

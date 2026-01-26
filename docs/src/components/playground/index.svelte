@@ -3,13 +3,29 @@
   import { playgroundStore } from "$lib/stores/playground-store";
   import ChatZone from "./chat-zone.svelte";
   import SpacePanel from "./space-panel.svelte";
+  import AlertDialog from "../ui/alert-dialog.svelte";
   import { Trash2 } from "lucide-svelte";
 
   let isLoading = $state(false);
+  let showClearDialog = $state(false);
+  let panelWidth = $state(320);
+  let isResizing = $state(false);
+
+  const MIN_PANEL_WIDTH = 200;
+  const MAX_PANEL_WIDTH = 600;
 
   onMount(() => {
     // Initialize store from localStorage
     playgroundStore.init();
+
+    // Restore panel width from localStorage
+    const savedWidth = localStorage.getItem("playground-panel-width");
+    if (savedWidth) {
+      panelWidth = Math.max(
+        MIN_PANEL_WIDTH,
+        Math.min(MAX_PANEL_WIDTH, parseInt(savedWidth)),
+      );
+    }
 
     // Check for initial prompt from URL
     const params = new URLSearchParams(window.location.search);
@@ -154,9 +170,42 @@
   }
 
   function handleClearSpace() {
-    if (confirm("Clear all messages and artifacts?")) {
-      playgroundStore.clearSpace();
-    }
+    showClearDialog = true;
+  }
+
+  function confirmClear() {
+    playgroundStore.clearSpace();
+  }
+
+  // Resize handlers
+  function startResize(e: MouseEvent) {
+    e.preventDefault();
+    isResizing = true;
+    document.addEventListener("mousemove", handleResize);
+    document.addEventListener("mouseup", stopResize);
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+  }
+
+  function handleResize(e: MouseEvent) {
+    if (!isResizing) return;
+    const containerRect = document
+      .querySelector(".playground-layout")
+      ?.getBoundingClientRect();
+    if (!containerRect) return;
+
+    const newWidth = containerRect.right - e.clientX;
+    panelWidth = Math.max(MIN_PANEL_WIDTH, Math.min(MAX_PANEL_WIDTH, newWidth));
+  }
+
+  function stopResize() {
+    isResizing = false;
+    document.removeEventListener("mousemove", handleResize);
+    document.removeEventListener("mouseup", stopResize);
+    document.body.style.cursor = "";
+    document.body.style.userSelect = "";
+    // Save to localStorage
+    localStorage.setItem("playground-panel-width", panelWidth.toString());
   }
 </script>
 
@@ -174,9 +223,36 @@
     <ChatZone onSendMessage={handleSendMessage} {isLoading} />
   </div>
 
+  <!-- Resize Handle -->
+  <div
+    class="resize-handle"
+    class:active={isResizing}
+    onmousedown={startResize}
+    role="separator"
+    aria-orientation="vertical"
+    tabindex="0"
+  ></div>
+
   <!-- Space Panel -->
-  <SpacePanel />
+  <div
+    class="panel-wrapper"
+    style="width: {panelWidth}px; min-width: {panelWidth}px;"
+  >
+    <SpacePanel />
+  </div>
 </div>
+
+<!-- Clear Confirmation Dialog -->
+<AlertDialog
+  bind:open={showClearDialog}
+  title="Clear workspace?"
+  description="This will delete all messages and artifacts. This action cannot be undone."
+  confirmLabel="Clear"
+  cancelLabel="Cancel"
+  variant="destructive"
+  onConfirm={confirmClear}
+  onCancel={() => {}}
+/>
 
 <style>
   .playground-layout {
@@ -221,17 +297,46 @@
     background: oklch(0.577 0.245 27.325 / 0.1);
   }
 
+  .resize-handle {
+    width: 4px;
+    cursor: col-resize;
+    background: var(--sl-color-hairline);
+    transition: background 0.15s ease;
+    flex-shrink: 0;
+  }
+
+  .resize-handle:hover,
+  .resize-handle.active {
+    background: var(--sl-color-accent);
+  }
+
+  .panel-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .panel-wrapper :global(.space-panel) {
+    width: 100%;
+    min-width: 100%;
+    border-left: none;
+  }
+
   /* Responsive */
   @media (max-width: 768px) {
     .playground-layout {
       flex-direction: column;
     }
 
-    .playground-layout :global(.space-panel) {
-      width: 100%;
-      min-width: 100%;
+    .resize-handle {
+      display: none;
+    }
+
+    .panel-wrapper {
+      width: 100% !important;
+      min-width: 100% !important;
       height: 40%;
-      border-left: none;
       border-top: 1px solid var(--sl-color-hairline);
     }
   }

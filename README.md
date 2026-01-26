@@ -1,4 +1,4 @@
-<img src="docs/src/assets/logo.png" alt="Viber Logo" width="100" />
+<img src="https://raw.githubusercontent.com/tiwater/viber/main/docs/src/assets/logo.png" alt="Viber Logo" width="100" />
 
 # @tiwater/viber
 

@@ -292,25 +292,34 @@ export class AntigravityMonitor extends EventEmitter {
       }, 5000);
 
       ws.on("open", () => {
-        // Query for the error dialog elements
+        // Query for the error dialog elements inside the Antigravity iframe
         ws.send(JSON.stringify({
           id: messageId,
           method: "Runtime.evaluate",
           params: {
             expression: `
               (function() {
-                // Look for error dialog by text content
-                const errorTitle = document.querySelector('h3, [class*="error"]');
-                const hasError = errorTitle && errorTitle.textContent.includes('Agent terminated');
+                // First check iframe (where Antigravity chat panel lives)
+                const iframe = document.querySelector('iframe[src*="antigravity"]');
+                const iframeDoc = iframe && iframe.contentDocument;
+                const searchDoc = iframeDoc || document;
+                const searchText = (iframeDoc ? iframeDoc.body?.innerText : document.body?.innerText) || '';
                 
-                // Look for Retry button
-                const retryBtn = Array.from(document.querySelectorAll('button')).find(
-                  b => b.textContent.trim() === 'Retry'
-                );
+                // Check for error by text content
+                const hasError = searchText.includes('Agent terminated due to error');
+                
+                // Look for Retry button in the same context
+                let retryBtn = null;
+                if (hasError) {
+                  const buttons = searchDoc.querySelectorAll('button');
+                  retryBtn = Array.from(buttons).find(
+                    b => b.textContent.trim() === 'Retry'
+                  );
+                }
                 
                 // Check if waiting for input
-                const inputField = document.querySelector('textarea:not([disabled]), input[type="text"]:not([disabled])');
-                const isWaiting = inputField && document.activeElement === inputField;
+                const inputField = searchDoc.querySelector('textarea:not([disabled]), input[type="text"]:not([disabled])');
+                const isWaiting = inputField && searchDoc.activeElement === inputField;
                 
                 return {
                   hasError: !!hasError,
@@ -405,7 +414,12 @@ export class AntigravityMonitor extends EventEmitter {
           params: {
             expression: `
               (function() {
-                const retryBtn = Array.from(document.querySelectorAll('button')).find(
+                // Look in iframe first (where Antigravity chat panel lives)
+                const iframe = document.querySelector('iframe[src*="antigravity"]');
+                const iframeDoc = iframe && iframe.contentDocument;
+                const searchDoc = iframeDoc || document;
+                
+                const retryBtn = Array.from(searchDoc.querySelectorAll('button')).find(
                   b => b.textContent.trim() === 'Retry'
                 );
                 if (retryBtn) {

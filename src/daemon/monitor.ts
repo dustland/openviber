@@ -68,6 +68,17 @@ interface CDPTarget {
   webSocketDebuggerUrl?: string;
 }
 
+// Window status for command center
+export interface AntigravityWindowStatus {
+  windowTitle: string;
+  windowId: string;
+  state: "idle" | "monitoring" | "error_detected" | "retrying";
+  hasError: boolean;
+  errorCount: number;
+  retryCount: number;
+  lastChecked: number; // timestamp
+}
+
 // ==================== Monitor ====================
 
 export class AntigravityMonitor extends EventEmitter {
@@ -79,6 +90,7 @@ export class AntigravityMonitor extends EventEmitter {
   private cdpWs: WebSocket | null = null;
   private cdpMessageId = 0;
   private currentErrorTarget: CDPTarget | null = null;
+  private windowStatuses: Map<string, AntigravityWindowStatus> = new Map();
 
   constructor(config: Partial<MonitorConfig> = {}) {
     super();
@@ -246,24 +258,68 @@ export class AntigravityMonitor extends EventEmitter {
 
       if (agTargets.length === 0) {
         // No Antigravity windows found - assume OK
+        this.windowStatuses.clear();
         return { hasError: false, hasRetryButton: false, isWaitingForInput: false, confidence: 0.5 };
       }
 
       console.log(`[Monitor] Checking ${agTargets.length} Antigravity window(s)...`);
 
+      // Track seen windows for cleanup
+      const seenWindowIds = new Set<string>();
+      let foundError: ScreenAnalysis | null = null;
+
       // Check each window for errors
       for (const target of agTargets) {
         if (!target.webSocketDebuggerUrl) continue;
 
+        const windowId = target.id;
+        seenWindowIds.add(windowId);
+
         const result = await this.queryCDPDom(target.webSocketDebuggerUrl);
 
-        // If any window has an error, return it immediately
-        if (result.hasError && result.hasRetryButton) {
+        // Get or create window status
+        const existing = this.windowStatuses.get(windowId) || {
+          windowTitle: target.title,
+          windowId,
+          state: "monitoring" as const,
+          hasError: false,
+          errorCount: 0,
+          retryCount: 0,
+          lastChecked: Date.now(),
+        };
+
+        // Update status based on result
+        const newStatus: AntigravityWindowStatus = {
+          ...existing,
+          windowTitle: target.title,
+          lastChecked: Date.now(),
+          hasError: result.hasError,
+          state: result.hasError
+            ? (existing.state === "retrying" ? "retrying" : "error_detected")
+            : "monitoring",
+          errorCount: result.hasError ? existing.errorCount + 1 : existing.errorCount,
+        };
+
+        this.windowStatuses.set(windowId, newStatus);
+
+        // If this window has an error, save for return
+        if (result.hasError && result.hasRetryButton && !foundError) {
           console.log(`[Monitor] Error found in window: ${target.title}`);
-          // Store target info for clicking
           this.currentErrorTarget = target;
-          return result;
+          foundError = result;
         }
+      }
+
+      // Remove stale windows
+      for (const id of this.windowStatuses.keys()) {
+        if (!seenWindowIds.has(id)) {
+          this.windowStatuses.delete(id);
+        }
+      }
+
+      // Return error if found
+      if (foundError) {
+        return foundError;
       }
 
       // No errors in any window
@@ -654,5 +710,13 @@ Respond ONLY with JSON, no markdown or other text.`;
       errorCount: this.errorCount,
       retryCount: this.retryCount,
     };
+  }
+
+  /**
+   * Get status of all tracked Antigravity windows
+   * For command center integration
+   */
+  getWindowStatuses(): AntigravityWindowStatus[] {
+    return Array.from(this.windowStatuses.values());
   }
 }

@@ -1,17 +1,10 @@
 <img src="https://raw.githubusercontent.com/tiwater/viber/main/docs/src/assets/logo.png" alt="Viber Logo" width="100" />
 
-# @tiwater/viber
+# Viber
 
-**App container for AI coding workflows**
+**The app container that runs things.**
 
-Viber is a runtime that hosts apps to enhance your AI coding experience. Think of it like a container that runs apps - some built-in, others you can discover and install.
-
-## Features
-
-- � **App Container** - Runs and manages app lifecycles
-- 🔌 **Extensible** - Install additional apps to extend capabilities  
-- 📡 **Command Center** - Connect to remote task servers
-- 🛠️ **Built-in Apps** - Comes with useful baseline apps
+Runs apps that enhance your AI coding workflow. Some built-in, more to discover.
 
 ## Quick Start
 
@@ -19,69 +12,59 @@ Viber is a runtime that hosts apps to enhance your AI coding experience. Think o
 npx @tiwater/viber start
 ```
 
-## Installation
+That's it. Viber runs with all built-in apps enabled.
 
-```bash
-npm install -g @tiwater/viber
-```
+## What It Does
+
+### Runs on Your Machine
+Mac, Windows, or Linux. Private by default—your apps run locally.
+
+### App Container
+Manages app lifecycles. Start, stop, and monitor multiple apps at once.
+
+### Built-in Apps
+Comes with useful apps out of the box. Like auto-healing for Antigravity IDE.
+
+### Extensible
+Install community apps or build your own. Simple API, powerful capabilities.
+
+### Command Center
+Connect to remote servers to receive tasks and coordinate across machines.
 
 ## Usage
 
 ```bash
-# Run with all built-in apps
+# Run locally with all apps
 viber start
 
-# Connect to a command center
-viber start --server wss://your-server.com --token YOUR_TOKEN
+# Connect to a server
+viber start --server wss://your-server.com --token TOKEN
 
 # Disable specific apps
-viber start --disable-app <app-name>
+viber start --disable-app antigravity-healing
 ```
 
 ## Built-in Apps
 
 | App | Description |
 |-----|-------------|
-| `antigravity-healing` | Monitors Antigravity IDE and auto-recovers from errors |
+| `antigravity-healing` | Auto-recovers Antigravity IDE from errors |
 
-### Antigravity Healing Setup
-
-Start Antigravity with CDP enabled:
-```bash
-open -a Antigravity --args --remote-debugging-port=9333
-```
-
-Then run viber:
-```bash
-viber start
-```
-
-## Developing Apps
-
-Create apps to extend viber's capabilities:
+## Building Apps
 
 ```typescript
-// my-app/index.ts
-import type { ViberApp } from '@tiwater/viber';
-
 const myApp: ViberApp = {
   name: 'my-app',
   version: '1.0.0',
   
   activate(context) {
     return {
-      start: async () => { /* app logic */ },
+      start: async () => { /* your logic */ },
       stop: async () => { /* cleanup */ }
     };
   }
 };
-
-export default myApp;
 ```
-
-## Documentation
-
-See the [docs](./docs) folder for full documentation.
 
 ## License
 

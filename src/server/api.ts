@@ -1,21 +1,9 @@
 /**
- * Viber Server Actions
+ * Viber API Layer
  * 
- * This file contains Next.js Server Actions that expose Viber functionality
- * to client components. All Viber operations must go through these actions
- * since Viber requires server-side access to Supabase.
- * 
- * Usage in client components:
- * ```tsx
- * "use client";
- * import { getSpace, updateSpace } from "@/viber/server/actions";
- * 
- * const space = await getSpace(spaceId);
- * await updateSpace(spaceId, { name: "New Name" });
- * ```
+ * This file contains the core API functions for Viber.
+ * These functions interact directly with the data manager.
  */
-
-"use server";
 
 import { getViberDataManagerServer } from "../data/manager";
 import type {
@@ -175,10 +163,3 @@ export async function deleteArtifactFile(
   const manager = getViberDataManagerServer();
   return await manager.deleteArtifactFile(spaceId, storageKey);
 }
-
-
-
-
-
-
-

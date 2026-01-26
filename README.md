@@ -2,7 +2,7 @@
 
 # Viber
 
-**The AI worker that keeps going.**
+**The AI worker that keeps vibing.**
 
 Runs on your machine. Connects to your tools. Gets things done while you focus on what matters.
 

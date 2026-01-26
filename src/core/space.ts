@@ -12,7 +12,7 @@
 
 import { Plan } from "./plan";
 import { Task, TaskStatus } from "./task";
-import { XAgent } from "./xagent";
+import { ViberAgent, ViberOptions } from "./viber-agent";
 import { SpaceStorage, SpaceStorageFactory } from "../storage/space";
 import { SpaceConfig, AgentConfig } from "./config";
 import { Agent } from "./agent";
@@ -50,7 +50,7 @@ export class Space {
   public storage: SpaceStorage;
   public goal: string;
   public name: string;
-  public xAgent?: XAgent;
+  public viberAgent?: ViberAgent;
   public createdAt: Date;
   public updatedAt: Date;
   public plan?: Plan;
@@ -69,7 +69,7 @@ export class Space {
     storage,
     goal,
     name,
-    xAgent,
+    viberAgent,
   }: {
     spaceId: string;
     userId?: string;
@@ -80,7 +80,7 @@ export class Space {
     storage: SpaceStorage;
     goal: string;
     name?: string;
-    xAgent?: XAgent;
+    viberAgent?: ViberAgent;
   }) {
     this.spaceId = spaceId;
     this.userId = userId;
@@ -92,7 +92,7 @@ export class Space {
     this.storage = storage;
     this.goal = goal;
     this.name = name || `Space ${spaceId}`;
-    this.xAgent = xAgent;
+    this.viberAgent = viberAgent;
     this.createdAt = new Date();
     this.updatedAt = new Date();
 
@@ -404,21 +404,21 @@ export async function startSpace({
     name: name || spaceConfig.name,
   });
 
-  // Create XAgent for the space
-  const xAgentConfig: AgentConfig = {
-    name: "X",
+  // Create ViberAgent for the space
+  const viberAgentConfig: AgentConfig = {
+    name: "Viber",
     description: "I manage this space and coordinate all work.",
     provider: "deepseek",
     model: model || "deepseek-chat",
     temperature: 0.7,
-    promptFile: "", // XAgent doesn't use prompt files
+    promptFile: "", // ViberAgent doesn't use prompt files
   };
 
-  const xAgent = new XAgent(xAgentConfig, space, {
+  const viberAgent = new ViberAgent(viberAgentConfig, space, {
     model,
     spaceId: id,
   });
-  space.xAgent = xAgent;
+  space.viberAgent = viberAgent;
 
   // MCP tools are now loaded on-demand by agents, not pre-loaded
   // This avoids the need for a central tool registry

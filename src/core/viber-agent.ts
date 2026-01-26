@@ -1,9 +1,9 @@
 /**
- * XAgent - The space's conversational representative
+ * ViberAgent - The space's conversational representative
  *
  * X is the interface between users and their spaces. Each space has an X agent
  * that acts as its representative. When you need to interact with a space, you
- * talk to X. XAgent merges TaskExecutor and Orchestrator functionality into a
+ * talk to X. ViberAgent merges TaskExecutor and Orchestrator functionality into a
  * single, user-friendly interface.
  */
 
@@ -17,7 +17,7 @@ import { generateText, Output } from "ai";
 import { z } from "zod";
 import type { ParallelTask } from "./collaboration";
 
-export interface XOptions {
+export interface ViberOptions {
   model?: string; // AI model to use
   storageRoot?: string; // Storage location
   defaultGoal?: string; // Default goal for new spaces
@@ -25,14 +25,14 @@ export interface XOptions {
   singleAgentId?: string; // If set, route directly to this agent ID
 }
 
-export interface XStreamOptions {
+export interface ViberStreamOptions {
   messages?: any[]; // Message history
   tools?: any; // Tools available
   artifactId?: string; // Artifact context
   [key: string]: any; // Additional options
 }
 
-export interface XAgentResponse extends AgentResponse {
+export interface ViberAgentResponse extends AgentResponse {
   plan?: Plan;
   taskResults?: any[];
   artifacts?: any[];
@@ -41,14 +41,14 @@ export interface XAgentResponse extends AgentResponse {
   planChanges?: Record<string, any>;
 }
 
-export class XAgent extends Agent {
+export class ViberAgent extends Agent {
   private space: Space;
   public readonly spaceId: string;
   private abortController?: AbortController;
   private singleAgentId?: string; // If set, bypass planning
 
-  constructor(config: AgentConfig, space: Space, options?: XOptions) {
-    // Enhance the config for XAgent
+  constructor(config: AgentConfig, space: Space, options?: ViberOptions) {
+    // Enhance the config for ViberAgent
     const xConfig: AgentConfig = {
       ...config,
       name: "X",
@@ -97,7 +97,7 @@ export class XAgent extends Agent {
   }
 
   /**
-   * XAgent streamText - Orchestration Layer
+   * ViberAgent streamText - Orchestration Layer
    * Responsibilities: History management, agent delegation, persistence
    */
   async streamText(options: {
@@ -115,11 +115,11 @@ export class XAgent extends Agent {
       ...restOptions
     } = options;
 
-    console.log("[XAgent] Orchestration layer: starting streamText");
+    console.log("[ViberAgent] Orchestration layer: starting streamText");
 
     const mode = metadata?.mode;
     if (!mode || mode !== "agent") {
-      throw new Error("XAgent only supports 'agent' mode");
+      throw new Error("ViberAgent only supports 'agent' mode");
     }
 
     // PHASE 1: History Management
@@ -172,13 +172,13 @@ export class XAgent extends Agent {
       throw new Error("Agent mode requires requestedAgent in metadata");
     }
 
-    console.log(`[XAgent] Agent mode: direct delegation to '${targetAgent}'`);
+    console.log(`[ViberAgent] Agent mode: direct delegation to '${targetAgent}'`);
 
     // Get or load target agent
     let agent = this.space.getAgent(targetAgent);
     if (!agent) {
       // Load agent on demand
-      console.log(`[XAgent] Loading agent '${targetAgent}' on demand`);
+      console.log(`[ViberAgent] Loading agent '${targetAgent}' on demand`);
       const dataAdapter = getServerDataAdapter();
       const agentConfig = await dataAdapter.getAgent(targetAgent);
       if (!agentConfig) {
@@ -191,7 +191,7 @@ export class XAgent extends Agent {
     // Performance optimization: Use recent messages only for single-agent
     const optimizedMessages = this.optimizeContextForAgent(messages);
     console.log(
-      `[XAgent] Agent mode: using ${optimizedMessages.length} optimized messages`
+      `[ViberAgent] Agent mode: using ${optimizedMessages.length} optimized messages`
     );
 
     // Direct delegation - no orchestration overhead
@@ -219,7 +219,7 @@ export class XAgent extends Agent {
     metadata: Record<string, any>,
     restOptions: any
   ): Promise<any> {
-    console.log(`[XAgent] Parallel execution: ${agentIds.length} agents`);
+    console.log(`[ViberAgent] Parallel execution: ${agentIds.length} agents`);
 
     // Ensure all agents are loaded
     const dataAdapter = getServerDataAdapter();
@@ -297,7 +297,7 @@ export class XAgent extends Agent {
         task.history.add(formattedMsg);
       }
       console.log(
-        `[XAgent] Updated task ${taskId} history with ${newMessages.length} new messages`
+        `[ViberAgent] Updated task ${taskId} history with ${newMessages.length} new messages`
       );
     }
   }
@@ -368,7 +368,7 @@ export class XAgent extends Agent {
             case "finish":
               break;
             case "error":
-              console.error("[XAgent] Stream error:", part.error);
+              console.error("[ViberAgent] Stream error:", part.error);
               return;
           }
         }
@@ -392,7 +392,7 @@ export class XAgent extends Agent {
 
         // Note: Message persistence handled on client side to maintain UIMessage format for rendering
       } catch (error) {
-        console.error("[XAgent] Failed to persist messages:", error);
+        console.error("[ViberAgent] Failed to persist messages:", error);
       }
     })();
   }
@@ -414,9 +414,9 @@ export class XAgent extends Agent {
       // Space persistence is now handled by the API layer using SupabaseDatabaseAdapter
       // which writes to the spaces table, not storage buckets
 
-      console.log("[XAgent] Space persistence handled by database adapter");
+      console.log("[ViberAgent] Space persistence handled by database adapter");
     } catch (error) {
-      console.error("[XAgent] Error saving space:", error);
+      console.error("[ViberAgent] Error saving space:", error);
       // Don't throw - saving is best effort
     }
   }
@@ -691,7 +691,7 @@ These artifacts are pre-loaded in the space and can be referenced in your respon
   }
 
   /**
-   * Get XAgent summary
+   * Get ViberAgent summary
    */
   getSummary(): Record<string, any> {
     const base = super.getSummary();
@@ -707,7 +707,7 @@ These artifacts are pre-loaded in the space and can be referenced in your respon
   /**
    * Static factory to start a new space
    */
-  static async start(goal: string, options: XOptions = {}): Promise<XAgent> {
+  static async start(goal: string, options: ViberOptions = {}): Promise<ViberAgent> {
     const { spaceId, model, singleAgentId } = options;
 
     // Use provided spaceId or generate one
@@ -715,7 +715,7 @@ These artifacts are pre-loaded in the space and can be referenced in your respon
       spaceId ||
       `proj_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    // Start space (this creates XAgent internally)
+    // Start space (this creates ViberAgent internally)
     const { startSpace } = await import("./space");
     const space = await startSpace({
       spaceId: id,
@@ -724,16 +724,16 @@ These artifacts are pre-loaded in the space and can be referenced in your respon
       model,
     });
 
-    if (!space.xAgent) {
-      throw new Error("Failed to initialize XAgent");
+    if (!space.viberAgent) {
+      throw new Error("Failed to initialize ViberAgent");
     }
 
     // Set singleAgentId if provided
     if (singleAgentId) {
-      (space.xAgent as any).singleAgentId = singleAgentId;
+      (space.viberAgent as any).singleAgentId = singleAgentId;
     }
 
-    return space.xAgent;
+    return space.viberAgent;
   }
 
   /**
@@ -741,8 +741,8 @@ These artifacts are pre-loaded in the space and can be referenced in your respon
    */
   static async resume(
     spaceId: string,
-    options: XOptions = {}
-  ): Promise<XAgent> {
+    options: ViberOptions = {}
+  ): Promise<ViberAgent> {
     const { model } = options;
 
     // Load existing space
@@ -771,14 +771,14 @@ These artifacts are pre-loaded in the space and can be referenced in your respon
       model: model || spaceData.model,
     });
 
-    if (!space.xAgent) {
-      throw new Error("Failed to initialize XAgent");
+    if (!space.viberAgent) {
+      throw new Error("Failed to initialize ViberAgent");
     }
 
     // Set singleAgentId if provided
     const agentId = options.singleAgentId || spaceData.singleAgentId;
     if (agentId) {
-      (space.xAgent as any).singleAgentId = agentId;
+      (space.viberAgent as any).singleAgentId = agentId;
     }
 
     // Restore conversation messages if exists
@@ -796,6 +796,6 @@ These artifacts are pre-loaded in the space and can be referenced in your respon
       }
     }
 
-    return space.xAgent;
+    return space.viberAgent;
   }
 }

@@ -3,7 +3,8 @@
  */
 
 export * from "./space";
-export * from "./xagent";
+export * from "./viber-agent";
+export * from "./viber-agent-cache";
 export * from "./agent";
 export * from "./collaboration";
 // Export config types but avoid ModelConfig duplicate

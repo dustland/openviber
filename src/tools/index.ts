@@ -17,6 +17,7 @@ registerDefaultSkills();
 import { FileTool } from "./file";
 import { SearchTool } from "./search";
 import { WebTool } from "./web";
+import { DesktopTool } from "./desktop";
 
 export interface ToolInfo {
   id: string;
@@ -45,6 +46,7 @@ const toolClasses = new Map<string, new () => Tool>([
   ["file", FileTool],
   ["search", SearchTool],
   ["web", WebTool],
+  ["desktop", DesktopTool],
 ]);
 
 /**
@@ -408,10 +410,10 @@ export function getToolProviders(): ToolInfo[] {
           id === "file"
             ? ["Files", "Storage", "Local", "System", "IO"]
             : id === "search"
-            ? ["Search", "Web", "Research", "Internet", "Information"]
-            : id === "web"
-            ? ["Web", "Extraction", "Crawling", "Content", "Scraping"]
-            : [];
+              ? ["Search", "Web", "Research", "Internet", "Information"]
+              : id === "web"
+                ? ["Web", "Extraction", "Crawling", "Content", "Scraping"]
+                : [];
 
         tools.push({
           ...metadata,
@@ -447,10 +449,10 @@ export function getToolProvider(toolId: string): ToolInfo | null {
       toolId === "file"
         ? ["Files", "Storage", "Local", "System", "IO"]
         : toolId === "search"
-        ? ["Search", "Web", "Research", "Internet", "Information"]
-        : toolId === "web"
-        ? ["Web", "Extraction", "Crawling", "Content", "Scraping"]
-        : [];
+          ? ["Search", "Web", "Research", "Internet", "Information"]
+          : toolId === "web"
+            ? ["Web", "Extraction", "Crawling", "Content", "Scraping"]
+            : [];
 
     return {
       ...metadata,

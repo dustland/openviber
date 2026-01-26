@@ -6,7 +6,7 @@
 
 // Core
 export * from "./core/space";
-export * from "./core/xagent";
+export * from "./core/viber-agent";
 export * from "./core/agent";
 export * from "./core/collaboration";
 // Export config types but avoid ModelConfig duplicate
@@ -39,3 +39,6 @@ export * from "./storage/base";
 
 // Types
 export * from "./types";
+
+// Daemon
+export * from "./daemon";

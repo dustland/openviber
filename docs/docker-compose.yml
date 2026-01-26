@@ -1,0 +1,50 @@
+# Docker Compose for Viber Docs with Playground
+#
+# Architecture:
+#   playground server ← outbound WSS ← viber daemon
+#   docs site (Astro) → API calls → playground server
+#
+# Usage:
+#   docker-compose -f docs/docker-compose.yml up
+#
+# Access:
+#   Docs: http://localhost:6006
+#   Playground API: http://localhost:6007
+
+services:
+  # Viber playground server (command center)
+  # Vibers connect TO this server
+  playground:
+    build:
+      context: ..
+      dockerfile: docs/Dockerfile.playground
+    ports:
+      - "6007:6007"
+    environment:
+      - PORT=6007
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+
+  # Astro docs site
+  docs:
+    build:
+      context: .
+      dockerfile: Dockerfile.docs
+    ports:
+      - "6006:6006"
+    environment:
+      - PORT=6006
+      - PLAYGROUND_URL=http://playground:6007
+    depends_on:
+      - playground
+
+  # (Optional) Viber daemon that connects to playground
+  viber:
+    build:
+      context: ..
+      dockerfile: docs/Dockerfile.viber
+    environment:
+      - VIBER_SERVER_URL=ws://playground:6007/vibers/ws
+      - VIBER_TOKEN=playground-token
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+    depends_on:
+      - playground

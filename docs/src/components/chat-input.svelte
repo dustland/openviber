@@ -61,8 +61,8 @@
         "min-h-[80px] max-h-[150px]",
         "placeholder:text-muted-foreground/60",
         "transition-all duration-200",
-        "border border-border", // Basic border
-        "outline-none focus:ring-1 focus:ring-ring", // Focus ring
+        "border border-white/10", // Subtle transparent border
+        "outline-none focus:border-white/20", // Subtle focus state
         "disabled:opacity-50 disabled:cursor-not-allowed",
       )}
       style="overflow-y: hidden;"

@@ -185,9 +185,9 @@
   }
 
   .welcome-subtitle {
-    font-size: 1.125rem;
-    color: var(--sl-color-gray-2);
-    margin: 0 0 2rem;
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0 0 2.5rem;
   }
 
   .sample-prompts {
@@ -200,18 +200,17 @@
   .sample-prompt {
     padding: 0.75rem 1.25rem;
     font-size: 0.875rem;
-    color: var(--sl-color-text);
-    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.85);
+    background: rgba(255, 255, 255, 0.08);
     border: none;
-    border-radius: 2rem;
+    border-radius: 0.75rem;
     cursor: pointer;
     transition: all 0.2s ease;
-    backdrop-filter: blur(8px);
   }
 
   .sample-prompt:hover {
-    background: rgba(255, 255, 255, 0.1);
-    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
   }
 
   /* Messages */

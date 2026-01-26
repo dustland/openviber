@@ -3,22 +3,42 @@ title: "Architecture"
 description: Viber system architecture and design principles
 ---
 
-import { Aside } from '@astrojs/starlight/components';
+import { Aside, LinkCard, CardGrid } from '@astrojs/starlight/components';
 
 ## Overview
 
-Viber is a lightweight, modular framework for building multi-agent AI applications. It provides the infrastructure for teams of AI agents to collaborate on complex tasks.
+Viber is a modular framework for building multi-agent AI applications that can run as local daemons, connecting to a central command center. It provides infrastructure for AI agents to collaborate on complex tasks with full access to local computer resources.
+
+<Aside type="tip">
+  A "Viber" is both the framework name and what we call each connected agent environment.
+</Aside>
 
 ## Core Concepts
 
+### ViberAgent
+
+The **ViberAgent** is the orchestrating agent for a workspace. It manages plans, delegates to specialized agents, and coordinates tool execution:
+
+- **Plan Creation**: Breaks complex goals into executable steps
+- **Agent Orchestration**: Delegates tasks to specialized agents
+- **Tool Coordination**: Invokes tools and handles results
+- **Context Management**: Maintains conversation and task history
+
+```typescript
+const agent = await ViberAgent.start("Research AI frameworks", {
+  viberId: "viber-macbook-pro",
+  model: "anthropic:claude-sonnet-4-20250514",
+});
+```
+
 ### Agent
 
-An **Agent** is a specialized entity designed to perform specific tasks. Each agent has:
+An **Agent** is a specialized entity designed to perform specific tasks:
 
 - **Role Definition**: Clear purpose defined by system prompt
 - **Tool Access**: Set of tools it can use
 - **LLM Connection**: Interface to language models
-- **Stateless Design**: No memory between invocations (context provided at runtime)
+- **Stateless Design**: No memory between invocations
 
 ### Space
 
@@ -34,25 +54,61 @@ A **Tool** extends agent capabilities with:
 
 - **Schema Validation**: Zod-based parameter validation
 - **Type Safety**: Full TypeScript support
-- **Sandboxed Execution**: Secure runtime environment
+- **Space Awareness**: Access to space artifacts
+- **Desktop Control**: GUI automation via UI-TARS (optional)
 
 ## Layered Architecture
 
 ```
-┌─────────────────────────────────────────┐
-│           Application Layer             │
-│     (React / Svelte / Vanilla JS)       │
-├─────────────────────────────────────────┤
-│          Framework Adapters             │
-│    (viber/react, viber/svelte)          │
-├─────────────────────────────────────────┤
-│              Core Engine                │
-│   (Agent, Space, Tool, Streaming)       │
-├─────────────────────────────────────────┤
-│           LLM Providers                 │
-│   (OpenAI, Anthropic, Google, etc.)     │
-└─────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           COMMAND CENTER (Supen)                             │
+│                     (Web UI / Mobile App / API Clients)                      │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                      ▲ WebSocket (Outbound from Viber)                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                         VIBER DAEMON LAYER                                   │
+│   ViberController: Connection, heartbeat, task routing                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                           AGENT LAYER                                        │
+│   ViberAgent: Orchestration, planning, delegation                           │
+│   Agent: Specialized task execution                                         │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                            TOOL LAYER                                        │
+│   File | Search | Web | MCP | Desktop (UI-TARS)                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                           STORAGE LAYER                                      │
+│   Local filesystem / Supabase / S3                                          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                          LLM PROVIDERS                                       │
+│   OpenAI | Anthropic | Google | OpenRouter | Local                          │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
+
+## Daemon Mode
+
+Viber can run as a local daemon that connects **outbound** to a command center:
+
+```
+┌──────────────────────────────────────────────────────────────────────────────┐
+│  SUPEN (Command Center)                                                      │
+│  ● viber-macbook-pro     Connected                                          │
+│  ● viber-docker-01       Connected                                          │
+│  ○ viber-cloud-vm        Offline                                            │
+└──────────────────────────────────────────────────────────────────────────────┘
+                                    ▲
+                         Outbound WebSocket
+                    (No public IP needed)
+                                    │
+┌────────────────────┐  ┌────────────────────┐  ┌────────────────────┐
+│  Viber (MacBook)   │  │  Viber (Docker)    │  │  Viber (Cloud VM)  │
+│  Desktop + File    │  │  File + Web        │  │  Full capabilities │
+└────────────────────┘  └────────────────────┘  └────────────────────┘
+```
+
+<CardGrid>
+  <LinkCard title="Viber Daemon" href="/design/viber-daemon" description="Detailed daemon architecture" />
+  <LinkCard title="Desktop Tools" href="/design/desktop-tools" description="GUI automation with UI-TARS" />
+</CardGrid>
 
 ## Design Principles
 
@@ -60,40 +116,58 @@ A **Tool** extends agent capabilities with:
   Viber follows a "batteries included but removable" philosophy.
 </Aside>
 
-1. **Framework Agnostic**: Core logic works with any UI framework
-2. **Type-First**: Full TypeScript support with Zod schemas
-3. **Streaming Native**: Real-time responses as first-class citizens
-4. **Composable**: Small, focused modules that combine flexibly
-5. **Observable**: Built-in event system for debugging and monitoring
+1. **Outbound Connection**: Viber dials out to command center (no public IP needed)
+2. **Framework Agnostic**: Core works with React, Svelte, or vanilla JS
+3. **Type-First**: Full TypeScript support with Zod schemas
+4. **Streaming Native**: Real-time responses as first-class citizens
+5. **Composable**: Small, focused modules that combine flexibly
+6. **Observable**: Built-in event system for debugging
 
 ## Data Flow
 
 ```
-User Input
-    ↓
-Agent.streamText()
-    ↓
+Command Center
+    │ task:submit
+    ▼
+ViberController (daemon)
+    │
+    ▼
+ViberAgent.streamText()
+    │
+    ▼
 ┌─────────────┐
-│  LLM Call   │ ←→ Tool Execution (if needed)
+│  LLM Call   │ ←→ Tool Execution (file, web, desktop, etc.)
 └─────────────┘
-    ↓
-Stream Events → UI Updates
-    ↓
+    │
+    ▼
+Stream Events → Command Center → UI Updates
+    │
+    ▼
 Space Persistence (artifacts, history)
 ```
 
 ## Multi-Agent Collaboration
 
-Agents can collaborate through:
+ViberAgent can orchestrate multiple specialized agents:
 
 1. **Task Handoff**: Natural language delegation
 2. **Shared Spaces**: Common artifact storage
-3. **Event Bus**: Cross-agent communication
+3. **Parallel Execution**: Multiple agents running concurrently
+4. **Plan Adaptation**: Dynamic replanning based on results
 
 ```typescript
-const team = {
-  lead: new Agent({ name: 'Lead', ... }),
-  writer: new Agent({ name: 'Writer', ... }),
-  reviewer: new Agent({ name: 'Reviewer', ... }),
-};
+// ViberAgent automatically orchestrates agents based on the plan
+const result = await viberAgent.streamText({
+  messages: [{ role: "user", content: "Research AI and write a report" }],
+  agents: ["researcher", "writer", "reviewer"],
+});
 ```
+
+## Related Documentation
+
+<CardGrid>
+  <LinkCard title="Viber Daemon" href="/design/viber-daemon" description="Local daemon architecture" />
+  <LinkCard title="Desktop Tools" href="/design/desktop-tools" description="GUI automation" />
+  <LinkCard title="Tool Execution" href="/design/tool-execution" description="Tool system design" />
+  <LinkCard title="Task Lifecycle" href="/design/task-lifecycle" description="How tasks are executed" />
+</CardGrid>

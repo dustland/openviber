@@ -19,6 +19,7 @@
     "oniguruma-parser": "^0.12.1",
     "svelte": "^5.16.1",
     "viber": "file:..",
+    "ws": "^8.19.0",
     "zod": "3.23.8"
   },
   "devDependencies": {

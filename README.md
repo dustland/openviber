@@ -2,13 +2,16 @@
 
 # @tiwater/viber
 
-**Extensible app runtime for AI coding workflows**
+**App container for AI coding workflows**
 
-Viber is a runtime that hosts and manages apps. It provides:
+Viber is a runtime that hosts apps to enhance your AI coding experience. Think of it like a container that runs apps - some built-in, others you can discover and install.
 
-- 🔌 **Plugin Architecture** - Simple app registration and lifecycle management
-- 📡 **Command Center Integration** - Connect apps to remote task servers
-- 🛠️ **Developer Tools** - CLI for local development and testing
+## Features
+
+- � **App Container** - Runs and manages app lifecycles
+- 🔌 **Extensible** - Install additional apps to extend capabilities  
+- 📡 **Command Center** - Connect to remote task servers
+- 🛠️ **Built-in Apps** - Comes with useful baseline apps
 
 ## Quick Start
 
@@ -25,7 +28,7 @@ npm install -g @tiwater/viber
 ## Usage
 
 ```bash
-# Run all registered apps locally
+# Run with all built-in apps
 viber start
 
 # Connect to a command center
@@ -35,56 +38,46 @@ viber start --server wss://your-server.com --token YOUR_TOKEN
 viber start --disable-app <app-name>
 ```
 
-## Building Apps
+## Built-in Apps
 
-Apps are simple modules that export an `activate` function:
+| App | Description |
+|-----|-------------|
+| `antigravity-healing` | Monitors Antigravity IDE and auto-recovers from errors |
+
+### Antigravity Healing Setup
+
+Start Antigravity with CDP enabled:
+```bash
+open -a Antigravity --args --remote-debugging-port=9333
+```
+
+Then run viber:
+```bash
+viber start
+```
+
+## Developing Apps
+
+Create apps to extend viber's capabilities:
 
 ```typescript
-// src/apps/my-app/index.ts
-import type { ViberApp, ViberAppContext } from '@tiwater/viber';
+// my-app/index.ts
+import type { ViberApp } from '@tiwater/viber';
 
 const myApp: ViberApp = {
   name: 'my-app',
   version: '1.0.0',
   
-  activate(context: ViberAppContext) {
+  activate(context) {
     return {
-      start: async () => {
-        console.log('App started!');
-        // Your app logic here
-      },
-      stop: async () => {
-        console.log('App stopped!');
-      }
+      start: async () => { /* app logic */ },
+      stop: async () => { /* cleanup */ }
     };
   }
 };
 
 export default myApp;
 ```
-
-Register your app in `src/apps/index.ts`:
-
-```typescript
-import myApp from './my-app';
-registerApp(myApp);
-```
-
-## Example: Antigravity Auto-Healing
-
-The `antigravity-healing` app demonstrates how to build a viber app. It monitors Antigravity IDE windows and automatically recovers from errors.
-
-**Setup:** Start Antigravity with CDP enabled:
-```bash
-open -a Antigravity --args --remote-debugging-port=9333
-```
-
-**Run:**
-```bash
-viber start
-```
-
-See [src/apps/antigravity-healing](./src/apps/antigravity-healing) for the full implementation.
 
 ## Documentation
 

@@ -6,6 +6,9 @@
   "main": "dist/index.cjs",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
+  "bin": {
+    "viber": "./dist/cli/index.js"
+  },
   "packageManager": "pnpm@10.15.0",
   "scripts": {
     "build": "pnpm build:lib && pnpm build:docs",

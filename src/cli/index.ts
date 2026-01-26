@@ -30,10 +30,14 @@ program
   .option("-t, --token <token>", "Authentication token (or set VIBER_TOKEN)")
   .option("-n, --name <name>", "Viber name", `${os.hostname()}-viber`)
   .option("--desktop", "Enable desktop control (UI-TARS)")
+  .option("--disable-app <apps...>", "Disable specific apps (comma-separated)")
+  .option("--no-apps", "Disable all apps")
   .option("--reconnect-interval <ms>", "Reconnect interval in ms", "5000")
   .option("--heartbeat-interval <ms>", "Heartbeat interval in ms", "30000")
   .action(async (options) => {
     const { ViberController } = await import("../daemon/controller");
+    const { loadAllApps, getAvailableApps } = await import("../apps");
+    const { EventEmitter } = await import("events");
 
     // Get or generate viber ID
     const viberId = await getViberId();
@@ -57,20 +61,56 @@ program
       heartbeatInterval: parseInt(options.heartbeatInterval, 10),
     });
 
+    // Load apps (unless --no-apps)
+    const appInstances: Map<string, any> = new Map();
+    const events = new EventEmitter();
+
+    if (options.apps !== false) {
+      const disabledApps = new Set(options.disableApp || []);
+      const apps = await loadAllApps();
+
+      for (const [name, app] of apps) {
+        if (disabledApps.has(name)) {
+          console.log(`[Apps] Skipping disabled app: ${name}`);
+          continue;
+        }
+        try {
+          const instance = await app.activate({ events });
+          appInstances.set(name, instance);
+          console.log(`[Apps] Loaded: ${name}`);
+        } catch (error: any) {
+          console.warn(`[Apps] Failed to activate '${name}':`, error.message);
+        }
+      }
+    }
+
     // Handle graceful shutdown
     process.on("SIGINT", async () => {
       console.log("\n[Viber] Shutting down...");
+      // Stop apps first
+      for (const [name, instance] of appInstances) {
+        try {
+          await instance.stop();
+          console.log(`[Apps] Stopped: ${name}`);
+        } catch { }
+      }
       await controller.stop();
       process.exit(0);
     });
 
     process.on("SIGTERM", async () => {
+      for (const [, instance] of appInstances) {
+        try { await instance.stop(); } catch { }
+      }
       await controller.stop();
       process.exit(0);
     });
 
     // Log connection events
     controller.on("connected", () => {
+      const appList = appInstances.size > 0
+        ? Array.from(appInstances.keys()).join(", ")
+        : "(none)";
       console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║                     VIBER RUNNING                          ║
@@ -79,6 +119,7 @@ program
 ║  Name:         ${options.name.padEnd(40)}║
 ║  Server:       ${options.server.slice(0, 40).padEnd(40)}║
 ║  Desktop:      ${(options.desktop ? "Enabled" : "Disabled").padEnd(40)}║
+║  Apps:         ${appList.slice(0, 40).padEnd(40)}║
 ║  Status:       ● Connected                                ║
 ╚═══════════════════════════════════════════════════════════╝
 
@@ -94,6 +135,16 @@ Press Ctrl+C to stop.
     controller.on("error", (error) => {
       console.error("[Viber] Error:", error.message);
     });
+
+    // Start apps
+    for (const [name, instance] of appInstances) {
+      try {
+        await instance.start();
+        console.log(`[Apps] Started: ${name}`);
+      } catch (error: any) {
+        console.error(`[Apps] Failed to start '${name}':`, error.message);
+      }
+    }
 
     // Start the controller
     await controller.start();

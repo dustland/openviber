@@ -14,7 +14,6 @@
 import { EventEmitter } from "events";
 import WebSocket from "ws";
 import { ViberAgent, ViberOptions } from "../core/viber-agent";
-import type { AntigravityWindowStatus, AntigravityMonitor } from "./monitor";
 
 // ==================== Types ====================
 
@@ -49,8 +48,6 @@ export interface ViberStatus {
   uptime: number;
   memory: NodeJS.MemoryUsage;
   runningTasks: number;
-  // Antigravity monitor status (optional)
-  antigravityWindows?: AntigravityWindowStatus[];
 }
 
 // Server -> Viber messages
@@ -80,17 +77,9 @@ export class ViberController extends EventEmitter {
   private runningTasks: Map<string, ViberAgent> = new Map();
   private isConnected = false;
   private shouldReconnect = true;
-  private monitor: AntigravityMonitor | null = null;
 
   constructor(private config: ViberControllerConfig) {
     super();
-  }
-
-  /**
-   * Set the Antigravity monitor for status reporting
-   */
-  setMonitor(monitor: AntigravityMonitor): void {
-    this.monitor = monitor;
   }
 
   /**
@@ -367,11 +356,6 @@ export class ViberController extends EventEmitter {
         memory: process.memoryUsage(),
         runningTasks: this.runningTasks.size,
       };
-
-      // Include Antigravity window statuses if monitor is available
-      if (this.monitor) {
-        status.antigravityWindows = this.monitor.getWindowStatuses();
-      }
 
       this.send({ type: "heartbeat", status });
     }, interval);

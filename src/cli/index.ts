@@ -246,7 +246,7 @@ program
   .option("-m, --model <model>", "OpenRouter vision model (for VLM mode)", "openai/gpt-4o")
   .option("--max-retries <n>", "Max auto-retries before alerting", "3")
   .action(async (options) => {
-    const { AntigravityMonitor } = await import("../daemon/monitor");
+    const { AntigravityMonitor } = await import("../apps/antigravity-healing");
 
     const useVlm = options.useVlm || false;
     const apiKey = process.env.OPENROUTER_API_KEY;

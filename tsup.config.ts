@@ -3,7 +3,6 @@ import { defineConfig } from "tsup";
 export default defineConfig({
   entry: {
     index: "src/index.ts",
-    "react/index": "src/react/index.ts",
     "cli/index": "src/cli/index.ts",
   },
   format: ["cjs", "esm"],
@@ -11,5 +10,4 @@ export default defineConfig({
   splitting: false,
   sourcemap: true,
   clean: true,
-  external: ["react", "svelte"],
 });

@@ -6,6 +6,8 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
+import os from 'os';
+import path from 'path';
 
 export interface ViberConfig {
   /** Root directory for file storage */
@@ -35,9 +37,9 @@ export function configure(newConfig: ViberConfig): void {
  */
 export function getConfig(): ViberConfig {
   if (!config) {
-    // Default configuration for development
+    // Default configuration - use ~/.viber for daemon mode
     return {
-      storageRoot: process.cwd(),
+      storageRoot: path.join(os.homedir(), '.viber'),
       defaultsPath: './defaults',
     };
   }

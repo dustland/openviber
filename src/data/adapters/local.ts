@@ -19,6 +19,11 @@ import { BaseStorage } from "../../storage/base";
 import { getViberRoot } from "../../config";
 import yaml from "yaml";
 import path from "path";
+import { fileURLToPath } from "url";
+
+// ESM-compatible __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export class LocalDataAdapter implements DataAdapter {
   // Helper to read and parse YAML file
@@ -36,7 +41,7 @@ export class LocalDataAdapter implements DataAdapter {
 
   async getAgents(): Promise<Agent[]> {
     const defaultsStorage = new BaseStorage(
-      path.join(__dirname, "..", "..", "viber", "defaults")
+      path.join(__dirname, "..", "..", "defaults")
     );
     const rootStorage = new BaseStorage(getViberRoot());
     const agents: Agent[] = [];
@@ -79,7 +84,7 @@ export class LocalDataAdapter implements DataAdapter {
 
   async getAgent(id: string): Promise<Agent | null> {
     const defaultsStorage = new BaseStorage(
-      path.join(__dirname, "..", "..", "viber", "defaults")
+      path.join(__dirname, "..", "..", "defaults")
     );
     const rootStorage = new BaseStorage(getViberRoot());
 
@@ -132,7 +137,7 @@ export class LocalDataAdapter implements DataAdapter {
 
   async getTools(): Promise<Tool[]> {
     const defaultsStorage = new BaseStorage(
-      path.join(__dirname, "..", "..", "viber", "defaults")
+      path.join(__dirname, "..", "..", "defaults")
     );
     const tools: Tool[] = [];
 

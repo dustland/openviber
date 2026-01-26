@@ -57,23 +57,16 @@ export class DataAdapterFactory {
       return explicitMode;
     }
 
-    // Auto-detect: use local mode only if explicitly running in local development
-    // without Supabase configuration (for offline/CLI use cases)
+    // Use database mode only if Supabase is explicitly configured
     if (
-      !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-      !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      process.env.NEXT_PUBLIC_SUPABASE_URL &&
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     ) {
-      // Only use local mode if we're clearly in a local-only environment
-      if (process.env.NODE_ENV === "development" && !process.env.VERCEL) {
-        console.warn(
-          "[ViberDataAdapter] No Supabase config found, falling back to local mode"
-        );
-        return "local";
-      }
+      return "database";
     }
 
-    // Default to database mode for cloud/multi-user SaaS deployment
-    return "database";
+    // Default to local mode for standalone/daemon use
+    return "local";
   }
 
   /**

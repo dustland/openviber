@@ -12,8 +12,7 @@
   "packageManager": "pnpm@10.15.0",
   "scripts": {
     "build": "pnpm build:lib && pnpm build:docs",
-    "build:lib": "tsup && pnpm build:svelte",
-    "build:svelte": "svelte-package -i src/svelte -o dist/svelte",
+    "build:lib": "tsup",
     "build:docs": "cd docs && pnpm build",
     "start": "pnpm start:docs",
     "start:docs": "cd docs && pnpm preview",
@@ -22,16 +21,18 @@
     "dev:docs": "cd docs && pnpm dev",
     "typecheck": "tsc --noEmit",
     "test": "vitest",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "viber": "node dist/cli/index.js",
+    "viber:playground": "node dist/cli/index.js playground",
+    "viber:start": "node dist/cli/index.js start"
   },
   "keywords": [
     "multi-agent",
     "ai",
     "collaboration",
-    "react",
-    "svelte",
     "llm",
-    "agent"
+    "agent",
+    "daemon"
   ],
   "author": "Tiwater",
   "license": "MIT",
@@ -44,28 +45,6 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
-    },
-    "./react": {
-      "types": "./dist/react/index.d.ts",
-      "import": "./dist/react/index.js",
-      "require": "./dist/react/index.cjs"
-    },
-    "./svelte": {
-      "types": "./dist/svelte/index.d.ts",
-      "svelte": "./dist/svelte/index.js",
-      "default": "./dist/svelte/index.js"
-    }
-  },
-  "peerDependencies": {
-    "react": "^18.0.0 || ^19.0.0",
-    "svelte": "^5.0.0"
-  },
-  "peerDependenciesMeta": {
-    "react": {
-      "optional": true
-    },
-    "svelte": {
-      "optional": true
     }
   },
   "dependencies": {
@@ -84,16 +63,12 @@
     "zustand": "^5.0.3"
   },
   "devDependencies": {
-    "@sveltejs/package": "^2.5.7",
-    "@sveltejs/vite-plugin-svelte": "^5.0.0",
     "@types/node": "^22.10.6",
-    "@types/react": "^19.2.6",
     "@types/ws": "^8.18.1",
     "@vitest/ui": "^3.2.4",
     "jsdom": "^26.1.0",
-    "svelte": "^5.0.0",
-    "svelte-check": "^4.3.5",
     "tsup": "^8.4.0",
+    "tsx": "^4.21.0",
     "typescript": "^5.0.0",
     "vite": "^6.0.0",
     "vitest": "^3.2.4"

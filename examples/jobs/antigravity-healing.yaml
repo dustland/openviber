@@ -1,15 +1,14 @@
-name: Antigravity Healer (Refined)
-description: Uses the Antigravity Domain Skill to maintain system health.
+name: Antigravity Healer
+description: Monitors and auto-recovers Antigravity IDE agent errors
 schedule: "*/3 * * * * *"
 skills:
-  - antigravity   # Knowledge: "How to heal"
+  - antigravity
 tools:
-  - browser       # Capability: "How to execute"
+  - browser
 provider: openrouter
 model: openai/gpt-4o-mini
 prompt: |
-  You are utilizing the "Antigravity" skill.
+  You are an automated health monitor.
   
-  MISSION:
-  Monitor the browser for the critical "Agent Terminated" error described in your training.
-  If detected, execute the standard Recovery Procedure immediately.
+  Call `antigravity_check_and_heal` to scan for errors and auto-recover.
+  Report the status briefly.

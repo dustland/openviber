@@ -1,156 +1,122 @@
 import { z } from "zod";
-import { BrowserCDP } from "../../tools/browser"; // Import the class directly if needed, or instantiate manually
+import { BrowserCDP, CDPTarget } from "../../tools/browser";
 
 /**
  * Domain Logic for Antigravity App
- * Encapsulates the specific DOM structure (iframes, selectors)
+ * Auto-healer that detects and recovers from agent errors
  */
+
+// Helper function to click the Retry button
+async function clickRetryButton(cdp: BrowserCDP, page: CDPTarget): Promise<boolean> {
+  const clicked = await cdp.evaluate(page, `
+    (function() {
+      const iframe = document.getElementById('antigravity.agentPanel');
+      if (!iframe) return false;
+      
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (!iframeDoc) return false;
+      
+      const cascadeEl = iframeDoc.getElementById('cascade');
+      const searchDoc = cascadeEl || iframeDoc;
+      
+      const buttons = searchDoc.querySelectorAll('button');
+      const retryBtn = Array.from(buttons).find(
+         b => b.textContent.trim() === 'Retry'
+      );
+      
+      if (retryBtn) {
+         retryBtn.click();
+         return true;
+      }
+      return false;
+    })()
+  `);
+  return !!clicked;
+}
+
 export function getTools() {
   return {
-    antigravity_check_status: {
-      description: "Analyze the Antigravity IDE state to detect critical errors.",
+    antigravity_check_and_heal: {
+      description: "Check Antigravity IDE for errors and automatically recover if found. This is an all-in-one health check that both detects AND fixes issues.",
       inputSchema: z.object({}),
       execute: async () => {
         const cdp = new BrowserCDP({ port: 9333 });
         const targets = await cdp.listTargets();
 
-        console.log(`[Antigravity] Found ${targets.length} targets:`, targets.map(t => ({ type: t.type, url: t.url?.slice(0, 60) })));
-
-        // Get ALL pages (not just the first one) - there may be multiple Antigravity windows
         const pages = targets.filter(t => t.type === 'page' && !t.url.startsWith('chrome'));
 
         if (pages.length === 0) {
-          return { status: "UNKNOWN", message: "No active browser page found." };
+          return { status: "NO_BROWSER", message: "No active browser page found." };
         }
 
-        console.log(`[Antigravity] Checking ${pages.length} page(s) for errors...`);
-
-        // Check ALL pages for errors, not just the first one
+        // Check ALL pages for errors
         for (const page of pages) {
-          console.log(`[Antigravity] Checking page: ${page.url?.slice(0, 80)}`);
+          let result: any;
+          try {
+            result = await cdp.evaluate(page, `
+              (function() {
+                const iframe = document.getElementById('antigravity.agentPanel');
+                if (!iframe) {
+                  return { hasError: false, hasRetryButton: false, iframeFound: false };
+                }
+                
+                const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+                if (!iframeDoc) {
+                  return { hasError: false, hasRetryButton: false, iframeFound: true, cannotAccess: true };
+                }
+                
+                const cascadeEl = iframeDoc.getElementById('cascade');
+                const searchDoc = cascadeEl || iframeDoc;
+                const searchText = (cascadeEl ? cascadeEl.innerText : iframeDoc.body?.innerText) || '';
+                
+                const hasError = searchText.includes('Agent terminated due to error');
+                
+                let hasRetryButton = false;
+                if (hasError) {
+                  const buttons = searchDoc.querySelectorAll('button');
+                  hasRetryButton = Array.from(buttons).some(b => b.textContent.trim() === 'Retry');
+                }
+                
+                return { hasError, hasRetryButton, iframeFound: true, cascadeFound: !!cascadeEl };
+              })()
+            `);
+          } catch (err: any) {
+            continue; // Skip this page and try the next
+          }
 
-          // Inject the specific JS to find the error in #cascade container inside the iframe
-          const result = await cdp.evaluate(page, `
-                (function() {
-                  // First, locate the Antigravity agent panel iframe
-                  const iframe = document.getElementById('antigravity.agentPanel');
-                  if (!iframe) {
-                    return {
-                      hasError: false,
-                      hasRetryButton: false,
-                      cascadeFound: false,
-                      iframeFound: false,
-                      textSnippet: 'Iframe not found'
-                    };
-                  }
-                  
-                  // Access the iframe's document
-                  const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-                  if (!iframeDoc) {
-                    return {
-                      hasError: false,
-                      hasRetryButton: false,
-                      cascadeFound: false,
-                      iframeFound: true,
-                      textSnippet: 'Cannot access iframe document'
-                    };
-                  }
-                  
-                  // Antigravity chat panel lives in #cascade container inside the iframe
-                  const cascadeEl = iframeDoc.getElementById('cascade');
-                  const searchDoc = cascadeEl || iframeDoc;
-                  const searchText = (cascadeEl ? cascadeEl.innerText : iframeDoc.body?.innerText) || '';
-                  
-                  // Check for error by text content
-                  const hasError = searchText.includes('Agent terminated due to error');
-                  
-                  // Look for Retry button
-                  let retryBtn = null;
-                  if (hasError) {
-                    const buttons = searchDoc.querySelectorAll('button');
-                    retryBtn = Array.from(buttons).find(
-                      b => b.textContent.trim() === 'Retry'
-                    );
-                  }
-                  
-                  return {
-                    hasError: !!hasError,
-                    hasRetryButton: !!retryBtn,
-                    cascadeFound: !!cascadeEl,
-                    iframeFound: true,
-                    textSnippet: searchText.slice(0, 300)
-                  };
-                })()
-          `);
+          // If error found, AUTO-RECOVER immediately
+          if (result?.hasError && result?.hasRetryButton) {
+            const clicked = await clickRetryButton(cdp, page);
 
-          console.log(`[Antigravity] Check result for ${page.url?.slice(0, 40)}:`, JSON.stringify(result, null, 2));
+            if (clicked) {
+              return {
+                status: "RECOVERED",
+                message: `Found error, clicked Retry button automatically`,
+                pageUrl: page.url?.slice(0, 80)
+              };
+            } else {
+              console.log(`[Antigravity] ❌ Failed to click Retry button`);
+              return {
+                status: "RECOVERY_FAILED",
+                message: `Found error but failed to click Retry button`,
+                pageUrl: page.url?.slice(0, 80)
+              };
+            }
+          }
 
-          // If this page has an error, return immediately
+          // Error without retry button
           if (result?.hasError) {
             return {
-              status: "CRITICAL_ERROR",
-              details: "Agent terminated due to error",
-              canRecover: result.hasRetryButton,
-              pageUrl: page.url
+              status: "ERROR_NO_RETRY",
+              message: `Error detected but no Retry button found`,
+              pageUrl: page.url?.slice(0, 80)
             };
           }
         }
 
-        // No errors found in any page
-        return { status: "NOMINAL", details: `Checked ${pages.length} page(s), all healthy` };
+        // No errors found
+        return { status: "HEALTHY", message: `All ${pages.length} page(s) are healthy` };
       },
     },
-
-    antigravity_recover: {
-      description: "Attempt to recover the Antigravity agent from a critical error.",
-      inputSchema: z.object({}),
-      execute: async () => {
-        const cdp = new BrowserCDP({ port: 9333 });
-        const targets = await cdp.listTargets();
-        const pages = targets.filter(t => t.type === 'page' && !t.url.startsWith('chrome'));
-
-        if (pages.length === 0) return { success: false, message: "No page found" };
-
-        console.log(`[Antigravity] Recover: checking ${pages.length} page(s) for Retry button...`);
-
-        // Try to find and click Retry button in ANY page
-        for (const page of pages) {
-          console.log(`[Antigravity] Recover: checking page ${page.url?.slice(0, 60)}`);
-
-          // Click Retry button in #cascade container inside the iframe
-          const clicked = await cdp.evaluate(page, `
-                (function() {
-                  // First, locate the Antigravity agent panel iframe
-                  const iframe = document.getElementById('antigravity.agentPanel');
-                  if (!iframe) return false;
-                  
-                  // Access the iframe's document
-                  const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-                  if (!iframeDoc) return false;
-                  
-                  const cascadeEl = iframeDoc.getElementById('cascade');
-                  const searchDoc = cascadeEl || iframeDoc;
-                  
-                  const buttons = searchDoc.querySelectorAll('button');
-                  const retryBtn = Array.from(buttons).find(
-                     b => b.textContent.trim() === 'Retry'
-                  );
-                  
-                  if (retryBtn) {
-                     retryBtn.click();
-                     return true;
-                  }
-                  return false;
-                })()
-          `);
-
-          if (clicked) {
-            return { success: true, message: `Clicked 'Retry' button in ${page.url?.slice(0, 60)}` };
-          }
-        }
-
-        return { success: false, message: `Could not find 'Retry' button in any of ${pages.length} page(s).` };
-      },
-    }
   };
 }

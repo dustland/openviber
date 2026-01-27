@@ -11,15 +11,15 @@
   },
   "packageManager": "pnpm@10.15.0",
   "scripts": {
-    "dev": "tsx src/cli/index.ts start",
+    "dev": "tsx watch src/cli/index.ts start",
     "build": "tsup",
     "start": "node dist/cli/index.js start",
     "viber": "node dist/cli/index.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest",
-    "docs": "cd docs && pnpm dev",
-    "docs:build": "cd docs && pnpm build",
-    "docs:preview": "cd docs && pnpm preview"
+    "dev:docs": "cd docs && pnpm dev",
+    "build:docs": "cd docs && pnpm build",
+    "preview:docs": "cd docs && pnpm preview"
   },
   "keywords": [
     "multi-agent",

@@ -17,6 +17,8 @@
     "marked": "^17.0.1",
     "nanoid": "3.3.8",
     "oniguruma-parser": "^0.12.1",
+    "astro-mermaid": "^1.0.1",
+    "mermaid": "^11.6.0",
     "svelte": "^5.16.1",
     "viber": "file:..",
     "ws": "^8.19.0",

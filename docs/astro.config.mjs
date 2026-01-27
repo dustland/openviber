@@ -1,5 +1,6 @@
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
+import mermaid from 'astro-mermaid';
 import svelte from '@astrojs/svelte';
 import tailwindcss from '@tailwindcss/vite';
 import node from '@astrojs/node';
@@ -41,7 +42,7 @@ export default defineConfig({
           label: 'Design',
           items: [
             { label: 'Philosophy', slug: 'design/philosophy' },
-            { label: 'Architecture', slug: 'design/architecture' },
+            { label: 'Architecture', slug: 'design/arch' },
             { label: 'Viber vs Clawdbot', slug: 'design/viber-vs-clawdbot' },
             { label: 'Communication', slug: 'design/communication' },
             { label: 'Memory', slug: 'design/memory' },
@@ -85,6 +86,7 @@ export default defineConfig({
 
     }),
     svelte(),
+    mermaid(),
   ],
   adapter: node({
     mode: 'standalone',

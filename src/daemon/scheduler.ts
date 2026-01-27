@@ -102,12 +102,32 @@ export class JobScheduler {
         });
 
         // Execute prompt
-        // We use generateText for single-turn execution
         const result = await agent.generateText({
           messages: [{ role: "user", content: config.prompt }]
         });
 
-        console.log(`[${config.name}] Result:`, result.text);
+        // Log results comprehensively (single line)
+        const parts: string[] = [];
+
+        // Tool results (compact)
+        if (result.toolResults && result.toolResults.length > 0) {
+          for (const tr of result.toolResults) {
+            const resultStr = typeof tr.output === 'object'
+              ? JSON.stringify(tr.output)  // No pretty-print
+              : String(tr.output);
+            parts.push(`${tr.toolName}: ${resultStr}`);
+          }
+        }
+
+        // LLM text response if any
+        if (result.text) {
+          parts.push(result.text.slice(0, 100));  // Truncate long text
+        }
+
+        // Final output (single line)
+        if (parts.length > 0) {
+          console.log(`[${config.name}] ${parts.join(' | ')}`);
+        }
 
       } catch (err) {
         console.error(`[${config.name}] Agent execution failed:`, err);

@@ -1,0 +1,31 @@
+# Viber Channels Configuration
+#
+# Configure command center channels for connecting external
+# chat apps and interfaces to Viber runtime.
+#
+# Environment variables are used for secrets (recommended).
+# Set enabled: true to activate a channel.
+
+channels:
+  # DingTalk Enterprise Bot
+  # Docs: https://open.dingtalk.com/document/orgapp/receive-message
+  dingtalk:
+    enabled: false
+    app_key: ${DINGTALK_APP_KEY}
+    app_secret: ${DINGTALK_APP_SECRET}
+    robot_code: ${DINGTALK_ROBOT_CODE}
+  
+  # WeCom (WeChat Work) Enterprise Application
+  # Docs: https://developer.work.weixin.qq.com/document/path/90930
+  wecom:
+    enabled: false
+    corp_id: ${WECOM_CORP_ID}
+    agent_id: ${WECOM_AGENT_ID}
+    secret: ${WECOM_SECRET}
+    token: ${WECOM_TOKEN}
+    aes_key: ${WECOM_AES_KEY}
+  
+  # Web Chat (HTTP + SSE)
+  # Built-in, always available at /channels/web/*
+  web:
+    enabled: true

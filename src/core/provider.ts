@@ -152,9 +152,18 @@ export function parseModelString(model: string): ModelConfig {
     return { provider: "deepseek", modelName: model };
   }
 
-  // OpenRouter models (uses specific namespace)
+  // Handle explicit provider prefix format: "provider/model-name"
   if (model.includes("/")) {
-    // Models with slashes are typically OpenRouter format (e.g., "anthropic/claude-3.5-sonnet")
+    const [providerPrefix, ...rest] = model.split("/");
+    const modelName = rest.join("/"); // Handle nested slashes
+
+    // Known provider prefixes - extract provider and use just model name
+    const knownProviders = ["openai", "anthropic", "deepseek", "google", "mistral", "cohere"];
+    if (knownProviders.includes(providerPrefix)) {
+      return { provider: providerPrefix, modelName };
+    }
+
+    // For OpenRouter, keep the full model string (e.g., "anthropic/claude-3.5-sonnet")
     return { provider: "openrouter", modelName: model };
   }
 

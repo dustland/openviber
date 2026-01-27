@@ -163,6 +163,152 @@ const result = await viberAgent.streamText({
 });
 ```
 
+## Technical Specifications
+
+### Skill Definition (`SKILL.md`)
+
+Capabilities are defined in `SKILL.md` files. These files are parsed at runtime to generate tool definitions for the LLM.
+
+**File Format:**
+```markdown
+---
+name: <kebab-case-name>
+description: <Description for the LLM>
+parameters:
+  <param_name>:
+    type: string | number | boolean
+    description: <Description of the parameter>
+    required: true | false
+---
+
+# Procedure
+<Executable script or natural language instructions>
+```
+
+**Example (`src/skills/git/commit.skill.md`):**
+```markdown
+---
+name: git-commit
+description: Stage changes and commit with a message.
+parameters:
+  message:
+    type: string
+    description: The commit message
+    required: true
+---
+git add .
+git commit -m "$message"
+```
+
+### Command Center Channels
+
+Channels connect external command centers (chat apps, web UIs, APIs) to the Viber runtime. They handle inbound messages and stream agent responses back to the source.
+
+**Built-in Channels:**
+- **DingTalk** - Enterprise bot via webhook (`/channels/dingtalk/webhook`)
+- **WeCom** - WeChat Work integration (`/channels/wecom/webhook`)
+- **Web** - HTTP + SSE for browser UIs (`/channels/web/message`, `/channels/web/stream/:id`)
+
+```typescript
+export interface Channel {
+  /** Unique channel identifier */
+  id: string;
+  
+  /** Channel type */
+  type: "webhook" | "websocket" | "sse";
+  
+  /** Start the channel */
+  start(): Promise<void>;
+  
+  /** Stop the channel gracefully */
+  stop(): Promise<void>;
+  
+  /** Handle an inbound message */
+  handleMessage(message: InboundMessage): Promise<void>;
+  
+  /** Stream an agent event back to the command center */
+  stream(conversationId: string, event: AgentStreamEvent): Promise<void>;
+}
+
+export type AgentStreamEvent =
+  | { type: 'text-delta'; content: string; agentId: string }
+  | { type: 'tool-call'; tool: string; args: unknown; agentId: string }
+  | { type: 'tool-result'; tool: string; result: unknown; agentId: string }
+  | { type: 'state-change'; state: string; agentId: string }
+  | { type: 'error'; error: string; agentId: string }
+  | { type: 'done'; agentId: string };
+```
+
+Configure channels in `config/channels.yaml`:
+```yaml
+channels:
+  dingtalk:
+    enabled: true
+    app_key: ${DINGTALK_APP_KEY}
+    app_secret: ${DINGTALK_APP_SECRET}
+  wecom:
+    enabled: false
+  web:
+    enabled: true
+```
+
+### Agentic Composite Procedures (Playbooks)
+
+Complex workflows are defined as "Playbooks" in Markdown. Unlike rigid scripts, these are read by a "Supervisor Agent" which plans execution dynamically.
+
+**Format:**
+```markdown
+# Playbook: <Name>
+
+## Goal
+<High-level objective>
+
+## Steps
+1. [Agent: <AgentName>] <Instruction>
+2. [Agent: <AgentName>] <Instruction>
+   - Constraint: <Constraint>
+```
+
+**Example:**
+```markdown
+# Playbook: release-feature
+
+## Goal
+Prepare a feature branch for release.
+
+## Steps
+1. [Coder] Run all tests and ensure they pass.
+2. [Coder] Bump the version in package.json.
+3. [Git] Create a new branch named `release/v<version>`.
+4. [Git] Push the branch and open a PR.
+```
+
+### Control Plane Protocol
+
+Communication between the Runtime and Command Centers uses a standardized JSON-RPC-like protocol over the transport layer (handled by Adapters).
+
+**User Message (Inbound):**
+```json
+{
+  "id": "uuid",
+  "content": "Fix the bug in src/api.ts",
+  "attachments": [],
+  "context": {
+    "currentFile": "src/api.ts",
+    "selection": "..."
+  }
+}
+```
+
+**Interruption Signal (Inbound):**
+```json
+{
+  "type": "interrupt",
+  "targetAgentId": "*",
+  "reason": "User cancelled operation"
+}
+```
+
 ## Related Documentation
 
 <CardGrid>

@@ -99,7 +99,14 @@ export function getDataAdapter(): DataAdapter {
  * NOTE: This function uses server-only imports and should only be called
  * from server-side code (API routes, server components, server actions).
  */
+let serverAdapterInstance: DataAdapter | null = null;
+
 export function getServerDataAdapter(): DataAdapter {
+  // Return cached instance if available
+  if (serverAdapterInstance) {
+    return serverAdapterInstance;
+  }
+
   // Check we're on the server
   if (typeof window !== "undefined") {
     throw new Error("getServerDataAdapter() can only be called on the server");
@@ -116,10 +123,12 @@ export function getServerDataAdapter(): DataAdapter {
     console.log(
       "[ViberDataAdapter] Server: Using Supabase database mode (direct access)"
     );
-    return new SupabaseDatabaseAdapter();
+    serverAdapterInstance = new SupabaseDatabaseAdapter();
   } else {
     // Local mode uses file system
     console.log("[ViberDataAdapter] Server: Using local mode (file-based)");
-    return new LocalDataAdapter();
+    serverAdapterInstance = new LocalDataAdapter();
   }
+
+  return serverAdapterInstance!;
 }

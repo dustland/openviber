@@ -31,7 +31,7 @@ We are committed to providing a welcoming and inclusive environment for all cont
    ```
 3. **Add upstream remote**:
    ```bash
-   git remote add upstream https://github.com/tiwater/viber.git
+   git remote add upstream https://github.com/dustland/viber.git
    ```
 
 ## Development Setup

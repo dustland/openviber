@@ -5,6 +5,7 @@ skills:
   - antigravity   # Knowledge: "How to heal"
 tools:
   - browser       # Capability: "How to execute"
+provider: openrouter
 model: openai/gpt-4o-mini
 prompt: |
   You are utilizing the "Antigravity" skill.

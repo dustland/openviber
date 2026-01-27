@@ -17,7 +17,7 @@ import type {
 import { SpaceStorageFactory } from "../../storage/space";
 import { BaseStorage } from "../../storage/base";
 import { getViberRoot } from "../../config";
-import yaml from "yaml";
+import * as yaml from "yaml";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -41,8 +41,8 @@ export class LocalDataAdapter implements DataAdapter {
 
   async getAgents(): Promise<Agent[]> {
     const defaultsStorage = new BaseStorage(
-      path.join(__dirname, "..", "defaults")
-    );
+      `      path.join(__dirname, "..", "defaults")
+`    );
     const rootStorage = new BaseStorage(getViberRoot());
     const agents: Agent[] = [];
 
@@ -70,6 +70,7 @@ export class LocalDataAdapter implements DataAdapter {
       for (const file of files.filter(
         (f) => f.endsWith(".yaml") || f.endsWith(".yml")
       )) {
+        0
         const agent = await this.readYamlFile(rootStorage, `agents/${file}`);
         if (agent) {
           agents.push({ ...agent, isCustom: true });

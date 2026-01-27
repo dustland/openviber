@@ -142,32 +142,23 @@ export function parseModelString(model: string): ModelConfig {
   //   return { provider: "viber", modelName: model };
   // }
 
-  // Anthropic models
+  // Anthropic models (direct access)
   if (model.startsWith("claude-")) {
     return { provider: "anthropic", modelName: model };
   }
 
-  // Deepseek models
+  // Deepseek models (direct access)
   if (model.startsWith("deepseek-")) {
     return { provider: "deepseek", modelName: model };
   }
 
-  // Handle explicit provider prefix format: "provider/model-name"
+  // Models with "/" are OpenRouter format (e.g., "openai/gpt-4o-mini", "anthropic/claude-3.5-sonnet")
+  // This matches OpenRouter's namespace convention: provider/model
   if (model.includes("/")) {
-    const [providerPrefix, ...rest] = model.split("/");
-    const modelName = rest.join("/"); // Handle nested slashes
-
-    // Known provider prefixes - extract provider and use just model name
-    const knownProviders = ["openai", "anthropic", "deepseek", "google", "mistral", "cohere"];
-    if (knownProviders.includes(providerPrefix)) {
-      return { provider: providerPrefix, modelName };
-    }
-
-    // For OpenRouter, keep the full model string (e.g., "anthropic/claude-3.5-sonnet")
     return { provider: "openrouter", modelName: model };
   }
 
-  // Default to OpenAI
+  // Simple model names default to OpenAI (e.g., "gpt-4o", "gpt-4o-mini")
   return { provider: "openai", modelName: model };
 }
 

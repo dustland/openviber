@@ -3,7 +3,7 @@ import * as fsSync from "fs";
 import * as path from "path";
 import * as yaml from "yaml";
 import { Skill, SkillModule } from "./types";
-import { CoreTool } from "../tool";
+import { CoreTool } from "../core/tool";
 
 export class SkillRegistry {
   private skills: Map<string, Skill> = new Map();
@@ -133,7 +133,7 @@ export class SkillRegistry {
 }
 
 import { fileURLToPath } from "url";
-import { getViberRoot } from "../../config";
+import { getViberRoot } from "../config";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -150,8 +150,8 @@ function getDefaultSkillsPath(): string {
     console.log(`[SkillRegistry] Using skills path (cwd): ${cwdPath}`);
     return cwdPath;
   } catch {
-    // Option 2: Relative to this file (e.g., dist/core/skills -> dist/skills or src/core/skills -> src/skills)
-    const relativePath = path.resolve(__dirname, "../../skills");
+    // Option 2: Relative to this file (skills/registry.ts -> skills)
+    const relativePath = path.resolve(__dirname, ".");
     try {
       fsSync.accessSync(relativePath);
       console.log(`[SkillRegistry] Using skills path (relative): ${relativePath}`);

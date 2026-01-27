@@ -1,4 +1,4 @@
-import { CoreTool } from "../tool";
+import { CoreTool } from "../core/tool";
 
 export interface SkillMetadata {
   name: string;

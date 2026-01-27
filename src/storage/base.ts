@@ -4,7 +4,7 @@
 
 import path from "path";
 import { getViberRoot } from "../config";
-// LocalStorageAdapter is imported dynamically to avoid bundling Node.js fs module in client
+import { LocalStorageAdapter } from "./adapters/local";
 
 export interface ArtifactInfo {
   id: string;
@@ -56,22 +56,11 @@ export class BaseStorage {
 
   constructor(basePath?: string, adapter?: StorageAdapter) {
     this.basePath = basePath || getViberRoot();
-    // If no adapter provided, we'll create one lazily (only on server)
-    // For client-side, adapter must be provided explicitly
+    // If no adapter provided, create LocalStorageAdapter (server-only)
     if (adapter) {
       this.adapter = adapter;
     } else {
-      // Only create LocalStorageAdapter on server
-      if (typeof window === "undefined") {
-        // Dynamic import to avoid bundling fs in client
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const { LocalStorageAdapter } = require("./adapters/local");
-        this.adapter = new LocalStorageAdapter();
-      } else {
-        throw new Error(
-          "LocalStorageAdapter cannot be used in client code. Provide a client-compatible adapter."
-        );
-      }
+      this.adapter = new LocalStorageAdapter();
     }
   }
 

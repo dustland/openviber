@@ -33,7 +33,7 @@ export interface AgentResponse {
  * Config-driven Agent implementation
  * No subclasses needed - behavior is entirely config-driven
  */
-import { defaultRegistry } from "./skills/registry";
+import { defaultRegistry } from "../skills/registry";
 
 /**
  * Config-driven Agent implementation

@@ -1,78 +1,83 @@
 ---
 title: "Viber vs Clawdbot"
-description: How Viber's flexible architecture compares to Clawdbot's centralized approach
+description: How Viber's local-first architecture compares to Clawdbot's centralized approach
 ---
 
 import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
 
 ## Architectural Philosophy
 
-Viber and Clawdbot take fundamentally different approaches to agent orchestration. Understanding these differences helps you choose the right tool for your use case.
+Viber and Clawdbot take fundamentally different approaches to agent deployment. Understanding these differences helps you choose the right tool for your use case.
 
 <Aside type="tip">
-  Viber adopts Clawdbot's excellent **Skill** format but rejects its centralized architecture in favor of a more flexible **Desktop Mesh**.
+  Viber adopts Clawdbot's excellent **Skill** format but uses a **Local-First Desktop Daemon** architecture instead of a centralized server.
 </Aside>
 
 ---
 
-## The Flexibility Spectrum
+## The Key Difference: Topology
 
 | Aspect | Clawdbot | Viber |
 |--------|----------|-------|
-| **Topology** | Centralized Gateway | Decentralized Agent Mesh |
+| **Deployment** | Centralized Server | Distributed Desktop Daemons |
+| **Connection** | Clients connect IN to gateway | Daemons connect OUT to command centers |
+| **Network** | Requires public IP/domain | No public IP needed |
 | **Workflows** | Rigid JSON/YAML pipelines | Fluid AI-driven Playbooks |
-| **Data Flow** | Explicit stdin/stdout passing | Natural language delegation |
-| **Routing** | Gateway-mediated | Direct agent-to-agent |
-| **Control Planes** | Single Gateway | Multiple simultaneous adapters |
-| **Failure Mode** | Single point of failure | Graceful degradation |
+| **Channels** | Gateway-hosted (WhatsApp, Telegram) | Built-in (DingTalk, WeCom, Web) |
+| **Failure Mode** | Single point of failure | Each daemon independent |
 
 ---
 
-## Gateway vs Mesh
+## Centralized Server vs Desktop Daemon
 
-### Clawdbot's Centralized Gateway
+### Clawdbot: Centralized Gateway
 
-Clawdbot centers around a **Gateway** process that serves as the central router:
+Clawdbot runs as a **central server** that clients connect to:
 
 ```
-┌─────────────────────────────────────────┐
-│              GATEWAY                    │
-│        ws://127.0.0.1:18789            │
-│   • Routes messages to agents           │
-│   • Manages session state               │
-│   • Single point of control             │
-└─────────────────────────────────────────┘
-         ▲           ▲           ▲
-    WhatsApp     Telegram      API
+          ┌─────────────────────────────────────────┐
+          │          CLAWDBOT SERVER                │
+          │       (Public IP / Domain)              │
+          │   • Routes messages to agents           │
+          │   • Manages session state               │
+          │   • Hosts all channel connections       │
+          └─────────────────────────────────────────┘
+                   ▲           ▲           ▲
+              WhatsApp     Telegram      API
+              (inbound)    (inbound)   (inbound)
 ```
 
 **Trade-offs:**
 - ✓ Centralized control and monitoring
+- ✓ Single deployment
+- ✗ Requires public IP / domain
 - ✗ Single point of failure
-- ✗ Rigid topology
+- ✗ No access to user desktop
 
-### Viber's Desktop Mesh
+### Viber: Desktop Daemon
 
-Viber uses a decentralized **Agent Mesh** where agents communicate directly:
+Viber runs as a **local daemon** on user machines, connecting **outbound** to command centers:
 
 ```
-┌─────────────────────────────────────────┐
-│              AGENT MESH                 │
-│   ┌───────┐   ┌───────┐   ┌───────┐    │
-│   │ Coder │◄─►│Triage │◄─►│Browser│    │
-│   └───────┘   └───────┘   └───────┘    │
-│         Event Bus (internal)            │
-└─────────────────────────────────────────┘
-     ▲              ▲              ▲
-   CLI          WebSocket         Web
-         (Pluggable Adapters)
+┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
+│  MacBook Daemon │  │  Docker Daemon  │  │  Cloud VM Daemon│
+│  Desktop + File │  │  File + Web     │  │  Full access    │
+└────────┬────────┘  └────────┬────────┘  └────────┬────────┘
+         │ outbound           │ outbound           │ outbound
+         ▼                    ▼                    ▼
+    ┌─────────────────────────────────────────────────────┐
+    │              COMMAND CENTER (Web UI)                │
+    │       viber-macbook ● Connected                     │
+    │       viber-docker  ● Connected                     │
+    └─────────────────────────────────────────────────────┘
 ```
 
 **Advantages:**
-- ✓ No single point of failure
-- ✓ Connect to multiple control planes simultaneously
-- ✓ Lightweight adapter pattern
-- ✓ Agent-to-agent communication without routing overhead
+- ✓ No public IP needed (outbound connections)
+- ✓ Full access to user desktop (UI automation, local files)
+- ✓ Each daemon runs independently
+- ✓ Built-in chat channels (DingTalk, WeCom, Web)
+- ✓ Connect multiple daemons to one command center
 
 ---
 
@@ -129,7 +134,7 @@ Prepare a feature branch for release.
 
 ---
 
-## Skill System: Shared Excellence
+## Skill System: Shared Pattern
 
 Both frameworks use the `SKILL.md` format—a pattern Viber directly adopts from Clawdbot:
 
@@ -161,21 +166,21 @@ git commit -m "$message"
   <TabItem label="Choose Viber">
     **Viber is ideal when:**
     
-    - Need multi-control-plane connectivity
-    - Building products (not just automations)
-    - Want agent-to-agent communication
+    - Need desktop access (file system, UI automation)
+    - No public IP available (outbound-only connections)
+    - Building products with embedded AI workers
     - Prefer TypeScript-first development
-    - Need graceful failure handling
     - Want AI-driven workflow adaptation
+    - Need DingTalk/WeCom/Web chat integration
   </TabItem>
   <TabItem label="Choose Clawdbot">
     **Clawdbot is ideal when:**
     
-    - Need centralized monitoring and control
-    - Building channel integrations (WhatsApp, Telegram)
+    - Have a central server with public IP
+    - Building WhatsApp/Telegram bots
     - Want deterministic, predictable pipelines
     - Prefer rigid workflow definitions
-    - Single gateway topology is acceptable
+    - Need centralized monitoring dashboard
   </TabItem>
 </Tabs>
 
@@ -185,16 +190,18 @@ git commit -m "$message"
 
 | You need... | Clawdbot | Viber |
 |-------------|----------|-------|
-| Centralized control | ✓ | — |
-| Flexible topology | — | ✓ |
+| Centralized server | ✓ | — |
+| Desktop daemon | — | ✓ |
+| Public IP required | ✓ | — |
+| Outbound-only | — | ✓ |
 | Deterministic workflows | ✓ | — |
 | AI-adaptive workflows | — | ✓ |
-| Multi-channel gateway | ✓ | — |
-| Multi-control-plane | — | ✓ |
+| WhatsApp/Telegram | ✓ | — |
+| DingTalk/WeCom/Web | — | ✓ |
 | Skill format | ✓ | ✓ |
 | TypeScript-first | — | ✓ |
-| Product embedding | — | ✓ |
+| Desktop automation | — | ✓ |
 
 <Aside type="tip">
-  Viber takes the best of Clawdbot's patterns (Skills) while replacing its constraints (Gateway + Lobster) with a more flexible, product-oriented architecture.
+  Viber takes Clawdbot's excellent Skill pattern while using a local-first daemon architecture optimized for desktop workers and outbound connections.
 </Aside>

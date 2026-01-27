@@ -7,9 +7,9 @@ import * as yaml from "yaml";
 export interface CronJobConfig {
   name: string;
   description?: string;
-  schedule: string; // Cron expression or "interval: 3s" (parsed manually if needed, or croner handles ISO/Intervals?)
-  // Croner handles ISO 8601, but "*/3 * * * * *" is standard cron.
+  schedule: string;
   agent?: string;
+  provider?: string;
   model?: string;
   skills?: string[];
   tools?: string[];
@@ -85,15 +85,10 @@ export class JobScheduler {
   }
 
   private async executeJob(config: CronJobConfig) {
-    // console.log(`[Scheduler] Running job: ${config.name}`);
-
     // If model is specified, use full Agent
     if (config.model) {
       try {
-        const { parseModelString } = await import("../provider");
-        const { Agent } = await import("../agent");
-
-        const { provider, modelName } = parseModelString(config.model);
+        const { Agent } = await import("../core/agent");
 
         const agent = new Agent({
           name: config.name,
@@ -101,8 +96,8 @@ export class JobScheduler {
           skills: config.skills,
           tools: config.tools,
           llm: {
-            provider,
-            model: modelName
+            provider: config.provider || "openrouter",
+            model: config.model
           },
         });
 

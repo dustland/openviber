@@ -1,5 +1,4 @@
-import { defaultRegistry } from "../core/skills/registry";
-import { calculatorSkill } from "./calculator";
+import { defaultRegistry } from "./registry";
 import { getTools as getAntigravityTools } from "./antigravity";
 
 // Register default skills and their tools
@@ -10,8 +9,6 @@ export function registerDefaultSkills() {
   defaultRegistry.preRegisterTools("antigravity", getAntigravityTools());
 }
 
-// Export specific skills for manual usage
-export { calculatorSkill };
-
 // Auto-register on import
 registerDefaultSkills();
+

@@ -110,7 +110,7 @@ importers:
         version: 5.47.1
       viber:
         specifier: file:..
-        version: '@tiwater/viber@file:(@types/react@19.2.9)(react@19.2.3)(use-sync-external-store@1.6.0(react@19.2.3))'
+        version: '@dustland/viber@file:(@types/react@19.2.9)(react@19.2.3)(use-sync-external-store@1.6.0(react@19.2.3))'
       ws:
         specifier: ^8.19.0
         version: 8.19.0
@@ -1137,7 +1137,7 @@ packages:
     peerDependencies:
       vite: ^5.2.0 || ^6 || ^7
 
-  '@tiwater/viber@file:':
+  '@dustland/viber@file:':
     resolution: {directory: '', type: directory}
     hasBin: true
 
@@ -3988,7 +3988,7 @@ snapshots:
       tailwindcss: 4.1.18
       vite: 6.4.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2)
 
-  '@tiwater/viber@file:(@types/react@19.2.9)(react@19.2.3)(use-sync-external-store@1.6.0(react@19.2.3))':
+  '@dustland/viber@file:(@types/react@19.2.9)(react@19.2.3)(use-sync-external-store@1.6.0(react@19.2.3))':
     dependencies:
       '@ai-sdk/anthropic': 3.0.18(zod@4.3.5)
       '@ai-sdk/deepseek': 2.0.8(zod@4.3.5)

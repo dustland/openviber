@@ -19,7 +19,7 @@ export default defineConfig({
       favicon: '/favicon.png',
       description: 'Multi-agent collaboration framework for vibe working',
       social: [
-        { icon: 'github', label: 'GitHub', href: 'https://github.com/tiwater/viber' },
+        { icon: 'github', label: 'GitHub', href: 'https://github.com/dustland/viber' },
       ],
       customCss: [
         './src/styles/global.css',
@@ -42,7 +42,7 @@ export default defineConfig({
           items: [
             { label: 'Philosophy', slug: 'design/philosophy' },
             { label: 'Architecture', slug: 'design/architecture' },
-            { label: 'Framework Comparison', slug: 'design/framework-comparison' },
+            { label: 'Viber vs Clawdbot', slug: 'design/viber-vs-clawdbot' },
             { label: 'Communication', slug: 'design/communication' },
             { label: 'Memory', slug: 'design/memory' },
             { label: 'Message Parts', slug: 'design/message-parts' },

@@ -38,7 +38,7 @@ program
   .option("--reconnect-interval <ms>", "Reconnect interval in ms", "5000")
   .option("--heartbeat-interval <ms>", "Heartbeat interval in ms", "30000")
   .action(async (options) => {
-    const { JobScheduler } = await import("../core/cron/scheduler");
+    const { JobScheduler } = await import("../daemon/scheduler");
     const { ViberController } = await import("../daemon/controller");
     const { EventEmitter } = await import("events");
 

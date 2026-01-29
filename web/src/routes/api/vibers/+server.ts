@@ -14,9 +14,10 @@ export const GET: RequestHandler = async () => {
       platform: v.platform,
       version: v.version,
       capabilities: v.capabilities,
-      isConnected: true, // All vibers from hub are connected
+      skills: v.skills,
+      isConnected: true,
       connectedAt: v.connectedAt,
-      runningTasks: 0, // TODO: Get from hub
+      runningTasks: 0,
     }));
 
     return json(result);

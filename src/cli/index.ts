@@ -148,36 +148,25 @@ Running locally. Press Ctrl+C to stop.
 
 program
   .command("run <goal>")
-  .description("Run a task locally without connecting to command center")
+  .description("Run a task locally (thin daemon runtime, no Space)")
   .option("-m, --model <model>", "LLM model to use", "deepseek/deepseek-chat")
-  .option("-a, --agent <agent>", "Single agent to use")
-  .option("--desktop", "Enable desktop control")
+  .option("-a, --agent <agent>", "Agent config to use", "default")
   .action(async (goal, options) => {
-    const { ViberAgent } = await import("../core/viber-agent");
+    const { runTask } = await import("../daemon/runtime");
 
-    console.log(`[Viber] Starting local task: ${goal}`);
+    console.log(`[Viber] Running task: ${goal}`);
 
     try {
-      const agent = await ViberAgent.start(goal, {
+      const { streamResult } = await runTask(goal, {
+        taskId: `run-${Date.now()}`,
         model: options.model,
         singleAgentId: options.agent,
       });
 
-      console.log(`[Viber] Space created: ${agent.spaceId}`);
-
-      // Execute task
-      const result = await agent.streamText({
-        messages: [{ role: "user", content: goal }],
-        metadata: {
-          mode: "agent",
-          requestedAgent: options.agent || "default",
-        },
-      });
-
-      // Stream output
-      for await (const chunk of result.fullStream) {
+      for await (const chunk of streamResult.fullStream) {
         if (chunk.type === "text-delta") {
-          process.stdout.write(chunk.textDelta);
+          const text = (chunk as any).text ?? (chunk as any).textDelta;
+          if (text) process.stdout.write(text);
         }
       }
 
@@ -186,19 +175,6 @@ program
       console.error("[Viber] Task failed:", error.message);
       process.exit(1);
     }
-  });
-
-// ==================== viber gateway ====================
-
-program
-  .command("gateway")
-  .description("Start the API gateway server (legacy)")
-  .option("-p, --port <port>", "Port to listen on", "3000")
-  .action(async (options) => {
-    const { startGateway } = await import("../server/gateway");
-    const port = parseInt(options.port, 10);
-    console.log(`Starting Viber Gateway on port ${port}...`);
-    startGateway(port);
   });
 
 // ==================== viber login ====================
@@ -230,35 +206,6 @@ program
     } catch {
       // Ignore - user can manually open URL
     }
-  });
-
-// ==================== viber status ====================
-
-// ==================== viber playground ====================
-
-program
-  .command("playground")
-  .description("Start a playground server (command center for vibers)")
-  .option("-p, --port <port>", "Port to listen on", "6007")
-  .action(async (options) => {
-    const { PlaygroundServer } = await import("../server/playground");
-    const port = parseInt(options.port, 10);
-
-    const server = new PlaygroundServer();
-
-    // Handle graceful shutdown
-    process.on("SIGINT", async () => {
-      console.log("\n[Playground] Shutting down...");
-      await server.stop();
-      process.exit(0);
-    });
-
-    process.on("SIGTERM", async () => {
-      await server.stop();
-      process.exit(0);
-    });
-
-    await server.start(port);
   });
 
 // ==================== viber status ====================

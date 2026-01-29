@@ -52,6 +52,10 @@
       title: "Design",
       items: [
         { title: "Architecture", href: "/docs/design/arch" },
+        {
+          title: "Plan and Artifacts",
+          href: "/docs/design/plan-and-artifacts",
+        },
         { title: "Philosophy", href: "/docs/design/philosophy" },
         { title: "Viber Daemon", href: "/docs/design/viber-daemon" },
         { title: "Viber vs Clawdbot", href: "/docs/design/viber-vs-clawdbot" },

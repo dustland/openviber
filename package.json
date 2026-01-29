@@ -11,17 +11,17 @@
   },
   "packageManager": "pnpm@10.15.0",
   "scripts": {
-    "dev": "concurrently -n hub,web,viber -c yellow,magenta,blue \"tsx src/cli/index.ts playground\" \"cd web && pnpm dev\" \"sleep 2 && tsx src/cli/index.ts start --server ws://localhost:6007/vibers/ws --token dev\"",
+    "dev": "concurrently -n web,viber \"cd web && pnpm dev\" \"tsx watch src/cli/index.ts start\"",
     "dev:viber": "tsx watch src/cli/index.ts start",
     "dev:web": "cd web && pnpm dev",
-    "dev:hub": "tsx src/cli/index.ts playground",
     "build": "tsup",
     "build:web": "cd web && pnpm build",
     "start": "node dist/cli/index.js start",
     "viber": "node dist/cli/index.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest",
-    "preview:web": "cd web && pnpm preview"
+    "preview:web": "cd web && pnpm preview",
+    "verify:skills": "tsx scripts/verify-skills.ts"
   },
   "keywords": [
     "multi-agent",

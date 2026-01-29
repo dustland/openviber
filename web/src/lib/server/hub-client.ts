@@ -7,6 +7,12 @@
 
 const HUB_URL = process.env.VIBER_HUB_URL || "http://localhost:6007";
 
+export interface ViberSkillInfo {
+  id: string;
+  name: string;
+  description: string;
+}
+
 export interface ConnectedViber {
   id: string;
   name: string;
@@ -14,6 +20,7 @@ export interface ConnectedViber {
   platform: string;
   capabilities: string[];
   connectedAt: string;
+  skills?: ViberSkillInfo[];
 }
 
 export interface HubTask {
@@ -45,17 +52,18 @@ export const hubClient = {
   },
 
   /**
-   * Submit a task to a viber via the hub
+   * Submit a task to a viber via the hub (optionally with full chat history for context)
    */
   async submitTask(
     goal: string,
     viberId?: string,
+    messages?: { role: string; content: string }[],
   ): Promise<{ taskId: string } | null> {
     try {
       const response = await fetch(`${HUB_URL}/api/vibers`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ goal, viberId }),
+        body: JSON.stringify({ goal, viberId, messages }),
       });
 
       if (!response.ok) {
@@ -99,6 +107,21 @@ export const hubClient = {
     } catch (error) {
       console.error("[HubClient] Failed to get task:", error);
       return null;
+    }
+  },
+
+  /**
+   * Stop a running task on the viber via the hub
+   */
+  async stopTask(taskId: string): Promise<boolean> {
+    try {
+      const response = await fetch(`${HUB_URL}/api/tasks/${taskId}/stop`, {
+        method: "POST",
+      });
+      return response.ok;
+    } catch (error) {
+      console.error("[HubClient] Failed to stop task:", error);
+      return false;
     }
   },
 

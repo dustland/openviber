@@ -13,7 +13,8 @@
 
 import { EventEmitter } from "events";
 import WebSocket from "ws";
-import { ViberAgent, ViberOptions } from "../core/viber-agent";
+import type { ViberOptions } from "../core/viber-agent";
+import { runTask } from "./runtime";
 
 // ==================== Types ====================
 
@@ -34,6 +35,12 @@ export interface ViberControllerConfig {
   enableDesktop?: boolean;
 }
 
+export interface ViberSkillInfo {
+  id: string;
+  name: string;
+  description: string;
+}
+
 export interface ViberInfo {
   id: string;
   name: string;
@@ -41,6 +48,8 @@ export interface ViberInfo {
   platform: string;
   capabilities: string[];
   runningTasks: string[];
+  /** Skills available on this viber (from SKILL.md) */
+  skills?: ViberSkillInfo[];
 }
 
 export interface ViberStatus {
@@ -50,9 +59,15 @@ export interface ViberStatus {
   runningTasks: number;
 }
 
-// Server -> Viber messages
+// Server -> Viber messages (messages = full chat history from cockpit for context)
 export type ControllerServerMessage =
-  | { type: "task:submit"; taskId: string; goal: string; options?: ViberOptions }
+  | {
+      type: "task:submit";
+      taskId: string;
+      goal: string;
+      options?: ViberOptions;
+      messages?: { role: string; content: string }[];
+    }
   | { type: "task:stop"; taskId: string }
   | { type: "task:message"; taskId: string; message: string }
   | { type: "ping" }
@@ -74,7 +89,8 @@ export class ViberController extends EventEmitter {
   private ws: WebSocket | null = null;
   private reconnectTimer: NodeJS.Timeout | null = null;
   private heartbeatTimer: NodeJS.Timeout | null = null;
-  private runningTasks: Map<string, ViberAgent> = new Map();
+  /** taskId -> AbortController for stop (daemon = thin runtime, no Space/agent instance) */
+  private runningTasks: Map<string, AbortController> = new Map();
   private isConnected = false;
   private shouldReconnect = true;
 
@@ -99,9 +115,8 @@ export class ViberController extends EventEmitter {
     console.log("[Viber] Stopping viber...");
     this.shouldReconnect = false;
 
-    // Stop all running tasks
-    for (const [taskId, agent] of this.runningTasks) {
-      agent.stop();
+    for (const [taskId, controller] of this.runningTasks) {
+      controller.abort();
       this.runningTasks.delete(taskId);
     }
 
@@ -143,7 +158,9 @@ export class ViberController extends EventEmitter {
         },
       });
 
-      this.ws.on("open", () => this.onConnected());
+      this.ws.on("open", () => {
+        void this.onConnected();
+      });
       this.ws.on("message", (data) => this.onMessage(data));
       this.ws.on("close", () => this.onDisconnected());
       this.ws.on("error", (err) => this.onError(err));
@@ -153,17 +170,29 @@ export class ViberController extends EventEmitter {
     }
   }
 
-  private onConnected(): void {
+  private async onConnected(): Promise<void> {
     console.log("[Viber] Connected to command center");
     this.isConnected = true;
 
-    // Determine capabilities
     const capabilities = ["file", "search", "web"];
     if (this.config.enableDesktop) {
       capabilities.push("desktop");
     }
 
-    // Send viber info
+    let skills: { id: string; name: string; description: string }[] = [];
+    try {
+      const { defaultRegistry } = await import("../skills/registry");
+      await defaultRegistry.loadAll();
+      const all = defaultRegistry.getAllSkills();
+      skills = all.map((s) => ({
+        id: s.id,
+        name: s.metadata.name || s.id,
+        description: s.metadata.description || "",
+      }));
+    } catch (err) {
+      console.warn("[Viber] Could not load skills for capabilities:", err);
+    }
+
     this.send({
       type: "connected",
       viber: {
@@ -173,12 +202,11 @@ export class ViberController extends EventEmitter {
         platform: process.platform,
         capabilities,
         runningTasks: Array.from(this.runningTasks.keys()),
+        skills: skills.length > 0 ? skills : undefined,
       },
     });
 
-    // Start heartbeat
     this.startHeartbeat();
-
     this.emit("connected");
   }
 
@@ -236,105 +264,76 @@ export class ViberController extends EventEmitter {
     taskId: string;
     goal: string;
     options?: ViberOptions;
+    messages?: { role: string; content: string }[];
   }): Promise<void> {
-    const { taskId, goal, options } = message;
+    const { taskId, goal, options, messages } = message;
 
     console.log(`[Viber] Received task: ${taskId}`);
     console.log(`[Viber] Goal: ${goal}`);
 
+    const controller = new AbortController();
+    this.runningTasks.set(taskId, controller);
+
+    this.send({
+      type: "task:started",
+      taskId,
+      spaceId: taskId,
+    });
+
     try {
-      // Create ViberAgent
-      const agent = await ViberAgent.start(goal, {
-        model: options?.model,
-        ...options,
-      });
-
-      this.runningTasks.set(taskId, agent);
-
-      // Notify task started
-      this.send({
-        type: "task:started",
-        taskId,
-        spaceId: agent.spaceId,
-      });
-
-      // Execute task and stream events
-      await this.executeTask(taskId, agent, goal, options);
-    } catch (error: any) {
-      console.error(`[Viber] Task ${taskId} failed to start:`, error);
-      this.send({
-        type: "task:error",
-        taskId,
-        error: error.message,
-      });
-    }
-  }
-
-  private async executeTask(
-    taskId: string,
-    agent: ViberAgent,
-    goal: string,
-    options?: ViberOptions
-  ): Promise<void> {
-    try {
-      // Stream text execution
-      const result = await agent.streamText({
-        messages: [{ role: "user", content: goal }],
-        metadata: {
-          mode: "agent",
-          requestedAgent: options?.singleAgentId || "default",
+      const { streamResult, agent } = await runTask(
+        goal,
+        {
           taskId,
+          model: options?.model,
+          singleAgentId: options?.singleAgentId || "default",
+          signal: controller.signal,
         },
-      });
+        messages,
+      );
 
-      // Process stream and send events
-      for await (const chunk of result.fullStream) {
-        this.send({
-          type: "task:progress",
-          taskId,
-          event: chunk,
-        });
-      }
-
-      // Get final result
-      const finalText = await result.text;
+      // Consume stream to completion; do not send intermediate chunks to cockpit by default.
+      const finalText = await streamResult.text;
 
       this.send({
         type: "task:completed",
         taskId,
         result: {
-          spaceId: agent.spaceId,
+          spaceId: taskId,
           text: finalText,
           summary: agent.getSummary(),
         },
       });
     } catch (error: any) {
-      console.error(`[Viber] Task ${taskId} execution error:`, error);
-      this.send({
-        type: "task:error",
-        taskId,
-        error: error.message,
-      });
+      if (error?.name === "AbortError") {
+        console.log(`[Viber] Task ${taskId} stopped`);
+      } else {
+        console.error(`[Viber] Task ${taskId} execution error:`, error);
+        this.send({
+          type: "task:error",
+          taskId,
+          error: error.message,
+        });
+      }
     } finally {
       this.runningTasks.delete(taskId);
     }
   }
 
   private async handleTaskStop(taskId: string): Promise<void> {
-    const agent = this.runningTasks.get(taskId);
-    if (agent) {
-      agent.stop();
+    const controller = this.runningTasks.get(taskId);
+    if (controller) {
+      controller.abort();
       this.runningTasks.delete(taskId);
       console.log(`[Viber] Task stopped: ${taskId}`);
     }
   }
 
-  private async handleTaskMessage(taskId: string, message: string): Promise<void> {
-    const agent = this.runningTasks.get(taskId);
-    if (agent) {
-      agent.addMessage(message);
-      console.log(`[Viber] Message added to task: ${taskId}`);
-    }
+  private async handleTaskMessage(
+    _taskId: string,
+    _message: string,
+  ): Promise<void> {
+    // Daemon is thin: no in-memory conversation. Cockpit sends full messages on next task submit.
   }
 
   // ==================== Communication ====================

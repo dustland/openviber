@@ -26,16 +26,17 @@ export const GET: RequestHandler = async ({ params }) => {
   }
 };
 
-// POST /api/vibers/[id] - Submit a task to this viber
+// POST /api/vibers/[id] - Submit a task to this viber (optionally with full chat history for context)
 export const POST: RequestHandler = async ({ params, request }) => {
   try {
-    const { goal } = await request.json();
+    const body = await request.json();
+    const { goal, messages } = body;
 
     if (!goal) {
       return json({ error: "Goal is required" }, { status: 400 });
     }
 
-    const result = await hubClient.submitTask(goal, params.id);
+    const result = await hubClient.submitTask(goal, params.id, messages);
 
     if (!result) {
       return json({ error: "Failed to submit task" }, { status: 500 });

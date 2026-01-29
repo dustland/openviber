@@ -1,9 +1,10 @@
 /**
  * Viber Daemon - Exports
- * 
- * Core daemon functionality (controller, connection to command center)
- * App-level services like monitor are in src/apps/
+ *
+ * Clawdbot-alike assistant daemon: thin runtime (no Space, no DataAdapter, no Storage).
+ * Cockpit owns persistence; daemon orchestrates local skills and LLM.
  */
 
-export * from './controller';
+export * from "./controller";
+export * from "./runtime";
 

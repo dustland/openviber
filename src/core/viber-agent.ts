@@ -131,7 +131,7 @@ export class ViberAgent extends Agent {
       systemMessage,
       spaceId,
       metadata,
-      restOptions
+      restOptions,
     );
 
     // PHASE 3: Message Persistence
@@ -151,7 +151,7 @@ export class ViberAgent extends Agent {
     systemMessage: string | undefined,
     spaceId: string | undefined,
     metadata: Record<string, any>,
-    restOptions: any
+    restOptions: any,
   ): Promise<any> {
     // Check if parallel execution is requested
     const parallelAgents = metadata.parallelAgents as string[] | undefined;
@@ -162,7 +162,7 @@ export class ViberAgent extends Agent {
         systemMessage,
         spaceId,
         metadata,
-        restOptions
+        restOptions,
       );
     }
 
@@ -172,7 +172,9 @@ export class ViberAgent extends Agent {
       throw new Error("Agent mode requires requestedAgent in metadata");
     }
 
-    console.log(`[ViberAgent] Agent mode: direct delegation to '${targetAgent}'`);
+    console.log(
+      `[ViberAgent] Agent mode: direct delegation to '${targetAgent}'`,
+    );
 
     // Get or load target agent
     let agent = this.space.getAgent(targetAgent);
@@ -188,15 +190,21 @@ export class ViberAgent extends Agent {
       this.space.registerAgent(targetAgent, agent);
     }
 
-    // Performance optimization: Use recent messages only for single-agent
-    const optimizedMessages = this.optimizeContextForAgent(messages);
+    // Use full conversation history so the LLM has context (e.g. user "1" after assistant's numbered list)
+    const taskId = metadata?.taskId || metadata?.conversationId || "default";
+    const task = this.space.getOrCreateTask(taskId);
+    const fullHistory = task.history.getMessages();
+    const messagesForAgent =
+      fullHistory.length > 0
+        ? this.optimizeContextForAgent(fullHistory)
+        : this.optimizeContextForAgent(messages);
     console.log(
-      `[ViberAgent] Agent mode: using ${optimizedMessages.length} optimized messages`
+      `[ViberAgent] Agent mode: using ${messagesForAgent.length} messages from history`,
     );
 
     // Direct delegation - no orchestration overhead
     return await agent.streamText({
-      messages: optimizedMessages,
+      messages: messagesForAgent,
       system: systemMessage,
       spaceId,
       metadata: {
@@ -217,7 +225,7 @@ export class ViberAgent extends Agent {
     systemMessage: string | undefined,
     spaceId: string | undefined,
     metadata: Record<string, any>,
-    restOptions: any
+    restOptions: any,
   ): Promise<any> {
     console.log(`[ViberAgent] Parallel execution: ${agentIds.length} agents`);
 
@@ -274,14 +282,19 @@ export class ViberAgent extends Agent {
    */
   private async updateSpaceHistory(
     messages: any[],
-    metadata?: Record<string, any>
+    metadata?: Record<string, any>,
   ): Promise<void> {
     // Get taskId from metadata, or use "default" for legacy support
     const taskId = metadata?.taskId || metadata?.conversationId || "default";
     const task = this.space.getOrCreateTask(taskId);
 
     const existingMessages = task.history.getMessages();
-    const newMessages = messages.slice(existingMessages.length);
+    // When client sends only the new message(s), messages.length <= existingMessages.length:
+    // append incoming messages. When client sends full thread, take only the new tail.
+    const newMessages =
+      messages.length > existingMessages.length
+        ? messages.slice(existingMessages.length)
+        : messages;
 
     if (newMessages.length > 0) {
       for (const msg of newMessages) {
@@ -297,7 +310,7 @@ export class ViberAgent extends Agent {
         task.history.add(formattedMsg);
       }
       console.log(
-        `[ViberAgent] Updated task ${taskId} history with ${newMessages.length} new messages`
+        `[ViberAgent] Updated task ${taskId} history with ${newMessages.length} new messages`,
       );
     }
   }
@@ -336,7 +349,7 @@ export class ViberAgent extends Agent {
     streamResult: any,
     messages: any[],
     spaceId: string,
-    metadata: any
+    metadata: any,
   ) {
     (async () => {
       try {
@@ -359,7 +372,7 @@ export class ViberAgent extends Agent {
               break;
             case "tool-result":
               const toolCall = toolInvocations.find(
-                (t) => t.toolCallId === part.toolCallId
+                (t) => t.toolCallId === part.toolCallId,
               );
               if (toolCall) {
                 toolCall.result = part.result;
@@ -387,10 +400,12 @@ export class ViberAgent extends Agent {
           ...(toolInvocations.length > 0 && { toolInvocations }),
         };
 
-        // Update messages and persist
-        const updatedMessages = [...messages, assistantMessage];
-
-        // Note: Message persistence handled on client side to maintain UIMessage format for rendering
+        // Add assistant message to task history so next turn in same run has full context
+        const taskId =
+          metadata?.taskId || metadata?.conversationId || "default";
+        const task = this.space.getOrCreateTask(taskId);
+        task.history.add(assistantMessage);
+        // Chat history is persisted at cockpit level, not by the viber agent
       } catch (error) {
         console.error("[ViberAgent] Failed to persist messages:", error);
       }
@@ -475,11 +490,11 @@ export class ViberAgent extends Agent {
               z.object({
                 taskId: z.string(),
                 type: z.enum(["required", "optional"]),
-              })
+              }),
             )
             .default([]),
           tags: z.array(z.string()).default([]),
-        })
+        }),
       ),
     });
 
@@ -489,7 +504,7 @@ export class ViberAgent extends Agent {
         this.getSystemPrompt() +
         "\n\nCreate a detailed plan to achieve the goal.",
       prompt: `Goal: ${planGoal}\n\nAvailable agents: ${Array.from(
-        this.space.agents.keys()
+        this.space.agents.keys(),
       ).join(", ")}`,
       output: Output.object({ schema: planSchema }),
     });
@@ -497,11 +512,11 @@ export class ViberAgent extends Agent {
     // Create Plan with Tasks - cast result.output to inferred schema type
     const planData = result.output as z.infer<typeof planSchema>;
     const tasks = planData.tasks.map(
-      (taskData: z.infer<typeof planSchema>['tasks'][number]) =>
+      (taskData: z.infer<typeof planSchema>["tasks"][number]) =>
         new Task({
           ...taskData,
           status: TaskStatus.PENDING,
-        })
+        }),
     );
 
     const plan = new Plan({
@@ -540,7 +555,7 @@ export class ViberAgent extends Agent {
               priority: z.enum(["low", "medium", "high"]).optional(),
               assignedTo: z.string().optional(),
             }),
-          })
+          }),
         )
         .describe("Tasks to modify"),
       removeTasks: z.array(z.string()).describe("IDs of tasks to remove"),
@@ -557,11 +572,11 @@ export class ViberAgent extends Agent {
                 z.object({
                   taskId: z.string(),
                   type: z.enum(["required", "optional"]),
-                })
+                }),
               )
               .default([]),
             tags: z.array(z.string()).default([]),
-          })
+          }),
         )
         .describe("New tasks to add"),
       reasoning: z.string().describe("Explanation of the plan changes"),
@@ -576,8 +591,8 @@ Current Plan Progress:
 
 Current Tasks:
 ${currentPlan.tasks
-        .map((t) => `- [${t.id}] ${t.title} (${t.status})`)
-        .join("\n")}
+  .map((t) => `- [${t.id}] ${t.title} (${t.status})`)
+  .join("\n")}
 
 User Feedback: ${feedback}
 
@@ -707,7 +722,10 @@ These artifacts are pre-loaded in the space and can be referenced in your respon
   /**
    * Static factory to start a new space
    */
-  static async start(goal: string, options: ViberOptions = {}): Promise<ViberAgent> {
+  static async start(
+    goal: string,
+    options: ViberOptions = {},
+  ): Promise<ViberAgent> {
     const { spaceId, model, singleAgentId } = options;
 
     // Use provided spaceId or generate one
@@ -741,7 +759,7 @@ These artifacts are pre-loaded in the space and can be referenced in your respon
    */
   static async resume(
     spaceId: string,
-    options: ViberOptions = {}
+    options: ViberOptions = {},
   ): Promise<ViberAgent> {
     const { model } = options;
 
@@ -781,15 +799,13 @@ These artifacts are pre-loaded in the space and can be referenced in your respon
       (space.viberAgent as any).singleAgentId = agentId;
     }
 
-    // Restore conversation messages if exists
+    // Restore conversation messages if exists (e.g. CLI resume from local storage)
     const messages = await storage.readJSON<any[]>("messages.json");
     if (messages && Array.isArray(messages)) {
       space.history.clear();
       for (const msg of messages) {
-        // Normalize message content format to AI SDK v5 standard
         const normalizedMsg = { ...msg };
         if (typeof msg.content === "string") {
-          // Convert string content to AI SDK v5 format
           normalizedMsg.content = [{ type: "text", text: msg.content }];
         }
         space.history.add(normalizedMsg);

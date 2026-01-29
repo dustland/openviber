@@ -1,0 +1,113 @@
+---
+title: "API Reference"
+description: Complete API reference for Viber
+---
+
+## Core Exports
+
+The main `viber` package exports the following:
+
+```typescript
+```
+
+---
+
+## Agent
+
+The primary class for creating AI agents.
+
+### Constructor
+
+```typescript
+new Agent(config: AgentConfig)
+```
+
+### AgentConfig
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `name` | `string` | ✓ | Agent identifier |
+| `model` | `string` | ✓ | LLM model (e.g., `openai:gpt-4o`) |
+| `systemPrompt` | `string` | | Agent instructions |
+| `tools` | `Tool[]` | | Available tools |
+| `temperature` | `number` | | Creativity (0-1) |
+| `maxTokens` | `number` | | Response limit |
+
+### Methods
+
+#### `streamText(options)`
+
+Stream a text response.
+
+```typescript
+const result = await agent.streamText({
+  messages: Message[],
+  onToolCall?: (call) => void,
+});
+```
+
+#### `generateText(options)`
+
+Generate a complete text response (non-streaming).
+
+```typescript
+const result = await agent.generateText({
+  messages: Message[],
+});
+```
+
+---
+
+## Space
+
+Workspace management for organizing artifacts and history.
+
+### Constructor
+
+```typescript
+new Space(config: SpaceConfig)
+```
+
+### Methods
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `saveArtifact(name, content)` | `Promise<void>` | Save an artifact |
+| `readArtifact(name)` | `Promise<string>` | Read an artifact |
+| `listArtifacts()` | `Promise<string[]>` | List all artifacts |
+| `getHistory()` | `Promise<Message[]>` | Get conversation history |
+| `clearHistory()` | `Promise<void>` | Clear history |
+
+---
+
+## tool()
+
+Define a tool for agents.
+
+```typescript
+const myTool = tool({
+  name: string,
+  description: string,
+  parameters: ZodSchema,
+  execute: (params) => Promise<any>,
+});
+```
+
+---
+
+## Framework Adapters
+
+### React (`viber/react`)
+
+```typescript
+```
+
+### Svelte (`viber/svelte`)
+
+```typescript
+```
+
+### Server (`viber/server`)
+
+```typescript
+```

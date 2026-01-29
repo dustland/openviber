@@ -172,6 +172,11 @@ export class Agent {
       segments.push(
         "When you need to call a tool, simply invoke it directly without any formatting.",
       );
+      if (Object.keys(this.loadedSkillTools).length > 0) {
+        segments.push(
+          "When the user asks to use a skill by name (e.g. cursor-agent, tmux), one of your tools is for that—use each tool's description to decide when to call it.",
+        );
+      }
     }
 
     // Custom system prompt

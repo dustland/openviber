@@ -41,8 +41,8 @@ export class LocalDataAdapter implements DataAdapter {
 
   async getAgents(): Promise<Agent[]> {
     const defaultsStorage = new BaseStorage(
-      `      path.join(__dirname, "..", "defaults")
-`    );
+      path.join(__dirname, "..", "defaults"),
+    );
     const rootStorage = new BaseStorage(getViberRoot());
     const agents: Agent[] = [];
 
@@ -50,11 +50,11 @@ export class LocalDataAdapter implements DataAdapter {
     try {
       const files = await defaultsStorage.list("agents");
       for (const file of files.filter(
-        (f) => f.endsWith(".yaml") || f.endsWith(".yml")
+        (f) => f.endsWith(".yaml") || f.endsWith(".yml"),
       )) {
         const agent = await this.readYamlFile(
           defaultsStorage,
-          `agents/${file}`
+          `agents/${file}`,
         );
         if (agent) {
           agents.push({ ...agent, isCustom: false });
@@ -68,9 +68,9 @@ export class LocalDataAdapter implements DataAdapter {
     try {
       const files = await rootStorage.list("agents");
       for (const file of files.filter(
-        (f) => f.endsWith(".yaml") || f.endsWith(".yml")
+        (f) => f.endsWith(".yaml") || f.endsWith(".yml"),
       )) {
-        0
+        0;
         const agent = await this.readYamlFile(rootStorage, `agents/${file}`);
         if (agent) {
           agents.push({ ...agent, isCustom: true });
@@ -92,7 +92,7 @@ export class LocalDataAdapter implements DataAdapter {
     for (const ext of ["yaml", "yml"]) {
       const agent = await this.readYamlFile(
         defaultsStorage,
-        `agents/${id}.${ext}`
+        `agents/${id}.${ext}`,
       );
       if (agent) return { ...agent, id, isCustom: false };
     }
@@ -137,7 +137,7 @@ export class LocalDataAdapter implements DataAdapter {
 
   async getTools(): Promise<Tool[]> {
     const defaultsStorage = new BaseStorage(
-      path.join(__dirname, "..", "..", "defaults")
+      path.join(__dirname, "..", "..", "defaults"),
     );
     const tools: Tool[] = [];
 
@@ -145,7 +145,7 @@ export class LocalDataAdapter implements DataAdapter {
     try {
       const files = await defaultsStorage.list("tools");
       for (const file of files.filter(
-        (f) => f.endsWith(".yaml") || f.endsWith(".yml")
+        (f) => f.endsWith(".yaml") || f.endsWith(".yml"),
       )) {
         const tool = await this.readYamlFile(defaultsStorage, `tools/${file}`);
         if (tool) {
@@ -310,7 +310,7 @@ export class LocalDataAdapter implements DataAdapter {
   async getArtifactsBySpace(spaceId: string): Promise<Artifact[]> {
     const allArtifacts = await this.getArtifacts(spaceId);
     return allArtifacts.filter(
-      (a) => a.spaceId === spaceId || (a.spaceId === spaceId && !a.taskId)
+      (a) => a.spaceId === spaceId || (a.spaceId === spaceId && !a.taskId),
     );
   }
 
@@ -331,7 +331,7 @@ export class LocalDataAdapter implements DataAdapter {
   async getArtifactsByCategory(
     spaceOrTaskId: string,
     category: "input" | "intermediate" | "output",
-    isTask = false
+    isTask = false,
   ): Promise<Artifact[]> {
     const artifacts = isTask
       ? await this.getArtifactsByTask(spaceOrTaskId)
@@ -378,7 +378,7 @@ export class LocalDataAdapter implements DataAdapter {
 
         try {
           const data = await storage.readJSON<Conversation>(
-            `conversations/${file}`
+            `conversations/${file}`,
           );
           if (data) {
             conversations.push(data);
@@ -408,7 +408,7 @@ export class LocalDataAdapter implements DataAdapter {
     await storage.mkdir("conversations");
     await storage.writeJSON(
       `conversations/${conversation.id}.json`,
-      conversation
+      conversation,
     );
     return conversation;
   }
@@ -498,7 +498,7 @@ export class LocalDataAdapter implements DataAdapter {
     let updated: Datasource[];
     if (existing) {
       updated = datasources.map((d) =>
-        d.id === datasource.id ? datasource : d
+        d.id === datasource.id ? datasource : d,
       );
     } else {
       updated = [...datasources, datasource];

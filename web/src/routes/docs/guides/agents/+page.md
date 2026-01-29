@@ -1,0 +1,73 @@
+---
+title: "Agents"
+description: Define and orchestrate AI agents in Viber
+---
+import { Aside } from "$lib/components/docs";
+
+
+
+## Overview
+
+Agents are the core building blocks of Viber. Each agent is a specialized entity designed to perform specific tasks, with its own role, tools, and configuration.
+
+## Creating an Agent
+
+```typescript
+import { Agent } from 'viber';
+
+const writer = new Agent({
+  name: 'Writer',
+  model: 'openai:gpt-4o',
+  systemPrompt: `You are a professional writer who creates 
+                 high-quality, engaging content.`,
+});
+```
+
+## Agent Configuration
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `name` | `string` | Unique identifier for the agent |
+| `model` | `string` | LLM model identifier (e.g., `openai:gpt-4o`) |
+| `systemPrompt` | `string` | Instructions defining the agent's behavior |
+| `tools` | `Tool[]` | Array of tools available to the agent |
+| `temperature` | `number` | Creativity level (0-1) |
+
+## Streaming Responses
+
+```typescript
+const result = await agent.streamText({
+  messages: [
+    { role: 'user', content: 'Write a haiku about coding' }
+  ],
+});
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+## Multi-Agent Collaboration
+
+<Aside type="tip">
+  Agents can hand off tasks to each other using natural language, enabling complex workflows.
+</Aside>
+
+```typescript
+const team = [writer, reviewer];
+
+// The lead agent coordinates the team
+const lead = new Agent({
+  name: 'Lead',
+  model: 'openai:gpt-4o',
+  systemPrompt: 'Coordinate the writer and reviewer to produce quality content.',
+  team,
+});
+```
+
+## Best Practices
+
+1. **Single Responsibility**: Each agent should have one clear purpose
+2. **Clear Prompts**: Write explicit system prompts that define behavior
+3. **Appropriate Tools**: Only provide tools relevant to the agent's role
+4. **Temperature Tuning**: Use lower temperatures for factual tasks, higher for creative ones

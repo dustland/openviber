@@ -1,6 +1,6 @@
 ---
 title: "OpenViber Philosophy"
-description: "Viber as a practical subordinate: Always Ask / Agent Decides / Always Execute modes, clear control, and evidence-based execution"
+description: "Viber as a subordinate: Always Ask / Agent Decides / Always Execute, evidence-first execution, and workspace-first context"
 ---
 
 # OpenViber Philosophy
@@ -13,58 +13,86 @@ A **viber** is not only an LLM process. It is the combination of:
 2. **a work machine** (files, terminal, browser, apps),
 3. **configured user context** (accounts, preferences, limits, identity).
 
-The OpenViber project provides the platform. Each deployed viber is the working unit.
+The OpenViber project provides the platform. Each deployed viber is the working unit: a real teammate that produces verifiable outcomes on one machine.
 
-## 1) Why A Viber Exists
+## 1) The Manager <-> Subordinate Contract
 
-Every viber should always have an explicit purpose, and should run with a clear autonomy policy.
+The relationship should be explicit:
 
-OpenViber uses three user-facing execution modes (aligned with common AI IDE behavior):
+- The **manager** sets objectives, boundaries, and priorities.
+- The **viber** executes, verifies, reports, and escalates decisions.
+
+This is not a "prompt toy" model. It is an operating contract: the viber should behave like a dependable employee, not an improv partner.
+
+## 2) Execution Modes (Tool Autonomy)
+
+OpenViber uses three user-facing execution modes, aligned with common AI IDE behavior:
 
 - **Always Ask**: viber does analysis and proposals, but asks before every execution action.
 - **Agent Decides**: viber executes routine actions within policy and escalates high-risk/ambiguous actions.
 - **Always Execute**: viber executes end-to-end within configured boundaries and reports progress continuously.
 
-These are behavior policies on top of the same architecture, not different systems. All modes still use the same planning loop, memory/context, verification, and reporting model.
+These modes are policies on top of the same agent architecture. In every mode, OpenViber still relies on the same plan/context, memory, verification, and reporting model.
 
-## 2) Role Contract: Manager ↔ Subordinate
+Practical intuition:
 
-Human and viber should agree on:
+- **Always Ask** feels like a responsible operator who stays idle unless asked.
+- **Agent Decides** feels like an ambitious employee who keeps finding and finishing useful work.
+- **Always Execute** feels like a trusted delegate: hands off, but auditable and interruptible.
 
-- role and scope,
-- decision boundaries,
-- budget and policy limits,
-- reporting cadence,
-- escalation rules.
+## 3) Task Origins (Assigned vs Self-Initiated)
 
-After alignment, the viber works autonomously and sends periodic progress reports through configured channels (chat and/or email).
+Every task should be clear about its origin:
 
-## 3) Operating Loop (Constraint-Aware)
+- **Manager-assigned**: explicit request with acceptance criteria.
+- **Self-initiated**: discovered by the viber from the mission and workspace signals (issues, failures, TODOs, drift).
 
-The core rhythm is:
+Execution mode controls how the viber runs tools. A separate policy controls whether self-initiated work is allowed at all.
+
+## 4) Operating Loop (Evidence-First)
+
+The core loop is:
 
 `observe -> plan -> execute -> verify -> report -> ask feedback -> continue`
 
-Behavior by policy:
+Evidence is part of the loop, not a bonus:
 
-- **Always Ask**: wait for explicit triggers and ask before executing tools/actions.
-- **Agent Decides**: discover and execute high-value work inside guardrails; escalate when needed.
-- **Always Execute**: run end-to-end autonomously; keep reporting and allow intervention.
+- "done" means the manager could reproduce the result (commands, URLs, screenshots, logs).
+- claims without evidence are treated as unfinished work.
 
-The viber can run continuously when useful, **always bounded by budget, quotas, policy, and quiet-hour rules**.
+## 5) Guardrails Make Proactivity Feasible
 
-## 4) Make It Feasible: Guardrails Before Autonomy
+Autonomy should reduce manager load, not create surprise:
 
-Autonomous behavior must be disciplined, not noisy:
-
-- Do not "invent" work outside mission scope.
+- Do not invent work outside mission scope.
 - Prefer small, reversible steps with visible progress.
 - Stop and escalate when confidence is low or blast radius is high.
 - If no high-value action is clear, ask for prioritization instead of churning.
 
-## 5) Feedback Style: Concrete, Not Abstract
+## 6) Budget and Policy Are First-Class
 
-When the viber needs opinions from the human, default to **multi-choice questions** (with a recommended option first), not vague open-ended asks.
+The viber should always carry constraint context:
+
+- global and per-provider budgets,
+- soft warnings and hard stops,
+- tool allowlists/denylists,
+- quiet hours and rate limits.
+
+Even in **Always Execute**, "within configured boundaries" is the whole point. It is never "do whatever".
+
+## 7) State Model (Workspace-First, Daemon Stateless)
+
+OpenViber is built for open environments. Durable context must be explicit and owned, not hidden in a long-running process.
+
+- **Viber Board** owns conversation and sends the full request context per run.
+- **Work machine workspace** (typically `~/.openviber/`) holds durable files: plans, logs, artifacts, operating notes.
+- The **daemon** remains process-stateless between requests.
+
+All three execution modes still rely on memory and workspace context; what changes is tool autonomy, not the need for context.
+
+## 8) Manager-Friendly Communication
+
+When the viber needs manager input, default to structured, low-friction asks:
 
 Example:
 
@@ -73,60 +101,15 @@ Example:
   - B: Pause and improve reliability first
   - C: Expand scope before any release
 
-This keeps manager decisions fast and high-quality.
+Reports should be short and evidence-rich:
 
-## 6) Budget Is A First-Class Constraint
+- what changed,
+- what is next,
+- what is blocked (with options),
+- where the proof is (paths/links/logs).
 
-The viber must always carry budget context:
+## 9) Product Direction
 
-- global monthly budget,
-- per-model/service budget,
-- hard stop and soft warning thresholds.
+OpenViber is not just a general toolkit. It is a **human-subordinate operating system** that can scale from supervised execution to trusted delegation without sacrificing control.
 
-Execution and model-routing choices should explicitly optimize for value under budget.
-
-## 7) State Model: What Lives Where
-
-OpenViber uses clear ownership:
-
-- **Config (`~/.openviber/...`)**: persona, identity, account bindings, budgets, policy flags.
-- **Workspace/memory files**: plans, progress logs, artifacts, operating notes.
-- **Viber Board context**: conversation and request context sent per run.
-
-The daemon stays process-stateless; durable work state lives in workspace files.
-
-## 8) Verification Standard: Human Perspective Only
-
-Self-assessment must come from **human-observable outcomes**, not model guesswork.
-
-If the task is "build a SaaS page", verification should include:
-
-- opening the app in browser,
-- interacting with key flows,
-- collecting objective clues (screenshots, logs, URLs, commands),
-- reporting conclusion with evidence.
-
-No "looks good" claims without reproducible proof.
-
-## 9) Full Observability + Human Intervention
-
-Humans must be able to see real work status in detail:
-
-- task status and phase,
-- terminal streams (tmux panes),
-- outputs and artifacts in progress.
-
-Intervention model:
-
-- **primary**: manager intervenes through chat (change plan, pause, redirect).
-- **GUI direct control**: separate VNC/remote-desktop scenario when needed (not default Board interaction).
-
-## 10) Product Direction
-
-OpenViber is not just a general toolkit. It is a **human-subordinate operating system**:
-
-- In **Always Ask**, it behaves like a careful operator that never acts without explicit approval.
-- In **Agent Decides**, it behaves like a productive teammate with practical guardrails.
-- In **Always Execute**, it behaves like a trusted delegate that keeps moving unless interrupted.
-
-That is the standard: useful daily subordinate now, increasingly capable over time without sacrificing trust.
+That is the standard: a useful daily subordinate now, and increasingly capable over time.

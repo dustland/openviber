@@ -40,14 +40,13 @@
         { title: "Agents", href: "/docs/guides/agents" },
         { title: "Spaces", href: "/docs/guides/spaces" },
         { title: "Tools", href: "/docs/guides/tools" },
-        { title: "State", href: "/docs/guides/state" },
+        { title: "State & Context", href: "/docs/guides/state" },
         { title: "Streaming", href: "/docs/guides/streaming" },
       ],
     },
     {
       title: "Design",
       items: [
-        { title: "Docs Reorg", href: "/docs/design/doc-reorg" },
         { title: "Architecture", href: "/docs/design/arch" },
         {
           title: "Plan and Artifacts",

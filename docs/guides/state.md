@@ -1,104 +1,69 @@
 ---
-title: "State Management"
-description: Reactive state with Zustand in Viber
+title: "State"
+description: OpenViber state model: stateless daemon, context-in/context-out
 ---
+
 ## Overview
 
-Viber uses Zustand for state management, providing a simple yet powerful reactive state system that works across React and Svelte.
+OpenViber does not use a framework-managed app store on the daemon path.
+There is no required Zustand layer for runtime context.
 
-## Core Stores
+State is handled through a stateless request contract:
 
-Viber provides several pre-built stores:
+- The client (Viber Board) sends full context on each request.
+- The daemon executes and returns one final result.
+- The client persists updates and sends them back on the next request.
 
-```typescript
-```
+## Ownership Model
 
-## Agent Store
+### Viber Board (source of truth)
 
-```typescript
-const store = useAgentStore();
+- Conversation history
+- Task/plan documents (for example `task.md`)
+- Artifact metadata and refs
 
-// Access state
-console.log(store.getState().agents);
+### Work machine (`~/.openviber/`)
 
-// Subscribe to changes
-store.subscribe((state) => {
-  console.log('Agents updated:', state.agents);
-});
-```
+- Agent configuration files (`~/.openviber/agents/{id}.yaml`)
+- Optional local artifacts (`~/.openviber/artifacts/...`)
+- Optional workspace files used as context inputs
 
-## Framework Integration
+### Daemon
 
-### React
+- Process-stateless between requests
+- No conversation/task state store in daemon runtime
+- Reads config, runs agent, returns result
 
-```tsx
-function AgentList() {
-  const agents = useAgentStore((state) => state.agents);
-  
-  return (
-    <ul>
-      {agents.map((agent) => (
-        <li key={agent.name}>{agent.name}</li>
-      ))}
-    </ul>
-  );
+## Context-In, Context-Out Pattern
+
+Typical request context:
+
+```json
+{
+  "goal": "Ship feature X",
+  "messages": [...],
+  "plan": "markdown or structured plan",
+  "artifacts": [{ "id": "design", "ref": "/path/or/url" }]
 }
 ```
 
-### Svelte
+Typical final result:
 
-```svelte
-<script lang="ts">
-  import { agentStore } from 'viber/svelte';
-</script>
-
-<ul>
-  {#each $agentStore.agents as agent}
-    <li>{agent.name}</li>
-  {/each}
-</ul>
-```
-
-## Custom Stores
-
-Create custom stores for your application state:
-
-```typescript
-interface ProjectState {
-  projects: Project[];
-  activeProject: string | null;
-  setActiveProject: (id: string) => void;
+```json
+{
+  "text": "Completed the task",
+  "summary": "What changed",
+  "artifactRefs": [{ "id": "report", "ref": "~/.openviber/artifacts/.../report.md" }]
 }
-
-const useProjectStore = create<ProjectState>((set) => ({
-  projects: [],
-  activeProject: null,
-  setActiveProject: (id) => set({ activeProject: id }),
-}));
 ```
 
-## Persistence
+The client stores this output, updates plan/artifacts if needed, and includes the updated context in the next request.
 
-::: tip
-Use Zustand's persist middleware to save state across sessions.
-:::
-```typescript
-import { persist } from 'zustand/middleware';
+## UI Framework Choice
 
-const useSettingsStore = create(
-  persist(
-    (set) => ({
-      theme: 'dark',
-      setTheme: (theme) => set({ theme }),
-    }),
-    { name: 'viber-settings' }
-  )
-);
-```
+If you build a custom UI, use any state library you prefer (or none). That choice is app-level, not part of OpenViber's daemon contract.
 
-## Best Practices
+## Related Docs
 
-1. **Selective Subscriptions**: Only subscribe to the state slices you need
-2. **Derived State**: Use selectors for computed values
-3. **Actions in Store**: Keep state mutations inside store actions
-4. **Immutable Updates**: Always return new objects when updating state
+- [Plan and Artifacts](/docs/design/plan-and-artifacts)
+- [Viber Daemon](/docs/design/viber-daemon)

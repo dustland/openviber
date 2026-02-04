@@ -27,7 +27,7 @@ src/
 ├── tools/          # File, Browser, Search, Web, Desktop tools
 ├── data/           # DataAdapter interface and implementations
 ├── storage/        # SpaceStorage for artifacts and files
-├── state/          # Zustand-based state management
+├── state/          # Optional app-level state utilities
 └── server/         # HTTP API endpoints
 ```
 

@@ -1,6 +1,10 @@
 ---
-title: "Advanced: Comprehensive Systems"
+title: "Advanced: Comprehensive Systems (Deprecated)"
 ---
+
+::: caution
+Legacy tutorial from the pre–workspace-first era. Current Viber mirrors OpenClaw: context lives in `~/.openviber/`, single-assistant default, workspace-first docs apply. Treat this page as historical reference.
+:::
 
 
 **⏱️ Time: 60 minutes | 🎯 Goal: Build a scalable, production-ready system**

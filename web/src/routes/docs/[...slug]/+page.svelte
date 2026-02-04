@@ -1,67 +1,82 @@
 <script lang="ts">
-  import { marked } from "marked";
   import type { PageData } from "./$types";
+  import type { SvelteComponent } from "svelte";
 
   let { data }: { data: PageData } = $props();
 
-  // Convert ::: type ... ::: to placeholders, run marked, then restore as styled divs
-  function renderMarkdown(content: string): string {
-    const asideRegex = /:::(\w+)\n([\s\S]*?)\n:::/g;
-    const placeholders: string[] = [];
-    let i = 0;
-    const withPlaceholders = content.replace(asideRegex, (_, type, body) => {
-      const key = `__ASIDE_${i++}__`;
-      const inner = marked.parse(body.trim()) as string;
-      placeholders.push(
-        `<div class="aside aside-${type}"><strong>${type.charAt(0).toUpperCase() + type.slice(1)}</strong><div class="aside-body">${inner}</div></div>`,
-      );
-      return key;
-    });
-    let html = marked.parse(withPlaceholders) as string;
-    placeholders.forEach((p, j) => {
-      html = html.replace(`__ASIDE_${j}__`, p);
-    });
-    return html;
-  }
+  type DocModule = {
+    default: typeof SvelteComponent;
+    metadata?: Record<string, unknown>;
+  };
 
-  const html = $derived(renderMarkdown(data.content));
+  // mdsvex-compiled docs (eager so SSR can find them)
+  const docModules = import.meta.glob("$docs/**/*.md", {
+    eager: true,
+  }) as Record<string, DocModule>;
+
+  // Derive so client-side navigation updates content and head tags
+  const docModule = $derived(docModules[data.key]);
+  const Doc = $derived(docModule?.default);
+  const metadata = $derived(docModule?.metadata ?? data.metadata ?? {});
 </script>
 
 <svelte:head>
-  <title>{data.title ?? "Documentation"} - Viber Docs</title>
-  {#if data.description}
-    <meta name="description" content={data.description} />
+  <title>{(metadata.title as string) ?? "Documentation"} - Viber Docs</title>
+  {#if metadata.description}
+    <meta name="description" content={metadata.description as string} />
   {/if}
 </svelte:head>
 
-{#if data.title}
-  <h1>{data.title}</h1>
-{/if}
-{@html html}
+{#key data.key}
+  {#if Doc}
+    <Doc />
+  {:else}
+    <p class="text-red-600">Document not found.</p>
+  {/if}
+{/key}
 
 <style>
   :global(.aside) {
     margin: 1rem 0;
-    padding: 1rem 1.25rem;
+    padding: 0.95rem 1rem;
     border-radius: 0.5rem;
-    border-left: 4px solid hsl(var(--border));
+    background: hsl(var(--muted) / 0.35);
+    box-shadow: 0 1px 8px -6px hsl(var(--foreground) / 0.8);
   }
+
+  :global(.aside > p:first-child) {
+    margin: 0 0 0.45rem;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: hsl(var(--foreground));
+  }
+
   :global(.aside-tip) {
-    background: hsl(var(--primary) / 0.08);
-    border-left-color: hsl(var(--primary));
+    background: hsl(var(--primary) / 0.09);
+    box-shadow:
+      inset 0.22rem 0 0 hsl(var(--primary) / 0.45),
+      0 1px 8px -6px hsl(var(--foreground) / 0.8);
   }
   :global(.aside-note) {
     background: hsl(var(--muted));
-    border-left-color: hsl(var(--muted-foreground));
+    box-shadow:
+      inset 0.22rem 0 0 hsl(var(--muted-foreground) / 0.45),
+      0 1px 8px -6px hsl(var(--foreground) / 0.8);
   }
   :global(.aside-caution) {
     background: hsl(var(--destructive) / 0.08);
-    border-left-color: hsl(var(--destructive));
+    box-shadow:
+      inset 0.22rem 0 0 hsl(var(--destructive) / 0.45),
+      0 1px 8px -6px hsl(var(--foreground) / 0.8);
   }
-  :global(.aside-body) {
-    margin-top: 0.5rem;
+  :global(.aside-danger) {
+    background: hsl(var(--destructive) / 0.1);
+    box-shadow:
+      inset 0.22rem 0 0 hsl(var(--destructive) / 0.55),
+      0 1px 8px -6px hsl(var(--foreground) / 0.8);
   }
-  :global(.aside-body :first-child) {
-    margin-top: 0;
+  :global(.aside p:last-child) {
+    margin-bottom: 0;
   }
 </style>

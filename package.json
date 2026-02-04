@@ -1,13 +1,13 @@
 {
-  "name": "@dustland/viber",
+  "name": "openviber",
   "version": "0.4.3",
   "type": "module",
-  "description": "Agent Framework for Vibe-working",
+  "description": "OpenViber: workspace-first, openclaw-alike assistant runtime",
   "main": "dist/index.cjs",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "viber": "./dist/cli/index.js"
+    "openviber": "./dist/cli/index.js"
   },
   "packageManager": "pnpm@10.15.0",
   "scripts": {
@@ -18,9 +18,10 @@
     "build": "tsup",
     "build:web": "cd web && pnpm build",
     "start": "node dist/cli/index.js start",
-    "viber": "node dist/cli/index.js",
+    "openviber": "node dist/cli/index.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest",
+    "test:run": "vitest run",
     "preview:web": "cd web && pnpm preview",
     "verify:skills": "tsx scripts/verify-skills.ts"
   },

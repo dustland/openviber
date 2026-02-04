@@ -1,6 +1,10 @@
 ---
-title: "Tutorial 4: Configuration Deep Dive"
+title: "Tutorial 4: Configuration Deep Dive (Deprecated)"
 ---
+
+::: caution
+Legacy tutorial: configuration guidance for the prior multi-agent framework. The current workspace-first model keeps context under `~/.openviber/` and simplifies defaults. See Design docs for current config patterns.
+:::
 
 
 **⏱️ Time: 30 minutes | 🎯 Goal: Master Space and Agent configuration**

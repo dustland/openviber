@@ -1,6 +1,10 @@
 ---
-title: "Tutorial 1: Your First Agent"
+title: "Tutorial 1: Your First Agent (Deprecated)"
 ---
+
+::: caution
+Legacy tutorial: targets the old multi-agent/dev-framework flow. Current Viber is workspace-first (OpenClaw-like) with context stored under `~/.openviber/` and a single-assistant default. Use the Design docs for the current architecture.
+:::
 
 **⏱️ Time: 15 minutes | 🎯 Goal: Create a persistent workspace with XAgent**
 

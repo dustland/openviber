@@ -21,11 +21,11 @@ export const POST: RequestHandler = async ({ request }) => {
           error: "OpenRouter API key not configured",
           message: "Set OPENROUTER_API_KEY environment variable to enable chat",
         },
-        { status: 503 },
+        { status: 503 }
       );
     }
 
-    const systemPrompt = `You are a helpful AI assistant in the Viber Cockpit. You help users understand and work with their Viber agents.`;
+    const systemPrompt = `You are a helpful AI assistant in the Viber Board. You help users understand and work with their Viber agents.`;
 
     const chatMessages = [
       { role: "system", content: systemPrompt },
@@ -41,7 +41,7 @@ export const POST: RequestHandler = async ({ request }) => {
         Authorization: `Bearer ${OPENROUTER_API_KEY}`,
         "Content-Type": "application/json",
         "HTTP-Referer": "https://viber.dustland.ai",
-        "X-Title": "Viber Cockpit",
+        "X-Title": "Viber Board",
       },
       body: JSON.stringify({
         model: "anthropic/claude-3.5-sonnet",
@@ -55,7 +55,7 @@ export const POST: RequestHandler = async ({ request }) => {
       console.error("OpenRouter error:", error);
       return json(
         { error: "Failed to get response from AI" },
-        { status: response.status },
+        { status: response.status }
       );
     }
 

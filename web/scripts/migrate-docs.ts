@@ -1,12 +1,14 @@
 /**
- * Migrate docs from routes (one folder per doc) to lib/docs (flat .md files).
+ * Migrate docs from routes (one folder per doc) to docs/ at project root.
  * Run from web/: pnpm exec tsx scripts/migrate-docs.ts
+ * 
+ * Note: This script was used for initial migration. Docs now live at /docs/
  */
 import fs from "fs";
 import path from "path";
 
 const ROUTES_DOCS = path.join(process.cwd(), "src", "routes", "docs");
-const LIB_DOCS = path.join(process.cwd(), "src", "lib", "docs");
+const LIB_DOCS = path.join(process.cwd(), "..", "docs"); // Now at project root
 
 function findPageMdFiles(dir: string, base = ""): string[] {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -64,4 +66,4 @@ for (const filePath of pageFiles) {
   console.log(`${rel}.md`);
 }
 
-console.log(`Done: ${pageFiles.length} files -> lib/docs/`);
+console.log(`Done: ${pageFiles.length} files -> docs/`);

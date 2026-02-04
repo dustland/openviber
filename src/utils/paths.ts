@@ -1,32 +1,32 @@
 /**
- * Centralized Viber path resolution utility
+ * Centralized OpenViber path resolution utility
  *
- * Handles the difference between local development and Railway deployment:
- * - Local: ~/.viber (os.homedir() + '.viber')
- * - Railway: /viber (VIBEX_STORAGE_PATH environment variable)
+ * Handles the difference between local development and deployment:
+ * - Local: ~/.openviber (os.homedir() + '.openviber')
+ * - Railway/override: OPENVIBER_STORAGE_PATH environment variable
  */
 
 import path from "path";
 import os from "os";
 
 /**
- * Get the root Viber directory path
- * Respects VIBEX_STORAGE_PATH environment variable for Railway deployment
+ * Get the root OpenViber directory path
+ * Respects OPENVIBER_STORAGE_PATH environment variable
  */
 export function getViberRoot(): string {
-  return process.env.VIBEX_STORAGE_PATH || path.join(os.homedir(), ".viber");
+  return process.env.OPENVIBER_STORAGE_PATH || path.join(os.homedir(), ".openviber");
 }
 
 /**
- * Get a path within the Viber directory structure
- * @param subPath - Relative path within .viber directory (e.g., 'config/agents', 'bin/OfficeMcp')
+ * Get a path within the OpenViber directory structure
+ * @param subPath - Relative path within .openviber directory (e.g., 'config/agents', 'bin/OfficeMcp')
  */
 export function getViberPath(...subPaths: string[]): string {
   return path.join(getViberRoot(), ...subPaths);
 }
 
 /**
- * Get common Viber directory paths
+ * Get common OpenViber directory paths
  */
 export const ViberPaths = {
   root: () => getViberRoot(),
@@ -58,4 +58,3 @@ export const ViberPaths = {
 
   // Note: MCP servers are now distributed as npm packages, not local binaries
 } as const;
-

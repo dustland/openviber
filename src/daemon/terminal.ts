@@ -94,16 +94,38 @@ export function sendKeys(target: string, keys: string, pressEnter = false): bool
 
 /**
  * Capture current pane content (snapshot)
- * Uses -J to join wrapped lines for cleaner output
+ * -p : print to stdout
+ * -e : include escape sequences (preserve colors/styles)
+ * -a : include alternate screen (for curses/TTY TUIs)
+ * We avoid -J so we don't drop carriage returns that the terminal needs.
  */
 export function capturePane(target: string, lines = 500): string {
+  const cmds = [
+    `tmux capture-pane -t '${target}' -pae -S -${lines}`,
+    `tmux capture-pane -t '${target}' -pe -S -${lines}`,
+  ];
+  for (const cmd of cmds) {
+    try {
+      return execSync(cmd, { encoding: "utf8", stdio: "pipe" });
+    } catch {
+      // try next fallback
+    }
+  }
+  return "";
+}
+
+/**
+ * Resize a tmux pane to requested cols/rows.
+ */
+export function resizePane(target: string, cols: number, rows: number): boolean {
   try {
-    return execSync(`tmux capture-pane -t '${target}' -p -J -S -${lines}`, {
+    execSync(`tmux resize-pane -t '${target}' -x ${cols} -y ${rows}`, {
       encoding: "utf8",
       stdio: "pipe",
     });
+    return true;
   } catch {
-    return "";
+    return false;
   }
 }
 
@@ -284,6 +306,13 @@ export class TerminalManager {
   sendInput(target: string, keys: string): boolean {
     // Can send input even without a stream attached
     return sendKeys(target, keys, false);
+  }
+
+  /**
+   * Resize pane to match web terminal
+   */
+  resize(target: string, cols: number, rows: number): boolean {
+    return resizePane(target, cols, rows);
   }
 
   /**

@@ -3,7 +3,7 @@ import type { RequestHandler } from "./$types";
 import { db, schema } from "$lib/server/db";
 import { eq, asc } from "drizzle-orm";
 
-// GET /api/vibers/[id]/messages - Load chat history for this viber (cockpit-level persistence)
+// GET /api/vibers/[id]/messages - Load chat history for this viber (Viber Board-level persistence)
 export const GET: RequestHandler = async ({ params }) => {
   try {
     const rows = await db
@@ -27,7 +27,7 @@ export const GET: RequestHandler = async ({ params }) => {
   }
 };
 
-// POST /api/vibers/[id]/messages - Append one or more messages (cockpit-level persistence)
+// POST /api/vibers/[id]/messages - Append one or more messages (Viber Board-level persistence)
 export const POST: RequestHandler = async ({ params, request }) => {
   try {
     const body = await request.json();

@@ -3,12 +3,12 @@
 </script>
 
 <svelte:head>
-  <title>Viber Cockpit</title>
+  <title>Viber Board</title>
 </svelte:head>
 
 <div class="container mx-auto px-4 py-12">
   <div class="max-w-4xl mx-auto text-center mb-16">
-    <h1 class="text-4xl font-bold mb-4 text-foreground">Viber Cockpit</h1>
+    <h1 class="text-4xl font-bold mb-4 text-foreground">Viber Board</h1>
     <p class="text-xl text-muted-foreground">
       Monitor, manage, and interact with your Viber agents from a single
       dashboard

@@ -1,9 +1,12 @@
 ---
-title: "Learning Viber: Tutorials"
+title: "Tutorials (Deprecated)"
 ---
 
+::: caution
+These tutorials describe the old multi-agent/dev-framework positioning. Viber is now a workspace-first, openclaw-alike system that keeps context in `~/.openviber/` and assumes a single assistant path by default. Use these pages only as historical reference.
+:::
 
-Welcome to the Viber learning path! This comprehensive guide will take you from your first AI agent workspace to building complex multi-agent systems. Each tutorial builds on the previous ones, teaching you core concepts through hands-on TypeScript examples.
+Welcome to the _legacy_ Viber learning path. It walks through multi-agent examples that no longer match the current architecture. For the active model (workspace-first, single-assistant default), see the Design docs instead.
 
 ## 🎯 Learning Path Overview
 

@@ -7,5 +7,8 @@ export default defineConfig({
   server: {
     port: 6006,
     host: true,
+    fs: {
+      allow: [".."], // Allow reading from parent directory (for docs/)
+    },
   },
 });

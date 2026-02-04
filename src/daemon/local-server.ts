@@ -1,7 +1,7 @@
 /**
  * Local WebSocket server for terminal streaming (and other local features).
  * 
- * This runs alongside the viber daemon and allows the cockpit to connect
+ * This runs alongside the viber daemon and allows the Viber Board to connect
  * directly for terminal streaming without needing an external hub.
  */
 
@@ -96,6 +96,10 @@ export class LocalServer {
         this.handleTerminalInput(msg.target, msg.keys);
         break;
 
+      case "terminal:resize":
+        this.handleTerminalResize(ws, msg.target, msg.cols, msg.rows);
+        break;
+
       default:
         console.log(`[Viber] Unknown message type: ${msg.type}`);
     }
@@ -128,6 +132,11 @@ export class LocalServer {
 
   private handleTerminalInput(target: string, keys: string): void {
     this.terminalManager.sendInput(target, keys);
+  }
+
+  private handleTerminalResize(ws: WebSocket, target: string, cols: number, rows: number): void {
+    const ok = this.terminalManager.resize(target, cols, rows);
+    this.send(ws, { type: "terminal:resized", target, ok });
   }
 
   private send(ws: WebSocket, msg: any): void {

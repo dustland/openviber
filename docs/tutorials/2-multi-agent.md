@@ -1,6 +1,10 @@
 ---
-title: "Tutorial 2: Multi-Agent Collaboration"
+title: "Tutorial 2: Multi-Agent Collaboration (Deprecated)"
 ---
+
+::: caution
+Legacy tutorial: describes the pre–workspace-first, multi-agent emphasis. Current Viber mirrors OpenClaw with `~/.openviber/` as the source of truth and a single-assistant default path. See Design docs for the live architecture.
+:::
 
 
 **⏱️ Time: 30 minutes | 🎯 Goal: Build a researcher-writer team**

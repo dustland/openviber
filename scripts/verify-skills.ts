@@ -7,7 +7,7 @@
  *   pnpm run verify:skills
  *   pnpm exec tsx scripts/verify-skills.ts --cursor   # also run Cursor agent (slow)
  *
- * Verify on the web (Viber Cockpit):
+ * Verify on the web (Viber Board):
  *   1. Start stack: pnpm dev  (hub + web + viber daemon)
  *   2. Open http://localhost:5173 (or your web URL) → Vibers
  *   3. Click your connected viber → you should see tmux and cursor-agent under "What you can ask"
@@ -48,7 +48,7 @@ async function main() {
   console.log("tmux_install_check:", JSON.stringify(checkResult, null, 2));
   if (!checkResult.installed) {
     console.error(
-      "Tmux is not installed. Install with: brew install tmux (macOS) or sudo apt install tmux (Ubuntu)",
+      "Tmux is not installed. Install with: brew install tmux (macOS) or sudo apt install tmux (Ubuntu)"
     );
     process.exit(1);
   }
@@ -88,7 +88,7 @@ async function main() {
 
   if (runCursor) {
     console.log(
-      "\nRunning cursor_agent_run with goal 'Reply with exactly: OK' (wait 20s) ...",
+      "\nRunning cursor_agent_run with goal 'Reply with exactly: OK' (wait 20s) ..."
     );
     const cursorResult = await cursorRun.execute({
       goal: "Reply with exactly: OK",
@@ -104,7 +104,7 @@ async function main() {
     }
   } else {
     console.log(
-      "To also run the Cursor agent (slow), use: pnpm exec tsx scripts/verify-skills.ts --cursor",
+      "To also run the Cursor agent (slow), use: pnpm exec tsx scripts/verify-skills.ts --cursor"
     );
   }
 

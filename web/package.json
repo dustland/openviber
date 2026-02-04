@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
+    "prebuild": "test -d ../docs || (echo 'Error: docs/ folder not found at repo root. Build from repo root with pnpm build:web' && exit 1)",
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
@@ -13,6 +14,7 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "@lucide/svelte": "^0.563.0",
     "@sveltejs/kit": "^2.15.0",
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/addon-web-links": "^0.12.0",
@@ -21,12 +23,14 @@
     "bits-ui": "^2.14.4",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.38.0",
-    "@lucide/svelte": "^0.563.0",
     "marked": "^17.0.1",
     "nanoid": "^5.0.9",
+    "remark-directive": "^4.0.0",
+    "remark-gfm": "^4.0.1",
     "svelte": "^5.16.1",
     "tailwind-merge": "^3.4.0",
-    "tailwind-variants": "^3.2.2"
+    "tailwind-variants": "^3.2.2",
+    "unist-util-visit": "^5.1.0"
   },
   "devDependencies": {
     "@sveltejs/adapter-node": "^5.2.0",

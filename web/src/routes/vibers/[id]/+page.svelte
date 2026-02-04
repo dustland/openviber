@@ -86,13 +86,13 @@
     if (!viber?.id) return;
     try {
       const res = await fetch(
-        `/api/tasks?viberId=${encodeURIComponent(viber.id)}`,
+        `/api/tasks?viberId=${encodeURIComponent(viber.id)}`
       );
       if (!res.ok) return;
       const data = await res.json();
       viberTasks = (data.tasks || []).sort(
         (a: TaskSummary, b: TaskSummary) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
     } catch (_) {
       /* ignore */
@@ -118,7 +118,7 @@
             typeof m.createdAt === "number"
               ? new Date(m.createdAt)
               : new Date(m.createdAt),
-        }),
+        })
       );
     } catch (_) {
       /* ignore */
@@ -159,7 +159,7 @@
     };
     messages = [...messages, userMessage];
 
-    // Persist user message at cockpit level
+    // Persist user message at Viber Board level
     try {
       await fetch(`/api/vibers/${viber.id}/messages`, {
         method: "POST",
@@ -214,9 +214,9 @@
               task.result?.summary ||
               "(No response text)";
             messages = messages.map((m) =>
-              m.id === assistantMessageId ? { ...m, content: text } : m,
+              m.id === assistantMessageId ? { ...m, content: text } : m
             );
-            // Persist assistant message at cockpit level
+            // Persist assistant message at Viber Board level
             try {
               await fetch(`/api/vibers/${viber!.id}/messages`, {
                 method: "POST",
@@ -235,7 +235,7 @@
           if (task.status === "error") {
             const errText = `Error: ${task.error || "Task failed"}`;
             messages = messages.map((m) =>
-              m.id === assistantMessageId ? { ...m, content: errText } : m,
+              m.id === assistantMessageId ? { ...m, content: errText } : m
             );
             try {
               await fetch(`/api/vibers/${viber!.id}/messages`, {
@@ -270,7 +270,7 @@
               messages = messages.map((m) =>
                 m.id === assistantMessageId
                   ? { ...m, content: "Task timed out. No response received." }
-                  : m,
+                  : m
               );
             }
           }
@@ -351,7 +351,7 @@
 </script>
 
 <svelte:head>
-  <title>{viber?.name || "Viber"} - Viber Cockpit</title>
+  <title>{viber?.name || "Viber"} - Viber Board</title>
 </svelte:head>
 
 <div class="flex-1 flex flex-col min-h-0 overflow-hidden">

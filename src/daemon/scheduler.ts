@@ -109,12 +109,20 @@ export class JobScheduler {
         // Log results comprehensively (single line)
         const parts: string[] = [];
 
-        // Tool results (compact)
+        // Tool results (compact) — skip noiseless health OK results
         if (result.toolResults && result.toolResults.length > 0) {
           for (const tr of result.toolResults) {
-            const resultStr = typeof tr.output === 'object'
-              ? JSON.stringify(tr.output)  // No pretty-print
-              : String(tr.output);
+            const isHealthOk =
+              tr.output &&
+              typeof tr.output === "object" &&
+              "status" in tr.output &&
+              (tr.output as any).status === "HEALTHY";
+            if (isHealthOk) continue;
+
+            const resultStr =
+              typeof tr.output === "object"
+                ? JSON.stringify(tr.output) // No pretty-print
+                : String(tr.output);
             parts.push(`${tr.toolName}: ${resultStr}`);
           }
         }

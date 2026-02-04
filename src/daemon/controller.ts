@@ -60,7 +60,7 @@ export interface ViberStatus {
   runningTasks: number;
 }
 
-// Server -> Viber messages (messages = full chat history from cockpit for context)
+// Server -> Viber messages (messages = full chat history from Viber Board for context)
 export type ControllerServerMessage =
   | {
       type: "task:submit";
@@ -77,7 +77,8 @@ export type ControllerServerMessage =
   | { type: "terminal:list" }
   | { type: "terminal:attach"; target: string }
   | { type: "terminal:detach"; target: string }
-  | { type: "terminal:input"; target: string; keys: string };
+  | { type: "terminal:input"; target: string; keys: string }
+  | { type: "terminal:resize"; target: string; cols: number; rows: number };
 
 // Viber -> Server messages
 export type ControllerClientMessage =
@@ -92,7 +93,8 @@ export type ControllerClientMessage =
   | { type: "terminal:list"; sessions: any[]; panes: any[] }
   | { type: "terminal:attached"; target: string; ok: boolean; error?: string }
   | { type: "terminal:detached"; target: string }
-  | { type: "terminal:output"; target: string; data: string };
+  | { type: "terminal:output"; target: string; data: string }
+  | { type: "terminal:resized"; target: string; ok: boolean };
 
 // ==================== Controller ====================
 
@@ -285,6 +287,10 @@ export class ViberController extends EventEmitter {
         case "terminal:input":
           this.handleTerminalInput(message.target, message.keys);
           break;
+
+        case "terminal:resize":
+          this.handleTerminalResize(message.target, message.cols, message.rows);
+          break;
       }
     } catch (error) {
       console.error("[Viber] Failed to process message:", error);
@@ -322,10 +328,10 @@ export class ViberController extends EventEmitter {
           singleAgentId: options?.singleAgentId || "default",
           signal: controller.signal,
         },
-        messages,
+        messages
       );
 
-      // Consume stream to completion; do not send intermediate chunks to cockpit by default.
+      // Consume stream to completion; do not send intermediate chunks to Viber Board by default.
       const finalText = await streamResult.text;
 
       this.send({
@@ -364,9 +370,9 @@ export class ViberController extends EventEmitter {
 
   private async handleTaskMessage(
     _taskId: string,
-    _message: string,
+    _message: string
   ): Promise<void> {
-    // Daemon is thin: no in-memory conversation. Cockpit sends full messages on next task submit.
+    // Daemon is thin: no in-memory conversation. Viber Board sends full messages on next task submit.
   }
 
   // ==================== Terminal Streaming ====================
@@ -398,6 +404,15 @@ export class ViberController extends EventEmitter {
 
   private handleTerminalInput(target: string, keys: string): void {
     this.terminalManager.sendInput(target, keys);
+  }
+
+  private handleTerminalResize(
+    target: string,
+    cols: number,
+    rows: number
+  ): void {
+    const ok = this.terminalManager.resize(target, cols, rows);
+    this.send({ type: "terminal:resized", target, ok });
   }
 
   // ==================== Communication ====================

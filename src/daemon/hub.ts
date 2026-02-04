@@ -2,9 +2,9 @@
  * Hub Server - Central coordinator for viber daemons
  *
  * The hub accepts WebSocket connections from viber daemons and provides
- * a REST API for the cockpit to manage them.
+ * a REST API for the Viber Board to manage them.
  *
- * REST API (for cockpit):
+ * REST API (for Viber Board):
  *   GET  /health           - Health check
  *   GET  /api/vibers       - List connected vibers
  *   POST /api/vibers       - Submit task to a viber
@@ -364,7 +364,7 @@ export class HubServer {
         break;
 
       case "task:progress":
-        // Could emit to cockpit via SSE/WebSocket in the future
+        // Could emit to Viber Board via SSE/WebSocket in the future
         break;
 
       case "task:completed":

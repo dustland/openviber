@@ -1,11 +1,11 @@
 ---
-title: "The Persistent Workspace: Memory in Viber"
-description: "Understanding the dual-component memory system in Viber, combining human-readable Spaces with AI-friendly semantic memory."
+title: "The Persistent Workspace: Memory in OpenViber"
+description: "Understanding the dual-component memory system in OpenViber, combining human-readable Spaces with AI-friendly semantic memory."
 ---
 
-# The Persistent Workspace: Memory in Viber
+# The Persistent Workspace: Memory in OpenViber
 
-In Viber, "memory" is more than just conversation history. It's a foundational pillar of the framework, designed to provide a durable, shared context for both human and AI collaborators. This enables the truly resumable and transparent sessions that are central to the Vibe-X philosophy.
+In OpenViber, "memory" is more than just conversation history. It's a foundational pillar of the framework, designed to provide a durable, shared context for both human and AI collaborators. This enables the truly resumable and transparent sessions that are central to the Vibe-X philosophy—**and it now lives by default on the work machine under `~/.openviber/`**, mirroring OpenClaw’s `~/.openclaw` approach so context survives channel changes.
 
 This system is built on a powerful, dual-component model: **The Space** and **The Memory**.
 
@@ -32,7 +32,7 @@ graph TD
     style Memory fill:#EBF5FB
 ```
 
-## 1. The Space: The Human's Source of Truth
+## 1. The Space: The Human's Source of Truth (workspace-first)
 
 The **Space** is the tangible, human-readable part of the project's memory. It contains all the artifacts and auditable records of a project.
 
@@ -43,7 +43,18 @@ The **Space** is the tangible, human-readable part of the project's memory. It c
 - **Version Controlled**: Every change to the artifacts is tracked with version history, providing a complete, auditable record of the project.
 - **Structured by Default**: Viber provides a default structure, but it's flexible enough to accommodate any project's needs.
 
-**Space Structure:**
+**Default workspace layout (`~/.openviber/workspace/`):**
+
+```
+workspace/
+├── task.md                 # current plan / to-do
+├── MEMORY.md               # curated long-term notes
+├── memory/YYYY-MM-DD.md    # rolling daily notes/logs
+├── AGENTS.md / SOUL.md / TOOLS.md / USER.md / IDENTITY.md  # bootstrap docs
+└── artifacts/              # optional checked-in artifacts
+```
+
+**Space Structure (logical):**
 
 ```typescript
 interface Space {
@@ -66,7 +77,7 @@ The Space is designed for transparency and human oversight. It's where the work 
 
 ## 2. The Memory: The AI's Long-Term Brain
 
-The **Memory** is the AI-friendly counterpart to the Space. It's a high-performance semantic store (typically a vector database) that acts as the agent team's long-term, associative brain.
+The **Memory** is the AI-friendly counterpart to the Space. It's a high-performance semantic store (typically a vector database or sqlite+vector extension) that acts as the agent team's long-term, associative brain. By default, indexes are stored locally (e.g., `~/.openviber/memory/{agentId}.sqlite`) built from `workspace/MEMORY.md` and the `workspace/memory/*.md` logs.
 
 **Key Characteristics:**
 
@@ -132,13 +143,13 @@ interface ContextManager {
 }
 ```
 
-## 6. Storage Adapters
+## 6. Storage: local by default, pluggable when needed
 
-Viber supports multiple storage backends through built-in adapters:
+| Tier                 | Default path                          | Contents / purpose                               |
+| -------------------- | ------------------------------------- | ------------------------------------------------ |
+| Workspace (Space)    | `~/.openviber/workspace/`                 | Human-readable plan, notes, artifacts            |
+| Session logs         | `~/.openviber/agents/{id}/sessions/*.jsonl` | Full transcripts for durability/audit            |
+| Memory index         | `~/.openviber/memory/{id}.sqlite`         | Semantic index over MEMORY.md + daily logs       |
+| Artifacts (blobs)    | `~/.openviber/artifacts/{taskId}/`        | Large outputs not checked into workspace         |
 
-| Adapter           | Structured Data | Files            | Vectors          |
-| ----------------- | --------------- | ---------------- | ---------------- |
-| `LocalAdapter`    | JSON files      | Filesystem       | In-memory        |
-| `SupabaseAdapter` | PostgreSQL      | Supabase Storage | pgvector         |
-
-This dual system allows Viber to get the best of both worlds: the full auditability and human accessibility of a file-based system, and the high-performance, intelligent retrieval of a semantic memory store. This is the architectural foundation that makes true, resumable, and context-aware collaborative sessions possible.
+Adapters remain pluggable (e.g., Supabase) for teams that want shared remote storage, but the **default** is local-first so switching chat surfaces doesn’t drop context.

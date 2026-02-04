@@ -1,6 +1,10 @@
 ---
-title: "Tutorial 3: Custom Tools"
+title: "Tutorial 3: Custom Tools (Deprecated)"
 ---
+
+::: caution
+Legacy tutorial: based on the old multi-agent/tooling posture. Current Viber is workspace-first (OpenClaw-like) with context in `~/.openviber/` and a single-assistant default. Refer to the Design docs for up-to-date guidance.
+:::
 
 
 **⏱️ Time: 45 minutes | 🎯 Goal: Create agents with custom capabilities**

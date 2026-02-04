@@ -1,6 +1,6 @@
 /**
  * Integration test: cursor-agent skill is loaded and the agent exposes
- * cursor_agent_run so that cockpit messages like "Use cursor-agent to ..."
+ * cursor_agent_run so that Viber Board messages like "Use cursor-agent to ..."
  * can trigger the tool.
  *
  * Run: pnpm test src/skills/cursor-agent.integration.test.ts
@@ -32,7 +32,7 @@ describe("cursor-agent skill integration", () => {
     expect(tools.cursor_agent_run.execute).toBeTypeOf("function");
   });
 
-  it("agent with cursor-agent skill has cursor_agent_run in getTools (pipeline to cockpit)", async () => {
+  it("agent with cursor-agent skill has cursor_agent_run in getTools (pipeline to Viber Board)", async () => {
     const agent = new Agent({
       name: "Viber",
       description: "Test agent",

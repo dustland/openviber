@@ -20,8 +20,8 @@ import * as path from "path";
 const VERSION = "1.0.0";
 
 program
-  .name("viber")
-  .description("Viber - Multi-agent AI framework")
+  .name("openviber")
+  .description("OpenViber - Workspace-first assistant runtime (vibers on your machines)")
   .version(VERSION);
 
 // ==================== viber start ====================
@@ -66,7 +66,7 @@ program
     }
 
     // Initialize Scheduler
-    // For demo purposes, we load from "examples/jobs". In production, this would be ~/.viber/jobs
+    // For demo purposes, we load from "examples/jobs". In production, this would be ~/.openviber/jobs
     const jobsDir = path.resolve(process.cwd(), "examples/jobs");
     const scheduler = new JobScheduler(jobsDir);
 
@@ -286,7 +286,7 @@ Viber Status
   Viber ID:      ${viberId}
   Token:         ${hasToken ? "✓ Set (VIBER_TOKEN)" : "✗ Not set"}
   OpenRouter:    ${hasOpenRouter ? "✓ Set (OPENROUTER_API_KEY)" : "✗ Not set"}
-  Config Dir:    ${path.join(os.homedir(), ".viber")}
+  Config Dir:    ${path.join(os.homedir(), ".openviber")}
 ────────────────────────────────────
     `);
   });
@@ -299,7 +299,7 @@ Viber Status
 // ==================== Helpers ====================
 
 async function getViberId(): Promise<string> {
-  const configDir = path.join(os.homedir(), ".viber");
+  const configDir = path.join(os.homedir(), ".openviber");
   const idFile = path.join(configDir, "viber-id");
 
   try {

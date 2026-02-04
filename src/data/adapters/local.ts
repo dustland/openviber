@@ -1,6 +1,6 @@
 /**
  * LocalDataAdapter - File-based data storage using YAML/JSON files
- * Uses ~/.viber/ directory for local agent mode
+ * Uses ~/.openviber/ directory for local agent mode
  */
 
 import type { DataAdapter } from "../adapter";
@@ -64,7 +64,7 @@ export class LocalDataAdapter implements DataAdapter {
       // No built-in agents
     }
 
-    // Load user agents from ~/.viber/agents/
+    // Load user agents from ~/.openviber/agents/
     try {
       const files = await rootStorage.list("agents");
       for (const file of files.filter(

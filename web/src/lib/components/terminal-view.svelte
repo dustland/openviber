@@ -68,6 +68,13 @@
     }
   }
 
+  // Inform tmux of our current size
+  function sendResize(cols: number, rows: number) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: "terminal:resize", target, cols, rows }));
+    }
+  }
+
   let resizeObserver: ResizeObserver | null = null;
 
   onMount(() => {
@@ -84,6 +91,7 @@
         cursorBlink: true,
         fontSize: 13,
         fontFamily: "Menlo, Monaco, 'Courier New', monospace",
+        convertEol: true, // fix LF-only output from tmux/capture-pane
         theme: {
           background: "#1e1e1e",
           foreground: "#d4d4d4",
@@ -99,9 +107,9 @@
 
       term.open(terminalEl!);
       fitAddon.fit();
-      // Use fixed wide cols so tmux full-width lines don't wrap; container scrolls horizontally
-      const COLS = 132;
-      if (term.rows) term.resize(COLS, term.rows);
+      if (term.cols && term.rows) {
+        sendResize(term.cols, term.rows);
+      }
 
       // Handle user input
       term.onData((data) => {
@@ -117,7 +125,9 @@
       // Handle resize: fit height (rows) only, keep wide cols for horizontal scroll
       resizeObserver = new ResizeObserver(() => {
         fitAddon?.fit();
-        if (term && term.rows) term.resize(COLS, term.rows);
+        if (term && term.cols && term.rows) {
+          sendResize(term.cols, term.rows);
+        }
       });
       resizeObserver.observe(terminalEl!);
     })();

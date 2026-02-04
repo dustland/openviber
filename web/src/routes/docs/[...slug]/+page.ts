@@ -1,30 +1,19 @@
 /**
- * Load doc content from flat lib/docs/*.md by slug.
- * e.g. /docs/design/arch -> lib/docs/design/arch.md
+ * Load doc metadata and key for mdsvex-rendered docs.
+ * Rendering happens in +page.svelte by importing the compiled component.
  */
 import { error } from "@sveltejs/kit";
 import type { PageLoad } from "./$types";
 
-// Eager-load all .md files so we can resolve by slug at load time
-const docModules: Record<string, string> = import.meta.glob(
-  "/src/lib/docs/**/*.md",
-  { query: "?raw", import: "default", eager: true },
-) as Record<string, string>;
+type DocModule = {
+  metadata?: Record<string, unknown>;
+  default: unknown;
+};
 
-function parseFrontmatter(raw: string): {
-  title?: string;
-  description?: string;
-  body: string;
-} {
-  const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/);
-  if (!match) return { body: raw };
-  const [, front, body] = match;
-  const title = front?.match(/title:\s*["']?([^"'\n]+)["']?/)?.[1]?.trim();
-  const description = front
-    ?.match(/description:\s*["']?([^"'\n]+)["']?/)?.[1]
-    ?.trim();
-  return { title, description, body: body ?? raw };
-}
+// Eager-load all mdsvex-compiled docs so we can find metadata and keys
+const docModules = import.meta.glob("$docs/**/*.md", {
+  eager: true,
+}) as Record<string, DocModule>;
 
 export const load: PageLoad = async ({ params }) => {
   const slug = params.slug;
@@ -33,8 +22,8 @@ export const load: PageLoad = async ({ params }) => {
   const key = Object.keys(docModules).find((k) => k.endsWith(`${slug}.md`));
   if (!key) throw error(404, "Not found");
 
-  const raw = docModules[key];
-  const { title, description, body } = parseFrontmatter(raw);
+  const mod = docModules[key];
+  const metadata = (mod?.metadata ?? {}) as Record<string, unknown>;
 
-  return { content: body, title, description };
+  return { key, metadata };
 };

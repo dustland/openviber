@@ -56,7 +56,7 @@ viber run jobs/my-agent.yaml
 
 The agent will output its progress to the console. You can also:
 
-1. Use the [Viber Cockpit](/vibers) to monitor agents in real-time
+1. Use the [Viber Board](/vibers) to monitor agents in real-time
 2. Check the `artifacts/` directory for generated files
 3. View logs in the `logs/` directory
 
@@ -74,7 +74,7 @@ const agent = await ViberAgent.start(
     config: {
       autoApprove: true,
     },
-  },
+  }
 );
 
 // Wait for completion

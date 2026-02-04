@@ -2,7 +2,7 @@
  * Daemon runtime - thin clawdbot-alike assistant path
  *
  * No Space, no DataAdapter, no Storage. Loads a single agent config from file
- * and runs streamText. Cockpit owns persistence and context; daemon only
+ * and runs streamText. Viber Board owns persistence and context; daemon only
  * orchestrates local skills and the LLM.
  */
 
@@ -29,15 +29,15 @@ const DEFAULTS_AGENTS_DIR = path.join(
   path.dirname(__dirname),
   "data",
   "defaults",
-  "agents",
+  "agents"
 );
 
 /**
  * Load agent config from file (no DataAdapter).
- * Tries built-in defaults then ~/.viber/agents/{id}.yaml
+ * Tries built-in defaults then ~/.openviber/agents/{id}.yaml
  */
 export async function loadAgentConfig(
-  agentId: string,
+  agentId: string
 ): Promise<AgentConfig | null> {
   const tryRead = async (filePath: string): Promise<AgentConfig | null> => {
     try {
@@ -52,7 +52,7 @@ export async function loadAgentConfig(
 
   for (const ext of ["yaml", "yml"]) {
     const fromDefaults = await tryRead(
-      path.join(DEFAULTS_AGENTS_DIR, `${agentId}.${ext}`),
+      path.join(DEFAULTS_AGENTS_DIR, `${agentId}.${ext}`)
     );
     if (fromDefaults) return fromDefaults;
   }
@@ -60,7 +60,7 @@ export async function loadAgentConfig(
   const root = getViberPath();
   for (const ext of ["yaml", "yml"]) {
     const fromUser = await tryRead(
-      path.join(root, "agents", `${agentId}.${ext}`),
+      path.join(root, "agents", `${agentId}.${ext}`)
     );
     if (fromUser) return fromUser;
   }
@@ -92,14 +92,24 @@ export async function loadAgentConfig(
 export async function runTask(
   goal: string,
   options: DaemonRunTaskOptions & { taskId: string },
-  messages?: { role: string; content: string }[],
-): Promise<{ streamResult: Awaited<ReturnType<Agent["streamText"]>>; agent: Agent }> {
-  const { taskId, singleAgentId = "default", agentConfig: overrideConfig, model: modelOverride, signal } = options;
+  messages?: { role: string; content: string }[]
+): Promise<{
+  streamResult: Awaited<ReturnType<Agent["streamText"]>>;
+  agent: Agent;
+}> {
+  const {
+    taskId,
+    singleAgentId = "default",
+    agentConfig: overrideConfig,
+    model: modelOverride,
+    signal,
+  } = options;
 
-  let config =
-    overrideConfig ?? (await loadAgentConfig(singleAgentId));
+  let config = overrideConfig ?? (await loadAgentConfig(singleAgentId));
   if (!config) {
-    throw new Error(`Agent '${singleAgentId}' not found. Add ~/.viber/agents/${singleAgentId}.yaml or use built-in default.`);
+    throw new Error(
+      `Agent '${singleAgentId}' not found. Add ~/.openviber/agents/${singleAgentId}.yaml or use built-in default.`
+    );
   }
 
   if (modelOverride) {

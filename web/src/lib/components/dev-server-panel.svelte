@@ -4,7 +4,7 @@
   import { Button } from "$lib/components/ui/button";
 
   const DEFAULT_URL = "http://localhost:6006";
-  const STORAGE_KEY = "viber-cockpit-dev-server-url";
+  const STORAGE_KEY = "viber-board-dev-server-url";
 
   let url = $state(DEFAULT_URL);
   let iframeKey = $state(0);

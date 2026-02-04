@@ -404,7 +404,7 @@ export async function startSpace({
     name: name || spaceConfig.name,
   });
 
-  // Create ViberAgent for the space (includes tmux + cursor-agent so cockpit can verify skills)
+  // Create ViberAgent for the space (includes tmux + cursor-agent so Viber Board can verify skills)
   const viberAgentConfig: AgentConfig = {
     name: "Viber",
     description: "I manage this space and coordinate all work.",

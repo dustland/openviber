@@ -405,7 +405,7 @@ export class ViberAgent extends Agent {
           metadata?.taskId || metadata?.conversationId || "default";
         const task = this.space.getOrCreateTask(taskId);
         task.history.add(assistantMessage);
-        // Chat history is persisted at cockpit level, not by the viber agent
+        // Chat history is persisted at Viber Board level, not by the viber agent
       } catch (error) {
         console.error("[ViberAgent] Failed to persist messages:", error);
       }

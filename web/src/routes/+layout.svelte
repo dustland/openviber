@@ -57,7 +57,7 @@
         class="font-semibold text-foreground flex items-center gap-1.5 shrink-0"
       >
         <img src="/favicon.png" alt="Viber" class="size-4" />
-        Cockpit
+        Viber Board
       </a>
 
       {#if $headerStore.viber}
@@ -77,8 +77,12 @@
           {$headerStore.viber.viberName}
         </span>
         {#if $headerStore.viber.isConnected}
-          <span class="text-green-600 dark:text-green-400 shrink-0" title="Online">
-            <Circle class="size-1.5 fill-current inline" aria-hidden="true"></Circle>
+          <span
+            class="text-green-600 dark:text-green-400 shrink-0"
+            title="Online"
+          >
+            <Circle class="size-1.5 fill-current inline" aria-hidden="true"
+            ></Circle>
           </span>
         {:else}
           <span class="text-muted-foreground shrink-0" title="Offline">
@@ -143,7 +147,9 @@
               title="Skills"
             >
               <Lightbulb class="size-3 shrink-0" />
-              <span class="hidden sm:inline">Skills ({$headerStore.viber.skills.length})</span>
+              <span class="hidden sm:inline"
+                >Skills ({$headerStore.viber.skills.length})</span
+              >
               <ChevronDown
                 class="size-3 shrink-0 transition-transform hidden sm:block {skillsOpen
                   ? 'rotate-180'

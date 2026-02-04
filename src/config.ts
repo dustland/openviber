@@ -1,8 +1,8 @@
 /**
- * Viber Configuration
+ * OpenViber Configuration
  * 
- * Runtime configuration for the viber framework.
- * Applications should call configure() before using viber.
+ * Runtime configuration for the openviber framework.
+ * Applications should call configure() before using openviber.
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -37,9 +37,9 @@ export function configure(newConfig: ViberConfig): void {
  */
 export function getConfig(): ViberConfig {
   if (!config) {
-    // Default configuration - use ~/.viber for daemon mode
+    // Default configuration - use ~/.openviber for daemon mode
     return {
-      storageRoot: path.join(os.homedir(), '.viber'),
+      storageRoot: path.join(os.homedir(), '.openviber'),
       defaultsPath: './defaults',
     };
   }

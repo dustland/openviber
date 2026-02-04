@@ -30,19 +30,21 @@
     danger: "text-red-500",
   };
 
-  const Icon = icons[type];
   const defaultTitles = {
     note: "Note",
     tip: "Tip",
     caution: "Caution",
     danger: "Danger",
   };
+
+  const Icon = $derived(icons[type]);
+  const resolvedTitle = $derived(title || defaultTitles[type]);
 </script>
 
 <aside class="my-4 rounded-lg border-l-4 p-4 {colors[type]}">
   <div class="flex items-center gap-2 font-semibold mb-2">
     <Icon class="size-5 {iconColors[type]}" />
-    <span>{title || defaultTitles[type]}</span>
+    <span>{resolvedTitle}</span>
   </div>
   <div class="text-sm">
     {@render children?.()}

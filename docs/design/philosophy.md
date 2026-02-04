@@ -15,7 +15,7 @@ A **viber** is not only an LLM process. It is the combination of:
 
 The OpenViber project provides the platform. Each deployed viber is the working unit: a real teammate that produces verifiable outcomes on one machine.
 
-## 1) The Manager <-> Subordinate Contract
+## 1) The Manager ↔ Subordinate Contract
 
 The relationship should be explicit:
 
@@ -53,7 +53,7 @@ Execution mode controls how the viber runs tools. A separate policy controls whe
 
 The core loop is:
 
-`observe -> plan -> execute -> verify -> report -> ask feedback -> continue`
+`observe → plan → execute → verify → report → ask feedback → continue`
 
 Evidence is part of the loop, not a bonus:
 

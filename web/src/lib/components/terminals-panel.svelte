@@ -25,6 +25,7 @@
   let connected = $state(false);
   let loading = $state(true);
   let error = $state<string | null>(null);
+  let creatingSession = $state(false);
 
   /** Which panes are open in the UI */
   let openPanes = $state<Set<string>>(new Set());
@@ -70,6 +71,14 @@
         sessions = msg.sessions || [];
         panes = msg.panes || [];
         break;
+      case "terminal:session-created":
+        creatingSession = false;
+        if (!msg.ok) {
+          error = msg.error || "Failed to create tmux session";
+        } else {
+          error = null;
+        }
+        break;
     }
   }
 
@@ -77,6 +86,19 @@
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ type: "terminal:list" }));
     }
+  }
+
+  function createSession() {
+    if (!ws || ws.readyState !== WebSocket.OPEN || creatingSession) return;
+    creatingSession = true;
+    error = null;
+    ws.send(
+      JSON.stringify({
+        type: "terminal:create-session",
+        sessionName: "coding",
+        windowName: "main",
+      })
+    );
   }
 
   function togglePane(target: string) {
@@ -134,8 +156,16 @@
     <div class="empty">
       <p>No tmux sessions found.</p>
       <p class="hint">
-        Create a session with: <code>tmux new-session -d -s coding</code>
+        Create and manage terminal sessions directly from Viber Board.
       </p>
+      <Button
+        variant="outline"
+        size="sm"
+        onclick={createSession}
+        disabled={creatingSession || !connected}
+      >
+        {creatingSession ? "Creating..." : "Create Coding Session"}
+      </Button>
     </div>
   {:else}
     <div class="terminals-layout">
@@ -242,13 +272,6 @@
 
   .hint {
     font-size: 0.8rem;
-  }
-
-  .hint code {
-    background: hsl(var(--muted));
-    padding: 0.2rem 0.4rem;
-    border-radius: 0.25rem;
-    font-size: 0.75rem;
   }
 
   .terminals-layout {

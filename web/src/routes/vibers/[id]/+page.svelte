@@ -59,7 +59,8 @@
   let inputValue = $state("");
   let sending = $state(false);
   let currentTaskId = $state<string | null>(null);
-  let messagesContainer: HTMLDivElement | null = null;
+  let messagesContainer = $state<HTMLDivElement | null>(null);
+  let inputEl = $state<HTMLTextAreaElement | null>(null);
   let viberTasks = $state<TaskSummary[]>([]);
   let stoppingTaskId = $state<string | null>(null);
 
@@ -306,6 +307,11 @@
     }
   }
 
+  function insertSkillTemplate(skill: ViberSkill) {
+    inputValue = `Use ${skill.name} to `;
+    inputEl?.focus();
+  }
+
   // Sync viber context to global header (single row), including skills for discoverability
   $effect(() => {
     if (viber?.id) {
@@ -359,7 +365,7 @@
     <div class="flex-1 min-h-0 flex flex-col">
       <TerminalsPanel></TerminalsPanel>
     </div>
-  {:else if activeTab === "dev-server"}
+  {:else if activeTab === "ports"}
     <div class="flex-1 min-h-0 flex flex-col">
       <DevServerPanel></DevServerPanel>
     </div>
@@ -367,93 +373,114 @@
     <!-- Messages (max space) -->
     <div
       bind:this={messagesContainer}
-      class="flex-1 min-h-0 overflow-y-auto p-3 space-y-3"
+      class="flex-1 min-h-0 overflow-y-auto p-3"
     >
-      {#if loading}
-        <div
-          class="min-h-full flex items-center justify-center text-center text-muted-foreground"
-        >
-          Loading...
-        </div>
-      {:else if !viber?.isConnected}
-        <div
-          class="min-h-full flex items-center justify-center text-center text-muted-foreground"
-        >
-          <div>
-            <Cpu class="size-12 mx-auto mb-4 opacity-50" />
-            <p class="text-lg font-medium">Viber is Offline</p>
-            <p class="text-sm mt-2">
-              This viber is not currently connected. Start the viber daemon to
-              chat.
-            </p>
-          </div>
-        </div>
-      {:else if messages.length === 0}
-        <div
-          class="min-h-full flex items-center justify-center text-center text-muted-foreground"
-        >
-          <div>
-            <p class="text-sm font-medium text-foreground mb-0.5">
-              No messages yet
-            </p>
-            <p class="text-xs">
-              Send a task or goal. Type in the box below and press Enter.
-            </p>
-            {#if viber.skills && viber.skills.length > 0}
-              <p class="text-xs mt-1.5 opacity-80">
-                This viber has skills: {viber.skills
-                  .map((s) => s.name)
-                  .join(", ")}. Open
-                <strong>Skills ({viber.skills.length})</strong> in the header to
-                see how to use each (e.g. “Use cursor-agent to …”).
-              </p>
-            {/if}
-          </div>
-        </div>
-      {:else}
-        {#each messages as message (message.id)}
+      <div class="mx-auto w-full max-w-5xl space-y-3">
+        {#if loading}
           <div
-            class="flex {message.role === 'user'
-              ? 'justify-end'
-              : 'justify-start'}"
+            class="min-h-full flex items-center justify-center text-center text-muted-foreground"
           >
-            <div
-              class="max-w-[80%] rounded-lg px-4 py-2 {message.role === 'user'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-foreground'}"
-            >
-              <div class="message-markdown">
-                {@html renderMarkdown(message.content)}
-              </div>
-              <p class="text-xs mt-1 opacity-70">
-                {new Date(message.createdAt).toLocaleTimeString()}
+            Loading...
+          </div>
+        {:else if !viber?.isConnected}
+          <div
+            class="min-h-full flex items-center justify-center text-center text-muted-foreground"
+          >
+            <div>
+              <Cpu class="size-12 mx-auto mb-4 opacity-50" />
+              <p class="text-lg font-medium">Viber is Offline</p>
+              <p class="text-sm mt-2">
+                This viber is not currently connected. Start the viber daemon to
+                chat.
               </p>
             </div>
           </div>
-        {/each}
-      {/if}
+        {:else if messages.length === 0}
+          <div
+            class="min-h-full flex items-center justify-center text-center text-muted-foreground"
+          >
+            <div>
+              <p class="text-sm font-medium text-foreground mb-0.5">
+                No messages yet
+              </p>
+              <p class="text-xs">
+                Send a task or goal. Type in the box below and press Enter.
+              </p>
+              {#if viber.skills && viber.skills.length > 0}
+                <p class="text-xs mt-1.5 opacity-80">
+                  This viber has skills: {viber.skills
+                    .map((s) => s.name)
+                    .join(", ")}. Use the templates above the chat input to
+                  start quickly.
+                </p>
+              {/if}
+            </div>
+          </div>
+        {:else}
+          {#each messages as message (message.id)}
+            <div
+              class="flex {message.role === 'user'
+                ? 'justify-end'
+                : 'justify-start'}"
+            >
+              <div
+                class="max-w-[80%] rounded-lg px-4 py-2 {message.role === 'user'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-foreground'}"
+              >
+                <div class="message-markdown">
+                  {@html renderMarkdown(message.content)}
+                </div>
+                <p class="text-xs mt-1 opacity-70">
+                  {new Date(message.createdAt).toLocaleTimeString()}
+                </p>
+              </div>
+            </div>
+          {/each}
+        {/if}
+      </div>
     </div>
 
     <!-- Input: single row only -->
     <div class="border-t border-border p-2 shrink-0">
-      <div class="flex gap-2 items-end">
-        <textarea
-          bind:value={inputValue}
-          onkeydown={handleKeydown}
-          placeholder={viber?.isConnected
-            ? "Send a task or command..."
-            : "Viber is offline"}
-          class="flex-1 min-h-[36px] max-h-24 resize-none rounded-md border border-input bg-background px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
-          rows="1"
-          disabled={sending || !viber?.isConnected}
-        ></textarea>
-        <Button
-          onclick={() => sendMessage()}
-          disabled={sending || !inputValue.trim() || !viber?.isConnected}
-          class="size-9 shrink-0"
-        >
-          <Send class="size-4" />
-        </Button>
+      <div class="mx-auto w-full max-w-5xl space-y-2">
+        {#if viber?.skills && viber.skills.length > 0}
+          <div class="overflow-x-auto pb-0.5">
+            <div class="flex items-center gap-1.5 min-w-max">
+              {#each viber.skills as skill}
+                <button
+                  type="button"
+                  class="rounded-full border border-border bg-muted/40 px-2.5 py-1 text-[11px] text-muted-foreground hover:text-foreground hover:bg-muted transition-colors whitespace-nowrap"
+                  onclick={() => insertSkillTemplate(skill)}
+                  title={skill.description}
+                >
+                  Use {skill.name}...
+                </button>
+              {/each}
+            </div>
+          </div>
+        {/if}
+
+        <div class="flex gap-2 items-end">
+          <textarea
+            bind:this={inputEl}
+            bind:value={inputValue}
+            onkeydown={handleKeydown}
+            placeholder={viber?.isConnected
+              ? "Send a task or command..."
+              : "Viber is offline"}
+            class="flex-1 min-h-[40px] max-h-28 resize-none rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+            rows="1"
+            disabled={sending || !viber?.isConnected}
+          ></textarea>
+          <Button
+            onclick={() => sendMessage()}
+            disabled={sending || !inputValue.trim() || !viber?.isConnected}
+            class="size-10 shrink-0"
+          >
+            <Send class="size-4" />
+          </Button>
+        </div>
       </div>
     </div>
   {/if}

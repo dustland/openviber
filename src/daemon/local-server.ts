@@ -100,6 +100,15 @@ export class LocalServer {
         this.handleTerminalResize(ws, msg.target, msg.cols, msg.rows);
         break;
 
+      case "terminal:create-session":
+        this.handleTerminalCreateSession(
+          ws,
+          msg.sessionName,
+          msg.windowName,
+          msg.cwd
+        );
+        break;
+
       default:
         console.log(`[Viber] Unknown message type: ${msg.type}`);
     }
@@ -137,6 +146,29 @@ export class LocalServer {
   private handleTerminalResize(ws: WebSocket, target: string, cols: number, rows: number): void {
     const ok = this.terminalManager.resize(target, cols, rows);
     this.send(ws, { type: "terminal:resized", target, ok });
+  }
+
+  private handleTerminalCreateSession(
+    ws: WebSocket,
+    sessionName?: string,
+    windowName?: string,
+    cwd?: string
+  ): void {
+    const result = this.terminalManager.createSession(
+      sessionName || "coding",
+      windowName || "main",
+      cwd
+    );
+
+    this.send(ws, {
+      type: "terminal:session-created",
+      ...result,
+    });
+
+    if (result.ok) {
+      // Keep client in sync immediately after creation
+      this.handleTerminalList(ws);
+    }
   }
 
   private send(ws: WebSocket, msg: any): void {

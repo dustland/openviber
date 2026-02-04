@@ -62,3 +62,42 @@ When viber needs manager input, send:
 - a recommended option first.
 
 This keeps intervention low-friction and manager-time efficient.
+
+---
+
+## 6. Channels
+
+Channels are transport surfaces between a manager and one or more vibers.
+They should not be the source of truth for work context; workspace files under `~/.openviber/` are.
+
+### Channel Goals
+
+- Deliver instructions to vibers
+- Deliver periodic progress reports
+- Deliver escalation questions
+- Allow manager intervention quickly
+
+### Supported Interaction Styles
+
+| Style | Purpose |
+|-------|---------|
+| **Interactive chat** (primary) | Assign, redirect, approve, stop |
+| **Email reports** (periodic) | Daily/weekly summaries and blockers |
+| **Board web UI** | Task/terminal visibility and artifact browsing |
+
+### Behavioral Rules
+
+- Channel switch must not lose context (context comes from workspace)
+- Reports should include evidence refs, not only narrative summaries
+- Feedback requests should default to multiple-choice options
+
+### Status Reporting Contract
+
+Every periodic update should include:
+
+- Objective progress
+- Current plan pointer
+- Blockers requiring human input
+- Budget usage and runway
+- Link/refs to proof (terminal snippets, artifact paths, screenshots)
+

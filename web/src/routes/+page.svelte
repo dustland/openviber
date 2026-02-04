@@ -3,7 +3,7 @@
 </script>
 
 <svelte:head>
-  <title>Viber Board</title>
+  <title>OpenViber</title>
 </svelte:head>
 
 <div class="container mx-auto px-4 py-12">

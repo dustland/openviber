@@ -46,5 +46,5 @@ openviber --version
 
 ## Next Steps
 
-- [Quick Start](/docs/getting-started/quick-start) - Create your first agent
-- [Configuration](/docs/guides/configuration) - Customize Viber settings
+- [Quick Start](/docs/getting-started/quick-start) - Create your first viber
+- [Viber](/docs/concepts/viber) - Understand the viber concept

@@ -84,6 +84,6 @@ console.log("Artifacts:", result.artifacts);
 
 ## Next Steps
 
-- [Agents Guide](/docs/guides/agents) - Deep dive into agent capabilities
-- [Tools Guide](/docs/guides/tools) - Learn about available tools
-- [Spaces Guide](/docs/guides/spaces) - Understand workspaces
+- [Agents](/docs/concepts/agents) - Deep dive into agent capabilities
+- [Tools](/docs/concepts/tools) - Learn about available tools
+- [Spaces](/docs/concepts/spaces) - Understand workspaces

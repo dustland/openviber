@@ -1,51 +1,56 @@
 <script lang="ts">
   import "../app.css";
   import { onMount } from "svelte";
-  import { page } from "$app/stores";
+  import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+  } from "$lib/components/ui/dropdown-menu";
   import { headerStore } from "$lib/stores/header";
   import { Button } from "$lib/components/ui/button";
-  import { Badge } from "$lib/components/ui/badge";
   import {
     ArrowLeft,
     RefreshCw,
     Settings,
     MessageSquare,
-    Monitor,
+    Moon,
+    Check,
     Circle,
-    Lightbulb,
+    Laptop,
+    Sun,
     ChevronDown,
     Terminal as TerminalIcon,
     Server,
     BookOpen,
   } from "@lucide/svelte";
 
-  let { children } = $props();
-  let skillsOpen = $state(false);
-  let skillsButtonEl = $state<HTMLButtonElement | undefined>(undefined);
+  type Theme = "light" | "dark" | "system";
 
-  function closeSkillsOnClickOutside(e: MouseEvent) {
-    if (skillsButtonEl && !skillsButtonEl.contains(e.target as Node)) {
-      const popover = document.getElementById("skills-popover");
-      if (popover && !popover.contains(e.target as Node)) skillsOpen = false;
+  let { children } = $props();
+  let theme = $state<Theme>("system");
+
+  function applyTheme(selectedTheme: Theme) {
+    if (selectedTheme === "system") {
+      localStorage.removeItem("theme");
+      const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      document.documentElement.classList.toggle("dark", isDark);
+      return;
     }
+
+    localStorage.setItem("theme", selectedTheme);
+    document.documentElement.classList.toggle("dark", selectedTheme === "dark");
   }
 
-  // Respect system preference, default to light
+  function setTheme(nextTheme: Theme) {
+    theme = nextTheme;
+    applyTheme(theme);
+  }
+
   onMount(() => {
     const stored = localStorage.getItem("theme");
-    if (stored === "dark") {
-      document.documentElement.classList.add("dark");
-    } else if (stored === "light") {
-      document.documentElement.classList.remove("dark");
-    } else {
-      const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      if (isDark) {
-        document.documentElement.classList.add("dark");
-      }
-    }
-    document.addEventListener("click", closeSkillsOnClickOutside);
-    return () =>
-      document.removeEventListener("click", closeSkillsOnClickOutside);
+    theme = stored === "dark" || stored === "light" ? stored : "system";
+    applyTheme(theme);
   });
 </script>
 
@@ -57,7 +62,7 @@
         class="font-semibold text-foreground flex items-center gap-1.5 shrink-0"
       >
         <img src="/favicon.png" alt="Viber" class="size-4" />
-        Viber Board
+        OpenViber
       </a>
 
       {#if $headerStore.viber}
@@ -123,70 +128,16 @@
           <button
             type="button"
             class="flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium transition-colors {$headerStore
-              .viber.activeTab === 'dev-server'
+              .viber.activeTab === 'ports'
               ? 'bg-background text-foreground shadow-sm'
               : 'text-muted-foreground hover:text-foreground'}"
-            onclick={() => headerStore.setActiveTab("dev-server")}
-            title="Dev Server"
+            onclick={() => headerStore.setActiveTab("ports")}
+            title="Ports"
           >
-            <Monitor class="size-3 shrink-0" />
-            <span class="hidden sm:inline">Dev Server</span>
+            <Server class="size-3 shrink-0" />
+            <span class="hidden sm:inline">Ports</span>
           </button>
         </div>
-        <!-- Skills: what this viber can do + how to use -->
-        {#if $headerStore.viber.skills?.length > 0}
-          <div class="relative shrink-0">
-            <button
-              bind:this={skillsButtonEl}
-              type="button"
-              class="flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium text-muted-foreground hover:text-foreground border border-transparent hover:border-border/50"
-              onclick={(e) => {
-                e.stopPropagation();
-                skillsOpen = !skillsOpen;
-              }}
-              title="Skills"
-            >
-              <Lightbulb class="size-3 shrink-0" />
-              <span class="hidden sm:inline"
-                >Skills ({$headerStore.viber.skills.length})</span
-              >
-              <ChevronDown
-                class="size-3 shrink-0 transition-transform hidden sm:block {skillsOpen
-                  ? 'rotate-180'
-                  : ''}"
-              />
-            </button>
-            {#if skillsOpen}
-              <div
-                id="skills-popover"
-                class="absolute right-0 top-full z-50 mt-1 w-72 rounded-md border border-border bg-popover p-2 shadow-md"
-              >
-                <p
-                  class="text-[10px] font-medium text-muted-foreground mb-2 uppercase tracking-wide"
-                >
-                  This viber can use these skills. In chat, ask e.g.:
-                </p>
-                <ul class="space-y-2 max-h-48 overflow-y-auto">
-                  {#each $headerStore.viber.skills as skill}
-                    <li class="rounded border border-border/50 bg-muted/20 p-2">
-                      <p class="font-medium text-xs text-foreground">
-                        {skill.name}
-                      </p>
-                      <p
-                        class="text-[11px] text-muted-foreground mt-0.5 line-clamp-2"
-                      >
-                        {skill.description}
-                      </p>
-                      <p class="text-[10px] text-primary mt-1 font-mono">
-                        “Use {skill.name} to &lt;your task&gt;”
-                      </p>
-                    </li>
-                  {/each}
-                </ul>
-              </div>
-            {/if}
-          </div>
-        {/if}
         <div class="flex items-center gap-0.5 ml-auto shrink-0">
           <Button
             variant="ghost"
@@ -215,6 +166,52 @@
             <BookOpen class="size-3 shrink-0" />
             <span class="hidden sm:inline">Docs</span>
           </a>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              class="h-7 rounded-md border border-border bg-background px-2 text-xs text-foreground inline-flex items-center gap-1.5 hover:bg-accent hover:text-accent-foreground"
+              aria-label="Theme menu"
+            >
+              {#if theme === "light"}
+                <Sun class="size-3 shrink-0 text-muted-foreground" />
+              {:else if theme === "dark"}
+                <Moon class="size-3 shrink-0 text-muted-foreground" />
+              {:else}
+                <Laptop class="size-3 shrink-0 text-muted-foreground" />
+              {/if}
+              <span class="hidden sm:inline capitalize">{theme}</span>
+              <ChevronDown class="size-3" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              sideOffset={6}
+              align="end"
+              class="min-w-32 rounded-md border border-border bg-popover p-1 shadow-md"
+            >
+              <DropdownMenuItem
+                class="w-full rounded px-2 py-1.5 text-left text-xs hover:bg-accent flex items-center gap-2 outline-none"
+                onSelect={() => setTheme("system")}
+              >
+                <Laptop class="size-3" />
+                System
+                {#if theme === "system"}<Check class="size-3 ml-auto" />{/if}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                class="w-full rounded px-2 py-1.5 text-left text-xs hover:bg-accent flex items-center gap-2 outline-none"
+                onSelect={() => setTheme("light")}
+              >
+                <Sun class="size-3" />
+                Light
+                {#if theme === "light"}<Check class="size-3 ml-auto" />{/if}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                class="w-full rounded px-2 py-1.5 text-left text-xs hover:bg-accent flex items-center gap-2 outline-none"
+                onSelect={() => setTheme("dark")}
+              >
+                <Moon class="size-3" />
+                Dark
+                {#if theme === "dark"}<Check class="size-3 ml-auto" />{/if}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       {:else}
         <div class="flex items-center gap-1 ml-auto">
@@ -234,6 +231,52 @@
             <BookOpen class="size-3 shrink-0" />
             <span class="hidden sm:inline">Docs</span>
           </a>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              class="h-7 rounded-md border border-border bg-background px-2 text-xs text-foreground inline-flex items-center gap-1.5 hover:bg-accent hover:text-accent-foreground"
+              aria-label="Theme menu"
+            >
+              {#if theme === "light"}
+                <Sun class="size-3 shrink-0 text-muted-foreground" />
+              {:else if theme === "dark"}
+                <Moon class="size-3 shrink-0 text-muted-foreground" />
+              {:else}
+                <Laptop class="size-3 shrink-0 text-muted-foreground" />
+              {/if}
+              <span class="hidden sm:inline capitalize">{theme}</span>
+              <ChevronDown class="size-3" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              sideOffset={6}
+              align="end"
+              class="min-w-32 rounded-md border border-border bg-popover p-1 shadow-md"
+            >
+              <DropdownMenuItem
+                class="w-full rounded px-2 py-1.5 text-left text-xs hover:bg-accent flex items-center gap-2 outline-none"
+                onSelect={() => setTheme("system")}
+              >
+                <Laptop class="size-3" />
+                System
+                {#if theme === "system"}<Check class="size-3 ml-auto" />{/if}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                class="w-full rounded px-2 py-1.5 text-left text-xs hover:bg-accent flex items-center gap-2 outline-none"
+                onSelect={() => setTheme("light")}
+              >
+                <Sun class="size-3" />
+                Light
+                {#if theme === "light"}<Check class="size-3 ml-auto" />{/if}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                class="w-full rounded px-2 py-1.5 text-left text-xs hover:bg-accent flex items-center gap-2 outline-none"
+                onSelect={() => setTheme("dark")}
+              >
+                <Moon class="size-3" />
+                Dark
+                {#if theme === "dark"}<Check class="size-3 ml-auto" />{/if}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       {/if}
     </nav>

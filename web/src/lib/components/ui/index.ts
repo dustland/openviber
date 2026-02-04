@@ -11,3 +11,9 @@ export {
 } from "./card";
 export { Badge, badgeVariants } from "./badge";
 export { Input } from "./input";
+export {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./dropdown-menu";

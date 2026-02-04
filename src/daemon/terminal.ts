@@ -8,7 +8,7 @@
  * - Detach from a pane (stop streaming)
  */
 
-import { spawn, execSync, ChildProcess } from "child_process";
+import { spawn, spawnSync, execSync, ChildProcess } from "child_process";
 import { EventEmitter } from "events";
 
 export interface TmuxPane {
@@ -24,6 +24,12 @@ export interface TmuxSession {
   name: string;
   windows: number;
   attached: boolean;
+}
+
+const SAFE_NAME_RE = /[^a-zA-Z0-9_.:-]/g;
+
+function sanitizeTmuxName(input: string): string {
+  return input.replace(SAFE_NAME_RE, "-");
 }
 
 /**
@@ -47,6 +53,58 @@ export function listSessions(): TmuxSession[] {
   } catch {
     return [];
   }
+}
+
+/**
+ * Create a detached tmux session if it doesn't already exist.
+ */
+export function createSession(
+  sessionName: string,
+  windowName = "main",
+  cwd?: string
+): { ok: boolean; sessionName: string; created: boolean; error?: string } {
+  const safeSession = sanitizeTmuxName(sessionName || "coding");
+  const safeWindow = sanitizeTmuxName(windowName || "main");
+
+  try {
+    // Session already exists
+    execSync(`tmux has-session -t '${safeSession}' 2>/dev/null`, {
+      stdio: "pipe",
+    });
+    return { ok: true, sessionName: safeSession, created: false };
+  } catch {
+    // Continue to creation path
+  }
+
+  const args = ["new-session", "-d", "-s", safeSession, "-n", safeWindow];
+  if (cwd) {
+    args.push("-c", cwd);
+  }
+
+  const result = spawnSync("tmux", args, {
+    encoding: "utf8",
+    stdio: "pipe",
+  });
+
+  if (result.error) {
+    return {
+      ok: false,
+      sessionName: safeSession,
+      created: false,
+      error: `Failed to start tmux: ${result.error.message}`,
+    };
+  }
+
+  if (result.status !== 0) {
+    return {
+      ok: false,
+      sessionName: safeSession,
+      created: false,
+      error: (result.stderr || result.stdout || "Failed to create tmux session").trim(),
+    };
+  }
+
+  return { ok: true, sessionName: safeSession, created: true };
 }
 
 /**
@@ -323,5 +381,16 @@ export class TerminalManager {
       stream.detach();
     }
     this.streams.clear();
+  }
+
+  /**
+   * Create a detached tmux session for web-managed terminals.
+   */
+  createSession(
+    sessionName: string,
+    windowName = "main",
+    cwd?: string
+  ): { ok: boolean; sessionName: string; created: boolean; error?: string } {
+    return createSession(sessionName, windowName, cwd);
   }
 }

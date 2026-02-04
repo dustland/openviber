@@ -28,6 +28,10 @@
 
   const navigation: NavSection[] = [
     {
+      title: "Philosophy",
+      items: [{ title: "Philosophy of Viber", href: "/docs/philosophy" }],
+    },
+    {
       title: "Getting Started",
       items: [
         { title: "Installation", href: "/docs/getting-started/installation" },
@@ -35,13 +39,15 @@
       ],
     },
     {
-      title: "Guides",
+      title: "Concepts",
       items: [
-        { title: "Agents", href: "/docs/guides/agents" },
-        { title: "Spaces", href: "/docs/guides/spaces" },
-        { title: "Tools", href: "/docs/guides/tools" },
-        { title: "State & Context", href: "/docs/guides/state" },
-        { title: "Streaming", href: "/docs/guides/streaming" },
+        { title: "Viber", href: "/docs/concepts/viber" },
+        { title: "Agents", href: "/docs/concepts/agents" },
+        { title: "Spaces", href: "/docs/concepts/spaces" },
+        { title: "Skills", href: "/docs/concepts/skills" },
+        { title: "Tools", href: "/docs/concepts/tools" },
+        { title: "Memory", href: "/docs/concepts/memory" },
+        { title: "Context", href: "/docs/concepts/state" },
       ],
     },
     {
@@ -49,26 +55,17 @@
       items: [
         { title: "Architecture", href: "/docs/design/arch" },
         {
-          title: "Plan and Artifacts",
+          title: "Multi-Agent Collaboration",
+          href: "/docs/design/multi-agent-collaboration",
+        },
+        {
+          title: "Plan & Artifacts",
           href: "/docs/design/plan-and-artifacts",
         },
-        { title: "Philosophy", href: "/docs/design/philosophy" },
-        { title: "Viber Daemon", href: "/docs/design/viber-daemon" },
-        { title: "Viber vs Clawdbot", href: "/docs/design/viber-vs-clawdbot" },
-        { title: "Channels", href: "/docs/design/channels" },
-        { title: "Skills", href: "/docs/design/skills" },
         { title: "Task Lifecycle", href: "/docs/design/task-lifecycle" },
-        {
-          title: "Tmux Coding Scenario",
-          href: "/docs/design/tmux-coding-scenario",
-        },
-        { title: "Tool Execution", href: "/docs/design/tool-execution" },
-        { title: "Memory", href: "/docs/design/memory" },
-        { title: "Message Parts", href: "/docs/design/message-parts" },
-        { title: "Desktop Tools", href: "/docs/design/desktop-tools" },
         { title: "Communication", href: "/docs/design/communication" },
-        { title: "Package Structure", href: "/docs/design/package-structure" },
         { title: "Security", href: "/docs/design/security" },
+        { title: "Streaming", href: "/docs/design/streaming" },
       ],
     },
     {
@@ -178,7 +175,8 @@
       const text = node.textContent?.trim();
       if (!text) continue;
 
-      const baseId = node.id || slugify(text) || `section-${nextHeadings.length + 1}`;
+      const baseId =
+        node.id || slugify(text) || `section-${nextHeadings.length + 1}`;
       let id = baseId;
       let count = 2;
       while (!id || seen.has(id)) {
@@ -279,9 +277,7 @@
     if (mermaidApi) return mermaidApi;
 
     try {
-      const module = await import(
-        /* @vite-ignore */ mermaidModuleUrl
-      );
+      const module = await import(/* @vite-ignore */ mermaidModuleUrl);
       const api = module.default;
       api.initialize({
         startOnLoad: false,

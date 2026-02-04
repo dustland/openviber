@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/dustland/viber/main/docs/src/assets/logo.png" alt="Viber Logo" width="120" />
+<img src="https://raw.githubusercontent.com/dustland/openviber/main/web/static/favicon.png" alt="Viber Logo" width="120" />
 
-# Viber
+# OpenViber
 
 ### The Open Source Cowork Desktop for Your AI Workforce
 
@@ -23,8 +23,8 @@
 
 ### ⭐ 100% Open Source · 🥇 Local Deployment · 🏆 MCP Integration
 
-- ✅ **Zero Setup** — No servers to host, just `npx @dustland/viber start`
-- ✅ **Multi-Agent Workforce** — Specialized agents working in parallel  
+- ✅ **Zero Setup** — No servers to host, just `npx openviber start`
+- ✅ **Multi-Agent Workforce** — Specialized agents working in parallel
 - ✅ **Human-in-the-Loop** — Enterprise messaging channels (DingTalk, WeCom)
 - ✅ **Privacy First** — 100% local execution, data never leaves your machine
 
@@ -33,7 +33,7 @@
 ## 🚀 Quick Start
 
 ```bash
-npx @dustland/viber start
+npx openviber start
 ```
 
 ## ✨ Features
@@ -59,6 +59,7 @@ Capabilities defined in `SKILL.md` files — no code required:
 name: git-commit
 description: Stage and commit changes
 ---
+
 git add . && git commit -m "$message"
 ```
 
@@ -94,8 +95,8 @@ approval_required:
 Native integrations for DingTalk (钉钉) and WeCom (企业微信):
 
 ```bash
-viber start --channel dingtalk --token YOUR_TOKEN
-viber start --channel wecom --corpid YOUR_CORP
+openviber start --channel dingtalk --token YOUR_TOKEN
+openviber start --channel wecom --corpid YOUR_CORP
 ```
 
 ---
@@ -109,7 +110,7 @@ A built-in skill example that monitors and recovers AI coding tools:
 ```yaml
 # examples/jobs/antigravity-healer.yaml
 name: antigravity-healer
-schedule: "*/3 * * * * *"  # every 3 seconds
+schedule: "*/3 * * * * *" # every 3 seconds
 skill: antigravity
 prompt: "Check Antigravity IDE status and auto-recover if errors found"
 ```
@@ -147,21 +148,21 @@ prompt: "Check Antigravity IDE status and auto-recover if errors found"
 
 ## 📦 Three Pillars
 
-| Component | What | Where |
-|-----------|------|-------|
-| **Jobs** | Scheduled tasks (YAML cron) | `examples/jobs/` |
-| **Skills** | Capabilities (SKILL.md) | `skills/` |
-| **Tools** | Low-level primitives | `src/tools/` |
+| Component  | What                        | Where            |
+| ---------- | --------------------------- | ---------------- |
+| **Jobs**   | Scheduled tasks (YAML cron) | `examples/jobs/` |
+| **Skills** | Capabilities (SKILL.md)     | `skills/`        |
+| **Tools**  | Low-level primitives        | `src/tools/`     |
 
 ## 📊 Comparison
 
-| | Viber | Cloud Agents | IDE Plugins |
-|---|:---:|:---:|:---:|
-| Deployment | Local app | Cloud server | Editor only |
-| Connection | Outbound | Inbound | None |
-| Jobs | YAML cron | Complex code | Manual |
-| Privacy | 100% local | Data leaves | Varies |
-| Channels | DingTalk/WeCom | WhatsApp/Telegram | None |
+|            |     Viber      |   Cloud Agents    | IDE Plugins |
+| ---------- | :------------: | :---------------: | :---------: |
+| Deployment |   Local app    |   Cloud server    | Editor only |
+| Connection |    Outbound    |      Inbound      |    None     |
+| Jobs       |   YAML cron    |   Complex code    |   Manual    |
+| Privacy    |   100% local   |    Data leaves    |   Varies    |
+| Channels   | DingTalk/WeCom | WhatsApp/Telegram |    None     |
 
 ---
 
@@ -205,15 +206,17 @@ If you find Viber helpful, please ⭐ star us on GitHub!
 </div>
 
 <!-- LINKS -->
+
 [viber-site]: https://viber.dustland.ai
 [viber-github]: https://github.com/dustland/viber
-[viber-npm]: https://www.npmjs.com/package/@dustland/viber
+[viber-npm]: https://www.npmjs.com/package/openviber
 [docs-site]: https://viber.dustland.ai/docs
 [github-issues]: https://github.com/dustland/viber/issues
 [license-link]: https://github.com/dustland/viber/blob/main/LICENSE
 
 <!-- SHIELDS -->
+
 [download-shield]: https://img.shields.io/badge/Download-Viber-blue?style=flat-square
 [github-star]: https://img.shields.io/github/stars/dustland/viber?style=flat-square&logo=github
-[npm-shield]: https://img.shields.io/npm/v/@dustland/viber?style=flat-square&logo=npm
+[npm-shield]: https://img.shields.io/npm/v/openviber?style=flat-square&logo=npm
 [license-shield]: https://img.shields.io/badge/License-Apache%202.0-green?style=flat-square

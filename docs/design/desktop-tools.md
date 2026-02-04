@@ -156,7 +156,7 @@ UI_TARS_API_KEY=your-api-key
 
 ```bash
 # Start viber with desktop tools enabled
-viber start --desktop
+openviber start --desktop
 ```
 
 ### In Agent Configuration

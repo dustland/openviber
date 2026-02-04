@@ -12,7 +12,7 @@ Get started with Viber by installing it as a dependency or using it globally.
 Add Viber to your project:
 
 ```bash
-pnpm add @dustland/viber
+pnpm add openviber
 ```
 
 ## Install Globally
@@ -20,7 +20,7 @@ pnpm add @dustland/viber
 Install Viber CLI globally to use it from anywhere:
 
 ```bash
-pnpm add -g @dustland/viber
+pnpm add -g openviber
 ```
 
 ## Environment Setup
@@ -41,7 +41,7 @@ OPENAI_API_KEY=your_key_here
 Check that Viber is installed correctly:
 
 ```bash
-viber --version
+openviber --version
 ```
 
 ## Next Steps

@@ -22,7 +22,7 @@ A "tool" is a capability that an agent can call. Tools are defined using the AI 
 Tools are defined with a name, description, parameter schema, and execute function:
 
 ```typescript
-import type { CoreTool } from "@dustland/viber";
+import type { CoreTool } from "openviber";
 
 const writeFileTool: CoreTool = {
   name: "write_file",
@@ -178,7 +178,7 @@ Viber provides these tool categories:
 Users can define custom tools following the same pattern:
 
 ```typescript
-import type { CoreTool } from "@dustland/viber";
+import type { CoreTool } from "openviber";
 
 export const customTool: CoreTool = {
   name: "my_custom_tool",

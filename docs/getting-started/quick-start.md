@@ -7,7 +7,7 @@ Create and run your first Viber agent in minutes.
 Launch the Viber daemon to enable agent execution:
 
 ```bash
-viber start
+openviber start
 ```
 
 This starts the Viber server on port 8080 by default.
@@ -49,7 +49,7 @@ config:
 Run it with:
 
 ```bash
-viber run jobs/my-agent.yaml
+openviber run jobs/my-agent.yaml
 ```
 
 ## Monitor Progress

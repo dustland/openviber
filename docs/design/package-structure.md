@@ -5,10 +5,10 @@ description: "Understanding Viber's single-package architecture and modular expo
 
 ## Package Overview
 
-**Viber** is distributed as a **single unified package** (`@dustland/viber`) for maximum simplicity. All core functionality is available through a single import.
+**Viber** is distributed as a **single unified package** (`openviber`) for maximum simplicity. All core functionality is available through a single import.
 
 ```bash
-npm install @dustland/viber
+pnpm add openviber
 ```
 
 ```typescript
@@ -98,8 +98,8 @@ Viber includes a CLI for daemon management:
 pnpm dev
 
 # Production
-viber start
-viber stop
+openviber start
+openviber stop
 ```
 
 ## Key Concepts

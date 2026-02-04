@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/dustland/viber/main/docs/src/assets/logo.png" alt="Viber Logo" width="120" />
+<img src="https://raw.githubusercontent.com/dustland/openviber/main/web/static/favicon.png" alt="Viber Logo" width="120" />
 
-# Viber
+# OpenViber
 
 ### 开源协作桌面 — 您的 AI 工作团队
 
@@ -23,7 +23,7 @@
 
 ### ⭐ 100% 开源 · 🥇 本地部署 · 🏆 MCP 集成
 
-- ✅ **零配置** — 无需托管服务器，只需运行 `npx @dustland/viber start`
+- ✅ **零配置** — 无需托管服务器，只需运行 `npx openviber start`
 - ✅ **多智能体协作** — 专业化智能体并行工作
 - ✅ **人机协同** — 企业消息渠道（钉钉、企业微信）
 - ✅ **隐私优先** — 100% 本地执行，数据永不离开您的机器
@@ -33,7 +33,7 @@
 ## 🚀 快速开始
 
 ```bash
-npx @dustland/viber start
+npx openviber start
 ```
 
 ## ✨ 核心功能
@@ -59,6 +59,7 @@ model: anthropic/claude-sonnet-4-20250514
 name: git-commit
 description: 暂存并提交更改
 ---
+
 git add . && git commit -m "$message"
 ```
 
@@ -94,8 +95,8 @@ approval_required:
 原生支持钉钉和企业微信：
 
 ```bash
-viber start --channel dingtalk --token YOUR_TOKEN
-viber start --channel wecom --corpid YOUR_CORP
+openviber start --channel dingtalk --token YOUR_TOKEN
+openviber start --channel wecom --corpid YOUR_CORP
 ```
 
 ---
@@ -109,7 +110,7 @@ viber start --channel wecom --corpid YOUR_CORP
 ```yaml
 # examples/jobs/antigravity-healer.yaml
 name: antigravity-healer
-schedule: "*/3 * * * * *"  # 每3秒
+schedule: "*/3 * * * * *" # 每3秒
 skill: antigravity
 prompt: "检查 Antigravity IDE 状态，如有错误则自动恢复"
 ```
@@ -147,21 +148,21 @@ prompt: "检查 Antigravity IDE 状态，如有错误则自动恢复"
 
 ## 📦 三大支柱
 
-| 组件 | 功能 | 位置 |
-|------|------|------|
-| **Jobs** | 定时任务 (YAML cron) | `examples/jobs/` |
-| **Skills** | 能力定义 (SKILL.md) | `skills/` |
-| **Tools** | 底层原语 | `src/tools/` |
+| 组件       | 功能                 | 位置             |
+| ---------- | -------------------- | ---------------- |
+| **Jobs**   | 定时任务 (YAML cron) | `examples/jobs/` |
+| **Skills** | 能力定义 (SKILL.md)  | `skills/`        |
+| **Tools**  | 底层原语             | `src/tools/`     |
 
 ## 📊 对比
 
-| | Viber | 云端代理 | IDE 插件 |
-|---|:---:|:---:|:---:|
-| 部署 | 本地应用 | 云服务器 | 仅编辑器 |
-| 连接 | 出站 | 入站 | 无 |
-| 任务 | YAML cron | 复杂代码 | 手动 |
-| 隐私 | 100% 本地 | 数据外泄 | 不定 |
-| 渠道 | 钉钉/企业微信 | WhatsApp/Telegram | 无 |
+|      |     Viber     |     云端代理      | IDE 插件 |
+| ---- | :-----------: | :---------------: | :------: |
+| 部署 |   本地应用    |     云服务器      | 仅编辑器 |
+| 连接 |     出站      |       入站        |    无    |
+| 任务 |   YAML cron   |     复杂代码      |   手动   |
+| 隐私 |   100% 本地   |     数据外泄      |   不定   |
+| 渠道 | 钉钉/企业微信 | WhatsApp/Telegram |    无    |
 
 ---
 
@@ -205,15 +206,17 @@ Viber 基于以下优秀开源项目构建：
 </div>
 
 <!-- LINKS -->
+
 [viber-site]: https://viber.dustland.ai
 [viber-github]: https://github.com/dustland/viber
-[viber-npm]: https://www.npmjs.com/package/@dustland/viber
+[viber-npm]: https://www.npmjs.com/package/openviber
 [docs-site]: https://viber.dustland.ai/docs
 [github-issues]: https://github.com/dustland/viber/issues
 [license-link]: https://github.com/dustland/viber/blob/main/LICENSE
 
 <!-- SHIELDS -->
+
 [download-shield]: https://img.shields.io/badge/Download-Viber-blue?style=flat-square
 [github-star]: https://img.shields.io/github/stars/dustland/viber?style=flat-square&logo=github
-[npm-shield]: https://img.shields.io/npm/v/@dustland/viber?style=flat-square&logo=npm
+[npm-shield]: https://img.shields.io/npm/v/openviber?style=flat-square&logo=npm
 [license-shield]: https://img.shields.io/badge/License-Apache%202.0-green?style=flat-square

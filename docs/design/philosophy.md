@@ -1,6 +1,6 @@
 ---
 title: "OpenViber Philosophy"
-description: "Viber as a proactive subordinate: companion model, autonomy loop, and human-first verification"
+description: "Viber as a practical subordinate: proactive/reactive work modes, clear control, and evidence-based execution"
 ---
 
 # OpenViber Philosophy
@@ -17,33 +17,50 @@ The OpenViber project provides the platform. Each deployed viber is the working 
 
 ## 1) Why A Viber Exists
 
-Every viber should always have an explicit reason to exist, in one of two modes:
+Every viber should always have an explicit purpose, in one of two work modes:
 
-- **Vision mode**: long-horizon mission (example: "build a great embodied AI platform").
-- **Mandate mode**: concrete daily objective (example: "review and fix openviber issues").
+- **Proactive mode**: self-directed execution against a mission.  
+  Think "high-agency employee aiming to exceed expectations": finds useful work, prioritizes it, and drives it to done.
+- **Reactive mode**: on-demand execution of explicit requests.  
+  Think "responsible but pull-driven operator": stays idle until asked, then executes reliably and reports clearly.
 
-In vision mode, the viber must proactively discover and prioritize work like a strong employee, not wait passively for prompts.
+Both modes are valid. The key is clarity about which one is active.
 
 ## 2) Role Contract: Manager ↔ Subordinate
 
 Human and viber should agree on:
 
-- role and responsibilities,
-- expected decision boundaries,
+- role and scope,
+- decision boundaries,
+- budget and policy limits,
 - reporting cadence,
 - escalation rules.
 
 After alignment, the viber works autonomously and sends periodic progress reports through configured channels (chat and/or email).
 
-## 3) Autonomy Loop (Always-On, Constraint-Aware)
+## 3) Operating Loop (Constraint-Aware)
 
-The default working rhythm is continuous:
+The core rhythm is:
 
 `observe -> plan -> execute -> verify -> report -> ask feedback -> continue`
 
-The viber should operate 24/7 when possible, **bounded by budget, quotas, and policy limits**.
+Mode-specific behavior:
 
-## 4) Feedback Style: Concrete, Not Abstract
+- **Proactive mode**: continuously discover and prioritize high-value tasks under policy and budget.
+- **Reactive mode**: wait for explicit triggers, then execute with high reliability.
+
+The viber can run continuously when useful, **always bounded by budget, quotas, policy, and quiet-hour rules**.
+
+## 4) Make It Feasible: Guardrails Before Ambition
+
+Proactive behavior must be disciplined, not noisy:
+
+- Do not "invent" work outside mission scope.
+- Prefer small, reversible steps with visible progress.
+- Stop and escalate when confidence is low or blast radius is high.
+- If no high-value action is clear, ask for prioritization instead of churning.
+
+## 5) Feedback Style: Concrete, Not Abstract
 
 When the viber needs opinions from the human, default to **multi-choice questions** (with a recommended option first), not vague open-ended asks.
 
@@ -56,7 +73,7 @@ Example:
 
 This keeps manager decisions fast and high-quality.
 
-## 5) Budget Is A First-Class Constraint
+## 6) Budget Is A First-Class Constraint
 
 The viber must always carry budget context:
 
@@ -66,17 +83,17 @@ The viber must always carry budget context:
 
 Execution and model-routing choices should explicitly optimize for value under budget.
 
-## 6) State Model: What Lives Where
+## 7) State Model: What Lives Where
 
 OpenViber uses clear ownership:
 
 - **Config (`~/.openviber/...`)**: persona, identity, account bindings, budgets, policy flags.
-- **Memory**: work habits, operating rules, lessons learned.
-- **Spaces/workspace**: active plan, progress logs, artifacts, verification evidence.
+- **Workspace/memory files**: plans, progress logs, artifacts, operating notes.
+- **Viber Board context**: conversation and request context sent per run.
 
 The daemon stays process-stateless; durable work state lives in workspace files.
 
-## 7) Verification Standard: Human Perspective Only
+## 8) Verification Standard: Human Perspective Only
 
 Self-assessment must come from **human-observable outcomes**, not model guesswork.
 
@@ -89,7 +106,7 @@ If the task is "build a SaaS page", verification should include:
 
 No "looks good" claims without reproducible proof.
 
-## 8) Full Observability + Human Intervention
+## 9) Full Observability + Human Intervention
 
 Humans must be able to see real work status in detail:
 
@@ -102,13 +119,12 @@ Intervention model:
 - **primary**: manager intervenes through chat (change plan, pause, redirect).
 - **GUI direct control**: separate VNC/remote-desktop scenario when needed (not default Board interaction).
 
-## 9) The Product Direction
+## 10) Product Direction
 
-OpenViber is not just a general multi-agent toolkit. It is a **human-subordinate operating system**:
+OpenViber is not just a general toolkit. It is a **human-subordinate operating system**:
 
-- a viber learns manager preferences over time,
-- researches and executes independently,
-- communicates in manager-friendly rhythms,
-- grows toward higher autonomy while preserving control and auditability.
+- In **proactive mode**, it behaves like an ambitious employee that advances goals without waiting to be told every step.
+- In **reactive mode**, it behaves like a reliable operator that executes explicit requests cleanly and predictably.
+- In both modes, it remains controllable, auditable, and budget-aware.
 
-That is the standard: useful daily subordinate now, increasingly autonomous companion over time.
+That is the standard: useful daily subordinate now, increasingly capable over time without sacrificing trust.

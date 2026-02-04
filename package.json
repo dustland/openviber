@@ -10,6 +10,9 @@
     "openviber": "./dist/cli/index.js"
   },
   "packageManager": "pnpm@10.15.0",
+  "pnpm": {
+    "onlyBuiltDependencies": ["better-sqlite3", "esbuild"]
+  },
   "scripts": {
     "dev": "concurrently -n hub,web,viber \"tsx watch src/cli/index.ts hub\" \"cd web && pnpm dev\" \"tsx watch src/cli/index.ts start\"",
     "dev:hub": "tsx watch src/cli/index.ts hub",

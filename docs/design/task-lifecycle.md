@@ -1,13 +1,13 @@
 ---
 title: "Task Lifecycle"
-description: "Lifecycle for proactive and assigned work in OpenViber"
+description: "Lifecycle for self-initiated and assigned work in OpenViber"
 ---
 
 # Task Lifecycle
 
 OpenViber supports two task origins:
 
-- **Vision-driven** (proactive work discovery),
+- **Self-initiated** (agent discovers and proposes/picks work),
 - **Manager-assigned** (explicit human request).
 
 Both follow the same lifecycle with human checkpoints.
@@ -33,7 +33,7 @@ stateDiagram-v2
 
 ## 2. State intent
 
-- **Intake**: classify as vision-mode or mandate-mode item.
+- **Intake**: classify origin (self-initiated or manager-assigned) and execution mode (`Always Ask`, `Agent Decides`, or `Always Execute`).
 - **Planning**: update `workspace/task.md` and next actions.
 - **Executing**: run tools, terminals, browser tasks, code edits.
 - **Verifying**: validate outcomes from human-observable perspective.
@@ -51,7 +51,7 @@ stateDiagram-v2
 
 ## 4. Periodic reporting
 
-For long tasks or vision-mode work, vibers should report on cadence (chat/email), including:
+For long tasks or self-initiated work, vibers should report on cadence (chat/email), including:
 
 - what changed since last report,
 - current risks/blockers,

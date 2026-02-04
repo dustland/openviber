@@ -1,6 +1,6 @@
 ---
 title: "OpenViber Philosophy"
-description: "Viber as a practical subordinate: proactive/reactive work modes, clear control, and evidence-based execution"
+description: "Viber as a practical subordinate: Always Ask / Agent Decides / Always Execute modes, clear control, and evidence-based execution"
 ---
 
 # OpenViber Philosophy
@@ -17,14 +17,15 @@ The OpenViber project provides the platform. Each deployed viber is the working 
 
 ## 1) Why A Viber Exists
 
-Every viber should always have an explicit purpose, in one of two work modes:
+Every viber should always have an explicit purpose, and should run with a clear autonomy policy.
 
-- **Proactive mode**: self-directed execution against a mission.  
-  Think "high-agency employee aiming to exceed expectations": finds useful work, prioritizes it, and drives it to done.
-- **Reactive mode**: on-demand execution of explicit requests.  
-  Think "responsible but pull-driven operator": stays idle until asked, then executes reliably and reports clearly.
+OpenViber uses three user-facing execution modes (aligned with common AI IDE behavior):
 
-Both modes are valid. The key is clarity about which one is active.
+- **Always Ask**: viber does analysis and proposals, but asks before every execution action.
+- **Agent Decides**: viber executes routine actions within policy and escalates high-risk/ambiguous actions.
+- **Always Execute**: viber executes end-to-end within configured boundaries and reports progress continuously.
+
+These are behavior policies on top of the same architecture, not different systems. All modes still use the same planning loop, memory/context, verification, and reporting model.
 
 ## 2) Role Contract: Manager ↔ Subordinate
 
@@ -44,16 +45,17 @@ The core rhythm is:
 
 `observe -> plan -> execute -> verify -> report -> ask feedback -> continue`
 
-Mode-specific behavior:
+Behavior by policy:
 
-- **Proactive mode**: continuously discover and prioritize high-value tasks under policy and budget.
-- **Reactive mode**: wait for explicit triggers, then execute with high reliability.
+- **Always Ask**: wait for explicit triggers and ask before executing tools/actions.
+- **Agent Decides**: discover and execute high-value work inside guardrails; escalate when needed.
+- **Always Execute**: run end-to-end autonomously; keep reporting and allow intervention.
 
 The viber can run continuously when useful, **always bounded by budget, quotas, policy, and quiet-hour rules**.
 
-## 4) Make It Feasible: Guardrails Before Ambition
+## 4) Make It Feasible: Guardrails Before Autonomy
 
-Proactive behavior must be disciplined, not noisy:
+Autonomous behavior must be disciplined, not noisy:
 
 - Do not "invent" work outside mission scope.
 - Prefer small, reversible steps with visible progress.
@@ -123,8 +125,8 @@ Intervention model:
 
 OpenViber is not just a general toolkit. It is a **human-subordinate operating system**:
 
-- In **proactive mode**, it behaves like an ambitious employee that advances goals without waiting to be told every step.
-- In **reactive mode**, it behaves like a reliable operator that executes explicit requests cleanly and predictably.
-- In both modes, it remains controllable, auditable, and budget-aware.
+- In **Always Ask**, it behaves like a careful operator that never acts without explicit approval.
+- In **Agent Decides**, it behaves like a productive teammate with practical guardrails.
+- In **Always Execute**, it behaves like a trusted delegate that keeps moving unless interrupted.
 
 That is the standard: useful daily subordinate now, increasingly capable over time without sacrificing trust.

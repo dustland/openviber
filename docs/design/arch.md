@@ -73,10 +73,13 @@ The daemon remains process-stateless; durable context lives in files.
 
 ## 4. Working modes
 
-- **Vision mode**: proactive, self-directed roadmap execution against a long-horizon mission.
-- **Mandate mode**: concrete assignment execution with clear acceptance criteria.
+OpenViber should expose familiar autonomy profiles:
 
-Both modes share one loop: observe -> plan -> execute -> verify -> report -> request feedback -> continue.
+- **Always Ask**: prompt-driven, asks before each execution action.
+- **Agent Decides**: active execution with policy-based approval boundaries.
+- **Always Execute**: high autonomy with intervention-by-exception.
+
+All profiles share one loop: observe -> plan -> execute -> verify -> report -> request feedback -> continue.
 
 ## 5. Human control model
 

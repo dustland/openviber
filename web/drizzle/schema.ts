@@ -53,6 +53,8 @@ export const messages = sqliteTable("messages", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
+
+
 // Export types
 export type Viber = typeof vibers.$inferSelect;
 export type NewViber = typeof vibers.$inferInsert;

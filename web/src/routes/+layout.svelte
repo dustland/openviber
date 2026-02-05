@@ -20,7 +20,7 @@
 
   type Theme = "light" | "dark" | "system";
 
-  let { children } = $props();
+  let { children, data } = $props();
   let theme = $state<Theme>("system");
 
   // Route detection
@@ -80,6 +80,24 @@
             <BookOpen class="size-4 shrink-0" />
             <span class="text-sm">Docs</span>
           </a>
+
+          {#if data.user}
+            <form method="POST" action="/auth/logout">
+              <button
+                type="submit"
+                class="text-muted-foreground hover:text-foreground transition-colors shrink-0 px-3 py-2 rounded-md hover:bg-accent/50"
+              >
+                Sign out
+              </button>
+            </form>
+          {:else}
+            <a
+              href="/login"
+              class="text-muted-foreground hover:text-foreground transition-colors shrink-0 px-3 py-2 rounded-md hover:bg-accent/50"
+            >
+              Sign in
+            </a>
+          {/if}
           <DropdownMenu>
             <DropdownMenuTrigger
               class="size-9 rounded-md hover:bg-accent/50 inline-flex items-center justify-center transition-colors"
@@ -156,6 +174,24 @@
             <BookOpen class="size-4 shrink-0" />
             <span class="hidden sm:inline text-sm">Docs</span>
           </a>
+
+          {#if data.user}
+            <form method="POST" action="/auth/logout">
+              <button
+                type="submit"
+                class="text-muted-foreground hover:text-foreground transition-colors shrink-0 px-2.5 py-1.5 rounded-md hover:bg-accent"
+              >
+                Sign out
+              </button>
+            </form>
+          {:else}
+            <a
+              href="/login"
+              class="text-muted-foreground hover:text-foreground transition-colors shrink-0 px-2.5 py-1.5 rounded-md hover:bg-accent"
+            >
+              Sign in
+            </a>
+          {/if}
           <DropdownMenu>
             <DropdownMenuTrigger
               class="h-8 rounded-md border border-border bg-background px-2.5 text-sm text-foreground inline-flex items-center gap-1.5 hover:bg-accent hover:text-accent-foreground"

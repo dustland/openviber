@@ -19,7 +19,7 @@
 
 ---
 
-**Viber** is an open-source Cowork Desktop that runs a team of AI agents on your machine. Unlike cloud-based agent frameworks, Viber runs locally with full privacy, connects outbound to your enterprise channels, and automates real work while you sleep.
+**Viber** is an open-source Cowork Agent platform that runs AI teammates on your machine. Unlike cloud-based agent frameworks, Viber runs locally with full privacy, connects outbound to your enterprise channels, and automates real work while you sleep.
 
 ### ⭐ 100% Open Source · 🥇 Local Deployment · 🏆 MCP Integration
 

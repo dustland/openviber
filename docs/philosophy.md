@@ -1,11 +1,11 @@
 ---
 title: "Philosophy of Viber"
-description: "Viber as a subordinate: Always Ask / Agent Decides / Always Execute, evidence-first execution, and workspace-first context"
+description: "Viber as a Cowork Agent: Always Ask / Agent Decides / Always Execute, evidence-first execution, and workspace-first context"
 ---
 
 # Philosophy of Viber
 
-OpenViber is built on one claim: **a viber is an accountable subordinate, not a chatbot**.
+OpenViber is built on one claim: **a viber is a Cowork Agent — an autonomous teammate that works with you, not just for you**.
 
 A viber is one working unit composed of:
 
@@ -15,7 +15,7 @@ A viber is one working unit composed of:
 
 If any part is missing, you do not have a viber. You have only a model.
 
-## 1) The Manager ↔ Subordinate Contract
+## 1) The Manager ↔ Agent Contract
 
 The relationship is explicit:
 
@@ -104,6 +104,6 @@ Reports should be brief and auditable:
 
 ## 9) Product Direction
 
-OpenViber is not a generic agent toolkit. It is a **human-subordinate operating system**.
+OpenViber is not a generic agent toolkit. It is a **Cowork Agent platform** — purpose-built for human-AI collaboration.
 
 Its trajectory is clear: from supervised execution to trusted delegation, without surrendering control.

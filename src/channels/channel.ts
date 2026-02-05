@@ -6,7 +6,7 @@
  * agent responses back to the source.
  */
 
-import type { ViberOptions } from "../core/viber";
+import { ViberAgent, ViberOptions } from "../core/viber-agent";
 
 // ==================== Core Types ====================
 

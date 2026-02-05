@@ -177,11 +177,14 @@
         <div class="flex items-center gap-1 flex-1 overflow-x-auto">
           {#each Array.from(panesBySession().entries()) as [sessionName, sessionPanes]}
             {#each sessionPanes as pane}
-              <button
-                class="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap {openPanes.has(pane.target)
+              <div
+                class="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap cursor-pointer {openPanes.has(pane.target)
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted'}"
                 onclick={() => togglePane(pane.target)}
+                onkeydown={(e) => e.key === 'Enter' && togglePane(pane.target)}
+                role="button"
+                tabindex="0"
               >
                 <Terminal class="size-3.5" />
                 <span>{sessionName}:{pane.windowName}</span>
@@ -193,7 +196,7 @@
                     <X class="size-3" />
                   </button>
                 {/if}
-              </button>
+              </div>
             {/each}
           {/each}
         </div>

@@ -53,6 +53,30 @@ export const messages = sqliteTable("messages", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
+
+
+// Auth users
+export const users = sqliteTable("users", {
+  id: text("id").primaryKey(),
+  authUserId: text("auth_user_id").notNull().unique(),
+  email: text("email").notNull().unique(),
+  name: text("name").notNull(),
+  avatarUrl: text("avatar_url"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+});
+
+// Auth sessions
+export const sessions = sqliteTable("sessions", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  tokenHash: text("token_hash").notNull().unique(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+});
+
 // Export types
 export type Viber = typeof vibers.$inferSelect;
 export type NewViber = typeof vibers.$inferInsert;
@@ -62,3 +86,7 @@ export type Task = typeof tasks.$inferSelect;
 export type NewTask = typeof tasks.$inferInsert;
 export type Message = typeof messages.$inferSelect;
 export type NewMessage = typeof messages.$inferInsert;
+export type User = typeof users.$inferSelect;
+export type NewUser = typeof users.$inferInsert;
+export type Session = typeof sessions.$inferSelect;
+export type NewSession = typeof sessions.$inferInsert;

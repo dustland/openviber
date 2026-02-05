@@ -161,6 +161,16 @@
               </DropdownMenuContent>
             </DropdownMenu>
           </Sidebar.MenuItem>
+          <Sidebar.MenuItem>
+            <form method="POST" action="/auth/logout">
+              <button
+                type="submit"
+                class="w-full text-left text-sm text-sidebar-foreground/80 hover:text-sidebar-foreground px-2 py-1.5 rounded-md hover:bg-sidebar-accent"
+              >
+                Sign out
+              </button>
+            </form>
+          </Sidebar.MenuItem>
         </Sidebar.Menu>
       </Sidebar.Footer>
 

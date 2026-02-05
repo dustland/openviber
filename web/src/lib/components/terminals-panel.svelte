@@ -2,7 +2,7 @@
   import { onMount, onDestroy } from "svelte";
   import TerminalView from "./terminal-view.svelte";
   import { Button } from "$lib/components/ui/button";
-  import { RefreshCw, Plus, Minus } from "@lucide/svelte";
+  import { RefreshCw, Plus, X, Terminal } from "@lucide/svelte";
 
   interface TmuxPane {
     session: string;
@@ -144,18 +144,21 @@
   />
 </svelte:head>
 
-<div class="terminals-panel">
+<div class="flex flex-col h-full bg-background">
   {#if loading}
-    <div class="loading">Connecting to viber terminals...</div>
+    <div class="flex-1 flex items-center justify-center text-muted-foreground">
+      Connecting to viber terminals...
+    </div>
   {:else if error}
-    <div class="error">
+    <div class="flex-1 flex flex-col items-center justify-center gap-3 text-destructive">
       {error}
       <Button variant="outline" size="sm" onclick={connect}>Retry</Button>
     </div>
   {:else if panes.length === 0}
-    <div class="empty">
+    <div class="flex-1 flex flex-col items-center justify-center gap-3 text-muted-foreground">
+      <Terminal class="size-12 opacity-50" />
       <p>No tmux sessions found.</p>
-      <p class="hint">
+      <p class="text-sm opacity-70">
         Create and manage terminal sessions directly from Viber Board.
       </p>
       <Button
@@ -168,219 +171,60 @@
       </Button>
     </div>
   {:else}
-    <div class="terminals-layout">
-      <!-- Session/pane list -->
-      <aside class="pane-list">
-        <div class="pane-list-header">
-          <h2>Sessions</h2>
-          <Button variant="ghost" size="icon" class="size-6" onclick={requestList} title="Refresh">
-            <RefreshCw class="size-3" />
-          </Button>
-        </div>
-        {#each Array.from(panesBySession().entries()) as [sessionName, sessionPanes]}
-          <div class="session-group">
-            <div class="session-name">{sessionName}</div>
-            <ul class="pane-items">
-              {#each sessionPanes as pane}
-                <li class="pane-item" class:open={openPanes.has(pane.target)}>
+    <!-- Top bar with session/pane tabs -->
+    <div class="border-b border-border bg-muted/30 px-2 py-1.5">
+      <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1 flex-1 overflow-x-auto">
+          {#each Array.from(panesBySession().entries()) as [sessionName, sessionPanes]}
+            {#each sessionPanes as pane}
+              <button
+                class="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap {openPanes.has(pane.target)
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted'}"
+                onclick={() => togglePane(pane.target)}
+              >
+                <Terminal class="size-3.5" />
+                <span>{sessionName}:{pane.windowName}</span>
+                {#if openPanes.has(pane.target)}
                   <button
-                    class="pane-button"
-                    onclick={() => togglePane(pane.target)}
+                    class="ml-1 p-0.5 rounded hover:bg-primary-foreground/20"
+                    onclick={(e) => { e.stopPropagation(); closePane(pane.target); }}
                   >
-                    <span class="pane-target">{pane.windowName}:{pane.pane}</span>
-                    <span class="pane-command">{pane.command}</span>
-                    {#if openPanes.has(pane.target)}
-                      <Minus class="size-3" />
-                    {:else}
-                      <Plus class="size-3" />
-                    {/if}
+                    <X class="size-3" />
                   </button>
-                </li>
-              {/each}
-            </ul>
-          </div>
-        {/each}
-      </aside>
-
-      <!-- Open terminal views -->
-      <main class="terminal-views">
-        {#if openPanes.size === 0}
-          <div class="no-terminals">
-            <p>Click a pane on the left to open a terminal view.</p>
-          </div>
-        {:else}
-          <div
-            class="terminal-grid"
-            style="grid-template-columns: repeat({Math.min(
-              openPanes.size,
-              2
-            )}, 1fr);"
-          >
-            {#each Array.from(openPanes) as target (target)}
-              <div class="terminal-wrapper">
-                <TerminalView
-                  {target}
-                  {ws}
-                  onClose={() => closePane(target)}
-                />
-              </div>
+                {/if}
+              </button>
             {/each}
-          </div>
-        {/if}
-      </main>
+          {/each}
+        </div>
+        <Button variant="ghost" size="icon" class="size-7 shrink-0" onclick={requestList} title="Refresh">
+          <RefreshCw class="size-3.5" />
+        </Button>
+      </div>
+    </div>
+
+    <!-- Terminal views -->
+    <div class="flex-1 min-h-0 overflow-hidden">
+      {#if openPanes.size === 0}
+        <div class="h-full flex items-center justify-center text-muted-foreground text-sm">
+          Click a terminal tab above to open it
+        </div>
+      {:else}
+        <div
+          class="h-full grid gap-1 p-1"
+          style="grid-template-columns: repeat({Math.min(openPanes.size, 2)}, 1fr);"
+        >
+          {#each Array.from(openPanes) as target (target)}
+            <div class="min-h-0 overflow-hidden rounded border border-border">
+              <TerminalView
+                {target}
+                {ws}
+                onClose={() => closePane(target)}
+              />
+            </div>
+          {/each}
+        </div>
+      {/if}
     </div>
   {/if}
 </div>
-
-<style>
-  .terminals-panel {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    background: hsl(var(--background));
-  }
-
-  .pane-list-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.25rem;
-    margin-bottom: 0.5rem;
-  }
-
-  .pane-list-header h2 {
-    margin-bottom: 0;
-  }
-
-  .loading,
-  .error,
-  .empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    flex: 1;
-    gap: 0.75rem;
-    padding: 1.5rem;
-    color: hsl(var(--muted-foreground));
-    text-align: center;
-  }
-
-  .error {
-    color: hsl(var(--destructive));
-  }
-
-  .hint {
-    font-size: 0.8rem;
-  }
-
-  .terminals-layout {
-    display: flex;
-    flex: 1;
-    min-height: 0;
-    overflow: hidden;
-  }
-
-  .pane-list {
-    width: 180px;
-    border-right: 1px solid hsl(var(--border));
-    padding: 0.5rem;
-    overflow-y: auto;
-    background: hsl(var(--muted) / 0.2);
-  }
-
-  .pane-list h2 {
-    font-size: 0.65rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    color: hsl(var(--muted-foreground));
-  }
-
-  .session-group {
-    margin-bottom: 0.75rem;
-  }
-
-  .session-name {
-    font-size: 0.7rem;
-    font-weight: 600;
-    padding: 0.2rem 0.4rem;
-    background: hsl(var(--muted));
-    border-radius: 0.2rem;
-    margin-bottom: 0.2rem;
-  }
-
-  .pane-items {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-  }
-
-  .pane-item {
-    margin: 0.1rem 0;
-  }
-
-  .pane-button {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.25rem 0.4rem;
-    background: none;
-    border: 1px solid transparent;
-    border-radius: 0.2rem;
-    text-align: left;
-    cursor: pointer;
-    font-size: 0.7rem;
-    color: hsl(var(--foreground));
-    transition: background 0.15s, border-color 0.15s;
-  }
-
-  .pane-button:hover {
-    background: hsl(var(--muted));
-  }
-
-  .pane-item.open .pane-button {
-    background: hsl(var(--primary) / 0.1);
-    border-color: hsl(var(--primary) / 0.3);
-  }
-
-  .pane-target {
-    font-family: monospace;
-    font-weight: 500;
-  }
-
-  .pane-command {
-    flex: 1;
-    color: hsl(var(--muted-foreground));
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .terminal-views {
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-  }
-
-  .no-terminals {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    color: hsl(var(--muted-foreground));
-    font-size: 0.85rem;
-  }
-
-  .terminal-grid {
-    display: grid;
-    gap: 0.25rem;
-    padding: 0.25rem;
-    height: 100%;
-  }
-
-  .terminal-wrapper {
-    min-height: 150px;
-    overflow: hidden;
-  }
-</style>

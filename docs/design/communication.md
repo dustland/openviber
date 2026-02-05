@@ -101,3 +101,39 @@ Every periodic update should include:
 - Budget usage and runway
 - Link/refs to proof (terminal snippets, artifact paths, screenshots)
 
+---
+
+## 7. Queueing and retries (reliable message delivery)
+
+The messaging layer should enforce two critical behaviors:
+
+1. **Lane-aware queueing** to prevent overlapping runs per session.
+2. **Provider-aware retries** that avoid duplicating non-idempotent work.
+
+### Queueing (per-session lanes)
+
+- Incoming messages are serialized per session key to avoid concurrent tool runs colliding with shared files, terminals, or rate limits.
+- A global concurrency cap limits overall parallelism (per-host).
+- Queue modes should be configurable per channel:
+  - **collect** (default): coalesce multiple inbound messages into one follow-up turn.
+  - **steer**: inject into the current run at the next safe boundary (tool boundary).
+  - **followup**: wait until the current run ends.
+  - **steer-backlog**: steer now and still enqueue for a follow-up turn.
+- Queue options should include debounce, cap, and overflow policy (drop-old, drop-new, summarize).
+
+### Retry policy (per provider)
+
+- Retries happen per HTTP request (not full multi-step flows).
+- Use idempotency keys for side effects (send, agent run) so retries are safe.
+- Respect provider-specific retry-after headers and minimum delays.
+- Non-retriable errors (e.g., malformed Markdown) should fall back to a safer mode.
+
+---
+
+## 8. Usage tracking (budget visibility)
+
+For cost-aware autonomy, include provider usage snapshots when available:
+
+- **Status surfaces** (e.g., Board status panel) should show tokens used + cost estimate.
+- **Per-response footers** should be optional (/usage tokens|full).
+- **Provider-native usage** should be preferred over estimated costs when credentials allow.

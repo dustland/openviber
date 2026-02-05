@@ -2,12 +2,9 @@
   import { onMount } from "svelte";
   import { page } from "$app/stores";
   import { goto } from "$app/navigation";
-  import { headerStore } from "$lib/stores/header";
   import { Send, Cpu } from "@lucide/svelte";
   import { marked } from "marked";
   import { Button } from "$lib/components/ui/button";
-  import DevServerPanel from "$lib/components/dev-server-panel.svelte";
-  import TerminalsPanel from "$lib/components/terminals-panel.svelte";
 
   // Markdown → HTML for message content (GFM, line breaks)
   marked.setOptions({ gfm: true, breaks: true });
@@ -312,39 +309,10 @@
     inputEl?.focus();
   }
 
-  // Sync viber context to global header (single row), including skills for discoverability
-  $effect(() => {
-    if (viber?.id) {
-      headerStore.setViberContext({
-        viberId: viber.id,
-        viberName: viber.name,
-        isConnected: viber.isConnected,
-        platform: viber.platform,
-        skills: viber.skills ?? [],
-      });
-    }
-  });
-
-  // Read active tab from header store
-  let activeTab = $derived($headerStore.viber?.activeTab ?? "chat");
-
-  // When layout "Refresh" is clicked, header store requests refresh; we refetch
-  let lastRefreshRequested = 0;
-  $effect(() => {
-    const r = $headerStore.viber?.refreshRequested ?? 0;
-    if (r && r !== lastRefreshRequested && viber?.id) {
-      lastRefreshRequested = r;
-      fetchViber();
-    }
-  });
-
   onMount(() => {
     fetchViber();
     const interval = setInterval(fetchViber, 5000);
-    return () => {
-      clearInterval(interval);
-      headerStore.setViberContext(null);
-    };
+    return () => clearInterval(interval);
   });
 
   $effect(() => {
@@ -361,17 +329,8 @@
 </svelte:head>
 
 <div class="flex-1 flex flex-col min-h-0 overflow-hidden">
-  {#if activeTab === "terminals"}
-    <div class="flex-1 min-h-0 flex flex-col">
-      <TerminalsPanel></TerminalsPanel>
-    </div>
-  {:else if activeTab === "ports"}
-    <div class="flex-1 min-h-0 flex flex-col">
-      <DevServerPanel></DevServerPanel>
-    </div>
-  {:else}
-    <!-- Messages (max space) -->
-    <div
+  <!-- Messages -->
+  <div
       bind:this={messagesContainer}
       class="flex-1 min-h-0 overflow-y-auto p-3"
     >
@@ -483,7 +442,6 @@
         </div>
       </div>
     </div>
-  {/if}
 </div>
 
 <style>

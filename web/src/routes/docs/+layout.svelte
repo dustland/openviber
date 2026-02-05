@@ -2,7 +2,14 @@
   import { goto } from "$app/navigation";
   import { page } from "$app/stores";
   import { onMount, tick } from "svelte";
-  import { ArrowLeft, ArrowRight, Hash, Library, Search } from "@lucide/svelte";
+  import {
+    ArrowLeft,
+    ArrowRight,
+    Hash,
+    Link,
+    Pencil,
+    Search,
+  } from "@lucide/svelte";
 
   let { children } = $props();
 
@@ -90,6 +97,8 @@
   let articleEl = $state<HTMLElement | null>(null);
   let headings = $state<TocHeading[]>([]);
   let activeHeadingId = $state("");
+  let linkCopied = $state(false);
+  let copyTimeout: ReturnType<typeof setTimeout> | null = null;
   let headingObserver: IntersectionObserver | null = null;
   let mermaidApi: {
     initialize: (config: Record<string, unknown>) => void;
@@ -143,6 +152,8 @@
     if (!slug) return "Documentation";
     return slug.split("/").map(toTitleCase).join(" / ");
   });
+
+  const editUrl = $derived.by(() => getEditUrl(currentPath));
 
   const filteredNavigation = $derived.by(() => {
     const query = navQuery.trim().toLowerCase();
@@ -236,6 +247,8 @@
     await tick();
     await renderMermaid();
     collectHeadings();
+    addHeadingAnchors();
+    enhanceCodeBlocks();
     observeHeadings();
   }
 
@@ -270,6 +283,26 @@
     );
     if (match) return `${match.title} - ${match.section}`;
     return "Documentation";
+  }
+
+  function getEditUrl(pathname: string): string | null {
+    const slug = normalizePath(pathname).replace(/^\/docs\/?/, "");
+    if (!slug) return null;
+    return `https://github.com/dustland/viber/edit/main/docs/${slug}.md`;
+  }
+
+  async function copyPageLink(): Promise<void> {
+    if (typeof window === "undefined") return;
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      linkCopied = true;
+      if (copyTimeout) clearTimeout(copyTimeout);
+      copyTimeout = setTimeout(() => {
+        linkCopied = false;
+      }, 1800);
+    } catch {
+      linkCopied = false;
+    }
   }
 
   async function loadMermaid() {
@@ -316,10 +349,64 @@
     }
   }
 
+  function addHeadingAnchors(): void {
+    if (!articleEl) return;
+    const nodes = Array.from(articleEl.querySelectorAll("h2, h3"));
+    nodes.forEach((node) => {
+      if (!node.id) return;
+      if (node.querySelector(".docs-heading-anchor")) return;
+      const anchor = document.createElement("a");
+      anchor.className = "docs-heading-anchor";
+      anchor.href = `#${node.id}`;
+      anchor.setAttribute("aria-label", "Link to this section");
+      anchor.textContent = "#";
+      node.appendChild(anchor);
+    });
+  }
+
+  function enhanceCodeBlocks(): void {
+    if (!articleEl) return;
+    const blocks = Array.from(articleEl.querySelectorAll("pre"));
+    blocks.forEach((block) => {
+      if (block.querySelector(".docs-code-copy")) return;
+      const code = block.querySelector("code");
+      const button = document.createElement("button");
+      const label = document.createElement("span");
+      button.type = "button";
+      button.className = "docs-code-copy";
+      label.textContent = "Copy";
+      button.appendChild(label);
+
+      button.addEventListener("click", async () => {
+        const value = code?.textContent ?? "";
+        try {
+          await navigator.clipboard.writeText(value);
+          button.setAttribute("data-copied", "true");
+          label.textContent = "Copied";
+          setTimeout(() => {
+            button.removeAttribute("data-copied");
+            label.textContent = "Copy";
+          }, 1600);
+        } catch {
+          button.setAttribute("data-copied", "false");
+          label.textContent = "Failed";
+          setTimeout(() => {
+            button.removeAttribute("data-copied");
+            label.textContent = "Copy";
+          }, 1600);
+        }
+      });
+
+      block.classList.add("docs-code-block");
+      block.appendChild(button);
+    });
+  }
+
   onMount(() => {
     void refreshDocChrome();
     return () => {
       headingObserver?.disconnect();
+      if (copyTimeout) clearTimeout(copyTimeout);
     };
   });
 
@@ -336,11 +423,6 @@
 <div class="docs-layout">
   <aside class="docs-sidebar">
     <div class="docs-sidebar-inner">
-      <a href="/docs" class="docs-brand">
-        <span class="docs-brand-icon"><Library class="size-4" /></span>
-        <span>Viber Docs</span>
-      </a>
-
       <label class="docs-search">
         <Search class="docs-search-icon size-4" />
         <input
@@ -349,6 +431,7 @@
           bind:value={navQuery}
           aria-label="Search documentation pages"
         />
+        <span class="docs-search-shortcut" aria-hidden="true">⌘K</span>
       </label>
 
       <nav class="docs-nav" aria-label="Documentation navigation">
@@ -396,6 +479,36 @@
 
     <div class="docs-main-grid">
       <section bind:this={contentScrollEl} class="docs-content-scroll">
+        <div class="docs-meta-bar">
+          <div class="docs-breadcrumbs">
+            <span>Docs</span>
+            {#if activeItem}
+              <span class="docs-breadcrumb-separator">/</span>
+              <span>{activeItem.section}</span>
+            {/if}
+          </div>
+          <div class="docs-meta-actions">
+            <button
+              type="button"
+              class="docs-meta-button"
+              onclick={copyPageLink}
+            >
+              <Link class="size-3.5" />
+              <span>{linkCopied ? "Copied" : "Copy link"}</span>
+            </button>
+            {#if editUrl}
+              <a
+                href={editUrl}
+                class="docs-meta-button"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <Pencil class="size-3.5" />
+                <span>Edit on GitHub</span>
+              </a>
+            {/if}
+          </div>
+        </div>
         <article
           bind:this={articleEl}
           class="prose prose-slate dark:prose-invert docs-prose max-w-none"
@@ -465,6 +578,38 @@
     --docs-scroll-track: transparent;
     --docs-scroll-thumb: hsl(var(--muted-foreground) / 0.35);
     --docs-scroll-thumb-hover: hsl(var(--muted-foreground) / 0.55);
+    --docs-bg-glow: radial-gradient(
+      circle at 16% 12%,
+      hsl(var(--primary) / 0.12) 0,
+      transparent 42%
+    );
+    --docs-bg-glow-secondary: radial-gradient(
+      circle at 84% 6%,
+      hsl(var(--foreground) / 0.05) 0,
+      transparent 38%
+    );
+    --docs-bg-grid:
+      linear-gradient(hsl(var(--border) / 0.16) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--border) / 0.16) 1px, transparent 1px);
+    --docs-bg-grid-size: 38px 38px;
+    --docs-bg-opacity: 0.85;
+  }
+
+  :global(.dark) {
+    --docs-bg-glow: radial-gradient(
+      circle at 18% 10%,
+      hsl(var(--primary) / 0.2) 0,
+      transparent 40%
+    );
+    --docs-bg-glow-secondary: radial-gradient(
+      circle at 82% 12%,
+      hsl(220 80% 60% / 0.14) 0,
+      transparent 40%
+    );
+    --docs-bg-grid:
+      linear-gradient(hsl(var(--border) / 0.22) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--border) / 0.22) 1px, transparent 1px);
+    --docs-bg-opacity: 0.78;
   }
 
   .docs-layout {
@@ -472,13 +617,36 @@
     flex: 1;
     min-height: 0;
     background: hsl(var(--background));
+    position: relative;
+    isolation: isolate;
+  }
+
+  .docs-layout::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      var(--docs-bg-glow),
+      var(--docs-bg-glow-secondary),
+      var(--docs-bg-grid);
+    background-size:
+      auto,
+      auto,
+      var(--docs-bg-grid-size);
+    background-position:
+      center,
+      center,
+      top left;
+    opacity: var(--docs-bg-opacity);
+    pointer-events: none;
+    z-index: -1;
   }
 
   .docs-sidebar {
     display: none;
     width: 18.5rem;
-    background: hsl(var(--muted) / 0.26);
-    box-shadow: 1px 0 8px -6px hsl(var(--foreground) / 0.45);
+    background: hsl(var(--background));
+    border-right: 1px solid hsl(var(--border) / 0.6);
   }
 
   .docs-sidebar-inner {
@@ -487,31 +655,9 @@
     display: flex;
     height: 100vh;
     flex-direction: column;
-    gap: 0.9rem;
+    gap: 0.85rem;
     overflow-y: auto;
-    padding: 1.1rem 0.85rem 1.25rem;
-  }
-
-  .docs-brand {
-    display: flex;
-    align-items: center;
-    gap: 0.55rem;
-    border-radius: 0.5rem;
-    padding: 0.55rem 0.65rem;
-    font-weight: 600;
-    color: hsl(var(--foreground));
-    background: hsl(var(--background) / 0.84);
-    box-shadow: 0 1px 6px -5px hsl(var(--foreground) / 0.75);
-  }
-
-  .docs-brand-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 0.35rem;
-    padding: 0.25rem;
-    background: hsl(var(--primary) / 0.12);
-    color: hsl(var(--primary));
+    padding: 1.1rem 1rem 1.4rem;
   }
 
   .docs-search {
@@ -523,11 +669,11 @@
     width: 100%;
     border-radius: 0.5rem;
     border: 0;
-    background: hsl(var(--background) / 0.88);
+    background: hsl(var(--background));
     padding: 0.52rem 0.7rem 0.52rem 2rem;
     font-size: 0.84rem;
     color: hsl(var(--foreground));
-    box-shadow: inset 0 0 0 1px hsl(var(--muted) / 0.95);
+    box-shadow: inset 0 0 0 1px hsl(var(--border) / 0.7);
   }
 
   .docs-search input:focus {
@@ -545,6 +691,20 @@
     color: hsl(var(--muted-foreground));
   }
 
+  .docs-search-shortcut {
+    position: absolute;
+    right: 0.55rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.68rem;
+    padding: 0.08rem 0.35rem;
+    border-radius: 0.35rem;
+    color: hsl(var(--muted-foreground));
+    border: 1px solid hsl(var(--border) / 0.8);
+    background: hsl(var(--background));
+    letter-spacing: 0.08em;
+  }
+
   .docs-nav {
     display: flex;
     flex-direction: column;
@@ -555,7 +715,7 @@
   .docs-nav-section h2 {
     margin: 0 0 0.2rem;
     padding: 0.25rem 0.55rem;
-    font-size: 0.66rem;
+    font-size: 0.64rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: hsl(var(--muted-foreground));
@@ -583,8 +743,9 @@
   }
 
   .docs-nav-section a.active {
-    background: hsl(var(--primary) / 0.14);
+    background: hsl(var(--primary) / 0.08);
     color: hsl(var(--foreground));
+    box-shadow: inset 2px 0 0 hsl(var(--primary));
   }
 
   .docs-empty {
@@ -603,15 +764,16 @@
     min-height: 0;
     overflow: hidden;
     padding-bottom: 1.2rem;
-    background: hsl(var(--background));
+    background: hsl(var(--background) / 0.72);
+    backdrop-filter: saturate(120%) blur(2px);
   }
 
   .docs-mobile-nav {
     margin: 1rem 1rem 0;
     border-radius: 0.6rem;
-    background: hsl(var(--muted) / 0.3);
+    background: hsl(var(--muted) / 0.2);
     padding: 0.8rem;
-    box-shadow: 0 1px 8px -6px hsl(var(--foreground) / 0.8);
+    border: 1px solid hsl(var(--border) / 0.6);
   }
 
   .docs-mobile-nav label {
@@ -632,7 +794,7 @@
     padding: 0.5rem 0.62rem;
     color: hsl(var(--foreground));
     font-size: 0.92rem;
-    box-shadow: inset 0 0 0 1px hsl(var(--muted) / 0.95);
+    box-shadow: inset 0 0 0 1px hsl(var(--border) / 0.7);
   }
 
   .docs-mobile-nav p {
@@ -642,7 +804,7 @@
   }
 
   .docs-main-grid {
-    max-width: 82rem;
+    max-width: 76rem;
     margin: 0 auto;
     padding: 1.6rem 1.2rem 0;
     display: grid;
@@ -658,6 +820,55 @@
     min-height: 0;
     overflow-y: auto;
     padding-right: 0.1rem;
+  }
+
+  .docs-meta-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid hsl(var(--border) / 0.6);
+  }
+
+  .docs-breadcrumbs {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: hsl(var(--muted-foreground));
+    font-weight: 600;
+  }
+
+  .docs-breadcrumb-separator {
+    color: hsl(var(--muted-foreground) / 0.6);
+  }
+
+  .docs-meta-actions {
+    display: inline-flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .docs-meta-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border-radius: 999px;
+    padding: 0.3rem 0.7rem;
+    font-size: 0.78rem;
+    color: hsl(var(--foreground));
+    background: hsl(var(--background));
+    border: 1px solid hsl(var(--border) / 0.7);
+    transition: all 0.18s ease;
+  }
+
+  .docs-meta-button:hover {
+    background: hsl(var(--muted) / 0.2);
   }
 
   .docs-toc {
@@ -731,9 +942,9 @@
 
   .docs-toc-card {
     border-radius: 0.55rem;
-    background: hsl(var(--muted) / 0.3);
+    background: hsl(var(--background));
     padding: 0.78rem;
-    box-shadow: 0 1px 8px -6px hsl(var(--foreground) / 0.8);
+    border: 1px solid hsl(var(--border) / 0.6);
   }
 
   .docs-toc-title {
@@ -797,13 +1008,13 @@
     gap: 0.2rem;
     border-radius: 0.55rem;
     padding: 0.78rem 0.9rem;
-    background: hsl(var(--muted) / 0.3);
+    background: hsl(var(--background));
     transition: background-color 0.16s ease;
-    box-shadow: 0 1px 8px -6px hsl(var(--foreground) / 0.75);
+    border: 1px solid hsl(var(--border) / 0.6);
   }
 
   .pager-card:hover {
-    background: hsl(var(--muted) / 0.42);
+    background: hsl(var(--muted) / 0.18);
   }
 
   .pager-card.next {
@@ -838,10 +1049,10 @@
 
   :global(.docs-prose) {
     color: hsl(var(--foreground));
-    background: hsl(var(--card) / 0.86);
+    background: hsl(var(--card));
     border-radius: 0.6rem;
     padding: clamp(1.1rem, 1.9vw, 1.8rem);
-    box-shadow: 0 1px 10px -7px hsl(var(--foreground) / 0.45);
+    border: 1px solid hsl(var(--border) / 0.6);
   }
 
   :global(.docs-prose h1) {
@@ -852,6 +1063,12 @@
     letter-spacing: -0.03em;
   }
 
+  :global(.docs-prose h1 + p) {
+    font-size: 1.05rem;
+    color: hsl(var(--muted-foreground));
+    margin-bottom: 1.3rem;
+  }
+
   :global(.docs-prose h2) {
     color: hsl(var(--foreground));
     font-size: clamp(1.3rem, 2.8vw, 1.62rem);
@@ -859,7 +1076,7 @@
     margin-top: 2rem;
     margin-bottom: 0.85rem;
     padding-bottom: 0.45rem;
-    box-shadow: inset 0 -1px 0 hsl(var(--muted) / 0.8);
+    box-shadow: inset 0 -1px 0 hsl(var(--border) / 0.6);
     letter-spacing: -0.01em;
   }
 
@@ -869,6 +1086,28 @@
     font-weight: 600;
     margin-top: 1.45rem;
     margin-bottom: 0.65rem;
+  }
+
+  :global(.docs-prose h2),
+  :global(.docs-prose h3) {
+    position: relative;
+    scroll-margin-top: 5.5rem;
+  }
+
+  :global(.docs-heading-anchor) {
+    position: absolute;
+    right: -1.4rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.9rem;
+    opacity: 0;
+    color: hsl(var(--muted-foreground));
+    transition: opacity 0.18s ease;
+  }
+
+  :global(.docs-prose h2:hover .docs-heading-anchor),
+  :global(.docs-prose h3:hover .docs-heading-anchor) {
+    opacity: 1;
   }
 
   :global(.docs-prose p) {
@@ -884,21 +1123,21 @@
   }
 
   :global(.docs-prose code) {
-    background: hsl(var(--muted) / 0.85);
+    background: hsl(var(--muted) / 0.55);
     color: hsl(var(--foreground));
     border-radius: 0.35rem;
     padding: 0.14em 0.38em;
     font-size: 0.86em;
-    box-shadow: inset 0 0 0 1px hsl(var(--muted) / 0.9);
+    box-shadow: inset 0 0 0 1px hsl(var(--border) / 0.6);
   }
 
   :global(.docs-prose pre) {
     margin: 1rem 0 1.2rem;
-    background: hsl(var(--muted) / 0.8);
+    background: hsl(var(--muted) / 0.35);
     border-radius: 0.5rem;
     padding: 0.95rem 1rem;
     overflow-x: auto;
-    box-shadow: 0 1px 8px -6px hsl(var(--foreground) / 0.75);
+    border: 1px solid hsl(var(--border) / 0.6);
   }
 
   :global(.docs-prose pre code) {
@@ -923,11 +1162,38 @@
     line-height: 1.6;
   }
 
+  :global(.docs-code-block) {
+    position: relative;
+  }
+
+  :global(.docs-code-copy) {
+    position: absolute;
+    top: 0.6rem;
+    right: 0.6rem;
+    border-radius: 999px;
+    border: 1px solid hsl(var(--border) / 0.7);
+    background: hsl(var(--background));
+    padding: 0.2rem 0.6rem;
+    font-size: 0.72rem;
+    color: hsl(var(--foreground));
+    transition: all 0.15s ease;
+  }
+
+  :global(.docs-code-copy:hover) {
+    background: hsl(var(--muted) / 0.2);
+  }
+
+  :global(.docs-code-copy[data-copied="true"]) {
+    color: hsl(var(--primary));
+    border-color: hsl(var(--primary) / 0.5);
+  }
+
   :global(.docs-prose .mermaid) {
     margin: 1rem 0 1.2rem;
     padding: 1rem;
     border-radius: 0.5rem;
     background: hsl(var(--muted) / 0.22);
+    border: 1px solid hsl(var(--border) / 0.55);
     overflow-x: auto;
   }
 
@@ -953,8 +1219,8 @@
     padding: 0.55rem 0.85rem;
     color: hsl(var(--muted-foreground));
     font-style: normal;
-    background: hsl(var(--muted) / 0.35);
-    box-shadow: inset 0.15rem 0 0 hsl(var(--primary) / 0.35);
+    background: hsl(var(--muted) / 0.25);
+    border-left: 3px solid hsl(var(--primary) / 0.5);
   }
 
   :global(.docs-prose table) {
@@ -965,12 +1231,12 @@
     border-radius: 0.5rem;
     overflow: hidden;
     font-size: 0.93rem;
-    background: hsl(var(--muted) / 0.25);
-    box-shadow: 0 1px 8px -6px hsl(var(--foreground) / 0.75);
+    background: hsl(var(--background));
+    border: 1px solid hsl(var(--border) / 0.6);
   }
 
   :global(.docs-prose thead) {
-    background: hsl(var(--muted) / 0.55);
+    background: hsl(var(--muted) / 0.3);
   }
 
   :global(.docs-prose th),
@@ -985,11 +1251,11 @@
   }
 
   :global(.docs-prose tbody tr) {
-    background: hsl(var(--background) / 0.92);
+    background: hsl(var(--background));
   }
 
   :global(.docs-prose tbody tr:nth-child(even)) {
-    background: hsl(var(--muted) / 0.24);
+    background: hsl(var(--muted) / 0.18);
   }
 
   @media (min-width: 1024px) {

@@ -2,7 +2,57 @@
 
 Create and run your first Viber agent in minutes.
 
-## Start the Daemon
+## 1. Personalize Your Agent (Recommended)
+
+Before starting, set up the three configuration files that make your agent actually useful:
+
+```bash
+# Create the config directory
+mkdir -p ~/.openviber
+
+# Create the three core files
+touch ~/.openviber/soul.md    # How your agent communicates
+touch ~/.openviber/user.md    # Who you are and what you're working on
+touch ~/.openviber/memory.md  # What your agent remembers
+```
+
+### Minimal soul.md
+
+```markdown
+# Soul
+
+## Communication Style
+- Be direct and concise. Skip preambles.
+- Lead with the answer, then explain.
+- Push back on requests when there's a better approach.
+
+## Boundaries
+- Confirm before taking actions that affect external systems.
+- Ask clarifying questions before complex tasks.
+```
+
+### Minimal user.md
+
+```markdown
+# User Context
+
+## Identity
+- Name: [Your name]
+- Role: [Your role]
+- Timezone: [Your timezone]
+
+## Current Focus
+- Primary project: [What you're working on]
+- Current priority: [Most important task]
+
+## Preferences
+- Language: [TypeScript/Python/etc.]
+- Package manager: [pnpm/npm/pip/etc.]
+```
+
+See [Personalization Architecture](/docs/design/personalization) for detailed guidance on configuring these files effectively.
+
+## 2. Start the Daemon
 
 Launch the Viber daemon to enable agent execution:
 

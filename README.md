@@ -36,6 +36,29 @@
 npx openviber start
 ```
 
+## 🧠 Personalization (The Three-File Pattern)
+
+OpenViber follows the same configuration pattern that has emerged across all serious agent systems (Claude Projects, Custom GPTs, Cursor Rules). Three markdown files define your agent's complete behavior:
+
+```
+~/.openviber/
+├── soul.md     # How your agent thinks and communicates
+├── user.md     # Who you are and what you're working on  
+├── memory.md   # What your agent remembers over time
+```
+
+| File | Purpose | Update Frequency |
+|------|---------|------------------|
+| **soul.md** | Communication style, boundaries, operational rules | Monthly |
+| **user.md** | Current projects, priorities, preferences | Daily/Weekly |
+| **memory.md** | Decisions, learned patterns, corrections | Grows organically |
+
+These files work as a system — a detailed personality is useless without user context, and memory without personality produces generic responses. The power comes from alignment between all three.
+
+**The skill transfers**: Time invested in configuring these files isn't locked into OpenViber. The pattern is identical across agent platforms, so your configuration travels with you.
+
+See [Personalization Architecture](./docs/design/personalization.md) for setup instructions.
+
 ## ✨ Features
 
 ### 🤖 Multi-Agent Workforce

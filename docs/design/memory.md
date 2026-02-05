@@ -7,6 +7,8 @@ description: "Long-term memory, semantic indexing, and context injection strateg
 
 Memory in OpenViber refers to persistent knowledge that outlives a single conversation. This document defines the memory model, storage format, and injection strategies.
 
+> **Related**: Memory is one part of the [Three-File Personalization Pattern](./personalization.md). See that document for how MEMORY.md works together with SOUL.md and USER.md to create a coherent agent configuration.
+
 ## 1. Design Principles
 
 1. **Workspace-first**: Memory lives in `~/.openviber/workspace/` as human-readable files

@@ -1,141 +1,136 @@
 ---
 title: "Agents"
-description: Define and orchestrate AI agents in OpenViber
+description: Define and configure AI agents in OpenViber
 ---
 
 # Agents
 
-Agents are the core building blocks of OpenViber. Each agent is a specialized entity designed to perform specific tasks, with its own role, tools, skills, and configuration.
+Agents are the core building blocks of OpenViber. Each agent is configured through YAML files with a specific role, tools, skills, and LLM settings.
 
-## ViberAgent
+## Viber Class
 
-The primary agent you interact with is **ViberAgent** — it represents your viber and orchestrates all work.
+The **Viber** class is the primary interface for running agents. It wraps an Agent with context injection for plans, memory, and artifacts.
 
 ```typescript
-import { ViberAgent } from "openviber";
+import { Viber } from "openviber";
 
-// Start a new viber session
-const viber = await ViberAgent.start("Build a landing page for our product", {
-  model: "anthropic/claude-3.5-sonnet",
+const viber = new Viber(agentConfig);
+
+// Stream with context injection
+const result = await viber.streamText({
+  messages: conversationHistory,
+  plan: taskPlan,        // Injected into system prompt
+  memory: memoryExcerpt, // Injected into system prompt
 });
-
-// Or resume an existing session
-const viber = await ViberAgent.resume(spaceId);
 ```
 
-## Creating Worker Agents
+## Agent Class
 
-For specialized tasks, create worker agents that ViberAgent can delegate to:
+For direct agent interaction without context injection:
 
 ```typescript
 import { Agent } from "openviber";
 
-const writer = new Agent({
-  name: "Writer",
-  model: "openai:gpt-4o",
-  systemPrompt: `You are a professional writer who creates 
-                 high-quality, engaging content.`,
-  tools: ["file"],
-});
-
-const developer = new Agent({
+const agent = new Agent({
   name: "Developer",
-  model: "anthropic/claude-3.5-sonnet",
+  provider: "anthropic",
+  model: "claude-sonnet-4-20250514",
   systemPrompt: "You are an expert software developer.",
   tools: ["file", "terminal", "browser"],
-  skills: ["coding"],
+  skills: ["cursor-agent"],
+});
+
+const result = await agent.streamText({
+  messages: [{ role: "user", content: "Build a React component" }],
 });
 ```
 
 ## Agent Configuration
 
+Agents are configured via YAML files in `~/.openviber/agents/`:
+
+```yaml
+# ~/.openviber/agents/developer.yaml
+name: "Developer"
+description: "Expert software developer"
+provider: "anthropic"
+model: "claude-sonnet-4-20250514"
+
+systemPrompt: |
+  You are an expert software developer.
+  Write clean, well-documented code.
+
+tools:
+  - file
+  - terminal
+  - browser
+
+skills:
+  - cursor-agent
+
+temperature: 0.7
+maxTokens: 4096
+```
+
+### Configuration Options
+
 | Property | Type | Description |
 |----------|------|-------------|
-| `name` | `string` | Unique identifier for the agent |
-| `model` | `string` | LLM model identifier (e.g., `openai:gpt-4o`) |
-| `systemPrompt` | `string` | Instructions defining the agent's behavior |
+| `name` | `string` | Agent identifier |
+| `description` | `string` | What the agent does |
+| `provider` | `string` | LLM provider (anthropic, openai, openrouter) |
+| `model` | `string` | Model identifier |
+| `systemPrompt` | `string` | Instructions defining behavior |
 | `tools` | `string[]` | Tools available to the agent |
 | `skills` | `string[]` | Skills that inject domain knowledge |
 | `temperature` | `number` | Creativity level (0-1) |
-| `requireApproval` | `string[]` | Tools that need human approval |
+| `maxTokens` | `number` | Maximum response tokens |
 
 ## Tools and Skills
 
-Agents gain capabilities through **tools** and **skills**:
+Agents gain capabilities through **tools** (actions) and **skills** (knowledge):
 
 ```
 ┌─────────────────────────────────────────────┐
 │                   Agent                      │
 ├─────────────────────────────────────────────┤
 │  Skills (knowledge)                          │
-│  • coding, research, writing...              │
+│  • cursor-agent, tmux, antigravity...        │
 ├─────────────────────────────────────────────┤
 │  Tools (actions)                             │
-│  • terminal, browser, file, office...        │
+│  • file, terminal, browser, desktop...       │
 └─────────────────────────────────────────────┘
-```
-
-### Registering Tools
-
-```typescript
-const agent = new Agent({
-  name: "Developer",
-  model: "openai:gpt-4o",
-  tools: ["file", "terminal", "browser"],
-  requireApproval: ["terminal"], // Human approval before execution
-});
 ```
 
 ### Tool Execution Flow
 
 1. Agent decides to use a tool
 2. Parameters are validated against schema
-3. If approval required, waits for human
-4. Tool executes and returns result
-5. Agent continues with result
+3. Tool executes and returns result
+4. Agent continues with result
 
-### Human-in-the-Loop Approval
+### Skills vs Tools
 
-Sensitive tools can require approval:
+| Aspect | Skills | Tools |
+|--------|--------|-------|
+| Purpose | Teach domain knowledge | Provide actions |
+| Loaded as | System prompt instructions | Callable functions |
+| Example | "How to use Cursor IDE" | `file.write()` |
 
-```typescript
-const agent = new Agent({
-  name: "Developer",
-  tools: ["write_file", "execute_code", "read_file"],
-  requireApproval: ["write_file", "execute_code"],
-});
+## Working Modes
 
-// Frontend handles approval
-if (status === "awaiting-approval") {
-  await approveToolCall(toolCallId, true);
-}
-```
+OpenViber supports three autonomy levels:
 
-## Multi-Agent Collaboration
-
-ViberAgent coordinates worker agents for complex tasks:
-
-```typescript
-const team = [writer, developer, reviewer];
-
-const viber = await ViberAgent.start("Build a documentation site", {
-  model: "anthropic/claude-3.5-sonnet",
-  team,
-});
-```
-
-The ViberAgent will:
-1. Break down the goal into tasks
-2. Assign tasks to appropriate workers
-3. Coordinate handoffs between agents
-4. Report progress and results
-
-See [Multi-Agent Collaboration](/docs/design/multi-agent-collaboration) for the full orchestration model.
+| Mode | Behavior |
+|------|----------|
+| **Always Ask** | Agent asks before each action |
+| **Agent Decides** | Acts within policy boundaries |
+| **Always Execute** | Maximum autonomy |
 
 ## Best Practices
 
-1. **Single Responsibility**: Each agent should have one clear purpose
-2. **Clear Prompts**: Write explicit system prompts that define behavior
-3. **Appropriate Tools**: Only provide tools relevant to the agent's role
-4. **Least Privilege**: Use `requireApproval` for sensitive operations
-5. **Temperature Tuning**: Use lower temperatures for factual tasks, higher for creative ones
+1. **Clear Purpose**: Each agent should have one clear role
+2. **Explicit Prompts**: Write specific system prompts
+3. **Minimal Tools**: Only provide tools relevant to the role
+4. **Appropriate Skills**: Add skills that match the domain
+5. **Temperature Tuning**: Lower for factual, higher for creative

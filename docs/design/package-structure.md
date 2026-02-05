@@ -1,121 +1,149 @@
 ---
 title: "Package Structure & Exports"
-description: "Understanding Viber's single-package architecture and modular exports"
+description: "Understanding OpenViber's single-package architecture and modular exports"
 ---
 
 ## Package Overview
 
-**Viber** is distributed as a **single unified package** (`openviber`) for maximum simplicity. All core functionality is available through a single import.
+**OpenViber** is distributed as a **single unified package** (`openviber`) for maximum simplicity. All core functionality is available through a single import.
 
 ```bash
 pnpm add openviber
 ```
 
 ```typescript
+import { Viber, Agent, streamText } from "openviber";
 ```
 
-## Internal Architecture
+## Architecture Principle
 
-While distributed as one package, Viber is organized into clear subsystems:
+OpenViber follows a **stateless daemon** architecture:
+
+- The daemon receives context per-request and returns results
+- No conversation state stored in the daemon
+- Context (history, plan, artifacts) managed by the Viber Board
+- Configuration loaded from `~/.openviber/agents/{id}.yaml`
+
+## Internal Structure
 
 ```
 src/
-├── core/           # Agent, ViberAgent, Space, Task, Plan
-├── daemon/         # Scheduler, cron jobs, background workers
-├── channels/       # DingTalk, WeCom, Telegram integrations
-├── skills/         # Skill registry and domain-specific modules
-├── tools/          # File, Browser, Search, Web, Desktop tools
-├── data/           # DataAdapter interface and implementations
-├── storage/        # SpaceStorage for artifacts and files
-├── state/          # Optional app-level state utilities
-└── server/         # HTTP API endpoints
+├── core/           # Core agent and viber classes
+│   ├── viber.ts         # Viber wrapper with context injection
+│   ├── agent.ts         # Config-driven agent implementation
+│   ├── config.ts        # Configuration types
+│   ├── message.ts       # Message types and history
+│   ├── provider.ts      # LLM provider abstraction
+│   ├── tool.ts          # Tool definitions and registry
+│   └── prompts.ts       # Prompt utilities
+├── daemon/         # Daemon runtime and controller
+│   ├── runtime.ts       # Task execution runtime
+│   ├── controller.ts    # HTTP/WS controller
+│   └── scheduler.ts     # Job scheduling
+├── channels/       # Communication channels
+│   ├── web.ts           # Web/WebSocket channel
+│   ├── dingtalk.ts      # DingTalk integration
+│   └── wecom.ts         # WeCom integration
+├── skills/         # Skill registry and implementations
+│   ├── registry.ts      # Skill loader and registry
+│   └── types.ts         # Skill type definitions
+├── tools/          # Built-in tools
+│   ├── file.ts          # File operations
+│   ├── browser.ts       # Browser automation
+│   ├── search.ts        # Web search
+│   └── desktop.ts       # Desktop automation
+├── cli/            # Command-line interface
+└── utils/          # Utility functions
 ```
 
 ## Core Exports
 
-### Agents
+### Viber
+
+The primary class for running agents with context injection:
 
 ```typescript
-// ViberAgent: Full-featured agent with conversation management
-const viber = new ViberAgent({
+import { Viber } from "openviber";
+
+const viber = new Viber(agentConfig);
+
+const result = await viber.streamText({
+  messages: conversationHistory,
+  plan: currentPlan,      // Optional plan context
+  memory: memoryExcerpt,  // Optional memory
+  artifacts: artifactRefs // Optional artifact references
+});
+```
+
+### Agent
+
+Lower-level agent class for direct LLM interaction:
+
+```typescript
+import { Agent } from "openviber";
+
+const agent = new Agent({
   name: "Assistant",
-  provider: "openai",
-  model: "gpt-4o",
+  provider: "anthropic",
+  model: "claude-sonnet-4-20250514",
+  skills: ["cursor-agent"],
   tools: ["file", "browser"],
 });
 
-// Agent: Lightweight specialist agent
-const researcher = new Agent({
-  name: "Researcher",
-  systemPrompt: "You are a research specialist",
-});
-```
-
-### Space & Storage
-
-```typescript
-// Access space data
-const space = await SpaceManager.getSpace(spaceId);
-
-// Direct storage access
-const storage = await SpaceStorageFactory.create(spaceId);
-await storage.writeFile("notes.md", content);
-```
-
-### AI SDK Integration
-
-Viber re-exports key AI SDK v6 functions:
-
-```typescript
-// Use directly with Viber agents
-const result = await viber.generateText({
+const result = await agent.streamText({
   messages: [{ role: "user", content: "Hello" }]
 });
 ```
 
-## Data Adapters
+### AI SDK Re-exports
 
-Storage is abstracted through adapters:
-
-| Adapter | Structured Data | Files | Use Case |
-|---------|-----------------|-------|----------|
-| `LocalAdapter` | JSON files | Filesystem | Development, CLI |
-| `SupabaseAdapter` | PostgreSQL | Supabase Storage | Production, multi-user |
-
-Adapters are selected automatically based on environment:
+OpenViber re-exports commonly used Vercel AI SDK functions:
 
 ```typescript
-// Returns LocalAdapter or SupabaseAdapter based on config
-const adapter = getServerDataAdapter();
+import { streamText, generateText } from "openviber";
+```
+
+## Configuration
+
+Agent configuration lives in `~/.openviber/agents/{id}.yaml`:
+
+```yaml
+name: "Assistant"
+description: "General-purpose assistant"
+provider: "anthropic"
+model: "claude-sonnet-4-20250514"
+
+skills:
+  - cursor-agent
+  - tmux
+
+tools:
+  - file
+  - browser
+
+temperature: 0.7
+maxTokens: 4096
 ```
 
 ## CLI
 
-Viber includes a CLI for daemon management:
+OpenViber includes a CLI for daemon management:
 
 ```bash
-# Run Viber daemon (hot-reload in dev)
-pnpm dev
-
-# Production
+# Start the daemon
 openviber start
+
+# Run with specific agent
+openviber start --agent myagent
+
+# Stop the daemon
 openviber stop
 ```
 
-## Key Concepts
+## Design Principles
 
-### Hierarchy
-
-```
-Space (persistent container)
-  └── Mission (user's goal)
-        └── Plan (evolving strategy)
-              └── Task[] (work items)
-```
-
-### Design Principles
-
-- **Single Package**: No fragmented `@viber/*` dependencies
-- **Built-in Adapters**: Local and Supabase storage included
-- **AI SDK v6**: Full compatibility with Vercel AI SDK
-- **Modular Tools**: Enable only what you need
+- **Single Package**: No fragmented `@openviber/*` dependencies
+- **Stateless Daemon**: No context stored between requests
+- **Workspace-first**: `~/.openviber/` is the configuration home
+- **AI SDK Compatible**: Full compatibility with Vercel AI SDK
+- **Modular Skills**: Enable only what you need via configuration

@@ -1,20 +1,90 @@
 ---
 title: "API Reference"
-description: Complete API reference for Viber
+description: Complete API reference for OpenViber
 ---
 
 ## Core Exports
 
-The main `viber` package exports the following:
+```typescript
+import {
+  Viber,
+  Agent,
+  streamText,
+  generateText,
+} from "openviber";
+```
+
+---
+
+## Viber
+
+The primary class for running agents with context injection.
+
+### Constructor
 
 ```typescript
+new Viber(config: AgentConfig, options?: ViberOptions)
+```
+
+### ViberOptions
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `model` | `string` | Override model |
+| `agentId` | `string` | Agent identifier |
+| `config` | `Partial<AgentConfig>` | Config overrides |
+
+### Methods
+
+#### `streamText(options)`
+
+Stream a text response with context injection.
+
+```typescript
+const result = await viber.streamText({
+  messages: Message[],
+  plan?: string,           // Plan context (markdown)
+  memory?: string,         // Memory excerpt
+  artifacts?: ArtifactRef[], // Artifact references
+  metadata?: Record<string, any>,
+});
+```
+
+#### `generateText(options)`
+
+Generate a complete text response (non-streaming).
+
+```typescript
+const result = await viber.generateText({
+  messages: Message[],
+  plan?: string,
+  memory?: string,
+  artifacts?: ArtifactRef[],
+});
+```
+
+#### `getAgent()`
+
+Get the underlying Agent instance.
+
+```typescript
+const agent = viber.getAgent();
+```
+
+#### `getSummary()`
+
+Get agent summary information.
+
+```typescript
+const summary = viber.getSummary();
+// { id, name, description, tools, llmModel, agentId }
 ```
 
 ---
 
 ## Agent
 
-The primary class for creating AI agents.
+The core agent class for LLM interaction.
 
 ### Constructor
 
@@ -27,9 +97,12 @@ new Agent(config: AgentConfig)
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
 | `name` | `string` | ✓ | Agent identifier |
-| `model` | `string` | ✓ | LLM model (e.g., `openai:gpt-4o`) |
+| `description` | `string` | ✓ | Agent description |
+| `provider` | `string` | ✓ | LLM provider |
+| `model` | `string` | ✓ | Model identifier |
 | `systemPrompt` | `string` | | Agent instructions |
-| `tools` | `Tool[]` | | Available tools |
+| `tools` | `string[]` | | Available tools |
+| `skills` | `string[]` | | Loaded skills |
 | `temperature` | `number` | | Creativity (0-1) |
 | `maxTokens` | `number` | | Response limit |
 
@@ -41,73 +114,98 @@ Stream a text response.
 
 ```typescript
 const result = await agent.streamText({
-  messages: Message[],
-  onToolCall?: (call) => void,
+  messages: ViberMessage[],
+  system?: string,
+  spaceId?: string,
+  metadata?: Record<string, any>,
 });
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
 ```
 
 #### `generateText(options)`
 
-Generate a complete text response (non-streaming).
+Generate a complete text response.
 
 ```typescript
 const result = await agent.generateText({
-  messages: Message[],
+  messages: ViberMessage[],
+  system?: string,
 });
 ```
 
 ---
 
-## Space
+## Message Types
 
-Workspace management for organizing artifacts and history.
-
-### Constructor
+### ViberMessage
 
 ```typescript
-new Space(config: SpaceConfig)
+interface ViberMessage {
+  role: "user" | "assistant" | "system";
+  content: string | ContentPart[];
+  metadata?: Record<string, any>;
+}
 ```
 
-### Methods
+### ArtifactRef
 
-| Method | Returns | Description |
-|--------|---------|-------------|
-| `saveArtifact(name, content)` | `Promise<void>` | Save an artifact |
-| `readArtifact(name)` | `Promise<string>` | Read an artifact |
-| `listArtifacts()` | `Promise<string[]>` | List all artifacts |
-| `getHistory()` | `Promise<Message[]>` | Get conversation history |
-| `clearHistory()` | `Promise<void>` | Clear history |
+```typescript
+interface ArtifactRef {
+  id: string;
+  title?: string;
+  type?: string;  // "file" | "screenshot" | "log"
+  ref?: string;   // Path or URL
+}
+```
 
 ---
 
-## tool()
+## Daemon Runtime
 
-Define a tool for agents.
+### runTask
+
+Execute a task through the daemon runtime.
 
 ```typescript
-const myTool = tool({
-  name: string,
-  description: string,
-  parameters: ZodSchema,
-  execute: (params) => Promise<any>,
+import { runTask } from "openviber";
+
+const { streamResult, agent } = await runTask(
+  "Build a landing page",
+  {
+    taskId: "task-123",
+    singleAgentId: "developer",
+    model: "anthropic/claude-sonnet-4-20250514",
+  },
+  messages
+);
+```
+
+### loadAgentConfig
+
+Load agent configuration from file.
+
+```typescript
+import { loadAgentConfig } from "openviber";
+
+const config = await loadAgentConfig("developer");
+// Loads from ~/.openviber/agents/developer.yaml
+```
+
+---
+
+## AI SDK Re-exports
+
+OpenViber re-exports key Vercel AI SDK functions:
+
+```typescript
+import { streamText, generateText } from "openviber";
+
+// Use directly
+const result = await streamText({
+  model: openai("gpt-4o"),
+  messages: [{ role: "user", content: "Hello" }],
 });
-```
-
----
-
-## Framework Adapters
-
-### React (`viber/react`)
-
-```typescript
-```
-
-### Svelte (`viber/svelte`)
-
-```typescript
-```
-
-### Server (`viber/server`)
-
-```typescript
 ```

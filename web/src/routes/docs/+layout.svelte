@@ -41,7 +41,7 @@
     {
       title: "Getting Started",
       items: [
-        { title: "Onboarding", href: "/docs/getting-started/installation" },
+        { title: "Onboarding", href: "/docs/getting-started/onboarding" },
         { title: "Quick Start", href: "/docs/getting-started/quick-start" },
       ],
     },

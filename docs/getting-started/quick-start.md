@@ -1,139 +1,57 @@
 # Quick Start
 
-Create and run your first Viber agent in minutes.
+Get your first viber running in under 2 minutes.
 
-## 1. Personalize Your Agent (Recommended)
-
-Before starting, set up the three configuration files that make your agent actually useful:
+## 1. Set Your API Key
 
 ```bash
-# Create the config directory
-mkdir -p ~/.openviber
-
-# Create the three core files
-touch ~/.openviber/soul.md    # How your agent communicates
-touch ~/.openviber/user.md    # Who you are and what you're working on
-touch ~/.openviber/memory.md  # What your agent remembers
+export OPENROUTER_API_KEY="sk-or-v1-..."
 ```
 
-### Minimal soul.md
+Get a free key at [openrouter.ai/keys](https://openrouter.ai/keys)
 
-```markdown
-# Soul
+## 2. Run Your First Task
 
-## Communication Style
-- Be direct and concise. Skip preambles.
-- Lead with the answer, then explain.
-- Push back on requests when there's a better approach.
-
-## Boundaries
-- Confirm before taking actions that affect external systems.
-- Ask clarifying questions before complex tasks.
-```
-
-### Minimal user.md
-
-```markdown
-# User Context
-
-## Identity
-- Name: [Your name]
-- Role: [Your role]
-- Timezone: [Your timezone]
-
-## Current Focus
-- Primary project: [What you're working on]
-- Current priority: [Most important task]
-
-## Preferences
-- Language: [TypeScript/Python/etc.]
-- Package manager: [pnpm/npm/pip/etc.]
-```
-
-See [Personalization Architecture](/docs/design/personalization) for detailed guidance on configuring these files effectively.
-
-## 2. Start the Daemon
-
-Launch the Viber daemon to enable agent execution:
+Let's have your viber analyze your project and generate documentation:
 
 ```bash
-openviber start
+cd your-project
+npx openviber run "Analyze this codebase and create a comprehensive README.md with project overview, setup instructions, and usage examples"
 ```
 
-This starts the Viber server on port 8080 by default.
+Watch as your viber:
+1. Scans the directory structure
+2. Reads key files to understand the project
+3. Generates a polished README
+4. Saves it to your project
 
-## Create an Agent
+## 3. Try Something Interactive
 
-You can create agents programmatically or via configuration.
-
-### Programmatic Approach
-
-```typescript
-// Create and start an agent
-const agent = await ViberAgent.start("Build a simple todo app", {
-  name: "TodoBuilder",
-  model: "anthropic/claude-3.5-sonnet",
-});
-
-// The agent will:
-// 1. Create a plan
-// 2. Break it into tasks
-// 3. Execute each task
-// 4. Save artifacts (code, docs, etc.)
-```
-
-### Configuration File
-
-Create a job configuration in YAML:
-
-```yaml
-# jobs/my-agent.yaml
-name: MyFirstAgent
-goal: Create a README file for a new project
-model: anthropic/claude-3.5-sonnet
-config:
-  autoApprove: true
-  maxIterations: 10
-```
-
-Run it with:
+Start the full viber for back-and-forth conversations:
 
 ```bash
-openviber run jobs/my-agent.yaml
+npx openviber start
 ```
 
-## Monitor Progress
+Open http://localhost:6006 and try:
 
-The agent will output its progress to the console. You can also:
+> "Find all the TODOs in this project, prioritize them, and create a task list"
 
-1. Use the [Viber Board](/vibers) to monitor agents in real-time
-2. Check the `artifacts/` directory for generated files
-3. View logs in the `logs/` directory
+Or:
 
-## Example: Research Agent
+> "I want to add dark mode to my app. Research best practices and show me how to implement it"
 
-Here's a more complete example:
+## More Ideas
 
-```typescript
-const agent = await ViberAgent.start(
-  "Research the latest trends in AI and write a summary report",
-  {
-    name: "Researcher",
-    model: "anthropic/claude-3.5-sonnet",
-    tools: ["web_search", "file_write", "browser"],
-    config: {
-      autoApprove: true,
-    },
-  }
-);
+| What you say | What happens |
+|--------------|--------------|
+| "Summarize the last 10 commits" | Reads git log, explains changes |
+| "Write tests for the auth module" | Analyzes code, generates test file |
+| "Deploy this to Vercel" | Runs CLI commands, configures deployment |
+| "Research competitors and write analysis" | Searches web, creates report |
 
-// Wait for completion
-const result = await agent.waitForCompletion();
-console.log("Artifacts:", result.artifacts);
-```
+## What's Next?
 
-## Next Steps
-
-- [Agents](/docs/concepts/agents) - Deep dive into agent capabilities
-- [Tools](/docs/concepts/tools) - Learn about available tools
-- [Spaces](/docs/concepts/spaces) - Understand workspaces
+- **[Onboarding](/docs/getting-started/installation)** — Persistent config & customization
+- **[Jobs](/docs/concepts/jobs)** — Schedule daily summaries, monitoring
+- **[Skills](/docs/concepts/skills)** — Add domain knowledge (GitHub, Jira, etc.)

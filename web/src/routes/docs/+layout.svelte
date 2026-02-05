@@ -36,7 +36,7 @@
   const navigation: NavSection[] = [
     {
       title: "Philosophy",
-      items: [{ title: "Philosophy of Viber", href: "/docs/philosophy" }],
+      items: [{ title: "Philosophy of OpenViber", href: "/docs/philosophy" }],
     },
     {
       title: "Getting Started",
@@ -588,8 +588,10 @@
       hsl(var(--foreground) / 0.05) 0,
       transparent 38%
     );
-    --docs-bg-grid:
-      linear-gradient(hsl(var(--border) / 0.16) 1px, transparent 1px),
+    --docs-bg-grid: linear-gradient(
+        hsl(var(--border) / 0.16) 1px,
+        transparent 1px
+      ),
       linear-gradient(90deg, hsl(var(--border) / 0.16) 1px, transparent 1px);
     --docs-bg-grid-size: 38px 38px;
     --docs-bg-opacity: 0.85;
@@ -606,8 +608,10 @@
       hsl(220 80% 60% / 0.14) 0,
       transparent 40%
     );
-    --docs-bg-grid:
-      linear-gradient(hsl(var(--border) / 0.22) 1px, transparent 1px),
+    --docs-bg-grid: linear-gradient(
+        hsl(var(--border) / 0.22) 1px,
+        transparent 1px
+      ),
       linear-gradient(90deg, hsl(var(--border) / 0.22) 1px, transparent 1px);
     --docs-bg-opacity: 0.78;
   }
@@ -625,14 +629,9 @@
     content: "";
     position: absolute;
     inset: 0;
-    background-image:
-      var(--docs-bg-glow),
-      var(--docs-bg-glow-secondary),
+    background-image: var(--docs-bg-glow), var(--docs-bg-glow-secondary),
       var(--docs-bg-grid);
-    background-size:
-      auto,
-      auto,
-      var(--docs-bg-grid-size);
+    background-size: auto, auto, var(--docs-bg-grid-size);
     background-position:
       center,
       center,

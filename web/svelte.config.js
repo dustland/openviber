@@ -113,6 +113,19 @@ function remarkAsides() {
   };
 }
 
+// Escape curly braces in inline code and text to prevent Svelte interpolation
+function remarkEscapeBraces() {
+  return (tree) => {
+    visit(tree, (node) => {
+      if (node.type === "inlineCode" || node.type === "text") {
+        if (node.value) {
+          node.value = node.value.replace(/{/g, "&#123;").replace(/}/g, "&#125;");
+        }
+      }
+    });
+  };
+}
+
 // Convert ```mermaid fences to runtime-rendered mermaid blocks
 function remarkMermaid() {
   return (tree) => {
@@ -139,7 +152,7 @@ const config = {
       smartypants: {
         dashes: "oldschool",
       },
-      remarkPlugins: [remarkGfm, remarkDirective, remarkAsides, remarkMermaid],
+      remarkPlugins: [remarkGfm, remarkDirective, remarkAsides, remarkMermaid, remarkEscapeBraces],
       rehypePlugins: [],
       highlight: {
         // Use a simple escaped code block to avoid SSR parse issues from large

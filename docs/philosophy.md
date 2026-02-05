@@ -1,9 +1,9 @@
 ---
-title: "Philosophy of Viber"
+title: "Design Philosophy of OpenViber"
 description: "Viber as a Cowork Agent: Always Ask / Agent Decides / Always Execute, evidence-first execution, and workspace-first context"
 ---
 
-# Philosophy of Viber
+# Design Philosophy of OpenViber
 
 OpenViber is built on one claim: **a viber is a Cowork Agent — an autonomous teammate that works with you, not just for you**.
 

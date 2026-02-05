@@ -13,7 +13,7 @@
 
 import { EventEmitter } from "events";
 import WebSocket from "ws";
-import type { ViberOptions } from "../core/viber-agent";
+import type { ViberOptions } from "../core/viber";
 import { runTask } from "./runtime";
 import { TerminalManager } from "./terminal";
 

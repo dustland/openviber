@@ -1,21 +1,16 @@
 /**
  * Viber Core - Exports
+ *
+ * Stateless core components for the OpenViber framework.
+ * No Space, Plan, Task, or DataAdapter - those are legacy.
  */
 
-export * from "./space";
-export * from "./viber-agent";
-export * from "./viber-agent-cache";
+// Primary exports
+export * from "./viber";
 export * from "./agent";
-export * from "./collaboration";
-// Export config types but avoid ModelConfig duplicate
-export type {
-  SpaceConfig,
-  SpaceState,
-  SpaceModel,
-  AgentConfig,
-} from "./config";
 export * from "./message";
-export * from "./plan";
-export * from "./task";
 export * from "./provider";
 export * from "./tool";
+
+// Config types
+export type { AgentConfig } from "./config";

@@ -1,114 +1,81 @@
 ---
 title: "Multi-Agent Collaboration"
-description: "How ViberAgent orchestrates worker agents to accomplish complex tasks"
+description: "Future direction for multi-agent orchestration in OpenViber"
 ---
 
 # Multi-Agent Collaboration
 
-ViberAgent is the orchestrating agent that represents your viber. It coordinates worker agents to accomplish complex tasks that require specialized skills.
+> **Status: Not Implemented**
+>
+> OpenViber currently uses a single-agent architecture. A single well-configured agent with skills is sufficient for the stateless, clawdbot-alike design. This document describes potential future multi-agent patterns if needed.
 
-## The Orchestration Model
+## Current Architecture
+
+OpenViber follows a single-agent model:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  Human (Manager)                                             │
 │  "Build a landing page with a contact form"                  │
-└─────────────────────────────────┬───────────────────────────┘
+└─────────────────────────────────────────────────────────────┘
                                   │
                                   ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  ViberAgent (Orchestrator)                                   │
-│  Plans work, assigns tasks, coordinates handoffs             │
-└─────────────────────────────────┬───────────────────────────┘
-                                  │
-          ┌───────────────────────┼───────────────────────┐
-          ▼                       ▼                       ▼
-    ┌───────────┐           ┌───────────┐           ┌───────────┐
-    │ Developer │           │ Designer  │           │ Reviewer  │
-    │   Agent   │           │   Agent   │           │   Agent   │
-    └───────────┘           └───────────┘           └───────────┘
+│  Viber (Single Agent + Skills)                               │
+│  Plans work, uses tools, executes with skill knowledge       │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-## ViberAgent Responsibilities
+## Why Single Agent?
 
-| Responsibility | Description |
-|----------------|-------------|
-| **Goal Decomposition** | Break down complex goals into actionable tasks |
-| **Task Assignment** | Match tasks to agents with appropriate skills |
-| **Coordination** | Manage dependencies and handoffs between agents |
-| **Progress Tracking** | Monitor completion and update the plan |
-| **Reporting** | Provide status updates and evidence to the manager |
+For the stateless daemon architecture:
 
-## Defining a Team
+1. **Simplicity**: One agent with appropriate skills handles most tasks
+2. **Stateless**: No coordination state to maintain between agents
+3. **Context efficiency**: Single agent means single context window
+4. **Sufficient capability**: Skills provide domain knowledge; tools provide actions
 
-```typescript
-import { ViberAgent, Agent } from "openviber";
+## When Multi-Agent Might Be Needed
 
-const developer = new Agent({
-  name: "Developer",
-  model: "anthropic/claude-3.5-sonnet",
-  systemPrompt: "You are an expert full-stack developer.",
-  tools: ["file", "terminal", "browser"],
-  skills: ["coding"],
-});
+| Scenario | Single Agent Solution | When Multi-Agent Helps |
+|----------|----------------------|------------------------|
+| Different domains | Add skills for each domain | Domains require conflicting behaviors |
+| Parallel work | Sequential execution | True parallelism on independent subtasks |
+| Review/QA | Self-review prompts | Formal separation of concerns |
 
-const designer = new Agent({
-  name: "Designer",
-  model: "openai:gpt-4o",
-  systemPrompt: "You are a UI/UX designer focused on clean, modern design.",
-  tools: ["file", "browser"],
-});
+## Future Multi-Agent Patterns
 
-// ViberAgent orchestrates the team
-const viber = await ViberAgent.start("Build a landing page", {
-  model: "anthropic/claude-3.5-sonnet",
-  team: [developer, designer],
-});
+If multi-agent is implemented in the future:
+
+### Pattern 1: Specialist Delegation
+
+```
+Viber (Orchestrator)
+  ├── Developer Agent (coding skill)
+  ├── Reviewer Agent (review skill)
+  └── Designer Agent (design skill)
 ```
 
-## Task Flow
+### Pattern 2: Pipeline
 
-1. **Intake**: ViberAgent receives goal from manager
-2. **Planning**: Breaks goal into tasks, identifies dependencies
-3. **Delegation**: Assigns tasks to appropriate worker agents
-4. **Execution**: Workers execute tasks using their tools/skills
-5. **Review**: ViberAgent reviews results, handles failures
-6. **Reporting**: Reports progress with evidence to manager
+```
+Planner → Executor → Verifier → Reporter
+```
 
-## Working Modes
+### Implementation Considerations
 
-ViberAgent supports three autonomy levels:
+1. **Stateless coordination**: All state in Viber Board, not daemon
+2. **Context passing**: How to share context between agents efficiently
+3. **Cost**: Multiple agents = multiple LLM calls
+4. **Complexity**: Is it worth the added complexity?
 
-| Mode | Behavior |
-|------|----------|
-| **Always Ask** | Asks manager before each significant action |
-| **Agent Decides** | Acts within policy boundaries, asks when uncertain |
-| **Always Execute** | Maximum autonomy, human intervenes by exception |
+## Recommendation
 
-## Intervention Points
+For most use cases, stick with a single agent configured with:
 
-The manager can intervene at any time:
+- Clear system prompt defining the role
+- Appropriate skills for domain knowledge
+- Required tools for actions
+- Good working mode (Always Ask / Agent Decides / Always Execute)
 
-- **Chat**: "Stop working on X, prioritize Y instead"
-- **Terminal**: Observe real-time execution via tmux streaming
-- **Approval**: Sensitive actions pause for human approval
-
-## Budget-Aware Execution
-
-ViberAgent tracks costs and respects limits:
-
-- Evaluates remaining budget before expensive calls
-- Prefers lower-cost models when quality allows
-- Pauses execution when approaching limits
-- Reports budget usage in status updates
-
-## Evidence-Based Verification
-
-All work must be verifiable:
-
-- Terminal logs and command outputs
-- Screenshots of UI changes
-- URLs and artifact paths
-- Step-by-step reproduction instructions
-
-No claim is complete without evidence a human can verify.
+Multi-agent should only be considered when there's a clear benefit that can't be achieved with skills and tools.

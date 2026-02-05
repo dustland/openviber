@@ -13,11 +13,13 @@ import {
   AgentStreamEvent,
   InterruptSignal,
 } from "./channel";
-import { ViberAgent } from "../core/viber-agent";
+import { Viber } from "../core/viber";
+import { Agent } from "../core/agent";
+import { loadAgentConfig } from "../daemon/runtime";
 
 interface ActiveConversation {
   channelId: string;
-  agent: ViberAgent;
+  viber: Viber;
   startedAt: Date;
 }
 
@@ -94,15 +96,16 @@ export class ChannelManager extends EventEmitter {
     let conversation = this.conversations.get(conversationId);
 
     if (!conversation) {
-      // Create new ViberAgent for this conversation
-      const agent = await ViberAgent.start(content, {
-        // Use conversation ID as space ID for isolation
-        spaceId: conversationId,
-      });
+      // Create new Viber for this conversation
+      const config = await loadAgentConfig("default");
+      if (!config) {
+        throw new Error("Default agent config not found");
+      }
+      const viber = new Viber(config);
 
       conversation = {
         channelId: source,
-        agent,
+        viber,
         startedAt: new Date(),
       };
       this.conversations.set(conversationId, conversation);
@@ -110,7 +113,7 @@ export class ChannelManager extends EventEmitter {
 
     // Execute and stream response
     try {
-      const result = await conversation.agent.streamText({
+      const result = await conversation.viber.streamText({
         messages: [{ role: "user", content }],
         metadata: { userId, source },
       });
@@ -129,7 +132,7 @@ export class ChannelManager extends EventEmitter {
       // Send done event
       await channel.stream(conversationId, {
         type: "done",
-        agentId: conversation.agent.spaceId,
+        agentId: conversation.viber.agentId,
       });
     } catch (error: any) {
       console.error(`[ChannelManager] Error processing message:`, error);
@@ -139,7 +142,7 @@ export class ChannelManager extends EventEmitter {
         await channel.stream(conversationId, {
           type: "error",
           error: error.message,
-          agentId: conversation?.agent?.spaceId || "unknown",
+          agentId: conversation?.viber?.agentId || "unknown",
         });
       }
     }
@@ -151,7 +154,7 @@ export class ChannelManager extends EventEmitter {
   async handleInterrupt(signal: InterruptSignal): Promise<void> {
     const conversation = this.conversations.get(signal.conversationId);
     if (conversation) {
-      conversation.agent.stop();
+      // Viber is stateless, just remove the conversation
       this.conversations.delete(signal.conversationId);
       console.log(
         `[ChannelManager] Interrupted conversation: ${signal.conversationId}`

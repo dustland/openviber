@@ -27,19 +27,13 @@ export async function buildToolMap(
 ): Promise<Record<string, CoreTool>> {
   const tools: Record<string, CoreTool> = {};
 
-  // Load MCP server configurations to determine tool types
-  const { getServerDataAdapter } = await import("../data/factory");
-  const adapter = getServerDataAdapter();
-  const mcpServers = await adapter.getTools();
-  const mcpServerIds = new Set(mcpServers.map((s: any) => s.id));
-
   // Separate custom tools and MCP tools
   const customToolIds: string[] = [];
   const mcpToolIds: string[] = [];
 
   for (const id of toolIds) {
-    // Check if it's an MCP server ID
-    if (mcpServerIds.has(id)) {
+    // Check if it's an MCP tool (mcp: prefix)
+    if (id.startsWith("mcp:")) {
       mcpToolIds.push(id);
     } else {
       customToolIds.push(id);
@@ -72,12 +66,9 @@ async function loadMcpTools(ids: string[]): Promise<Record<string, CoreTool>> {
   // Group by server for efficient loading
   const serverGroups = new Map<string, string[]>();
   for (const id of ids) {
-    // Handle both mcp:serverId format and direct serverId format
-    let serverId = id;
-    if (id.startsWith("mcp:")) {
-      const parts = id.split(":");
-      serverId = parts[1] || id;
-    }
+    // Handle mcp:serverId format
+    const parts = id.split(":");
+    const serverId = parts[1] || id;
 
     if (!serverGroups.has(serverId)) {
       serverGroups.set(serverId, []);

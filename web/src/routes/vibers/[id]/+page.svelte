@@ -2,7 +2,15 @@
   import { onMount } from "svelte";
   import { page } from "$app/stores";
   import { goto } from "$app/navigation";
-  import { Send, Cpu, MessageSquare, Sparkles } from "@lucide/svelte";
+  import {
+    Bot,
+    CornerDownLeft,
+    Cpu,
+    MessageSquare,
+    Send,
+    Sparkles,
+    User,
+  } from "@lucide/svelte";
   import { marked } from "marked";
   import { Button } from "$lib/components/ui/button";
 
@@ -279,11 +287,11 @@
   <title>{viber?.name || "Viber"} - Viber Board</title>
 </svelte:head>
 
-<div class="flex-1 flex flex-col min-h-0 overflow-hidden">
+<div class="chat-shell flex-1 flex flex-col min-h-0 overflow-hidden">
   <!-- Messages -->
   <div
       bind:this={messagesContainer}
-      class="flex-1 min-h-0 overflow-y-auto"
+      class="chat-scroll flex-1 min-h-0 overflow-y-auto"
     >
       {#if loading}
         <div class="h-full flex items-center justify-center text-center text-muted-foreground">
@@ -370,26 +378,38 @@
             </div>
           </div>
       {:else}
-        <div class="p-3">
-          <div class="mx-auto w-full max-w-3xl space-y-3">
+        <div class="px-3 py-6 sm:px-5">
+          <div class="mx-auto w-full max-w-4xl space-y-5">
             {#each messages as message (message.id)}
               <div
-                class="flex {message.role === 'user'
-                  ? 'justify-end'
-                  : 'justify-start'}"
+                class="message-row flex {message.role === 'user'
+                  ? 'justify-end user-row'
+                  : 'justify-start assistant-row'}"
               >
+                {#if message.role !== 'user'}
+                  <div class="message-avatar assistant-avatar" aria-hidden="true">
+                    <Bot class="size-4" />
+                  </div>
+                {/if}
+
                 <div
-                  class="max-w-[85%] rounded-lg px-4 py-2 {message.role === 'user'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-foreground'}"
+                  class="message-bubble max-w-[90%] sm:max-w-[82%] rounded-2xl px-4 py-3 {message.role === 'user'
+                    ? 'user-bubble bg-primary text-primary-foreground'
+                    : 'assistant-bubble bg-card text-foreground'}"
                 >
                   <div class="message-markdown">
                     {@html renderMarkdown(message.content)}
                   </div>
-                  <p class="text-xs mt-1 opacity-70">
+                  <p class="text-[11px] mt-2 opacity-60 tracking-wide">
                     {new Date(message.createdAt).toLocaleTimeString()}
                   </p>
                 </div>
+
+                {#if message.role === 'user'}
+                  <div class="message-avatar user-avatar" aria-hidden="true">
+                    <User class="size-4" />
+                  </div>
+                {/if}
               </div>
             {/each}
           </div>
@@ -397,9 +417,8 @@
       {/if}
     </div>
 
-    <!-- Input: single row only -->
-    <div class="border-t border-border p-3 shrink-0">
-      <div class="mx-auto w-full max-w-3xl space-y-2">
+    <div class="chat-composer-wrap border-t border-border/70 p-3 shrink-0 sm:p-4">
+      <div class="mx-auto w-full max-w-4xl space-y-3">
         {#if viber?.skills && viber.skills.length > 0 && messages.length > 0}
           <div class="overflow-x-auto pb-0.5">
             <div class="flex items-center gap-1.5 min-w-max">
@@ -417,7 +436,7 @@
           </div>
         {/if}
 
-        <div class="flex gap-2 items-end">
+        <div class="composer-card flex gap-2.5 items-end rounded-2xl border border-border bg-background/95 px-3 py-2.5 shadow-sm backdrop-blur">
           <textarea
             bind:this={inputEl}
             bind:value={inputValue}
@@ -425,23 +444,87 @@
             placeholder={viber?.isConnected
               ? "Send a task or command..."
               : "Viber is offline"}
-            class="flex-1 min-h-[40px] max-h-28 resize-none rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+            class="composer-input flex-1 min-h-[40px] max-h-36 resize-none rounded-xl border border-transparent bg-transparent px-2 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
             rows="1"
             disabled={sending || !viber?.isConnected}
           ></textarea>
           <Button
             onclick={() => sendMessage()}
             disabled={sending || !inputValue.trim() || !viber?.isConnected}
-            class="size-10 shrink-0"
+            class="size-10 shrink-0 rounded-xl"
           >
             <Send class="size-4" />
           </Button>
         </div>
+        <p class="flex items-center gap-1.5 px-1 text-[11px] text-muted-foreground">
+          <CornerDownLeft class="size-3" />
+          Press Enter to send, Shift + Enter for a new line.
+        </p>
       </div>
     </div>
 </div>
 
 <style>
+  .chat-shell {
+    background: radial-gradient(circle at top, hsl(var(--muted) / 0.35), transparent 40%);
+  }
+
+  .chat-scroll {
+    scrollbar-width: thin;
+  }
+
+  .chat-composer-wrap {
+    background: linear-gradient(to top, hsl(var(--background)) 58%, hsl(var(--background) / 0.78));
+  }
+
+  .message-row {
+    align-items: flex-end;
+    gap: 0.625rem;
+  }
+
+  .message-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.85rem;
+    height: 1.85rem;
+    border-radius: 9999px;
+    border: 1px solid hsl(var(--border));
+    color: hsl(var(--muted-foreground));
+    background: hsl(var(--background));
+    flex-shrink: 0;
+  }
+
+  .assistant-avatar {
+    box-shadow: 0 4px 20px hsl(var(--foreground) / 0.04);
+  }
+
+  .user-avatar {
+    color: hsl(var(--primary));
+    border-color: hsl(var(--primary) / 0.25);
+    background: hsl(var(--primary) / 0.08);
+  }
+
+  .message-bubble {
+    border: 1px solid hsl(var(--border) / 0.8);
+    box-shadow: 0 10px 35px hsl(var(--foreground) / 0.04);
+  }
+
+  .assistant-bubble {
+    border-top-left-radius: 0.55rem;
+  }
+
+  .user-bubble {
+    border-top-right-radius: 0.55rem;
+    box-shadow: 0 10px 30px hsl(var(--primary) / 0.22);
+    border-color: hsl(var(--primary) / 0.45);
+  }
+
+  .composer-card:focus-within {
+    border-color: hsl(var(--ring));
+    box-shadow: 0 0 0 2px hsl(var(--ring) / 0.2);
+  }
+
   :global(.message-markdown) {
     line-height: 1.6;
   }
@@ -483,6 +566,7 @@
   }
   :global(.message-markdown a) {
     text-decoration: underline;
+    text-underline-offset: 2px;
   }
   :global(.message-markdown blockquote) {
     border-left: 4px solid hsl(var(--border));

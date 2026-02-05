@@ -9,7 +9,17 @@
     Link,
     Pencil,
     Search,
+    ChevronDown,
+    FileText,
   } from "@lucide/svelte";
+  import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+  } from "$lib/components/ui/dropdown-menu";
 
   let { children } = $props();
 
@@ -257,14 +267,6 @@
     observeHeadings();
   }
 
-  function selectDoc(event: Event): void {
-    const target = event.currentTarget as HTMLSelectElement;
-    const nextPath = target.value;
-    if (nextPath && nextPath !== currentPath) {
-      void goto(nextPath);
-    }
-  }
-
   function scrollToHeading(event: MouseEvent, id: string): void {
     event.preventDefault();
     const target = document.getElementById(id);
@@ -463,23 +465,44 @@
 
   <main class="docs-main">
     <div class="docs-mobile-nav lg:hidden">
-      <label for="docs-mobile-select">Browse docs</label>
-      <select
-        id="docs-mobile-select"
-        value={currentPath}
-        onchange={selectDoc}
-        aria-label="Browse documentation pages"
-      >
-        <option value="/docs">Documentation Home</option>
-        {#each navigation as section}
-          <optgroup label={section.title}>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          class="w-full h-10 rounded-lg border border-border bg-background px-3 text-sm text-foreground inline-flex items-center gap-2 hover:bg-accent transition-colors"
+        >
+          <FileText class="size-4 shrink-0 text-muted-foreground" />
+          <span class="flex-1 text-left truncate">{mobileTitle}</span>
+          <ChevronDown class="size-4 shrink-0 text-muted-foreground" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="start"
+          sideOffset={4}
+          class="w-[calc(100vw-2rem)] max-w-md max-h-80 overflow-y-auto"
+        >
+          <DropdownMenuItem
+            class="cursor-pointer"
+            onSelect={() => goto("/docs")}
+          >
+            Documentation Home
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          {#each navigation as section, i}
+            {#if i > 0}
+              <DropdownMenuSeparator />
+            {/if}
+            <DropdownMenuLabel class="text-xs text-muted-foreground font-semibold">
+              {section.title}
+            </DropdownMenuLabel>
             {#each section.items as item}
-              <option value={item.href}>{item.title}</option>
+              <DropdownMenuItem
+                class="cursor-pointer {normalizePath(item.href) === currentPath ? 'bg-accent' : ''}"
+                onSelect={() => goto(item.href)}
+              >
+                {item.title}
+              </DropdownMenuItem>
             {/each}
-          </optgroup>
-        {/each}
-      </select>
-      <p>{mobileTitle}</p>
+          {/each}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
 
     <div class="docs-main-grid">
@@ -774,37 +797,6 @@
 
   .docs-mobile-nav {
     margin: 1rem 1rem 0;
-    border-radius: 0.6rem;
-    background: hsl(var(--muted) / 0.2);
-    padding: 0.8rem;
-    border: 1px solid hsl(var(--border) / 0.6);
-  }
-
-  .docs-mobile-nav label {
-    display: block;
-    margin-bottom: 0.42rem;
-    font-size: 0.74rem;
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
-    color: hsl(var(--muted-foreground));
-    font-weight: 600;
-  }
-
-  .docs-mobile-nav select {
-    width: 100%;
-    border: 0;
-    border-radius: 0.45rem;
-    background: hsl(var(--background));
-    padding: 0.5rem 0.62rem;
-    color: hsl(var(--foreground));
-    font-size: 0.92rem;
-    box-shadow: inset 0 0 0 1px hsl(var(--border) / 0.7);
-  }
-
-  .docs-mobile-nav p {
-    margin-top: 0.5rem;
-    color: hsl(var(--muted-foreground));
-    font-size: 0.8rem;
   }
 
   .docs-main-grid {

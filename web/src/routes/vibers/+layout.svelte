@@ -16,6 +16,7 @@
     Laptop,
     Check,
     Home,
+    ChevronDown,
   } from "@lucide/svelte";
 
   type Theme = "light" | "dark" | "system";
@@ -73,7 +74,6 @@
 
       <Sidebar.Content>
         <Sidebar.Group>
-          <Sidebar.GroupLabel>Navigation</Sidebar.GroupLabel>
           <Sidebar.GroupContent>
             <Sidebar.Menu>
               <Sidebar.MenuItem>
@@ -115,48 +115,48 @@
         <Sidebar.Menu>
           <Sidebar.MenuItem>
             <DropdownMenu>
-              <DropdownMenuTrigger class="w-full">
-                {#snippet child({ props })}
-                  <Sidebar.MenuButton {...props} tooltipContent="Theme">
-                    {#if theme === "light"}
-                      <Sun class="size-4" />
-                    {:else if theme === "dark"}
-                      <Moon class="size-4" />
-                    {:else}
-                      <Laptop class="size-4" />
-                    {/if}
-                    <span class="capitalize">{theme}</span>
-                  </Sidebar.MenuButton>
-                {/snippet}
+              <DropdownMenuTrigger
+                class="w-full h-8 rounded-md border border-sidebar-border bg-sidebar px-2.5 text-sm text-sidebar-foreground inline-flex items-center gap-2 hover:bg-sidebar-accent transition-colors group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center"
+              >
+                {#if theme === "light"}
+                  <Sun class="size-4 shrink-0" />
+                {:else if theme === "dark"}
+                  <Moon class="size-4 shrink-0" />
+                {:else}
+                  <Laptop class="size-4 shrink-0" />
+                {/if}
+                <span class="capitalize flex-1 text-left group-data-[collapsible=icon]:hidden">{theme}</span>
+                <ChevronDown class="size-3.5 opacity-50 group-data-[collapsible=icon]:hidden" />
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 side="right"
                 align="end"
-                class="min-w-32 rounded-md border border-border bg-popover p-1 shadow-md"
+                sideOffset={8}
+                class="min-w-36 rounded-md border border-border bg-popover p-1 shadow-md"
               >
                 <DropdownMenuItem
-                  class="w-full rounded px-2.5 py-1.5 text-left text-xs hover:bg-accent flex items-center gap-2 outline-none cursor-pointer"
+                  class="w-full rounded px-2.5 py-2 text-left text-sm hover:bg-accent flex items-center gap-2.5 outline-none cursor-pointer"
                   onSelect={() => setTheme("system")}
                 >
-                  <Laptop class="size-3.5" />
+                  <Laptop class="size-4" />
                   System
-                  {#if theme === "system"}<Check class="size-3.5 ml-auto" />{/if}
+                  {#if theme === "system"}<Check class="size-4 ml-auto" />{/if}
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  class="w-full rounded px-2.5 py-1.5 text-left text-xs hover:bg-accent flex items-center gap-2 outline-none cursor-pointer"
+                  class="w-full rounded px-2.5 py-2 text-left text-sm hover:bg-accent flex items-center gap-2.5 outline-none cursor-pointer"
                   onSelect={() => setTheme("light")}
                 >
-                  <Sun class="size-3.5" />
+                  <Sun class="size-4" />
                   Light
-                  {#if theme === "light"}<Check class="size-3.5 ml-auto" />{/if}
+                  {#if theme === "light"}<Check class="size-4 ml-auto" />{/if}
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  class="w-full rounded px-2.5 py-1.5 text-left text-xs hover:bg-accent flex items-center gap-2 outline-none cursor-pointer"
+                  class="w-full rounded px-2.5 py-2 text-left text-sm hover:bg-accent flex items-center gap-2.5 outline-none cursor-pointer"
                   onSelect={() => setTheme("dark")}
                 >
-                  <Moon class="size-3.5" />
+                  <Moon class="size-4" />
                   Dark
-                  {#if theme === "dark"}<Check class="size-3.5 ml-auto" />{/if}
+                  {#if theme === "dark"}<Check class="size-4 ml-auto" />{/if}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -167,12 +167,7 @@
       <Sidebar.Rail />
     </Sidebar.Root>
 
-    <Sidebar.Inset>
-      <header class="flex h-12 shrink-0 items-center gap-2 border-b px-4">
-        <Sidebar.Trigger class="-ml-1" />
-        <Sidebar.Separator orientation="vertical" class="mr-2 h-4" />
-        <span class="text-sm font-medium">Vibers</span>
-      </header>
+    <Sidebar.Inset class="flex flex-col h-full">
       <div class="flex-1 overflow-y-auto">
         {@render children()}
       </div>

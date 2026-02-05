@@ -1,87 +1,59 @@
 ---
 title: "Tools"
-description: Extend agent capabilities with custom tools
+description: "Actions that agents can take to accomplish tasks"
 ---
-## Overview
 
-Tools enable agents to interact with external systems, perform calculations, and access data. Viber uses a decorator-based approach with automatic Zod schema generation.
+# Tools
 
-## Defining Tools
+**Tools** are the actions that agents can take to interact with the world. They're how agents move from thinking to doing.
 
-```typescript
-import { z } from 'zod';
+## What Are Tools?
 
-const calculator = tool({
-  name: 'calculator',
-  description: 'Perform mathematical calculations',
-  parameters: z.object({
-    expression: z.string().describe('Mathematical expression to evaluate'),
-  }),
-  execute: async ({ expression }) => {
-    return { result: eval(expression) };
-  },
-});
-```
+When you ask an agent to "create a file", it uses a **file tool**. When you ask it to "search the web", it uses a **search tool**. Tools are the bridge between AI reasoning and real-world actions.
 
-## Using Tools with Agents
-
-```typescript
-const agent = new Agent({
-  name: 'MathAssistant',
-  model: 'openai:gpt-4o',
-  systemPrompt: 'You are a math tutor.',
-  tools: [calculator],
-});
-```
-
-## Tool Schema
-
-The `parameters` field uses Zod schemas, which are automatically converted to JSON Schema for LLM consumption:
-
-```typescript
-const searchTool = tool({
-  name: 'web_search',
-  description: 'Search the web for information',
-  parameters: z.object({
-    query: z.string().describe('Search query'),
-    limit: z.number().optional().default(10).describe('Max results'),
-  }),
-  execute: async ({ query, limit }) => {
-    // Implementation
-  },
-});
-```
+Think of tools like apps on your phone — each one does something specific, and together they let you accomplish many different tasks.
 
 ## Built-in Tools
 
-Viber includes several built-in tools:
+OpenViber comes with several tools ready to use:
 
-| Tool | Description |
-|------|-------------|
-| `readFile` | Read file contents from the workspace |
-| `writeFile` | Write content to a file |
-| `shellCommand` | Execute shell commands (sandboxed) |
-| `webSearch` | Search the web |
-| `webScrape` | Extract content from URLs |
+| Tool | What It Does |
+|------|--------------|
+| **File** | Read, write, create, and delete files |
+| **Terminal** | Run shell commands and scripts |
+| **Browser** | Navigate web pages, click, type, extract content |
+| **Search** | Find information online |
+| **Desktop** | Interact with desktop applications |
 
-::: caution
-Shell commands are executed in a sandboxed environment for security.
-:::
-## Error Handling
+## How Agents Use Tools
 
-Tools should handle errors gracefully:
+When an agent decides to use a tool:
 
-```typescript
-const safeTool = tool({
-  name: 'safe_operation',
-  parameters: z.object({ input: z.string() }),
-  execute: async ({ input }) => {
-    try {
-      const result = await riskyOperation(input);
-      return { success: true, result };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  },
-});
-```
+1. It selects the appropriate tool for the task
+2. Provides the necessary inputs (like a filename or search query)
+3. Executes the action
+4. Receives the result and continues reasoning
+
+You can observe this process in real-time through the Viber Board.
+
+## Tool Permissions
+
+For safety, tools can be restricted:
+
+- **Allowed tools** — Only these tools can be used
+- **Blocked tools** — These tools are never used
+- **Approval required** — Agent asks before using these tools
+
+This lets you control the blast radius of agent actions.
+
+## Custom Tools
+
+Skills can provide specialized tools for specific domains. For example, an "antigravity" skill might include a tool for checking IDE health and auto-recovering from errors.
+
+See [Skills](/docs/concepts/skills) for how domain knowledge bundles tools with instructions.
+
+## Next Steps
+
+- [Skills](/docs/concepts/skills) — Domain knowledge that includes specialized tools
+- [Agents](/docs/concepts/agents) — How agents use tools
+- [Security](/docs/design/security) — Tool permissions and safety

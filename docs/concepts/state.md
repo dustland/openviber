@@ -1,69 +1,59 @@
 ---
-title: "State"
-description: OpenViber state model: stateless daemon, context-in/context-out
+title: "Context"
+description: "How information flows between you and your viber"
 ---
 
-## Overview
+# Context
 
-OpenViber does not use a framework-managed app store on the daemon path.
-There is no required Zustand layer for runtime context.
+**Context** is the information that flows between you and your viber on each interaction. Understanding context helps you work effectively with your AI teammate.
 
-State is handled through a stateless request contract:
+## The Request-Response Flow
 
-- The client (Viber Board) sends full context on each request.
-- The daemon executes and returns one final result.
-- The client persists updates and sends them back on the next request.
+Each time you interact with your viber:
 
-## Ownership Model
+1. **You send a request** — Your message plus accumulated context
+2. **Viber processes** — Agent reasons with full context
+3. **Viber responds** — Answer plus any updates to context
+4. **Context is saved** — Ready for the next interaction
 
-### Viber Board (source of truth)
+## What's Included in Context?
 
-- Conversation history
-- Task/plan documents (for example `task.md`)
-- Artifact metadata and refs
+| Element | Description |
+|---------|-------------|
+| **Messages** | Your conversation history |
+| **Plan** | Current goals and tasks |
+| **Memory** | Relevant past decisions |
+| **Artifacts** | References to files and outputs |
 
-### Work machine (`~/.openviber/`)
+## Local-First Design
 
-- Agent configuration files (`~/.openviber/agents/{id}.yaml`)
-- Optional local artifacts (`~/.openviber/artifacts/...`)
-- Optional workspace files used as context inputs
+A key principle of OpenViber:
 
-### Daemon
+- **Viber Board** maintains your conversation and plan
+- **Work machine** (`~/.openviber/`) stores durable context
+- **Agent** is stateless between requests
 
-- Process-stateless between requests
-- No conversation/task state store in daemon runtime
-- Reads config, runs agent, returns result
+This means you can switch chat apps without losing context — it's saved locally on your machine.
 
-## Context-In, Context-Out Pattern
+## Context Accumulates
 
-Typical request context:
+Unlike one-shot AI interactions, context builds over time:
 
-```json
-{
-  "goal": "Ship feature X",
-  "messages": [...],
-  "plan": "markdown or structured plan",
-  "artifacts": [{ "id": "design", "ref": "/path/or/url" }]
-}
-```
+**Without accumulation:**
+> "Research X" → Result
+> "Summarize X" → "What X? I don't remember"
 
-Typical final result:
+**With accumulation:**
+> "Research X" → Result saved to context
+> "Summarize X" → Summarizes based on previous research
 
-```json
-{
-  "text": "Completed the task",
-  "summary": "What changed",
-  "artifactRefs": [{ "id": "report", "ref": "~/.openviber/artifacts/.../report.md" }]
-}
-```
+This is what makes vibers useful for real work that spans multiple conversations.
 
-The client stores this output, updates plan/artifacts if needed, and includes the updated context in the next request.
+## Privacy
 
-## UI Framework Choice
+Because context lives on your machine, your information never leaves unless you explicitly choose to share it. This is fundamental to OpenViber's design.
 
-If you build a custom UI, use any state library you prefer (or none). That choice is app-level, not part of OpenViber's daemon contract.
+## Next Steps
 
-## Related Docs
-
-- [Plan and Artifacts](/docs/design/plan-and-artifacts)
-- [Viber Daemon](/docs/design/viber-daemon)
+- [Memory](/docs/concepts/memory) — Deep dive into memory systems
+- [Workspaces](/docs/concepts/spaces) — Organizing project context

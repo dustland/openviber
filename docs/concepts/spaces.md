@@ -1,89 +1,47 @@
 ---
-title: "Spaces"
-description: Organize conversations, artifacts, and tasks
+title: "Spaces"  
+description: "Isolated environments for organizing agent work"
 ---
 
-## Overview
+# Spaces
 
-Spaces provide isolated workspaces for organizing agent conversations, generated artifacts, and task history. Each space maintains its own context and state.
+A **space** is an isolated environment where your viber organizes work on a specific project. Each space keeps its own context, artifacts, and history separate from other projects.
 
-## Creating a Space
+## Why Spaces?
 
-```typescript
-const space = new Space({
-  name: "my-project",
-  rootPath: "./workspaces/my-project",
-});
-```
+When you work on multiple projects, you don't want:
+- Research about "Project A" bleeding into "Project B"
+- Files from different projects mixing together
+- Context from unrelated work confusing the agent
 
-## Space Structure
+Spaces keep everything organized.
 
-```
-my-project/
-  .viber/
-    config.json
-    history/
-    artifacts/
-  outputs/
-```
+## What's in a Space?
 
-## Configuration
+| Content | Purpose |
+|---------|---------|
+| **Conversation history** | What you've discussed |
+| **Artifacts** | Files, documents, code produced |
+| **Plan** | Current tasks and goals |
+| **Memory** | Key decisions and context |
 
-```typescript
-const space = new Space({
-  name: "research-project",
-  rootPath: "./workspaces/research",
-  config: {
-    maxHistoryItems: 100,
-    autoSaveInterval: 5000,
-  },
-});
-```
+## Default Space
 
-| Option             | Type     | Default  | Description             |
-| ------------------ | -------- | -------- | ----------------------- |
-| `name`             | `string` | required | Space identifier        |
-| `rootPath`         | `string` | required | Filesystem path         |
-| `maxHistoryItems`  | `number` | `1000`   | History retention limit |
-| `autoSaveInterval` | `number` | `10000`  | Auto-save interval (ms) |
+By default, OpenViber uses a single space at `~/.openviber/space/`. This works well for most users who interact with one viber at a time.
 
-## Using Spaces with Agents
+## Multiple Spaces
 
-```typescript
-const agent = new Agent({
-  name: "Researcher",
-  model: "openai:gpt-4o",
-  space, // Associate with a space
-});
+For advanced use cases (like separate spaces per project), you can configure distinct space paths. Each space maintains its own isolated context.
 
-// Artifacts are automatically saved to the space
-await agent.streamText({
-  messages: [{ role: "user", content: "Research AI trends" }],
-});
-```
+## Persistence
 
-## Accessing Artifacts
+Spaces persist across sessions. You can:
 
-```typescript
-// List all artifacts
-const artifacts = await space.listArtifacts();
+- Close your computer and come back tomorrow
+- Switch chat channels and continue the same work
+- Resume exactly where you left off
 
-// Read a specific artifact
-const content = await space.readArtifact("report.md");
+## Next Steps
 
-// Save an artifact
-await space.saveArtifact("summary.txt", "Key findings...");
-```
-
-::: tip
-Spaces persist across sessions, enabling agents to resume work where they left off.
-:::
-## Task History
-
-```typescript
-// View conversation history
-const history = await space.getHistory();
-
-// Clear history
-await space.clearHistory();
-```
+- [Memory](/docs/concepts/memory) — How context is stored within a space
+- [Agents](/docs/concepts/agents) — Workers that operate within spaces

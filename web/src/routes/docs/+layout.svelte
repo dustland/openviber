@@ -41,7 +41,7 @@
     {
       title: "Getting Started",
       items: [
-        { title: "Installation", href: "/docs/getting-started/installation" },
+        { title: "Onboarding", href: "/docs/getting-started/installation" },
         { title: "Quick Start", href: "/docs/getting-started/quick-start" },
       ],
     },
@@ -51,6 +51,7 @@
         { title: "Viber", href: "/docs/concepts/viber" },
         { title: "Agents", href: "/docs/concepts/agents" },
         { title: "Spaces", href: "/docs/concepts/spaces" },
+        { title: "Jobs", href: "/docs/concepts/jobs" },
         { title: "Skills", href: "/docs/concepts/skills" },
         { title: "Tools", href: "/docs/concepts/tools" },
         { title: "Memory", href: "/docs/concepts/memory" },
@@ -81,6 +82,10 @@
         { title: "API Overview", href: "/docs/api" },
         { title: "Types", href: "/docs/api/types" },
       ],
+    },
+    {
+      title: "Guides",
+      items: [{ title: "Local LLM Setup", href: "/docs/guides/local-llm" }],
     },
     {
       title: "Reference",

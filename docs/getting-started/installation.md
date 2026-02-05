@@ -1,50 +1,61 @@
-# Installation
+# Onboarding
 
-Get started with Viber by installing it as a dependency or using it globally.
+Set up OpenViber on your machine with automated configuration.
 
 ## Prerequisites
 
 - Node.js 18 or later
 - pnpm (recommended) or npm
 
-## Install as a Dependency
+## Quick Setup
 
-Add Viber to your project:
+Run the onboard command to create your config:
 
 ```bash
-pnpm add openviber
+npx openviber onboard
 ```
 
-## Install Globally
+This creates:
+- `~/.openviber/agents/default.yaml` — Default agent configuration
+- `~/.openviber/jobs/` — Directory for scheduled tasks
+- `~/.openviber/space/` — Space files
 
-Install Viber CLI globally to use it from anywhere:
+## Set Your API Key
+
+OpenViber uses OpenRouter by default for access to multiple models:
+
+```bash
+export OPENROUTER_API_KEY="sk-or-v1-..."
+```
+
+Get a key at [openrouter.ai/keys](https://openrouter.ai/keys)
+
+## Start Your Viber
+
+```bash
+openviber start
+```
+
+Open http://localhost:6006 to access the Viber Board.
+
+## Alternative: Global Install
+
+Install the CLI globally for easier access:
 
 ```bash
 pnpm add -g openviber
 ```
 
-## Environment Setup
+## Verify
 
-Viber requires API keys for the AI providers you want to use. Create a `.env` file:
-
-```bash
-# OpenRouter (recommended - access to multiple models)
-OPENROUTER_API_KEY=your_key_here
-
-# Or use specific providers
-ANTHROPIC_API_KEY=your_key_here
-OPENAI_API_KEY=your_key_here
-```
-
-## Verify Installation
-
-Check that Viber is installed correctly:
+Check your setup:
 
 ```bash
-openviber --version
+openviber status
 ```
 
 ## Next Steps
 
-- [Quick Start](/docs/getting-started/quick-start) - Create your first viber
-- [Viber](/docs/concepts/viber) - Understand the viber concept
+- [Quick Start](/docs/getting-started/quick-start) — Run your first task
+- [Agents](/docs/concepts/agents) — Customize agent behavior
+- [Jobs](/docs/concepts/jobs) — Set up scheduled tasks

@@ -75,5 +75,7 @@ Start with "Always Ask" and gradually increase autonomy as you build trust.
 
 1. **[Quick Start](/docs/getting-started/quick-start)** — Run your first agent in minutes
 2. **[Agents](/docs/concepts/agents)** — Configure agent behavior
-3. **[Tools](/docs/concepts/tools)** — Available actions
-4. **[Skills](/docs/concepts/skills)** — Add domain knowledge
+3. **[Jobs](/docs/concepts/jobs)** — Set up scheduled tasks
+4. **[Tools](/docs/concepts/tools)** — Available actions
+5. **[Skills](/docs/concepts/skills)** — Add domain knowledge
+

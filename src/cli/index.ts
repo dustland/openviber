@@ -133,9 +133,8 @@ program
 ╔═══════════════════════════════════════════════════════════╗
 ║                     VIBER RUNNING                          ║
 ╠═══════════════════════════════════════════════════════════╣
-║  Mode:         ${
-        isLocalHub ? "Local Hub".padEnd(41) : "Remote Server".padEnd(41)
-      }║
+║  Mode:         ${isLocalHub ? "Local Hub".padEnd(41) : "Remote Server".padEnd(41)
+        }║
 ║  Viber ID:     ${viberId.slice(0, 40).padEnd(40)}║
 ║  Server:       ${serverUrl.slice(0, 40).padEnd(40)}║
 ║  Local WS:     ws://localhost:6008                        ║
@@ -295,6 +294,206 @@ Viber Status
 
 // Monitor command removed - functionality moved to 'antigravity-healing' app
 // Use `viber start` to run background apps.
+
+// ==================== viber onboard ====================
+
+program
+  .command("onboard")
+  .description("Initialize OpenViber configuration (first-time setup)")
+  .action(async () => {
+    const configDir = path.join(os.homedir(), ".openviber");
+    const agentsDir = path.join(configDir, "agents");
+    const jobsDir = path.join(configDir, "jobs");
+    const spaceDir = path.join(configDir, "space");
+
+    console.log(`
+╔═══════════════════════════════════════════════════════════╗
+║               OPENVIBER SETUP                             ║
+╚═══════════════════════════════════════════════════════════╝
+`);
+
+    // Create directories
+    console.log("Creating directories...");
+    await fs.mkdir(configDir, { recursive: true });
+    await fs.mkdir(agentsDir, { recursive: true });
+    await fs.mkdir(jobsDir, { recursive: true });
+    await fs.mkdir(spaceDir, { recursive: true });
+    console.log(`  ✓ ${configDir}`);
+    console.log(`  ✓ ${agentsDir}`);
+    console.log(`  ✓ ${jobsDir}`);
+    console.log(`  ✓ ${spaceDir}`);
+
+    // Create default agent config
+    const defaultAgentPath = path.join(agentsDir, "default.yaml");
+    try {
+      await fs.access(defaultAgentPath);
+      console.log(`\n  ⏭ agents/default.yaml already exists, skipping`);
+    } catch {
+      const defaultAgent = `# Default Viber Agent Configuration
+name: default
+description: General-purpose assistant
+
+# LLM Provider (openrouter recommended for multi-model access)
+provider: openrouter
+model: anthropic/claude-sonnet-4-20250514
+
+# System prompt
+systemPrompt: |
+  You are a helpful AI assistant running on the user's local machine.
+  You have access to files, terminal, and browser tools.
+  Be concise and helpful.
+
+# Tools available to this agent
+tools:
+  - file
+  - terminal
+  - browser
+
+# Working mode: "always-ask" | "agent-decides" | "always-execute"
+workingMode: agent-decides
+`;
+      await fs.writeFile(defaultAgentPath, defaultAgent);
+      console.log(`\n  ✓ Created agents/default.yaml`);
+    }
+
+    // Create space bootstrap files
+    const taskPath = path.join(spaceDir, "task.md");
+    try {
+      await fs.access(taskPath);
+    } catch {
+      await fs.writeFile(taskPath, "# Current Task\n\nNo active task.\n");
+      console.log(`  ✓ Created space/task.md`);
+    }
+
+    const memoryPath = path.join(spaceDir, "MEMORY.md");
+    try {
+      await fs.access(memoryPath);
+    } catch {
+      await fs.writeFile(memoryPath, "# Memory\n\nLong-term notes and context.\n");
+      console.log(`  ✓ Created space/MEMORY.md`);
+    }
+
+    // Generate viber ID
+    const viberId = await getViberId();
+
+    console.log(`
+────────────────────────────────────────────────────────────
+Setup complete!
+
+Your viber ID: ${viberId}
+Config directory: ${configDir}
+
+Next steps:
+  1. Set your API key:
+     export OPENROUTER_API_KEY="sk-or-v1-xxx"
+
+  2. Start your viber:
+     openviber start
+
+  3. Or run a quick task:
+     openviber run "Hello, what can you do?"
+
+Get an API key at: https://openrouter.ai/keys
+────────────────────────────────────────────────────────────
+`);
+  });
+
+// ==================== viber gateway ====================
+
+program
+  .command("gateway")
+  .description("Start the enterprise channel gateway (DingTalk, WeCom, etc.)")
+  .option("-p, --port <port>", "Gateway port", "6009")
+  .action(async (options) => {
+    const { channelManager } = await import("../channels/manager");
+    const { DingTalkChannel } = await import("../channels/dingtalk");
+    const { WeComChannel } = await import("../channels/wecom");
+
+    console.log(`
+╔═══════════════════════════════════════════════════════════╗
+║                   GATEWAY STARTING                        ║
+╚═══════════════════════════════════════════════════════════╝
+`);
+
+    // Register channels based on environment
+    const channels: string[] = [];
+
+    if (process.env.DINGTALK_APP_KEY && process.env.DINGTALK_APP_SECRET) {
+      channelManager.register(
+        new DingTalkChannel({
+          enabled: true,
+          appKey: process.env.DINGTALK_APP_KEY,
+          appSecret: process.env.DINGTALK_APP_SECRET,
+          robotCode: process.env.DINGTALK_ROBOT_CODE,
+        })
+      );
+      channels.push("DingTalk");
+    }
+
+    if (
+      process.env.WECOM_CORP_ID &&
+      process.env.WECOM_AGENT_SECRET &&
+      process.env.WECOM_TOKEN &&
+      process.env.WECOM_ENCODING_AES_KEY
+    ) {
+      channelManager.register(
+        new WeComChannel({
+          enabled: true,
+          corpId: process.env.WECOM_CORP_ID,
+          agentId: process.env.WECOM_AGENT_ID || "0",
+          secret: process.env.WECOM_AGENT_SECRET,
+          token: process.env.WECOM_TOKEN,
+          aesKey: process.env.WECOM_ENCODING_AES_KEY,
+        })
+      );
+      channels.push("WeCom");
+    }
+
+
+    if (channels.length === 0) {
+      console.log(`
+No channels configured. Set environment variables to enable channels:
+
+DingTalk:
+  DINGTALK_APP_KEY, DINGTALK_APP_SECRET, DINGTALK_ROBOT_CODE
+
+WeCom:
+  WECOM_CORP_ID, WECOM_AGENT_ID, WECOM_AGENT_SECRET
+  WECOM_TOKEN, WECOM_ENCODING_AES_KEY (optional)
+
+Run 'openviber gateway' again after setting environment variables.
+`);
+      process.exit(1);
+    }
+
+    // Start all channels
+    await channelManager.startAll();
+
+    // Handle graceful shutdown
+    process.on("SIGINT", async () => {
+      console.log("\n[Gateway] Shutting down...");
+      await channelManager.stopAll();
+      process.exit(0);
+    });
+
+    process.on("SIGTERM", async () => {
+      console.log("\n[Gateway] Shutting down...");
+      await channelManager.stopAll();
+      process.exit(0);
+    });
+
+    console.log(`
+╔═══════════════════════════════════════════════════════════╗
+║                   GATEWAY RUNNING                         ║
+╠═══════════════════════════════════════════════════════════╣
+║  Channels:     ${channels.join(", ").padEnd(41)}║
+║  Status:       ● Ready                                    ║
+╚═══════════════════════════════════════════════════════════╝
+
+Listening for messages from enterprise channels...
+Press Ctrl+C to stop.
+`);
+  });
 
 // ==================== Helpers ====================
 

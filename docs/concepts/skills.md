@@ -1,133 +1,70 @@
 ---
-title: "Skills Architecture"
-description: "Domain-specific knowledge modules that teach agents specialized capabilities"
----
-## Overview
-
-**Skills** are domain-specific knowledge modules that extend agent capabilities. Unlike tools (which provide actions), skills provide *knowledge* and *context* that guide how agents approach problems.
-
-```
-Skills = Knowledge (how to approach)
-Tools  = Capabilities (how to execute)
-```
-
-## Skill Structure
-
-Each skill is a directory containing:
-
-```
-skills/
-└── antigravity/
-    ├── SKILL.md      # Frontmatter + instructions
-    └── index.ts      # Tool definitions (optional)
-```
-
-### SKILL.md Format
-
-```markdown
----
-name: antigravity
-description: Monitors and heals Antigravity IDE agent errors
+title: "Skills"
+description: "Domain knowledge that teaches agents how to approach specific tasks"
 ---
 
-# Antigravity Healer
+# Skills
 
-You are a health monitor for the Antigravity IDE...
+**Skills** are bundles of domain knowledge that teach agents how to approach specific tasks. Unlike tools (which provide actions), skills provide *knowledge* and *context*.
 
-## Detection Rules
-- Look for "Agent Terminated" errors
-- Check cascade panel visibility
+## The Difference
 
-## Recovery Procedure
-1. Call antigravity_check_and_heal
-2. Report status
-```
+| | Skills | Tools |
+|---|--------|-------|
+| **Purpose** | Teach *how to think* | Provide *what to do* |
+| **Content** | Instructions, best practices | Executable actions |
+| **Example** | "How to debug React apps" | `file.write()` |
 
-The frontmatter defines metadata, and the markdown body provides instructions injected into the agent's system prompt.
+## How Skills Work
 
-## Skill Tools
+When you assign a skill to an agent, it learns:
 
-Skills can provide specialized tools via `index.ts`:
+- **What to look for** — Patterns, signals, indicators
+- **How to approach problems** — Strategies, best practices
+- **When to escalate** — Edge cases, risky situations
+- **Domain vocabulary** — Specific terms and concepts
 
-```typescript
-export function getTools() {
-  return {
-    antigravity_check_and_heal: {
-      description: "Scan for errors and auto-recover",
-      inputSchema: z.object({}),
-      execute: async () => {
-        // Domain-specific implementation
-        return { status: "HEALTHY", message: "All good" };
-      },
-    },
-  };
-}
-```
+For example, an "antigravity" skill might teach an agent:
+- How to detect IDE agent errors
+- Where to look for crash indicators
+- Steps to recover from failures
+- When to alert the user
 
 ## Using Skills
 
-Skills are assigned to agents via configuration:
+Skills are assigned to agents when you configure them. An agent with the right skills can handle domain-specific tasks without detailed instructions each time.
 
-```typescript
-const agent = new Agent({
-  name: "Healer",
-  skills: ["antigravity"],  // Skill IDs
-  tools: ["browser"],       // Separate from skills
-});
-```
+**Without skill:**
+> "Check the Antigravity IDE for agent terminated errors. If you find one, look for the retry button and click it. Then wait and verify..."
 
-Or in YAML job definitions:
+**With skill:**
+> "Monitor Antigravity and auto-recover if needed."
 
-```yaml
-name: Antigravity Healer
-skills:
-  - antigravity
-tools:
-  - browser
-prompt: |
-  Call antigravity_check_and_heal to monitor health.
-```
+The skill contains all the detailed knowledge.
 
-## Skills vs Tools
+## Skill Bundles
 
-| Aspect | Skills | Tools |
-|--------|--------|-------|
-| Purpose | Teach domain knowledge | Provide actions |
-| Loaded as | System prompt instructions | Callable functions |
-| Example | "How to heal Antigravity" | `browser.click()` |
+A skill can include:
 
-::: tip
-Skills encapsulate both *knowledge* (instructions) and *specialized tools* for a specific domain. This follows the "Atomic Skill-Level Healing" principle where detection and recovery are bundled together.
-:::
+- **Instructions** — What the agent should know
+- **Specialized tools** — Actions specific to this domain
+- **Examples** — Reference cases for the agent
 
-## ClawHub Compatibility
-
-OpenViber is compatible with the **ClawHub** skill bundle spec so skills can be imported directly without conversion. Concretely:
-
-- A ClawHub skill bundle **must include `SKILL.md` at the bundle root**, and OpenViber uses the frontmatter + body as the skill definition.
-- Optional files (CLI helpers, configs, assets) are kept intact; OpenViber ignores unknown metadata and only loads the pieces it understands.
-- If the bundle exposes tools via `index.ts`, OpenViber loads those tools alongside the SKILL.md instructions.
-
-This keeps OpenViber stateless while allowing teams to share and reuse skills from `https://clawhub.ai/` across environments.
+This "atomic" approach keeps detection and recovery bundled together.
 
 ## Built-in Skills
 
 | Skill | Purpose |
 |-------|---------|
-| `antigravity` | Monitor and heal IDE agent errors |
-| `calculator` | Basic arithmetic (example skill) |
+| **antigravity** | Monitor and heal IDE agent errors |
 
 ## Creating Custom Skills
 
-1. Create a directory under `src/skills/`:
-   ```
-   src/skills/my-skill/
-   ├── SKILL.md
-   └── index.ts
-   ```
+Skills are defined as simple markdown files with a YAML header describing metadata. The body contains the instructions that get injected into the agent's context.
 
-2. Define the SKILL.md with frontmatter and instructions
+This makes skills easy to write, read, and share.
 
-3. Optionally export tools from `index.ts`
+## Next Steps
 
-4. Reference by skill ID in agent config
+- [Tools](/docs/concepts/tools) — Actions that agents can take
+- [Agents](/docs/concepts/agents) — How to configure agents with skills

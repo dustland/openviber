@@ -56,7 +56,7 @@
 
 <div class="h-screen bg-background flex flex-col overflow-hidden">
   <header class="border-b border-border shrink-0">
-    <nav class="flex items-center gap-1.5 px-2 py-1 text-sm min-h-8 flex-wrap">
+    <nav class="flex items-center gap-2 px-4 py-2 text-sm min-h-10 flex-wrap">
       <a
         href="/"
         class="font-semibold text-foreground flex items-center gap-1.5 shrink-0"

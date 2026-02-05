@@ -241,28 +241,19 @@
         <Sidebar.MenuItem>
           <Sidebar.MenuButton size="sm" class="group-data-[collapsible=icon]:p-0!">
             {#snippet child({ props })}
-              <a href="/" {...props}>
+              <a href="/vibers" {...props}>
                 <img src="/favicon.png" alt="OpenViber" class="size-6" />
-                <span class="truncate font-semibold text-sm">OpenViber</span>
+                <span class="truncate font-semibold text-sm">{viber?.name || "Viber"}</span>
+                {#if viber?.isConnected}
+                  <span class="size-1.5 rounded-full bg-green-500 shrink-0"></span>
+                {:else}
+                  <span class="size-1.5 rounded-full bg-muted-foreground shrink-0"></span>
+                {/if}
               </a>
             {/snippet}
           </Sidebar.MenuButton>
         </Sidebar.MenuItem>
       </Sidebar.Menu>
-
-      <!-- Viber Status -->
-      <div class="px-2 py-1 border-t border-sidebar-border/50 mt-1">
-        <div class="flex items-center gap-2 text-xs">
-          {#if viber?.isConnected}
-            <Circle class="size-2 fill-green-500 text-green-500 shrink-0" />
-          {:else}
-            <Circle class="size-2 fill-muted-foreground text-muted-foreground shrink-0" />
-          {/if}
-          <span class="truncate text-muted-foreground group-data-[collapsible=icon]:hidden">
-            {viber?.name || "Loading..."}
-          </span>
-        </div>
-      </div>
     </Sidebar.Header>
 
     <Sidebar.Content>
@@ -407,48 +398,48 @@
         </Sidebar.MenuItem>
         <Sidebar.MenuItem>
           <DropdownMenu>
-            <DropdownMenuTrigger class="w-full">
-              {#snippet child({ props })}
-                <Sidebar.MenuButton {...props} tooltipContent="Theme">
-                  {#if theme === "light"}
-                    <Sun class="size-4" />
-                  {:else if theme === "dark"}
-                    <Moon class="size-4" />
-                  {:else}
-                    <Laptop class="size-4" />
-                  {/if}
-                  <span class="capitalize">{theme}</span>
-                </Sidebar.MenuButton>
-              {/snippet}
+            <DropdownMenuTrigger
+              class="w-full h-8 rounded-md border border-sidebar-border bg-sidebar px-2.5 text-sm text-sidebar-foreground inline-flex items-center gap-2 hover:bg-sidebar-accent transition-colors group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center"
+            >
+              {#if theme === "light"}
+                <Sun class="size-4 shrink-0" />
+              {:else if theme === "dark"}
+                <Moon class="size-4 shrink-0" />
+              {:else}
+                <Laptop class="size-4 shrink-0" />
+              {/if}
+              <span class="capitalize flex-1 text-left group-data-[collapsible=icon]:hidden">{theme}</span>
+              <ChevronDown class="size-3.5 opacity-50 group-data-[collapsible=icon]:hidden" />
             </DropdownMenuTrigger>
             <DropdownMenuContent
               side="right"
               align="end"
-              class="min-w-32 rounded-md border border-border bg-popover p-1 shadow-md"
+              sideOffset={8}
+              class="min-w-36 rounded-md border border-border bg-popover p-1 shadow-md"
             >
               <DropdownMenuItem
-                class="w-full rounded px-2.5 py-1.5 text-left text-xs hover:bg-accent flex items-center gap-2 outline-none cursor-pointer"
+                class="w-full rounded px-2.5 py-2 text-left text-sm hover:bg-accent flex items-center gap-2.5 outline-none cursor-pointer"
                 onSelect={() => setTheme("system")}
               >
-                <Laptop class="size-3.5" />
+                <Laptop class="size-4" />
                 System
-                {#if theme === "system"}<Check class="size-3.5 ml-auto" />{/if}
+                {#if theme === "system"}<Check class="size-4 ml-auto" />{/if}
               </DropdownMenuItem>
               <DropdownMenuItem
-                class="w-full rounded px-2.5 py-1.5 text-left text-xs hover:bg-accent flex items-center gap-2 outline-none cursor-pointer"
+                class="w-full rounded px-2.5 py-2 text-left text-sm hover:bg-accent flex items-center gap-2.5 outline-none cursor-pointer"
                 onSelect={() => setTheme("light")}
               >
-                <Sun class="size-3.5" />
+                <Sun class="size-4" />
                 Light
-                {#if theme === "light"}<Check class="size-3.5 ml-auto" />{/if}
+                {#if theme === "light"}<Check class="size-4 ml-auto" />{/if}
               </DropdownMenuItem>
               <DropdownMenuItem
-                class="w-full rounded px-2.5 py-1.5 text-left text-xs hover:bg-accent flex items-center gap-2 outline-none cursor-pointer"
+                class="w-full rounded px-2.5 py-2 text-left text-sm hover:bg-accent flex items-center gap-2.5 outline-none cursor-pointer"
                 onSelect={() => setTheme("dark")}
               >
-                <Moon class="size-3.5" />
+                <Moon class="size-4" />
                 Dark
-                {#if theme === "dark"}<Check class="size-3.5 ml-auto" />{/if}
+                {#if theme === "dark"}<Check class="size-4 ml-auto" />{/if}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

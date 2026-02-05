@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import { page } from "$app/stores";
   import { goto } from "$app/navigation";
-  import { Send, Cpu } from "@lucide/svelte";
+  import { Send, Cpu, MessageSquare, Sparkles } from "@lucide/svelte";
   import { marked } from "marked";
   import { Button } from "$lib/components/ui/button";
 
@@ -283,78 +283,124 @@
   <!-- Messages -->
   <div
       bind:this={messagesContainer}
-      class="flex-1 min-h-0 overflow-y-auto p-3"
+      class="flex-1 min-h-0 overflow-y-auto"
     >
-      <div class="mx-auto w-full max-w-5xl space-y-3">
-        {#if loading}
-          <div
-            class="min-h-full flex items-center justify-center text-center text-muted-foreground"
-          >
-            Loading...
+      {#if loading}
+        <div class="h-full flex items-center justify-center text-center text-muted-foreground">
+          Loading...
+        </div>
+      {:else if !viber?.isConnected}
+        <div class="h-full flex items-center justify-center text-center text-muted-foreground p-4">
+          <div>
+            <Cpu class="size-12 mx-auto mb-4 opacity-50" />
+            <p class="text-lg font-medium">Viber is Offline</p>
+            <p class="text-sm mt-2 max-w-sm">
+              This viber is not currently connected. Start the viber daemon to chat.
+            </p>
           </div>
-        {:else if !viber?.isConnected}
-          <div
-            class="min-h-full flex items-center justify-center text-center text-muted-foreground"
-          >
-            <div>
-              <Cpu class="size-12 mx-auto mb-4 opacity-50" />
-              <p class="text-lg font-medium">Viber is Offline</p>
-              <p class="text-sm mt-2">
-                This viber is not currently connected. Start the viber daemon to
-                chat.
+        </div>
+        {:else if messages.length === 0}
+          <div class="h-full flex flex-col items-center justify-center py-12 px-4">
+            <div class="text-center mb-8">
+              <div class="inline-flex items-center justify-center size-12 rounded-full bg-primary/10 text-primary mb-4">
+                <Sparkles class="size-6" />
+              </div>
+              <h2 class="text-xl font-semibold text-foreground mb-2">
+                What can I help you with?
+              </h2>
+              <p class="text-sm text-muted-foreground max-w-md">
+                Start a conversation with your viber. Try one of the suggestions below or type your own message.
               </p>
             </div>
-          </div>
-        {:else if messages.length === 0}
-          <div
-            class="min-h-full flex items-center justify-center text-center text-muted-foreground"
-          >
-            <div>
-              <p class="text-sm font-medium text-foreground mb-0.5">
-                No messages yet
-              </p>
-              <p class="text-xs">
-                Send a task or goal. Type in the box below and press Enter.
-              </p>
+
+            <div class="grid gap-2 w-full max-w-lg">
+              <button
+                type="button"
+                class="flex items-start gap-3 p-3 rounded-lg border border-border bg-card hover:bg-accent/50 text-left transition-colors group"
+                onclick={() => sendMessage("What can you do? List your capabilities.")}
+              >
+                <MessageSquare class="size-5 text-muted-foreground group-hover:text-foreground shrink-0 mt-0.5" />
+                <div>
+                  <p class="text-sm font-medium text-foreground">What can you do?</p>
+                  <p class="text-xs text-muted-foreground">List your capabilities and available skills</p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                class="flex items-start gap-3 p-3 rounded-lg border border-border bg-card hover:bg-accent/50 text-left transition-colors group"
+                onclick={() => sendMessage("Help me understand the current project structure.")}
+              >
+                <MessageSquare class="size-5 text-muted-foreground group-hover:text-foreground shrink-0 mt-0.5" />
+                <div>
+                  <p class="text-sm font-medium text-foreground">Explore the project</p>
+                  <p class="text-xs text-muted-foreground">Understand the current project structure</p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                class="flex items-start gap-3 p-3 rounded-lg border border-border bg-card hover:bg-accent/50 text-left transition-colors group"
+                onclick={() => sendMessage("Run the dev server and show me the output.")}
+              >
+                <MessageSquare class="size-5 text-muted-foreground group-hover:text-foreground shrink-0 mt-0.5" />
+                <div>
+                  <p class="text-sm font-medium text-foreground">Run dev server</p>
+                  <p class="text-xs text-muted-foreground">Start the development server and monitor output</p>
+                </div>
+              </button>
+
               {#if viber.skills && viber.skills.length > 0}
-                <p class="text-xs mt-1.5 opacity-80">
-                  This viber has skills: {viber.skills
-                    .map((s) => s.name)
-                    .join(", ")}. Use the templates above the chat input to
-                  start quickly.
-                </p>
+                <div class="mt-2 pt-2 border-t border-border/50">
+                  <p class="text-xs text-muted-foreground mb-2 px-1">Available skills:</p>
+                  <div class="flex flex-wrap gap-1.5">
+                    {#each viber.skills as skill}
+                      <button
+                        type="button"
+                        class="rounded-full border border-border bg-muted/40 px-2.5 py-1 text-[11px] text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                        onclick={() => insertSkillTemplate(skill)}
+                        title={skill.description}
+                      >
+                        {skill.name}
+                      </button>
+                    {/each}
+                  </div>
+                </div>
               {/if}
             </div>
           </div>
-        {:else}
-          {#each messages as message (message.id)}
-            <div
-              class="flex {message.role === 'user'
-                ? 'justify-end'
-                : 'justify-start'}"
-            >
+      {:else}
+        <div class="p-3">
+          <div class="mx-auto w-full max-w-3xl space-y-3">
+            {#each messages as message (message.id)}
               <div
-                class="max-w-[80%] rounded-lg px-4 py-2 {message.role === 'user'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-foreground'}"
+                class="flex {message.role === 'user'
+                  ? 'justify-end'
+                  : 'justify-start'}"
               >
-                <div class="message-markdown">
-                  {@html renderMarkdown(message.content)}
+                <div
+                  class="max-w-[85%] rounded-lg px-4 py-2 {message.role === 'user'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-foreground'}"
+                >
+                  <div class="message-markdown">
+                    {@html renderMarkdown(message.content)}
+                  </div>
+                  <p class="text-xs mt-1 opacity-70">
+                    {new Date(message.createdAt).toLocaleTimeString()}
+                  </p>
                 </div>
-                <p class="text-xs mt-1 opacity-70">
-                  {new Date(message.createdAt).toLocaleTimeString()}
-                </p>
               </div>
-            </div>
-          {/each}
-        {/if}
-      </div>
+            {/each}
+          </div>
+        </div>
+      {/if}
     </div>
 
     <!-- Input: single row only -->
-    <div class="border-t border-border p-2 shrink-0">
-      <div class="mx-auto w-full max-w-5xl space-y-2">
-        {#if viber?.skills && viber.skills.length > 0}
+    <div class="border-t border-border p-3 shrink-0">
+      <div class="mx-auto w-full max-w-3xl space-y-2">
+        {#if viber?.skills && viber.skills.length > 0 && messages.length > 0}
           <div class="overflow-x-auto pb-0.5">
             <div class="flex items-center gap-1.5 min-w-max">
               {#each viber.skills as skill}

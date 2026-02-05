@@ -17,3 +17,21 @@ export {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./dropdown-menu";
+
+// Sidebar
+export * from "./sidebar";
+
+// Separator
+export * from "./separator";
+
+// Skeleton
+export * from "./skeleton";
+
+// Sheet
+export * from "./sheet";
+
+// Tooltip
+export * from "./tooltip";
+
+// Resizable
+export * from "./resizable";

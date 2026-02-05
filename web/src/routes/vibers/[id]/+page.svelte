@@ -41,15 +41,6 @@
     createdAt: Date;
   }
 
-  interface TaskSummary {
-    id: string;
-    goal: string;
-    status: string;
-    createdAt: string;
-    result?: { text?: string; summary?: string };
-    error?: string;
-  }
-
   let viber = $state<Viber | null>(null);
   let messages = $state<Message[]>([]);
   let loading = $state(true);
@@ -58,44 +49,12 @@
   let currentTaskId = $state<string | null>(null);
   let messagesContainer = $state<HTMLDivElement | null>(null);
   let inputEl = $state<HTMLTextAreaElement | null>(null);
-  let viberTasks = $state<TaskSummary[]>([]);
-  let stoppingTaskId = $state<string | null>(null);
-
-  async function stopTask(taskId: string) {
-    if (stoppingTaskId) return;
-    stoppingTaskId = taskId;
-    try {
-      const res = await fetch(`/api/tasks/${taskId}/stop`, { method: "POST" });
-      if (res.ok) {
-        await fetchTasksForViber();
-      }
-    } finally {
-      stoppingTaskId = null;
-    }
-  }
 
   $effect(() => {
     if (messagesContainer) {
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
   });
-
-  async function fetchTasksForViber() {
-    if (!viber?.id) return;
-    try {
-      const res = await fetch(
-        `/api/tasks?viberId=${encodeURIComponent(viber.id)}`
-      );
-      if (!res.ok) return;
-      const data = await res.json();
-      viberTasks = (data.tasks || []).sort(
-        (a: TaskSummary, b: TaskSummary) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-    } catch (_) {
-      /* ignore */
-    }
-  }
 
   async function fetchMessages(viberId: string) {
     try {
@@ -313,14 +272,6 @@
     fetchViber();
     const interval = setInterval(fetchViber, 5000);
     return () => clearInterval(interval);
-  });
-
-  $effect(() => {
-    if (viber?.id && viber.isConnected) {
-      fetchTasksForViber();
-      const t = setInterval(fetchTasksForViber, 4000);
-      return () => clearInterval(t);
-    }
   });
 </script>
 

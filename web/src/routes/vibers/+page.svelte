@@ -83,7 +83,7 @@
   <title>Vibers - Viber Board</title>
 </svelte:head>
 
-<div class="container mx-auto px-4 py-8">
+<div class="px-6 py-6 max-w-6xl">
   <div class="flex items-center justify-between mb-8">
     <div>
       <h1 class="text-3xl font-bold text-foreground">Vibers</h1>

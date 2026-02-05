@@ -3,6 +3,14 @@
   import { onMount, onDestroy } from "svelte";
   import { headerStore } from "$lib/stores/header";
   import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+  } from "$lib/components/ui/dropdown-menu";
+  import * as Sidebar from "$lib/components/ui/sidebar";
+  import * as Resizable from "$lib/components/ui/resizable";
+  import {
     MessageSquare,
     Terminal,
     Server,
@@ -10,10 +18,15 @@
     ChevronRight,
     Plus,
     Circle,
-    PanelLeftClose,
-    PanelLeft,
-    ExternalLink,
+    BookOpen,
+    Moon,
+    Sun,
+    Laptop,
+    Check,
+    Home,
   } from "@lucide/svelte";
+
+  type Theme = "light" | "dark" | "system";
 
   interface ViberSkill {
     id: string;
@@ -55,7 +68,7 @@
   let { children } = $props();
   let viber = $state<Viber | null>(null);
   let loading = $state(true);
-  let sidebarCollapsed = $state(false);
+  let theme = $state<Theme>("system");
   
   // Collapsible group states
   let chatsExpanded = $state(true);
@@ -67,23 +80,31 @@
   let terminalPanes = $state<TmuxPane[]>([]);
   let ports = $state<PortTarget[]>([]);
   
+  // Active app panel
+  let activeTerminal = $state<string | null>(null);
+  let appPanelExpanded = $state(true);
+  
   // Terminal WebSocket
   let terminalWs = $state<WebSocket | null>(null);
 
   const viberId = $derived($page.params.id);
-  const currentPath = $derived($page.url.pathname);
 
-  // Determine active item from path
-  const getActiveItem = $derived(() => {
-    const path = currentPath;
-    if (path.includes("/terminals/")) {
-      const match = path.match(/\/terminals\/(.+)/);
-      return { type: "terminal", id: match?.[1] || "" };
+  function applyTheme(selectedTheme: Theme) {
+    if (typeof window === "undefined") return;
+    if (selectedTheme === "system") {
+      localStorage.removeItem("theme");
+      const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      document.documentElement.classList.toggle("dark", isDark);
+      return;
     }
-    if (path.includes("/terminals")) return { type: "terminals-index", id: "" };
-    if (path.includes("/ports")) return { type: "ports", id: "" };
-    return { type: "chat", id: "default" };
-  });
+    localStorage.setItem("theme", selectedTheme);
+    document.documentElement.classList.toggle("dark", selectedTheme === "dark");
+  }
+
+  function setTheme(nextTheme: Theme) {
+    theme = nextTheme;
+    applyTheme(theme);
+  }
 
   async function fetchViber() {
     try {
@@ -116,6 +137,10 @@
         const msg = JSON.parse(event.data);
         if (msg.type === "terminal:list") {
           terminalPanes = msg.panes || [];
+          // Auto-select first terminal if none selected
+          if (!activeTerminal && terminalPanes.length > 0) {
+            activeTerminal = terminalPanes[0].target;
+          }
         }
       } catch {}
     };
@@ -145,6 +170,11 @@
     }
   }
 
+  function selectTerminal(target: string) {
+    activeTerminal = target;
+    appPanelExpanded = true;
+  }
+
   // Sync viber context to header
   $effect(() => {
     if (viber?.id) {
@@ -154,12 +184,16 @@
         isConnected: viber.isConnected,
         platform: viber.platform,
         skills: viber.skills ?? [],
-        activeTab: getActiveItem().type,
+        activeTab: "chat",
       });
     }
   });
 
   onMount(() => {
+    // Load theme
+    const stored = localStorage.getItem("theme");
+    theme = stored === "dark" || stored === "light" ? stored : "system";
+    
     fetchViber();
     connectTerminalWs();
     loadPorts();
@@ -189,211 +223,290 @@
     }
     return map;
   });
+
+  // Export for child components
+  export function getTerminalWs() {
+    return terminalWs;
+  }
+  
+  export function getActiveTerminal() {
+    return activeTerminal;
+  }
 </script>
 
-<div class="flex-1 flex min-h-0 overflow-hidden">
-  <!-- Sidebar -->
-  <aside
-    class="shrink-0 border-r border-border bg-muted/20 flex flex-col transition-all duration-200 {sidebarCollapsed
-      ? 'w-12'
-      : 'w-64'}"
-  >
-    <!-- Sidebar Header -->
-    <div class="p-3 border-b border-border/50 flex items-center justify-between">
-      {#if !sidebarCollapsed}
-        <div class="flex items-center gap-2 min-w-0">
+<Sidebar.Provider>
+  <Sidebar.Root collapsible="icon" class="border-r border-sidebar-border">
+    <Sidebar.Header class="p-2 pb-1">
+      <Sidebar.Menu>
+        <Sidebar.MenuItem>
+          <Sidebar.MenuButton size="sm" class="group-data-[collapsible=icon]:p-0!">
+            {#snippet child({ props })}
+              <a href="/" {...props}>
+                <img src="/favicon.png" alt="OpenViber" class="size-6" />
+                <span class="truncate font-semibold text-sm">OpenViber</span>
+              </a>
+            {/snippet}
+          </Sidebar.MenuButton>
+        </Sidebar.MenuItem>
+      </Sidebar.Menu>
+
+      <!-- Viber Status -->
+      <div class="px-2 py-1 border-t border-sidebar-border/50 mt-1">
+        <div class="flex items-center gap-2 text-xs">
           {#if viber?.isConnected}
-            <Circle class="size-2.5 fill-green-500 text-green-500 shrink-0" />
+            <Circle class="size-2 fill-green-500 text-green-500 shrink-0" />
           {:else}
-            <Circle class="size-2.5 fill-muted-foreground text-muted-foreground shrink-0" />
+            <Circle class="size-2 fill-muted-foreground text-muted-foreground shrink-0" />
           {/if}
-          <span class="font-medium text-sm truncate">{viber?.name || "Loading..."}</span>
+          <span class="truncate text-muted-foreground group-data-[collapsible=icon]:hidden">
+            {viber?.name || "Loading..."}
+          </span>
         </div>
-      {/if}
-      <button
-        onclick={() => (sidebarCollapsed = !sidebarCollapsed)}
-        class="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shrink-0"
-        title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-      >
-        {#if sidebarCollapsed}
-          <PanelLeft class="size-4" />
-        {:else}
-          <PanelLeftClose class="size-4" />
-        {/if}
-      </button>
-    </div>
+      </div>
+    </Sidebar.Header>
 
-    <!-- Navigation Groups -->
-    <nav class="flex-1 overflow-y-auto p-2">
-      {#if !sidebarCollapsed}
-        <!-- Chats Group -->
-        <div class="mb-4">
-          <div class="flex items-center justify-between px-2 py-1.5">
-            <button
-              onclick={() => (chatsExpanded = !chatsExpanded)}
-              class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors"
-            >
-              {#if chatsExpanded}
-                <ChevronDown class="size-3.5" />
-              {:else}
-                <ChevronRight class="size-3.5" />
-              {/if}
-              <span>Chats</span>
-            </button>
-            <button
-              onclick={() => { /* TODO: new chat */ }}
-              class="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
-              title="New chat"
-            >
-              <Plus class="size-3.5" />
-            </button>
-          </div>
-
-          {#if chatsExpanded}
-            <div class="mt-1 space-y-0.5">
+    <Sidebar.Content>
+      <!-- Chats Group -->
+      <Sidebar.Group>
+        <Sidebar.GroupLabel class="flex items-center justify-between">
+          <button
+            onclick={() => (chatsExpanded = !chatsExpanded)}
+            class="flex items-center gap-1 hover:text-foreground transition-colors"
+          >
+            {#if chatsExpanded}
+              <ChevronDown class="size-3" />
+            {:else}
+              <ChevronRight class="size-3" />
+            {/if}
+            <span>Chats</span>
+          </button>
+          <button
+            onclick={() => {}}
+            class="p-0.5 rounded hover:bg-sidebar-accent text-muted-foreground hover:text-foreground transition-colors"
+            title="New chat"
+          >
+            <Plus class="size-3" />
+          </button>
+        </Sidebar.GroupLabel>
+        {#if chatsExpanded}
+          <Sidebar.GroupContent>
+            <Sidebar.Menu>
               {#each chatSessions as chat (chat.id)}
-                <a
-                  href="/vibers/{viberId}"
-                  class="flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors {getActiveItem().type === 'chat'
-                    ? 'bg-accent text-accent-foreground font-medium'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'}"
-                >
-                  <MessageSquare class="size-4 shrink-0" />
-                  <span class="truncate">{chat.name}</span>
-                </a>
+                <Sidebar.MenuItem>
+                  <Sidebar.MenuButton isActive={true} tooltipContent={chat.name}>
+                    <MessageSquare class="size-4" />
+                    <span>{chat.name}</span>
+                  </Sidebar.MenuButton>
+                </Sidebar.MenuItem>
               {/each}
-            </div>
-          {/if}
-        </div>
+            </Sidebar.Menu>
+          </Sidebar.GroupContent>
+        {/if}
+      </Sidebar.Group>
 
-        <!-- Terminals Group -->
-        <div class="mb-4">
-          <div class="flex items-center justify-between px-2 py-1.5">
-            <button
-              onclick={() => (terminalsExpanded = !terminalsExpanded)}
-              class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors"
-            >
-              {#if terminalsExpanded}
-                <ChevronDown class="size-3.5" />
-              {:else}
-                <ChevronRight class="size-3.5" />
-              {/if}
-              <span>Terminals</span>
-              {#if terminalPanes.length > 0}
-                <span class="text-[10px] bg-muted px-1.5 py-0.5 rounded-full font-normal normal-case">
-                  {terminalPanes.length}
-                </span>
-              {/if}
-            </button>
-          </div>
-
-          {#if terminalsExpanded}
-            <div class="mt-1 space-y-0.5">
+      <!-- Terminals Group -->
+      <Sidebar.Group>
+        <Sidebar.GroupLabel class="flex items-center justify-between">
+          <button
+            onclick={() => (terminalsExpanded = !terminalsExpanded)}
+            class="flex items-center gap-1 hover:text-foreground transition-colors"
+          >
+            {#if terminalsExpanded}
+              <ChevronDown class="size-3" />
+            {:else}
+              <ChevronRight class="size-3" />
+            {/if}
+            <span>Terminals</span>
+            {#if terminalPanes.length > 0}
+              <span class="text-[9px] bg-sidebar-accent px-1.5 py-0.5 rounded-full font-normal normal-case ml-1">
+                {terminalPanes.length}
+              </span>
+            {/if}
+          </button>
+        </Sidebar.GroupLabel>
+        {#if terminalsExpanded}
+          <Sidebar.GroupContent>
+            <Sidebar.Menu>
               {#if terminalPanes.length === 0}
-                <div class="px-3 py-2 text-xs text-muted-foreground">
+                <div class="px-2 py-1 text-[10px] text-muted-foreground">
                   No terminals
                 </div>
               {:else}
                 {#each Array.from(terminalsBySession().entries()) as [sessionName, panes]}
-                  <div class="mb-2">
-                    <div class="px-3 py-1 text-[10px] font-medium text-muted-foreground uppercase">
+                  <div class="mb-1">
+                    <div class="px-2 py-0.5 text-[9px] font-medium text-muted-foreground uppercase group-data-[collapsible=icon]:hidden">
                       {sessionName}
                     </div>
                     {#each panes as pane}
-                      <a
-                        href="/vibers/{viberId}/terminals?target={encodeURIComponent(pane.target)}"
-                        class="flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors {getActiveItem().type === 'terminal' && getActiveItem().id === pane.target
-                          ? 'bg-accent text-accent-foreground font-medium'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'}"
-                      >
-                        <Terminal class="size-4 shrink-0" />
-                        <span class="truncate font-mono text-xs">{pane.windowName}:{pane.pane}</span>
-                      </a>
+                      <Sidebar.MenuItem>
+                        <Sidebar.MenuButton
+                          isActive={activeTerminal === pane.target}
+                          onclick={() => selectTerminal(pane.target)}
+                          tooltipContent={`${pane.windowName}:${pane.pane}`}
+                        >
+                          <Terminal class="size-4" />
+                          <span class="font-mono text-[10px]">{pane.windowName}:{pane.pane}</span>
+                        </Sidebar.MenuButton>
+                      </Sidebar.MenuItem>
                     {/each}
                   </div>
                 {/each}
               {/if}
-            </div>
-          {/if}
-        </div>
+            </Sidebar.Menu>
+          </Sidebar.GroupContent>
+        {/if}
+      </Sidebar.Group>
 
-        <!-- Ports Group -->
-        <div class="mb-4">
-          <div class="flex items-center justify-between px-2 py-1.5">
-            <button
-              onclick={() => (portsExpanded = !portsExpanded)}
-              class="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors"
-            >
-              {#if portsExpanded}
-                <ChevronDown class="size-3.5" />
-              {:else}
-                <ChevronRight class="size-3.5" />
-              {/if}
-              <span>Ports</span>
-            </button>
-            <a
-              href="/vibers/{viberId}/ports"
-              class="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
-              title="Manage ports"
-            >
-              <Plus class="size-3.5" />
-            </a>
-          </div>
-
-          {#if portsExpanded}
-            <div class="mt-1 space-y-0.5">
+      <!-- Ports Group -->
+      <Sidebar.Group>
+        <Sidebar.GroupLabel class="flex items-center justify-between">
+          <button
+            onclick={() => (portsExpanded = !portsExpanded)}
+            class="flex items-center gap-1 hover:text-foreground transition-colors"
+          >
+            {#if portsExpanded}
+              <ChevronDown class="size-3" />
+            {:else}
+              <ChevronRight class="size-3" />
+            {/if}
+            <span>Ports</span>
+          </button>
+        </Sidebar.GroupLabel>
+        {#if portsExpanded}
+          <Sidebar.GroupContent>
+            <Sidebar.Menu>
               {#each ports as port (port.id)}
-                <button
-                  onclick={() => window.open(`http://localhost:${port.port}`, '_blank')}
-                  class="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors text-muted-foreground hover:text-foreground hover:bg-accent/50"
-                >
-                  <Server class="size-4 shrink-0" />
-                  <span class="truncate">{port.name}</span>
-                  <span class="ml-auto text-xs opacity-70">:{port.port}</span>
-                  <ExternalLink class="size-3 opacity-50" />
-                </button>
+                <Sidebar.MenuItem>
+                  <Sidebar.MenuButton
+                    onclick={() => window.open(`http://localhost:${port.port}`, '_blank')}
+                    tooltipContent={`${port.name} :${port.port}`}
+                  >
+                    <Server class="size-4" />
+                    <span class="flex-1 truncate">{port.name}</span>
+                    <span class="text-[10px] opacity-60 group-data-[collapsible=icon]:hidden">:{port.port}</span>
+                  </Sidebar.MenuButton>
+                </Sidebar.MenuItem>
               {/each}
-            </div>
-          {/if}
-        </div>
+            </Sidebar.Menu>
+          </Sidebar.GroupContent>
+        {/if}
+      </Sidebar.Group>
+    </Sidebar.Content>
 
-      {:else}
-        <!-- Collapsed state - just icons -->
-        <div class="space-y-1">
-          <a
-            href="/vibers/{viberId}"
-            class="flex items-center justify-center p-2.5 rounded-md transition-colors {getActiveItem().type === 'chat'
-              ? 'bg-accent text-accent-foreground'
-              : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'}"
-            title="Chat"
-          >
-            <MessageSquare class="size-5" />
-          </a>
-          <a
-            href="/vibers/{viberId}/terminals"
-            class="flex items-center justify-center p-2.5 rounded-md transition-colors {getActiveItem().type === 'terminals-index' || getActiveItem().type === 'terminal'
-              ? 'bg-accent text-accent-foreground'
-              : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'}"
-            title="Terminals ({terminalPanes.length})"
-          >
-            <Terminal class="size-5" />
-          </a>
-          <a
-            href="/vibers/{viberId}/ports"
-            class="flex items-center justify-center p-2.5 rounded-md transition-colors {getActiveItem().type === 'ports'
-              ? 'bg-accent text-accent-foreground'
-              : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'}"
-            title="Ports"
-          >
-            <Server class="size-5" />
-          </a>
+    <Sidebar.Footer>
+      <Sidebar.Menu>
+        <Sidebar.MenuItem>
+          <Sidebar.MenuButton tooltipContent="Documentation">
+            {#snippet child({ props })}
+              <a href="/docs" {...props}>
+                <BookOpen class="size-4" />
+                <span>Docs</span>
+              </a>
+            {/snippet}
+          </Sidebar.MenuButton>
+        </Sidebar.MenuItem>
+        <Sidebar.MenuItem>
+          <DropdownMenu>
+            <DropdownMenuTrigger class="w-full">
+              {#snippet child({ props })}
+                <Sidebar.MenuButton {...props} tooltipContent="Theme">
+                  {#if theme === "light"}
+                    <Sun class="size-4" />
+                  {:else if theme === "dark"}
+                    <Moon class="size-4" />
+                  {:else}
+                    <Laptop class="size-4" />
+                  {/if}
+                  <span class="capitalize">{theme}</span>
+                </Sidebar.MenuButton>
+              {/snippet}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              side="right"
+              align="end"
+              class="min-w-32 rounded-md border border-border bg-popover p-1 shadow-md"
+            >
+              <DropdownMenuItem
+                class="w-full rounded px-2.5 py-1.5 text-left text-xs hover:bg-accent flex items-center gap-2 outline-none cursor-pointer"
+                onSelect={() => setTheme("system")}
+              >
+                <Laptop class="size-3.5" />
+                System
+                {#if theme === "system"}<Check class="size-3.5 ml-auto" />{/if}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                class="w-full rounded px-2.5 py-1.5 text-left text-xs hover:bg-accent flex items-center gap-2 outline-none cursor-pointer"
+                onSelect={() => setTheme("light")}
+              >
+                <Sun class="size-3.5" />
+                Light
+                {#if theme === "light"}<Check class="size-3.5 ml-auto" />{/if}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                class="w-full rounded px-2.5 py-1.5 text-left text-xs hover:bg-accent flex items-center gap-2 outline-none cursor-pointer"
+                onSelect={() => setTheme("dark")}
+              >
+                <Moon class="size-3.5" />
+                Dark
+                {#if theme === "dark"}<Check class="size-3.5 ml-auto" />{/if}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </Sidebar.MenuItem>
+      </Sidebar.Menu>
+    </Sidebar.Footer>
+
+    <Sidebar.Rail />
+  </Sidebar.Root>
+
+  <Sidebar.Inset class="flex flex-col h-full min-h-0">
+    <!-- Main Content: Resizable Chat + App Panel -->
+    <Resizable.PaneGroup direction="horizontal" class="flex-1 min-h-0">
+      <!-- Chat Panel -->
+      <Resizable.Pane defaultSize={appPanelExpanded && terminalPanes.length > 0 ? 50 : 100} minSize={30}>
+        <div class="h-full flex flex-col">
+          {@render children()}
         </div>
+      </Resizable.Pane>
+
+      <!-- Resize Handle + App Panel -->
+      {#if appPanelExpanded && terminalPanes.length > 0}
+        <Resizable.Handle withHandle class="bg-border" />
+        <Resizable.Pane defaultSize={50} minSize={20} maxSize={70}>
+          <div class="h-full flex flex-col bg-[#1e1e1e]">
+            {#if activeTerminal && terminalWs}
+              {#await import('$lib/components/terminal-view.svelte') then { default: TerminalView }}
+                <TerminalView
+                  target={activeTerminal}
+                  ws={terminalWs}
+                  onClose={() => { appPanelExpanded = false; }}
+                />
+              {/await}
+            {:else}
+              <div class="h-full flex items-center justify-center text-muted-foreground text-sm">
+                Select a terminal from the sidebar
+              </div>
+            {/if}
+          </div>
+        </Resizable.Pane>
+      {:else if !appPanelExpanded && terminalPanes.length > 0}
+        <!-- Collapsed app panel toggle -->
+        <button
+          onclick={() => { appPanelExpanded = true; }}
+          class="w-10 bg-muted/30 border-l border-border flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors shrink-0"
+          title="Show terminal panel"
+        >
+          <Terminal class="size-5" />
+          <span class="text-[10px] writing-mode-vertical">Terminal</span>
+        </button>
       {/if}
-    </nav>
-  </aside>
+    </Resizable.PaneGroup>
+  </Sidebar.Inset>
+</Sidebar.Provider>
 
-  <!-- Main Content -->
-  <main class="flex-1 min-w-0 flex flex-col overflow-hidden">
-    {@render children()}
-  </main>
-</div>
+<style>
+  .writing-mode-vertical {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+  }
+</style>

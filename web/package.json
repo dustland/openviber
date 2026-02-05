@@ -14,7 +14,6 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
-    "@lucide/svelte": "^0.563.0",
     "@sveltejs/kit": "^2.15.0",
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/addon-web-links": "^0.12.0",
@@ -33,12 +32,14 @@
     "unist-util-visit": "^5.1.0"
   },
   "devDependencies": {
+    "@lucide/svelte": "^0.561.0",
     "@sveltejs/adapter-node": "^5.2.0",
     "@sveltejs/vite-plugin-svelte": "^5.0.0",
     "@tailwindcss/vite": "^4.0.0",
     "@types/better-sqlite3": "^7.6.12",
     "drizzle-kit": "^0.30.0",
     "mdsvex": "^0.12.3",
+    "paneforge": "^1.0.2",
     "shiki": "^1.0.0",
     "svelte-check": "^4.0.0",
     "tailwindcss": "^4.0.0",

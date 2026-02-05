@@ -39,6 +39,7 @@ For architectural decisions and design patterns, refer to the design docs:
 - `docs/design/task-lifecycle.md` - Task states and flow
 - `docs/design/plan-and-artifacts.md` - Plan and artifact management
 - `docs/design/memory.md` - Memory architecture
+- `docs/design/personalization.md` - Three-file personalization pattern
 - `docs/design/error-handling.md` - Error handling strategies
 
 ## Key Conventions
@@ -47,9 +48,34 @@ For architectural decisions and design patterns, refer to the design docs:
 
 The standard location for viber configuration and working state:
 
-- `~/.openviber/agents/{id}.yaml` - Agent configurations
-- `~/.openviber/tasks/` - Active task state
-- `~/.openviber/artifacts/` - Task artifacts
+```
+~/.openviber/
+├── soul.md               # Agent personality and communication style
+├── user.md               # User context and preferences
+├── memory.md             # Curated long-term memory
+├── memory/               # Daily logs (auto-generated)
+│   └── YYYY-MM-DD.md
+├── agents/               # Agent configurations
+│   └── default.yaml
+├── tasks/                # Active task state
+└── artifacts/            # Task artifacts
+```
+
+### Three-File Personalization Pattern
+
+The daemon loads three markdown files that define agent behavior:
+
+1. **soul.md** - Personality, communication style, operational boundaries
+2. **user.md** - User context, current projects, preferences
+3. **memory.md** - Persistent memory, learned patterns, decisions
+
+These files are injected into every request as context. See `docs/design/personalization.md` for the full specification.
+
+**Implementation guidance**:
+- Load files in `src/daemon/runtime.ts` via `loadPersonalization()`
+- Inject as `<soul>`, `<user>`, `<memory>` blocks in system prompt
+- Add `memory_log` tool for agent-initiated memory updates
+- Files are config (static per-machine), not conversation state
 
 ### Daemon Path
 

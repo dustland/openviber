@@ -61,7 +61,7 @@
         href="/"
         class="font-semibold text-foreground flex items-center gap-1.5 shrink-0"
       >
-        <img src="/favicon.png" alt="Viber" class="size-4" />
+        <img src="/favicon.png" alt="Viber" class="size-6" />
         OpenViber
       </a>
 

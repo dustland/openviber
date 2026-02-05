@@ -97,3 +97,17 @@ Acceptance must be evaluated from human-observable evidence:
 - report with claims linked to proof.
 
 No unverifiable self-grading.
+
+## 7. Gateway control plane (critical for open-environment vibers)
+
+OpenViber should treat a **single gateway** as the owner of the messaging/control plane per host. This is critical to keeping vibers stateless while still enabling rich multi-surface control.
+
+- **Single Gateway per host**: one daemon is the authority for channel connections and agent runs on that machine.
+- **WebSocket control plane**: all clients (Board, CLI, automation) connect over a typed WS protocol, and each connection declares **role + scopes** (operator vs node) at handshake time.
+- **Device pairing + trust**: new device IDs require explicit pairing approval; local loopback/tailnet connects can be auto-approved to keep same-host UX smooth.
+- **Challenge-based handshake**: gateway issues a nonce challenge; client signs it and sends device identity + auth token.
+- **Idempotency keys** for side-effecting requests (send, run agent) to allow safe retries.
+- **Events are push-only** (presence, agent progress, health, heartbeat). Clients must refresh state on gaps; events are not replayed.
+- **Remote access pattern**: VPN/Tailscale or SSH tunnel to the gateway, reusing the same handshake + token.
+
+This control plane keeps the daemon lean while allowing multiple operator surfaces and device nodes to coordinate safely.

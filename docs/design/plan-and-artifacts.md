@@ -18,7 +18,7 @@ Both keep plan and artifacts on the client; the agent consumes them as context a
 ## Principles
 
 1. **Process-stateless daemon, filesystem state**  
-   The daemon keeps no in-memory conversation/task state between requests, but it **does** read/write the workspace on disk (`~/.openviber/`). This mirrors OpenClaw’s `~/.openclaw` pattern and allows context to persist across channels and restarts without depending on the Board.
+   The daemon keeps no in-memory conversation/task state between requests, but it **does** read/write the workspace on disk (`~/.openviber/`). This allows context to persist across channels and restarts without depending on the Board.
 
 2. **Context-in, context-out**  
    Plan and artifacts are opaque context: the daemon injects them into the agent’s context and returns the assistant message; any “update” is carried in that message. The Viber Board (or local storage) persists and re-sends on the next request.

@@ -87,6 +87,27 @@ const agent = new Agent({
 - **Parameter Validation**: Before executing any tool, the Tool Manager validates the arguments provided by the agent against the tool's defined schema. This prevents malformed calls and a class of potential injection attacks.
 - **Human-in-the-Loop**: Sensitive tools can require human approval before execution, providing an additional layer of control.
 
+#### Tool sandboxing (containerized execution)
+
+Optional **container sandboxing** for tool execution is a critical defense-in-depth feature:
+
+- **Sandbox on/off**: tools run in a container when enabled; otherwise they run on the host.
+- **Modes**:
+  - `off`: no sandboxing.
+  - `non-main`: sandbox only non-main sessions (e.g., background/autoreply).
+  - `all`: every session uses a sandbox.
+- **Scope**:
+  - `session`: one container per session.
+  - `agent`: one container per agent.
+  - `shared`: one container shared by all sandboxed sessions.
+- **Workspace access**:
+  - `none`: sandbox has its own workspace.
+  - `ro`: mounts workspace read-only.
+  - `rw`: mounts workspace read/write.
+- **Elevated tools**: explicitly host-executed tools (e.g., `tools.elevated`) bypass sandboxing and require stricter approvals.
+
+This preserves the open-environment requirement while reducing blast radius for tool execution.
+
 ### 4. Layer 4: Auditability & Observability
 
 A secure system must be auditable. The Activity Timeline provides a complete log of every significant action taken within Viber.

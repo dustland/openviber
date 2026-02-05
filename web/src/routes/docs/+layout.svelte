@@ -35,8 +35,8 @@
 
   const navigation: NavSection[] = [
     {
-      title: "Philosophy",
-      items: [{ title: "Philosophy of OpenViber", href: "/docs/philosophy" }],
+      title: "Overview",
+      items: [{ title: "Introduction", href: "/docs/introduction" }],
     },
     {
       title: "Getting Started",

@@ -75,10 +75,10 @@ export type ControllerServerMessage =
   | { type: "config:update"; config: Partial<ViberControllerConfig> }
   // Terminal streaming messages
   | { type: "terminal:list" }
-  | { type: "terminal:attach"; target: string }
-  | { type: "terminal:detach"; target: string }
-  | { type: "terminal:input"; target: string; keys: string }
-  | { type: "terminal:resize"; target: string; cols: number; rows: number };
+  | { type: "terminal:attach"; target: string; appId?: string }
+  | { type: "terminal:detach"; target: string; appId?: string }
+  | { type: "terminal:input"; target: string; keys: string; appId?: string }
+  | { type: "terminal:resize"; target: string; cols: number; rows: number; appId?: string };
 
 // Viber -> Server messages
 export type ControllerClientMessage =
@@ -90,11 +90,11 @@ export type ControllerClientMessage =
   | { type: "heartbeat"; status: ViberStatus }
   | { type: "pong" }
   // Terminal streaming messages
-  | { type: "terminal:list"; sessions: any[]; panes: any[] }
-  | { type: "terminal:attached"; target: string; ok: boolean; error?: string }
-  | { type: "terminal:detached"; target: string }
-  | { type: "terminal:output"; target: string; data: string }
-  | { type: "terminal:resized"; target: string; ok: boolean };
+  | { type: "terminal:list"; apps: any[]; sessions: any[]; panes: any[] }
+  | { type: "terminal:attached"; target: string; appId?: string; ok: boolean; error?: string }
+  | { type: "terminal:detached"; target: string; appId?: string }
+  | { type: "terminal:output"; target: string; appId?: string; data: string }
+  | { type: "terminal:resized"; target: string; appId?: string; ok: boolean };
 
 // ==================== Controller ====================
 
@@ -277,19 +277,19 @@ export class ViberController extends EventEmitter {
           break;
 
         case "terminal:attach":
-          await this.handleTerminalAttach(message.target);
+          await this.handleTerminalAttach(message.target, message.appId);
           break;
 
         case "terminal:detach":
-          this.handleTerminalDetach(message.target);
+          this.handleTerminalDetach(message.target, message.appId);
           break;
 
         case "terminal:input":
-          this.handleTerminalInput(message.target, message.keys);
+          this.handleTerminalInput(message.target, message.keys, message.appId);
           break;
 
         case "terminal:resize":
-          this.handleTerminalResize(message.target, message.cols, message.rows);
+          this.handleTerminalResize(message.target, message.cols, message.rows, message.appId);
           break;
       }
     } catch (error) {
@@ -378,41 +378,43 @@ export class ViberController extends EventEmitter {
   // ==================== Terminal Streaming ====================
 
   private handleTerminalList(): void {
-    const { sessions, panes } = this.terminalManager.list();
-    this.send({ type: "terminal:list", sessions, panes });
+    const { apps, sessions, panes } = this.terminalManager.list();
+    this.send({ type: "terminal:list", apps, sessions, panes });
   }
 
-  private async handleTerminalAttach(target: string): Promise<void> {
+  private async handleTerminalAttach(target: string, appId?: string): Promise<void> {
     console.log(`[Viber] Attaching to terminal: ${target}`);
     const ok = await this.terminalManager.attach(
       target,
       (data) => {
-        this.send({ type: "terminal:output", target, data });
+        this.send({ type: "terminal:output", target, appId, data });
       },
       () => {
-        this.send({ type: "terminal:detached", target });
-      }
+        this.send({ type: "terminal:detached", target, appId });
+      },
+      appId
     );
-    this.send({ type: "terminal:attached", target, ok });
+    this.send({ type: "terminal:attached", target, appId, ok });
   }
 
-  private handleTerminalDetach(target: string): void {
+  private handleTerminalDetach(target: string, appId?: string): void {
     console.log(`[Viber] Detaching from terminal: ${target}`);
-    this.terminalManager.detach(target);
-    this.send({ type: "terminal:detached", target });
+    this.terminalManager.detach(target, appId);
+    this.send({ type: "terminal:detached", target, appId });
   }
 
-  private handleTerminalInput(target: string, keys: string): void {
-    this.terminalManager.sendInput(target, keys);
+  private handleTerminalInput(target: string, keys: string, appId?: string): void {
+    this.terminalManager.sendInput(target, keys, appId);
   }
 
   private handleTerminalResize(
     target: string,
     cols: number,
-    rows: number
+    rows: number,
+    appId?: string
   ): void {
-    const ok = this.terminalManager.resize(target, cols, rows);
-    this.send({ type: "terminal:resized", target, ok });
+    const ok = this.terminalManager.resize(target, cols, rows, appId);
+    this.send({ type: "terminal:resized", target, appId, ok });
   }
 
   // ==================== Communication ====================

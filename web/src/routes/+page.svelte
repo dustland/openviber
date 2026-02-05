@@ -51,7 +51,7 @@
   <title>OpenViber · Agent Runtime Platform</title>
 </svelte:head>
 
-<div class="relative overflow-hidden">
+<div class="relative overflow-y-auto h-full">
   <div class="pointer-events-none absolute inset-0 -z-10">
     <div
       class="absolute -top-32 left-1/2 size-[40rem] -translate-x-1/2 rounded-full bg-[radial-gradient(circle_at_center,hsl(var(--primary)/0.18),transparent_60%)]"

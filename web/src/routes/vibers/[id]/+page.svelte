@@ -173,6 +173,20 @@
           const taskRes = await fetch(`/api/tasks/${taskId}`);
           if (!taskRes.ok) return false;
           const task = await taskRes.json();
+          if (task.status === "running" || task.status === "pending") {
+            const streamingText =
+              (task.partialText as string | undefined)?.trim() ||
+              (task.events as Array<{ event?: { message?: string } }> | undefined)
+                ?.slice(-1)
+                ?.map((e) => e?.event?.message)
+                ?.filter(Boolean)
+                ?.join("\n") ||
+              "Processing task...";
+
+            messages = messages.map((m) =>
+              m.id === assistantMessageId ? { ...m, content: streamingText } : m
+            );
+          }
           if (task.status === "completed") {
             const text =
               (task.result?.text as string)?.trim() ||

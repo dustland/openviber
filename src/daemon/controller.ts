@@ -331,8 +331,90 @@ export class ViberController extends EventEmitter {
         messages
       );
 
-      // Consume stream to completion; do not send intermediate chunks to Viber Board by default.
-      const finalText = await streamResult.text;
+      let finalText = "";
+      let pendingDelta = "";
+      let lastProgressAt = 0;
+      const flushProgress = (force = false): void => {
+        if (!pendingDelta) return;
+        const now = Date.now();
+        if (!force && now - lastProgressAt < 250) return;
+
+        this.send({
+          type: "task:progress",
+          taskId,
+          event: {
+            kind: "text-delta",
+            delta: pendingDelta,
+            totalLength: finalText.length,
+            at: new Date(now).toISOString(),
+          },
+        });
+        pendingDelta = "";
+        lastProgressAt = now;
+      };
+
+      this.send({
+        type: "task:progress",
+        taskId,
+        event: {
+          kind: "status",
+          phase: "executing",
+          message: "Agent execution started",
+          at: new Date().toISOString(),
+        },
+      });
+
+      for await (const part of streamResult.fullStream) {
+        switch (part.type) {
+          case "text-delta":
+            if (part.text) {
+              finalText += part.text;
+              pendingDelta += part.text;
+              flushProgress(false);
+            }
+            break;
+          case "tool-call":
+            this.send({
+              type: "task:progress",
+              taskId,
+              event: {
+                kind: "tool-call",
+                toolName: part.toolName,
+                toolCallId: part.toolCallId,
+                at: new Date().toISOString(),
+              },
+            });
+            break;
+          case "tool-result":
+            this.send({
+              type: "task:progress",
+              taskId,
+              event: {
+                kind: "tool-result",
+                toolCallId: part.toolCallId,
+                at: new Date().toISOString(),
+              },
+            });
+            break;
+          case "error":
+            throw new Error(part.error?.message || "Task stream error");
+          case "finish":
+            flushProgress(true);
+            this.send({
+              type: "task:progress",
+              taskId,
+              event: {
+                kind: "status",
+                phase: "verifying",
+                message: "Agent execution finished, preparing final output",
+                at: new Date().toISOString(),
+              },
+            });
+            break;
+          default:
+            break;
+        }
+      }
 
       this.send({
         type: "task:completed",

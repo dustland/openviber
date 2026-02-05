@@ -7,7 +7,7 @@ description: "Future direction for multi-agent orchestration in OpenViber"
 
 > **Status: Not Implemented**
 >
-> OpenViber currently uses a single-agent architecture. A single well-configured agent with skills is sufficient for the stateless, clawdbot-alike design. This document describes potential future multi-agent patterns if needed.
+> OpenViber currently uses a single-agent architecture. A single well-configured agent with skills is sufficient for most use cases. This document describes potential future multi-agent patterns if needed.
 
 ## Current Architecture
 

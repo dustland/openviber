@@ -55,7 +55,7 @@
 </script>
 
 <div class="h-screen bg-background flex flex-col overflow-hidden">
-  <header class="border-b border-border shrink-0">
+  <header class="border-b border-border/50 shrink-0 bg-background/80 backdrop-blur-md sticky top-0 z-50">
     <nav class="flex items-center gap-2 px-4 py-2 text-sm min-h-10 flex-wrap">
       <a
         href="/"

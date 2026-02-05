@@ -278,9 +278,9 @@ async function searchMemory(query: string, limit: number = 5) {
 
 | Memory Size | Recommendation |
 |-------------|----------------|
-| < 10 files, < 50KB | Direct file read, no index needed |
+| \< 10 files, \< 50KB | Direct file read, no index needed |
 | 10-100 files | Index recommended for daily logs |
-| > 100 files | Index required for practical retrieval |
+| \> 100 files | Index required for practical retrieval |
 
 ## 7. Memory Flush (Pre-Compaction)
 

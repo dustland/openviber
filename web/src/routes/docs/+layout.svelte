@@ -1286,12 +1286,6 @@
     }
   }
 
-  @media (max-width: 1279px) {
-    .docs-pager {
-      grid-template-columns: minmax(0, 1fr);
-    }
-  }
-
   @media (max-width: 640px) {
     .docs-main-grid {
       padding: 1rem 0.78rem 0;

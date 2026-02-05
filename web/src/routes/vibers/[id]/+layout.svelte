@@ -143,26 +143,26 @@
       {#if !sidebarCollapsed}
         <!-- Chats Group -->
         <div class="mb-3">
-          <button
-            onclick={() => (chatsExpanded = !chatsExpanded)}
-            class="w-full flex items-center justify-between px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors rounded-md hover:bg-accent/50"
-          >
-            <span>Chats</span>
-            <div class="flex items-center gap-1">
-              <button
-                onclick={(e) => { e.stopPropagation(); /* TODO: new chat */ }}
-                class="p-0.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
-                title="New chat"
-              >
-                <Plus class="size-3.5" />
-              </button>
+          <div class="flex items-center justify-between px-2 py-1.5">
+            <button
+              onclick={() => (chatsExpanded = !chatsExpanded)}
+              class="flex items-center gap-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors"
+            >
               {#if chatsExpanded}
                 <ChevronDown class="size-3.5" />
               {:else}
                 <ChevronRight class="size-3.5" />
               {/if}
-            </div>
-          </button>
+              <span>Chats</span>
+            </button>
+            <button
+              onclick={() => { /* TODO: new chat */ }}
+              class="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+              title="New chat"
+            >
+              <Plus class="size-3.5" />
+            </button>
+          </div>
 
           {#if chatsExpanded}
             <div class="mt-1 space-y-0.5">

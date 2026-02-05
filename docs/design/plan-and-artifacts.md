@@ -77,6 +77,7 @@ Both keep plan and artifacts on the client; the agent consumes them as context a
 | **~/.openviber/**   | `agents/{id}.yaml` (config), `agents/{id}/sessions/*.jsonl`        | User / daemon         | Daemon, tooling                           |
 | **~/.openviber/workspace/** | `task.md` (or other plan), `MEMORY.md`, `memory/YYYY-MM-DD.md`, artifacts checked into workspace if desired | Daemon, user, Board UI | Daemon, Board UI                          |
 | **~/.openviber/artifacts/{taskId}/`** | Large blobs produced during tasks (screens, logs) | Daemon                | Daemon (writes), Board via refs           |
+| **~/.openviber/skills/** | Skill bundles (ClawHub-compatible) cached locally | User / tooling | Daemon, tooling |
 | **Viber Board cache** | Optional message cache for UI performance                    | Board                 | Board                                     |
 
 Conversation/task continuity is guaranteed by the filesystem workspace; the daemon process can restart freely.
@@ -129,7 +130,7 @@ Conversation/task continuity is guaranteed by the filesystem workspace; the daem
 │   └── artifacts/                   # optional in-workspace artifacts
 ├── artifacts/{taskId}/              # large blobs created by daemon
 ├── memory/{agentId}.sqlite          # semantic index of memory/*.md (optional)
-└── skills/                          # downloaded/installed skills cache
+└── skills/                          # downloaded/installed skills cache (ClawHub-compatible bundles)
 ```
 
 ---

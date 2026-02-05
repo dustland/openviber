@@ -99,6 +99,17 @@ prompt: |
 ::: tip
 Skills encapsulate both *knowledge* (instructions) and *specialized tools* for a specific domain. This follows the "Atomic Skill-Level Healing" principle where detection and recovery are bundled together.
 :::
+
+## ClawHub Compatibility
+
+OpenViber is compatible with the **ClawHub** skill bundle spec so skills can be imported directly without conversion. Concretely:
+
+- A ClawHub skill bundle **must include `SKILL.md` at the bundle root**, and OpenViber uses the frontmatter + body as the skill definition.
+- Optional files (CLI helpers, configs, assets) are kept intact; OpenViber ignores unknown metadata and only loads the pieces it understands.
+- If the bundle exposes tools via `index.ts`, OpenViber loads those tools alongside the SKILL.md instructions.
+
+This keeps OpenViber stateless while allowing teams to share and reuse skills from `https://clawhub.ai/` across environments.
+
 ## Built-in Skills
 
 | Skill | Purpose |

@@ -16,8 +16,9 @@ import { program } from "commander";
 import * as os from "os";
 import * as fs from "fs/promises";
 import * as path from "path";
+import { getOpenViberVersion } from "../utils/version";
 
-const VERSION = "1.0.0";
+const VERSION = getOpenViberVersion();
 
 program
   .name("openviber")

@@ -62,14 +62,29 @@ describe("hub task progress integration", () => {
       JSON.stringify({
         type: "task:progress",
         taskId,
-        event: { kind: "text-delta", delta: "hello " },
+        event: {
+          eventId: `${taskId}-1`,
+          sequence: 1,
+          taskId,
+          conversationId: taskId,
+          createdAt: new Date().toISOString(),
+          model: "demo/model",
+          event: { kind: "text-delta", delta: "hello " },
+        },
       }),
     );
     ws.send(
       JSON.stringify({
         type: "task:progress",
         taskId,
-        event: { kind: "text-delta", delta: "world" },
+        event: {
+          eventId: `${taskId}-2`,
+          sequence: 2,
+          taskId,
+          conversationId: taskId,
+          createdAt: new Date().toISOString(),
+          event: { kind: "text-delta", delta: "world" },
+        },
       }),
     );
 
@@ -80,12 +95,20 @@ describe("hub task progress integration", () => {
     const task = (await taskRes.json()) as {
       eventCount: number;
       partialText?: string;
-      events?: Array<{ event?: { kind?: string } }>;
+      events?: Array<{
+        event?: {
+          sequence?: number;
+          event?: { kind?: string };
+        };
+      }>;
     };
 
     expect(task.eventCount).toBeGreaterThanOrEqual(2);
     expect(task.partialText).toContain("hello world");
-    expect(task.events?.some((e) => e.event?.kind === "text-delta")).toBe(true);
+    expect(
+      task.events?.some((e) => e.event?.event?.kind === "text-delta"),
+    ).toBe(true);
+    expect(task.events?.[0]?.event?.sequence).toBe(1);
 
     ws.close();
   });

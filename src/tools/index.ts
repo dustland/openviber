@@ -15,6 +15,10 @@ import { WebTool } from "./web";
 import { BrowserTool } from "./browser";
 import { DesktopTool } from "./desktop";
 
+// Standalone tools (AI SDK format)
+import { scheduleTools } from "./schedule";
+import { notifyTools } from "./notify";
+
 export interface ToolInfo {
   id: string;
   name: string;
@@ -489,7 +493,19 @@ export function buildToolMap(
 ): Record<string, CoreTool> {
   const tools: Record<string, CoreTool> = {};
 
+  // Standalone tools (AI SDK format, not class-based)
+  const standaloneTools: Record<string, Record<string, any>> = {
+    schedule: scheduleTools,
+    notify: notifyTools,
+  };
+
   for (const toolId of toolIds) {
+    // Check if this is a standalone tool group (e.g., 'schedule', 'notify')
+    if (toolId in standaloneTools) {
+      Object.assign(tools, standaloneTools[toolId]);
+      continue;
+    }
+
     // Check if this is a tool class ID (e.g., 'file', 'web', 'search')
     if (toolClasses.has(toolId)) {
       // Get all functions from this tool class
@@ -502,6 +518,14 @@ export function buildToolMap(
         const toolFunctions = tool.getTools();
         // Add all functions from this tool class
         Object.assign(tools, toolFunctions);
+        continue;
+      }
+    }
+
+    // Check standalone tools for specific function names
+    for (const [, standaloneFuncs] of Object.entries(standaloneTools)) {
+      if (toolId in standaloneFuncs) {
+        tools[toolId] = standaloneFuncs[toolId];
         continue;
       }
     }

@@ -9,6 +9,20 @@ function requiresAuth(pathname: string) {
 }
 
 export const handle: Handle = async ({ event, resolve }) => {
+  // Skip auth for local testing when SKIP_AUTH is set (via shell env or .env)
+  const skipAuth = process.env.SKIP_AUTH === "true";
+  console.log('[hooks] SKIP_AUTH:', process.env.SKIP_AUTH, '-> skipAuth:', skipAuth);
+
+  if (skipAuth) {
+    event.locals.user = {
+      id: "local-dev-user",
+      email: "dev@localhost",
+      name: "Local Developer",
+      avatarUrl: null,
+    };
+    return resolve(event);
+  }
+
   event.locals.user = await getAuthUser(event.cookies);
 
   const { pathname } = event.url;

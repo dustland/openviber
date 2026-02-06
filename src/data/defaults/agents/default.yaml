@@ -2,11 +2,11 @@
 # This agent is used when no specific agent is requested
 
 name: Default
-description: A general-purpose assistant that can help with various tasks
+description: A general-purpose assistant that can help with various tasks using terminal, browser, and desktop control.
 
 # LLM configuration
 provider: openrouter
-model: deepseek/deepseek-chat
+model: openai/gpt-4o
 temperature: 0.7
 maxTokens: 4096
 
@@ -14,9 +14,25 @@ maxTokens: 4096
 systemPrompt: |
   You are a helpful AI assistant. You help users accomplish their tasks
   efficiently and effectively. Be concise, accurate, and helpful.
+  
+  You have access to powerful tools for:
+  - Terminal/command execution (via tmux)
+  - Web browsing and searching
+  - Desktop app control
+  - File operations
+  - Job scheduling
+  - Notifications
 
-# Available tools (empty means use all available tools)
-tools: []
+# Core tools (the essential capabilities)
+tools:
+  - file       # Read/write files
+  - web        # Fetch web content
+  - search     # Web search
+  - browser    # Chrome DevTools browser control
+  - desktop    # AppleScript desktop automation
+  - schedule   # Create scheduled jobs
+  - notify     # Send notifications
 
-# Skills this agent can use
-skills: []
+# Skills (provides additional tools and instructions)
+skills:
+  - tmux       # Terminal session management

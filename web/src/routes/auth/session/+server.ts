@@ -3,8 +3,8 @@ import {
   clearOAuthStateCookie,
   createSession,
   fetchSupabaseProfile,
-  findOrCreateUser,
   readOAuthStateCookie,
+  upsertSupabaseUserProfile,
 } from "$lib/server/auth";
 
 export const POST: RequestHandler = async ({ request, cookies }) => {
@@ -23,8 +23,8 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
     }
 
     const profile = await fetchSupabaseProfile(body.accessToken);
-    const user = await findOrCreateUser(profile);
-    await createSession(user.id, cookies);
+    await upsertSupabaseUserProfile(profile);
+    await createSession(body.accessToken, cookies);
 
     return json({ ok: true });
   } catch (cause) {

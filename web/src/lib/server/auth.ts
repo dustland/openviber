@@ -1,15 +1,14 @@
-import { createHash, randomBytes, timingSafeEqual } from "crypto";
-import { db, schema } from "$lib/server/db";
-import { eq } from "drizzle-orm";
+import { randomBytes } from "crypto";
 import { redirect, type Cookies, type RequestEvent } from "@sveltejs/kit";
 
-const SESSION_COOKIE = "openviber_session";
-const OAUTH_STATE_COOKIE = "openviber_oauth_state";
 const SESSION_TTL_DAYS = 30;
+const OAUTH_STATE_COOKIE = "openviber_oauth_state";
+const ACCESS_TOKEN_COOKIE = "openviber_sb_access_token";
 
 const APP_URL = process.env.APP_URL || "http://localhost:5173";
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export interface AuthUser {
   id: string;
@@ -23,21 +22,6 @@ export interface SupabaseOAuthProfile {
   email: string;
   name: string;
   avatarUrl: string | null;
-}
-
-function createSessionToken() {
-  return randomBytes(32).toString("hex");
-}
-
-function hashToken(token: string) {
-  return createHash("sha256").update(token).digest("hex");
-}
-
-function constantTimeMatch(a: string, b: string) {
-  const aBuf = Buffer.from(a);
-  const bBuf = Buffer.from(b);
-  if (aBuf.length !== bBuf.length) return false;
-  return timingSafeEqual(aBuf, bBuf);
 }
 
 function requireSupabaseAuthConfig() {
@@ -126,6 +110,41 @@ export async function fetchSupabaseProfile(accessToken: string): Promise<Supabas
   };
 }
 
+/**
+ * Upserts user profile data into Supabase table `user_profiles`.
+ */
+export async function upsertSupabaseUserProfile(profile: SupabaseOAuthProfile) {
+  const { supabaseUrl } = requireSupabaseAuthConfig();
+  if (!SUPABASE_SERVICE_ROLE_KEY) {
+    return;
+  }
+
+  const endpoint = new URL("/rest/v1/user_profiles", supabaseUrl);
+  endpoint.searchParams.set("on_conflict", "auth_user_id");
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      Prefer: "resolution=merge-duplicates,return=minimal",
+    },
+    body: JSON.stringify([
+      {
+        auth_user_id: profile.providerId,
+        email: profile.email,
+        name: profile.name,
+        avatar_url: profile.avatarUrl,
+      },
+    ]),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to upsert user profile into Supabase table.");
+  }
+}
+
 export function setOAuthStateCookie(state: string, cookies: Cookies, secure: boolean) {
   cookies.set(OAUTH_STATE_COOKIE, state, {
     path: "/",
@@ -144,65 +163,12 @@ export function clearOAuthStateCookie(cookies: Cookies) {
   cookies.delete(OAUTH_STATE_COOKIE, { path: "/" });
 }
 
-export async function findOrCreateUser(profile: SupabaseOAuthProfile) {
-  const existing = await db
-    .select()
-    .from(schema.users)
-    .where(eq(schema.users.authUserId, profile.providerId))
-    .limit(1);
-
-  if (existing.length > 0) {
-    const user = existing[0];
-    await db
-      .update(schema.users)
-      .set({
-        email: profile.email,
-        name: profile.name,
-        avatarUrl: profile.avatarUrl,
-        updatedAt: new Date(),
-      })
-      .where(eq(schema.users.id, user.id));
-    return { ...user, ...profile };
-  }
-
-  const id = `user_${randomBytes(12).toString("hex")}`;
-  const now = new Date();
-  await db.insert(schema.users).values({
-    id,
-    authUserId: profile.providerId,
-    email: profile.email,
-    name: profile.name,
-    avatarUrl: profile.avatarUrl,
-    createdAt: now,
-    updatedAt: now,
-  });
-
-  return {
-    id,
-    authUserId: profile.providerId,
-    email: profile.email,
-    name: profile.name,
-    avatarUrl: profile.avatarUrl,
-    createdAt: now,
-    updatedAt: now,
-  };
-}
-
-export async function createSession(userId: string, cookies: Cookies) {
-  const token = createSessionToken();
-  const tokenHash = hashToken(token);
-  const now = new Date();
-  const expiresAt = new Date(now.getTime() + SESSION_TTL_DAYS * 24 * 60 * 60 * 1000);
-
-  await db.insert(schema.sessions).values({
-    id: `session_${randomBytes(12).toString("hex")}`,
-    userId,
-    tokenHash,
-    createdAt: now,
-    expiresAt,
-  });
-
-  cookies.set(SESSION_COOKIE, token, {
+/**
+ * Creates the application session by persisting a Supabase access token in an httpOnly cookie.
+ */
+export async function createSession(accessToken: string, cookies: Cookies) {
+  const expiresAt = new Date(Date.now() + SESSION_TTL_DAYS * 24 * 60 * 60 * 1000);
+  cookies.set(ACCESS_TOKEN_COOKIE, accessToken, {
     path: "/",
     httpOnly: true,
     sameSite: "lax",
@@ -212,54 +178,25 @@ export async function createSession(userId: string, cookies: Cookies) {
 }
 
 export async function deleteSession(cookies: Cookies) {
-  const token = cookies.get(SESSION_COOKIE);
-  if (token) {
-    await db
-      .delete(schema.sessions)
-      .where(eq(schema.sessions.tokenHash, hashToken(token)));
-  }
-
-  cookies.delete(SESSION_COOKIE, { path: "/" });
+  cookies.delete(ACCESS_TOKEN_COOKIE, { path: "/" });
 }
 
 export async function getAuthUser(cookies: Cookies): Promise<AuthUser | null> {
-  const token = cookies.get(SESSION_COOKIE);
-  if (!token) return null;
+  const accessToken = cookies.get(ACCESS_TOKEN_COOKIE);
+  if (!accessToken) return null;
 
-  const tokenHash = hashToken(token);
-  const rows = await db
-    .select({
-      sessionTokenHash: schema.sessions.tokenHash,
-      sessionId: schema.sessions.id,
-      expiresAt: schema.sessions.expiresAt,
-      userId: schema.users.id,
-      email: schema.users.email,
-      name: schema.users.name,
-      avatarUrl: schema.users.avatarUrl,
-    })
-    .from(schema.sessions)
-    .innerJoin(schema.users, eq(schema.users.id, schema.sessions.userId))
-    .where(eq(schema.sessions.tokenHash, tokenHash))
-    .limit(1);
-
-  if (rows.length === 0) {
-    cookies.delete(SESSION_COOKIE, { path: "/" });
+  try {
+    const profile = await fetchSupabaseProfile(accessToken);
+    return {
+      id: profile.providerId,
+      email: profile.email,
+      name: profile.name,
+      avatarUrl: profile.avatarUrl,
+    };
+  } catch {
+    cookies.delete(ACCESS_TOKEN_COOKIE, { path: "/" });
     return null;
   }
-
-  const row = rows[0];
-  if (!constantTimeMatch(row.sessionTokenHash, tokenHash) || row.expiresAt < new Date()) {
-    await db.delete(schema.sessions).where(eq(schema.sessions.id, row.sessionId));
-    cookies.delete(SESSION_COOKIE, { path: "/" });
-    return null;
-  }
-
-  return {
-    id: row.userId,
-    email: row.email,
-    name: row.name,
-    avatarUrl: row.avatarUrl,
-  };
 }
 
 export function requireAuth(event: RequestEvent): asserts event is RequestEvent & { locals: { user: AuthUser } } {

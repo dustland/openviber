@@ -16,6 +16,7 @@ import WebSocket from "ws";
 import type { ViberOptions } from "../core/viber-agent";
 import { runTask } from "./runtime";
 import { TerminalManager } from "./terminal";
+import { getOpenViberVersion } from "../utils/version";
 
 // ==================== Types ====================
 
@@ -201,7 +202,7 @@ export class ViberController extends EventEmitter {
         headers: {
           Authorization: `Bearer ${this.config.token}`,
           "X-Viber-Id": this.config.viberId,
-          "X-Viber-Version": "1.0.0",
+          "X-Viber-Version": getOpenViberVersion(),
         },
       });
 
@@ -245,7 +246,7 @@ export class ViberController extends EventEmitter {
       viber: {
         id: this.config.viberId,
         name: this.config.viberName || this.config.viberId,
-        version: "1.0.0",
+        version: getOpenViberVersion(),
         platform: process.platform,
         capabilities,
           runningTasks: Array.from(this.runningTasks.keys()),

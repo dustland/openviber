@@ -56,7 +56,9 @@ This "atomic" approach keeps detection and recovery bundled together.
 
 | Skill | Purpose |
 |-------|---------|
-| **antigravity** | Monitor and heal IDE agent errors |
+| **antigravity** | Monitor and heal Antigravity IDE agent errors |
+| **cursor-agent** | Run Cursor CLI agent workflows through tmux-backed automation |
+| **tmux** | Execute TTY-dependent commands and manage persistent terminal sessions |
 
 ## Creating Custom Skills
 

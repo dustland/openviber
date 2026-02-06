@@ -33,7 +33,18 @@ Start the full viber for back-and-forth conversations:
 npx openviber start
 ```
 
-Open http://localhost:6006 and try:
+Then either:
+
+- Keep chatting in your terminal, or
+- Start the web app (`pnpm dev:web`) and open http://localhost:6006.
+
+In local development, the default ports are:
+
+- Hub: `6007`
+- Web UI: `6006`
+- Local WS: `6008`
+
+Try this prompt:
 
 > "Find all the TODOs in this project, prioritize them, and create a task list"
 

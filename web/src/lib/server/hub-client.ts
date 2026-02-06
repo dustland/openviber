@@ -53,15 +53,22 @@ export interface ConnectedViber {
   skills?: ViberSkillInfo[];
 }
 
+export interface HubTaskEvent {
+  at: string;
+  event: unknown;
+}
+
 export interface HubTask {
   id: string;
   viberId: string;
   goal: string;
-  status: "pending" | "running" | "completed" | "error";
+  status: "pending" | "running" | "completed" | "error" | "stopped";
   createdAt: string;
   result?: unknown;
   error?: string;
   eventCount?: number;
+  events?: HubTaskEvent[];
+  partialText?: string;
 }
 
 export const hubClient = {

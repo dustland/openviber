@@ -6,6 +6,8 @@
   type FitAddonType = import("@xterm/addon-fit").FitAddon;
 
   interface Props {
+    /** Terminal app id (tmux primary, fallback apps optional) */
+    appId?: string;
     /** Target pane (e.g. "coding:1.0") */
     target: string;
     /** WebSocket to communicate with viber daemon */
@@ -14,7 +16,7 @@
     onClose?: () => void;
   }
 
-  let { target, ws, onClose }: Props = $props();
+  let { appId = "tmux", target, ws, onClose }: Props = $props();
 
   let terminalEl: HTMLDivElement | null = null;
   let term: TerminalType | null = null;
@@ -27,6 +29,7 @@
     try {
       const msg = JSON.parse(event.data);
       if (msg.target !== target) return;
+      if (msg.appId && msg.appId !== appId) return;
 
       switch (msg.type) {
         case "terminal:output":
@@ -50,28 +53,28 @@
   // Send input to viber
   function sendInput(keys: string) {
     if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: "terminal:input", target, keys }));
+      ws.send(JSON.stringify({ type: "terminal:input", appId, target, keys }));
     }
   }
 
   // Attach to the terminal
   function attach() {
     if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: "terminal:attach", target }));
+      ws.send(JSON.stringify({ type: "terminal:attach", appId, target }));
     }
   }
 
   // Detach from the terminal
   function detach() {
     if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: "terminal:detach", target }));
+      ws.send(JSON.stringify({ type: "terminal:detach", appId, target }));
     }
   }
 
   // Inform tmux of our current size
   function sendResize(cols: number, rows: number) {
     if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: "terminal:resize", target, cols, rows }));
+      ws.send(JSON.stringify({ type: "terminal:resize", appId, target, cols, rows }));
     }
   }
 
@@ -146,7 +149,7 @@
 
 <div class="terminal-container">
   <div class="terminal-header">
-    <span class="terminal-target">{target}</span>
+    <span class="terminal-target">{appId}:{target}</span>
     {#if onClose}
       <button class="terminal-close" onclick={onClose}>×</button>
     {/if}

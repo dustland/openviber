@@ -85,19 +85,19 @@ export class LocalServer {
         break;
 
       case "terminal:attach":
-        this.handleTerminalAttach(ws, msg.target);
+        this.handleTerminalAttach(ws, msg.target, msg.appId);
         break;
 
       case "terminal:detach":
-        this.handleTerminalDetach(ws, msg.target);
+        this.handleTerminalDetach(ws, msg.target, msg.appId);
         break;
 
       case "terminal:input":
-        this.handleTerminalInput(msg.target, msg.keys);
+        this.handleTerminalInput(msg.target, msg.keys, msg.appId);
         break;
 
       case "terminal:resize":
-        this.handleTerminalResize(ws, msg.target, msg.cols, msg.rows);
+        this.handleTerminalResize(ws, msg.target, msg.cols, msg.rows, msg.appId);
         break;
 
       case "terminal:create-session":
@@ -105,7 +105,8 @@ export class LocalServer {
           ws,
           msg.sessionName,
           msg.windowName,
-          msg.cwd
+          msg.cwd,
+          msg.appId
         );
         break;
 
@@ -115,49 +116,62 @@ export class LocalServer {
   }
 
   private handleTerminalList(ws: WebSocket): void {
-    const { sessions, panes } = this.terminalManager.list();
-    this.send(ws, { type: "terminal:list", sessions, panes });
+    const { apps, sessions, panes } = this.terminalManager.list();
+    this.send(ws, { type: "terminal:list", apps, sessions, panes });
   }
 
-  private async handleTerminalAttach(ws: WebSocket, target: string): Promise<void> {
+  private async handleTerminalAttach(
+    ws: WebSocket,
+    target: string,
+    appId?: string
+  ): Promise<void> {
     console.log(`[Viber] Attaching to terminal: ${target}`);
     const ok = await this.terminalManager.attach(
       target,
       (data) => {
-        this.send(ws, { type: "terminal:output", target, data });
+        this.send(ws, { type: "terminal:output", target, appId, data });
       },
       () => {
-        this.send(ws, { type: "terminal:detached", target });
-      }
+        this.send(ws, { type: "terminal:detached", target, appId });
+      },
+      appId
     );
-    this.send(ws, { type: "terminal:attached", target, ok });
+    this.send(ws, { type: "terminal:attached", target, appId, ok });
   }
 
-  private handleTerminalDetach(ws: WebSocket, target: string): void {
+  private handleTerminalDetach(ws: WebSocket, target: string, appId?: string): void {
     console.log(`[Viber] Detaching from terminal: ${target}`);
-    this.terminalManager.detach(target);
-    this.send(ws, { type: "terminal:detached", target });
+    this.terminalManager.detach(target, appId);
+    this.send(ws, { type: "terminal:detached", target, appId });
   }
 
-  private handleTerminalInput(target: string, keys: string): void {
-    this.terminalManager.sendInput(target, keys);
+  private handleTerminalInput(target: string, keys: string, appId?: string): void {
+    this.terminalManager.sendInput(target, keys, appId);
   }
 
-  private handleTerminalResize(ws: WebSocket, target: string, cols: number, rows: number): void {
-    const ok = this.terminalManager.resize(target, cols, rows);
-    this.send(ws, { type: "terminal:resized", target, ok });
+  private handleTerminalResize(
+    ws: WebSocket,
+    target: string,
+    cols: number,
+    rows: number,
+    appId?: string
+  ): void {
+    const ok = this.terminalManager.resize(target, cols, rows, appId);
+    this.send(ws, { type: "terminal:resized", target, appId, ok });
   }
 
   private handleTerminalCreateSession(
     ws: WebSocket,
     sessionName?: string,
     windowName?: string,
-    cwd?: string
+    cwd?: string,
+    appId = "tmux"
   ): void {
     const result = this.terminalManager.createSession(
       sessionName || "coding",
       windowName || "main",
-      cwd
+      cwd,
+      appId
     );
 
     this.send(ws, {

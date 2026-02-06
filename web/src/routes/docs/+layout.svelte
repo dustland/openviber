@@ -815,6 +815,7 @@
   .docs-content-scroll {
     min-height: 0;
     overflow-y: auto;
+    overflow-x: hidden;
     padding-right: 0.1rem;
   }
 
@@ -1282,12 +1283,6 @@
 
     .docs-toc {
       display: block;
-    }
-  }
-
-  @media (max-width: 1279px) {
-    .docs-pager {
-      grid-template-columns: minmax(0, 1fr);
     }
   }
 

@@ -83,6 +83,7 @@
   // Active app panel
   let activeTerminal = $state<string | null>(null);
   let appPanelExpanded = $state(true);
+  let mobileViewMode = $state<"chat" | "computer">("chat");
 
   // Terminal WebSocket
   let terminalWs = $state<WebSocket | null>(null);
@@ -243,25 +244,30 @@
         <Sidebar.MenuItem>
           <Sidebar.MenuButton
             size="sm"
+            tooltipContent="Back to Vibers"
             class="group-data-[collapsible=icon]:p-0!"
           >
             {#snippet child({ props })}
               <a href="/vibers" {...props}>
-                <img src="/favicon.png" alt="OpenViber" class="size-6" />
-                <span class="truncate font-semibold text-sm"
-                  >{viber?.name || "Viber"}</span
-                >
-                {#if viber?.isConnected}
-                  <span class="size-1.5 rounded-full bg-green-500 shrink-0"
-                  ></span>
-                {:else}
-                  <span
-                    class="size-1.5 rounded-full bg-muted-foreground shrink-0"
-                  ></span>
-                {/if}
+                <Home class="size-5" />
+                <span class="truncate font-semibold text-sm">Vibers</span>
               </a>
             {/snippet}
           </Sidebar.MenuButton>
+        </Sidebar.MenuItem>
+        <Sidebar.MenuItem>
+          <div class="flex items-center gap-2 px-2 py-1">
+            <img src="/favicon.png" alt="OpenViber" class="size-5" />
+            <span class="truncate text-sm text-muted-foreground"
+              >{viber?.name || "Viber"}</span
+            >
+            {#if viber?.isConnected}
+              <span class="size-1.5 rounded-full bg-green-500 shrink-0"></span>
+            {:else}
+              <span class="size-1.5 rounded-full bg-muted-foreground shrink-0"
+              ></span>
+            {/if}
+          </div>
         </Sidebar.MenuItem>
       </Sidebar.Menu>
     </Sidebar.Header>
@@ -539,40 +545,101 @@
   </Sidebar.Root>
 
   <Sidebar.Inset class="flex flex-col h-full min-h-0">
+    <!-- Mobile Toggle Bar (only visible on mobile) -->
+    <div
+      class="md:hidden flex items-center justify-center gap-1 p-2 bg-muted/30 border-b border-border"
+    >
+      <button
+        onclick={() => (mobileViewMode = "chat")}
+        class="flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition-colors {mobileViewMode ===
+        'chat'
+          ? 'bg-primary text-primary-foreground'
+          : 'text-muted-foreground hover:text-foreground'}"
+      >
+        <MessageSquare class="size-4 inline mr-1.5" />
+        Chat
+      </button>
+      <button
+        onclick={() => (mobileViewMode = "computer")}
+        class="flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition-colors {mobileViewMode ===
+        'computer'
+          ? 'bg-primary text-primary-foreground'
+          : 'text-muted-foreground hover:text-foreground'}"
+      >
+        <Terminal class="size-4 inline mr-1.5" />
+        Computer
+      </button>
+    </div>
+
     <!-- Main Content: Resizable Chat + App Panel -->
     <Resizable.PaneGroup direction="horizontal" class="flex-1 min-h-0">
       <!-- Chat Panel -->
       <Resizable.Pane
         defaultSize={appPanelExpanded && terminalPanes.length > 0 ? 50 : 100}
-        minSize={30}
+        minSize={20}
+        class="md:block {mobileViewMode === 'chat' ? 'block' : 'hidden'}"
       >
         <div class="h-full flex flex-col">
           {@render children()}
         </div>
       </Resizable.Pane>
 
-      <!-- Resize Handle + App Panel -->
+      <!-- Resize Handle + App Panel (Desktop) -->
       {#if appPanelExpanded && terminalPanes.length > 0}
-        <Resizable.Handle withHandle class="bg-border" />
-        <Resizable.Pane defaultSize={50} minSize={20} maxSize={70}>
-          <div class="h-full flex flex-col bg-[#1e1e1e]">
-            {#if activeTerminal && terminalWs}
-              {#await import("$lib/components/terminal-view.svelte") then { default: TerminalView }}
-                <TerminalView
-                  target={activeTerminal}
-                  ws={terminalWs}
-                  onClose={() => {
-                    appPanelExpanded = false;
-                  }}
-                />
-              {/await}
-            {:else}
+        <Resizable.Handle withHandle class="bg-border hidden md:flex" />
+        <Resizable.Pane
+          defaultSize={50}
+          minSize={20}
+          maxSize={70}
+          class="md:block {mobileViewMode === 'computer' ? 'block' : 'hidden'}"
+        >
+          <!-- My Computer Window Frame -->
+          <div class="h-full p-3 bg-zinc-950/50">
+            <div
+              class="h-full flex flex-col rounded-xl bg-[#0d0d0d] border border-zinc-800/80 shadow-2xl overflow-hidden"
+            >
+              <!-- macOS-style Title Bar -->
               <div
-                class="h-full flex items-center justify-center text-muted-foreground text-sm"
+                class="h-10 bg-zinc-900/90 flex items-center px-3 gap-2 border-b border-zinc-800/50 shrink-0"
               >
-                Select a terminal from the sidebar
+                <!-- Traffic lights (decorative) -->
+                <div class="flex gap-1.5">
+                  <button
+                    class="size-3 rounded-full bg-[#ff5f57] hover:bg-[#ff5f57]/80 transition-colors"
+                    onclick={() => (appPanelExpanded = false)}
+                    title="Close"
+                  ></button>
+                  <div class="size-3 rounded-full bg-[#febc2e]"></div>
+                  <div class="size-3 rounded-full bg-[#28c840]"></div>
+                </div>
+                <!-- Session name -->
+                <span class="text-xs text-zinc-400 font-medium ml-2 truncate">
+                  {activeTerminal
+                    ? activeTerminal.replace(/:/g, " › ")
+                    : "My Computer"}
+                </span>
               </div>
-            {/if}
+              <!-- Terminal Content -->
+              <div class="flex-1 overflow-hidden">
+                {#if activeTerminal && terminalWs}
+                  {#await import("$lib/components/terminal-view.svelte") then { default: TerminalView }}
+                    <TerminalView
+                      target={activeTerminal}
+                      ws={terminalWs}
+                      onClose={() => {
+                        appPanelExpanded = false;
+                      }}
+                    />
+                  {/await}
+                {:else}
+                  <div
+                    class="h-full flex items-center justify-center text-zinc-500 text-sm"
+                  >
+                    Select a terminal from the sidebar
+                  </div>
+                {/if}
+              </div>
+            </div>
           </div>
         </Resizable.Pane>
       {:else if !appPanelExpanded && terminalPanes.length > 0}
@@ -581,7 +648,7 @@
           onclick={() => {
             appPanelExpanded = true;
           }}
-          class="w-10 bg-muted/30 border-l border-border flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors shrink-0"
+          class="w-10 bg-muted/30 border-l border-border flex-col items-center justify-center gap-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors shrink-0 hidden md:flex"
           title="Show terminal panel"
         >
           <Terminal class="size-5" />

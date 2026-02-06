@@ -139,28 +139,42 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Try multiple paths for skill discovery:
-// 1. process.cwd() + src/skills (CLI run from project root) - Most common case
-// 2. Relative to this file (works in dev mode with tsx)
-// 3. Viber storage root (for daemon mode)
+// 1. User's config directory (~/.openviber/skills) - User custom skills
+// 2. Bundled skills (relative to this file in dist) - Package skills
+// 3. Development mode: src/skills in cwd (only if running from source)
 function getDefaultSkillsPath(): string {
-  // Option 1: Check process.cwd() + src/skills (CLI run from project root)
-  const cwdPath = path.resolve(process.cwd(), "src/skills");
+  // Option 1: User's config directory (~/.openviber/skills)
+  const userSkillsPath = path.join(getViberRoot(), "skills");
   try {
-    fsSync.accessSync(cwdPath);
-    console.log(`[SkillRegistry] Using skills path (cwd): ${cwdPath}`);
-    return cwdPath;
+    fsSync.accessSync(userSkillsPath);
+    console.log(`[SkillRegistry] Using skills path (user): ${userSkillsPath}`);
+    return userSkillsPath;
   } catch {
-    // Option 2: Relative to this file (skills/registry.ts -> skills)
-    const relativePath = path.resolve(__dirname, ".");
+    // Option 2: Bundled skills (relative to this file - works for dist/)
+    const bundledPath = path.resolve(__dirname, ".");
     try {
-      fsSync.accessSync(relativePath);
-      console.log(`[SkillRegistry] Using skills path (relative): ${relativePath}`);
-      return relativePath;
+      fsSync.accessSync(bundledPath);
+      // Only use if it looks like a skills directory (not just dist/)
+      const hasSkillDirs = fsSync.readdirSync(bundledPath).some(f => {
+        const skillMd = path.join(bundledPath, f, "SKILL.md");
+        try { fsSync.accessSync(skillMd); return true; } catch { return false; }
+      });
+      if (hasSkillDirs) {
+        console.log(`[SkillRegistry] Using skills path (bundled): ${bundledPath}`);
+        return bundledPath;
+      }
+    } catch { /* continue */ }
+
+    // Option 3: Development mode - src/skills in cwd
+    const devPath = path.resolve(process.cwd(), "src/skills");
+    try {
+      fsSync.accessSync(devPath);
+      console.log(`[SkillRegistry] Using skills path (dev): ${devPath}`);
+      return devPath;
     } catch {
-      // Fallback to Viber storage root (for daemon mode)
-      const viberPath = path.join(getViberRoot(), "skills");
-      console.log(`[SkillRegistry] Using skills path (viber root): ${viberPath}`);
-      return viberPath;
+      // Fallback: just return user path (will be created on demand)
+      console.log(`[SkillRegistry] Using skills path (default): ${userSkillsPath}`);
+      return userSkillsPath;
     }
   }
 }

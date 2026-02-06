@@ -1,6 +1,6 @@
 {
   "name": "openviber",
-  "version": "0.4.3",
+  "version": "0.5.1",
   "type": "module",
   "description": "OpenViber: workspace-first, openclaw-alike assistant runtime",
   "main": "dist/index.cjs",

@@ -1,19 +1,21 @@
 import type { Handle } from "@sveltejs/kit";
 import { getAuthUser } from "$lib/server/auth";
 
-const PUBLIC_PATHS = ["/", "/docs", "/login", "/auth/google", "/auth/google/callback", "/auth/session"];
+// Only these routes require authentication
+const PROTECTED_PATHS = ["/vibers", "/api/vibers"];
 
-function isPublicPath(pathname: string) {
-  return PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
+function requiresAuth(pathname: string) {
+  return PROTECTED_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
 }
 
 export const handle: Handle = async ({ event, resolve }) => {
   event.locals.user = await getAuthUser(event.cookies);
 
   const { pathname } = event.url;
-  const isApi = pathname.startsWith("/api/");
 
-  if (!event.locals.user && !isPublicPath(pathname)) {
+  // Only protect vibers routes
+  if (!event.locals.user && requiresAuth(pathname)) {
+    const isApi = pathname.startsWith("/api/");
     if (isApi) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,

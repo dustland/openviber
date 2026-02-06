@@ -59,10 +59,11 @@ export const POST: RequestHandler = async ({ params, request }) => {
 
     for (const msg of toInsert) {
       const id = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+      // Don't store taskId to avoid FK constraint - tasks are ephemeral hub-side
       await db.insert(schema.messages).values({
         id,
         viberId,
-        taskId: msg.taskId ?? null,
+        taskId: null,
         role: msg.role,
         content: msg.content,
         createdAt: now,

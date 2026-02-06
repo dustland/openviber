@@ -25,6 +25,7 @@
 
   // Route detection
   const isHomepage = $derived($page.url.pathname === "/");
+  const isLogin = $derived($page.url.pathname === "/login");
   const isVibers = $derived($page.url.pathname.startsWith("/vibers"));
   const isDocs = $derived($page.url.pathname.startsWith("/docs"));
 
@@ -53,8 +54,8 @@
 </script>
 
 <div class="h-screen bg-background flex flex-col overflow-hidden">
-  <!-- Homepage: Transparent floating navbar -->
-  {#if isHomepage}
+  <!-- Homepage/Login: Transparent floating navbar -->
+  {#if isHomepage || isLogin}
     <header class="absolute top-0 left-0 right-0 z-50">
       <nav class="flex items-center gap-2 px-6 py-4 text-sm">
         <a

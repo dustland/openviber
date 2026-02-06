@@ -37,15 +37,26 @@ export const POST: RequestHandler = async ({ params, request }) => {
     const toInsert = Array.isArray(body.messages)
       ? body.messages
       : [
-          {
-            role: body.role,
-            content: body.content,
-            taskId: body.taskId ?? null,
-          },
-        ];
+        {
+          role: body.role,
+          content: body.content,
+          taskId: body.taskId ?? null,
+        },
+      ];
 
     const created = [];
     const now = new Date();
+
+    // Ensure viber exists in local DB (auto-create if needed)
+    const existingViber = await db.select().from(schema.vibers).where(eq(schema.vibers.id, viberId)).limit(1);
+    if (existingViber.length === 0) {
+      await db.insert(schema.vibers).values({
+        id: viberId,
+        name: viberId,
+        createdAt: now,
+      });
+    }
+
     for (const msg of toInsert) {
       const id = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
       await db.insert(schema.messages).values({

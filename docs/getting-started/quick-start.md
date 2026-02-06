@@ -19,6 +19,8 @@ cd your-project
 npx openviber run "Analyze this codebase and create a comprehensive README.md with project overview, setup instructions, and usage examples"
 ```
 
+If you install the package, you can also use the shorter alias `viber` (e.g. `viber start`).
+
 Watch as your viber:
 1. Scans the directory structure
 2. Reads key files to understand the project
@@ -31,6 +33,12 @@ Start the full viber for back-and-forth conversations:
 
 ```bash
 npx openviber start
+```
+
+Or chat directly from your terminal (great inside tmux):
+
+```bash
+openviber chat
 ```
 
 Open http://localhost:6006 and try:

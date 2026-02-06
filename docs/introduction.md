@@ -7,6 +7,8 @@ description: "What is OpenViber and how to get started"
 
 **OpenViber** is an open-source Cowork Agent platform that turns your machine into an AI teammate. Unlike cloud-based agent frameworks, OpenViber runs locally with full privacy, connects to your enterprise channels, and works autonomously on real tasks.
 
+The CLI is available as both `openviber` and the shorter alias `viber` (when installed).
+
 ## What Can OpenViber Do?
 
 | Task Type | Example |
@@ -36,6 +38,9 @@ Run one-off tasks or scheduled jobs:
 ```bash
 # Start a task
 openviber run "Create a README for this project"
+
+# Interactive terminal chat (tmux-friendly)
+openviber chat
 
 # Run a scheduled job
 openviber run jobs/morning-standup.yaml
@@ -78,4 +83,3 @@ Start with "Always Ask" and gradually increase autonomy as you build trust.
 3. **[Jobs](/docs/concepts/jobs)** — Set up scheduled tasks
 4. **[Tools](/docs/concepts/tools)** — Available actions
 5. **[Skills](/docs/concepts/skills)** — Add domain knowledge
-

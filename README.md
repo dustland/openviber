@@ -36,6 +36,27 @@
 npx openviber start
 ```
 
+If you install the package (global or in-project), the CLI is available as both `openviber` and the shorter alias `viber`.
+
+## 🧵 Terminal Chat (tmux-friendly)
+
+Use OpenViber from any terminal (including inside tmux) via the local hub.
+
+```bash
+# 1) Start the hub
+openviber hub
+
+# 2) Start the viber daemon (connects to the hub)
+openviber start
+
+# 3) Chat from your terminal
+openviber chat
+
+# Optional: list/attach to tmux panes via the local WS server (:6008)
+openviber term list
+openviber term attach <session:window.pane>
+```
+
 ## 🧠 Personalization (The Three-File Pattern)
 
 OpenViber follows the same configuration pattern that has emerged across all serious agent systems (Claude Projects, Custom GPTs, Cursor Rules). Three markdown files define your agent's complete behavior:

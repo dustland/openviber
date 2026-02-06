@@ -7,7 +7,8 @@
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "openviber": "./dist/cli/index.js"
+    "openviber": "./dist/cli/index.js",
+    "viber": "./dist/cli/index.js"
   },
   "packageManager": "pnpm@10.28.2",
   "pnpm": {

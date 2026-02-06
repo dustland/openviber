@@ -9,6 +9,8 @@ import "dotenv/config";
  * Commands:
  *   viber start    - Start the viber daemon (connect to command center)
  *   viber run      - Run a task locally without connection to command center
+ *   viber chat     - Chat with a running viber via the local hub (terminal-first)
+ *   viber term     - List/attach/send input to tmux panes via local WS (port 6008)
  *   viber gateway  - Start the API gateway server (legacy)
  */
 
@@ -16,11 +18,20 @@ import { program } from "commander";
 import * as os from "os";
 import * as fs from "fs/promises";
 import * as path from "path";
+import * as readline from "node:readline";
+import WebSocket from "ws";
 
 const VERSION = "1.0.0";
 
+function getCliName(): string {
+  const invokedPath = process.argv[1];
+  const invokedName = invokedPath ? path.parse(invokedPath).name : "";
+  if (invokedName === "viber" || invokedName === "openviber") return invokedName;
+  return "openviber";
+}
+
 program
-  .name("openviber")
+  .name(getCliName())
   .description("OpenViber - Workspace-first assistant runtime (vibers on your machines)")
   .version(VERSION);
 
@@ -234,6 +245,394 @@ program
       console.log("\n\n[Viber] Task completed");
     } catch (error: any) {
       console.error("[Viber] Task failed:", error.message);
+      process.exit(1);
+    }
+  });
+
+// ==================== viber chat ====================
+
+program
+  .command("chat")
+  .description(
+    "Chat with a running viber via the local hub (works great inside tmux)",
+  )
+  .option(
+    "--hub <url>",
+    "Hub base URL (defaults to VIBER_HUB_URL or http://localhost:6007)",
+  )
+  .option("-v, --viber <id>", "Target viber ID (defaults to first connected)")
+  .option(
+    "-s, --session <name>",
+    "Session name for local history (saved under ~/.openviber/agents/default/sessions/)",
+  )
+  .option("--no-save", "Do not write chat history to disk")
+  .action(async (options) => {
+    const hubUrl: string =
+      options.hub || process.env.VIBER_HUB_URL || "http://localhost:6007";
+    const agentId = "default";
+
+    const sessionsDir = path.join(
+      os.homedir(),
+      ".openviber",
+      "agents",
+      agentId,
+      "sessions",
+    );
+    const rawSessionName =
+      options.session || `chat-${new Date().toISOString().replace(/[:.]/g, "-")}`;
+    const sessionName = sanitizeSessionName(rawSessionName);
+    const sessionPath = path.join(sessionsDir, `${sessionName}.jsonl`);
+
+    if (options.save !== false) {
+      await fs.mkdir(sessionsDir, { recursive: true });
+    }
+
+    const vibers = await hubGetVibers(hubUrl);
+    if (!vibers.connected || vibers.vibers.length === 0) {
+      console.error(`[Chat] No vibers connected to hub at ${hubUrl}`);
+      console.error("[Chat] Start the hub + viber in another terminal:");
+      console.error("  pnpm dev  (or: pnpm dev:hub + pnpm dev:viber)");
+      process.exit(1);
+    }
+
+    let activeViberId: string | undefined = options.viber;
+    if (activeViberId) {
+      const exists = vibers.vibers.some((v) => v.id === activeViberId);
+      if (!exists) {
+        console.error(`[Chat] Viber not found: ${activeViberId}`);
+        console.error(
+          `[Chat] Connected vibers:\n${vibers.vibers.map((v) => `  - ${v.id} (${v.name})`).join("\n")}`,
+        );
+        process.exit(1);
+      }
+    } else {
+      activeViberId = vibers.vibers[0]?.id;
+    }
+
+    const persistedMessages =
+      options.save !== false ? await readJsonlMessages(sessionPath) : [];
+    const messages: { role: "user" | "assistant" | "system"; content: string }[] =
+      [...persistedMessages];
+
+    console.log(
+      `[Chat] Hub: ${hubUrl}\n[Chat] Viber: ${activeViberId}\n[Chat] Session: ${options.save !== false ? sessionPath : "(not saved)"}\n`,
+    );
+    console.log("Type your message and press Enter.");
+    console.log("Commands: /help, /exit, /vibers, /use <viberId>, /reset\n");
+
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+      terminal: true,
+    });
+
+    const cleanup = () => {
+      try {
+        rl.close();
+      } catch {
+        // ignore
+      }
+    };
+
+    process.on("SIGINT", () => {
+      cleanup();
+      process.exit(0);
+    });
+
+    while (true) {
+      const line = await question(rl, "you> ");
+      const input = line.trim();
+      if (!input) continue;
+
+      if (input.startsWith("/")) {
+        const handled = await handleChatCommand(input, {
+          hubUrl,
+          vibers,
+          getActiveViberId: () => activeViberId!,
+          setActiveViberId: (id) => {
+            activeViberId = id;
+          },
+          resetHistory: async () => {
+            messages.length = 0;
+            if (options.save !== false) {
+              await fs.writeFile(sessionPath, "", "utf8");
+            }
+          },
+        });
+        if (handled === "exit") break;
+        continue;
+      }
+
+      messages.push({ role: "user", content: input });
+      if (options.save !== false) {
+        await appendJsonlMessage(sessionPath, { role: "user", content: input });
+      }
+
+      const submit = await hubSubmitTask(hubUrl, {
+        goal: input,
+        viberId: activeViberId!,
+        messages,
+      });
+      if (!submit) {
+        console.error("[Chat] Failed to submit task");
+        continue;
+      }
+
+      process.stdout.write("viber> ");
+      const result = await pollHubTask(hubUrl, submit.taskId, {
+        pollIntervalMs: 1200,
+        maxAttempts: 120,
+      });
+
+      if (!result) {
+        console.log("Task timed out. No response received.");
+        continue;
+      }
+
+      if (result.status === "error") {
+        const errText = `Error: ${result.error || "Task failed"}`;
+        console.log(errText);
+        messages.push({ role: "assistant", content: errText });
+        if (options.save !== false) {
+          await appendJsonlMessage(sessionPath, {
+            role: "assistant",
+            content: errText,
+          });
+        }
+        continue;
+      }
+
+      const text =
+        (typeof (result.result as any)?.text === "string"
+          ? ((result.result as any).text as string).trim()
+          : "") ||
+        (typeof (result.result as any)?.summary === "string"
+          ? ((result.result as any).summary as string).trim()
+          : "") ||
+        "(No response text)";
+
+      console.log(text);
+      messages.push({ role: "assistant", content: text });
+      if (options.save !== false) {
+        await appendJsonlMessage(sessionPath, {
+          role: "assistant",
+          content: text,
+        });
+      }
+    }
+
+    cleanup();
+  });
+
+// ==================== viber term ====================
+
+const termCommand = program
+  .command("term")
+  .description("Interact with tmux panes via the viber local WS server (port 6008)")
+  .addHelpText(
+    "after",
+    `
+Examples:
+  openviber term list
+  openviber term create-session coding --window main
+  openviber term attach coding:0.0
+  openviber term send coding:0.0 "ls -la" --enter
+`,
+  );
+
+termCommand
+  .command("list")
+  .description("List tmux sessions and panes")
+  .option("--ws <url>", "Local WS URL", "ws://localhost:6008")
+  .action(async (options) => {
+    try {
+      const ws = await openWebSocket(options.ws);
+      ws.send(JSON.stringify({ type: "terminal:list" }));
+
+      const msg = await waitForWsMessage(
+        ws,
+        (m) => m?.type === "terminal:list",
+        5000,
+      );
+      ws.close();
+
+      const sessions = Array.isArray(msg?.sessions) ? msg.sessions : [];
+      const panes = Array.isArray(msg?.panes) ? msg.panes : [];
+
+      if (sessions.length === 0 && panes.length === 0) {
+        console.log("No tmux sessions found (or tmux not installed).");
+        return;
+      }
+
+      if (sessions.length > 0) {
+        console.log("Sessions:");
+        for (const s of sessions) {
+          console.log(
+            `  - ${s.name} (windows=${s.windows ?? "?"}, attached=${s.attached ?? "?"})`,
+          );
+        }
+        console.log("");
+      }
+
+      if (panes.length > 0) {
+        console.log("Panes:");
+        for (const p of panes) {
+          console.log(
+            `  - ${p.target}  (${p.session}:${p.windowName} cmd=${p.command ?? "?"})`,
+          );
+        }
+      }
+    } catch (err: any) {
+      console.error(
+        `[term] Failed to list terminals via ${options.ws}: ${err?.message || String(err)}`,
+      );
+      process.exit(1);
+    }
+  });
+
+termCommand
+  .command("create-session [sessionName]")
+  .description("Create a detached tmux session (used for web-managed terminals)")
+  .option("--ws <url>", "Local WS URL", "ws://localhost:6008")
+  .option("--window <name>", "First window name", "main")
+  .option("--cwd <dir>", "Start directory for first window")
+  .action(async (sessionName, options) => {
+    try {
+      const ws = await openWebSocket(options.ws);
+      ws.send(
+        JSON.stringify({
+          type: "terminal:create-session",
+          sessionName: sessionName || "coding",
+          windowName: options.window,
+          cwd: options.cwd,
+        }),
+      );
+
+      const msg = await waitForWsMessage(
+        ws,
+        (m) => m?.type === "terminal:session-created",
+        5000,
+      );
+      ws.close();
+
+      if (msg?.ok) {
+        console.log(
+          `Session '${msg.sessionName}' ${msg.created ? "created" : "exists"}. Attach with: tmux attach -t ${msg.sessionName}`,
+        );
+      } else {
+        console.error(
+          `Failed to create session: ${msg?.error || "unknown error"}`,
+        );
+        process.exit(1);
+      }
+    } catch (err: any) {
+      console.error(
+        `[term] Failed to create session via ${options.ws}: ${err?.message || String(err)}`,
+      );
+      process.exit(1);
+    }
+  });
+
+termCommand
+  .command("attach <target>")
+  .description("Attach to a tmux pane target and stream output to stdout")
+  .option("--ws <url>", "Local WS URL", "ws://localhost:6008")
+  .action(async (target, options) => {
+    let ws: WebSocket;
+    try {
+      ws = await openWebSocket(options.ws);
+    } catch (err: any) {
+      console.error(
+        `[term] Failed to connect to ${options.ws}: ${err?.message || String(err)}`,
+      );
+      process.exit(1);
+    }
+
+    const onSigint = () => {
+      try {
+        ws.send(JSON.stringify({ type: "terminal:detach", target }));
+      } catch {
+        // ignore
+      }
+      ws.close();
+      process.exit(0);
+    };
+    process.on("SIGINT", onSigint);
+
+    ws.on("message", (data) => {
+      try {
+        const msg = JSON.parse(data.toString());
+        if (msg?.type === "terminal:output" && msg?.target === target) {
+          process.stdout.write(String(msg.data ?? ""));
+        } else if (msg?.type === "terminal:attached" && msg?.target === target) {
+          if (!msg.ok) {
+            console.error(msg.error || "Failed to attach");
+            ws.close();
+            process.exit(1);
+          }
+        }
+      } catch {
+        // ignore non-JSON
+      }
+    });
+
+    ws.send(JSON.stringify({ type: "terminal:attach", target }));
+    await new Promise<void>((resolve) => ws.on("close", () => resolve()));
+  });
+
+termCommand
+  .command("send <target> [keys...]")
+  .description("Send keys to a tmux pane (use --enter to press Enter after)")
+  .option("--ws <url>", "Local WS URL", "ws://localhost:6008")
+  .option("--enter", "Send Enter after the keys", false)
+  .action(async (target, keys, options) => {
+    try {
+      const ws = await openWebSocket(options.ws);
+      const text = Array.isArray(keys) ? keys.join(" ") : String(keys ?? "");
+      ws.send(JSON.stringify({ type: "terminal:input", target, keys: text }));
+      if (options.enter) {
+        ws.send(JSON.stringify({ type: "terminal:input", target, keys: "Enter" }));
+      }
+      ws.close();
+    } catch (err: any) {
+      console.error(
+        `[term] Failed to send keys via ${options.ws}: ${err?.message || String(err)}`,
+      );
+      process.exit(1);
+    }
+  });
+
+termCommand
+  .command("resize <target>")
+  .description("Resize a tmux pane (cols/rows)")
+  .requiredOption("--cols <n>", "Columns", (v) => parseInt(v, 10))
+  .requiredOption("--rows <n>", "Rows", (v) => parseInt(v, 10))
+  .option("--ws <url>", "Local WS URL", "ws://localhost:6008")
+  .action(async (target, options) => {
+    try {
+      const ws = await openWebSocket(options.ws);
+      ws.send(
+        JSON.stringify({
+          type: "terminal:resize",
+          target,
+          cols: options.cols,
+          rows: options.rows,
+        }),
+      );
+      const msg = await waitForWsMessage(
+        ws,
+        (m) => m?.type === "terminal:resized" && m?.target === target,
+        5000,
+      );
+      ws.close();
+      if (!msg?.ok) {
+        console.error("Resize failed");
+        process.exit(1);
+      }
+    } catch (err: any) {
+      console.error(
+        `[term] Failed to resize via ${options.ws}: ${err?.message || String(err)}`,
+      );
       process.exit(1);
     }
   });
@@ -514,6 +913,277 @@ async function getViberId(): Promise<string> {
     await fs.writeFile(idFile, id);
     return id;
   }
+}
+
+// ==================== Chat helpers ====================
+
+interface HubViberListResponse {
+  connected: boolean;
+  vibers: Array<{ id: string; name: string }>;
+}
+
+interface HubTask {
+  id: string;
+  viberId: string;
+  goal: string;
+  status: "pending" | "running" | "completed" | "error" | "stopped";
+  result?: unknown;
+  error?: string;
+}
+
+const SAFE_SESSION_NAME_RE = /[^a-zA-Z0-9_.-]/g;
+
+function sanitizeSessionName(name: string): string {
+  const trimmed = String(name || "").trim();
+  const replaced = trimmed.replace(SAFE_SESSION_NAME_RE, "-").replace(/-+/g, "-");
+  const safe = replaced.length > 0 ? replaced : "chat";
+  return safe.slice(0, 120);
+}
+
+function normalizeHubUrl(hubUrl: string): string {
+  return String(hubUrl || "").trim().replace(/\/$/, "");
+}
+
+async function hubGetVibers(hubUrl: string): Promise<HubViberListResponse> {
+  try {
+    const res = await fetch(`${normalizeHubUrl(hubUrl)}/api/vibers`);
+    if (!res.ok) {
+      return { connected: false, vibers: [] };
+    }
+    const json = (await res.json()) as any;
+    return {
+      connected: !!json?.connected,
+      vibers: Array.isArray(json?.vibers) ? json.vibers : [],
+    };
+  } catch {
+    return { connected: false, vibers: [] };
+  }
+}
+
+async function hubSubmitTask(
+  hubUrl: string,
+  args: {
+    goal: string;
+    viberId: string;
+    messages: Array<{ role: string; content: string }>;
+  },
+): Promise<{ taskId: string } | null> {
+  try {
+    const res = await fetch(`${normalizeHubUrl(hubUrl)}/api/vibers`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        goal: args.goal,
+        viberId: args.viberId,
+        messages: args.messages,
+      }),
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as any;
+  } catch {
+    return null;
+  }
+}
+
+async function hubGetTask(hubUrl: string, taskId: string): Promise<HubTask | null> {
+  try {
+    const res = await fetch(`${normalizeHubUrl(hubUrl)}/api/tasks/${taskId}`);
+    if (!res.ok) return null;
+    return (await res.json()) as any;
+  } catch {
+    return null;
+  }
+}
+
+async function pollHubTask(
+  hubUrl: string,
+  taskId: string,
+  options: { pollIntervalMs: number; maxAttempts: number },
+): Promise<HubTask | null> {
+  for (let attempt = 0; attempt < options.maxAttempts; attempt++) {
+    const task = await hubGetTask(hubUrl, taskId);
+    if (task && (task.status === "completed" || task.status === "error")) {
+      return task;
+    }
+    await sleep(options.pollIntervalMs);
+  }
+  return await hubGetTask(hubUrl, taskId);
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function question(rl: readline.Interface, prompt: string): Promise<string> {
+  return new Promise((resolve) => rl.question(prompt, resolve));
+}
+
+async function handleChatCommand(
+  input: string,
+  ctx: {
+    hubUrl: string;
+    vibers: HubViberListResponse;
+    getActiveViberId: () => string;
+    setActiveViberId: (id: string) => void;
+    resetHistory: () => Promise<void>;
+  },
+): Promise<"continue" | "exit"> {
+  const [cmd, ...rest] = input.slice(1).trim().split(/\s+/);
+
+  switch (cmd) {
+    case "exit":
+    case "quit":
+      return "exit";
+    case "help":
+      console.log(
+        [
+          "Commands:",
+          "  /help                 Show help",
+          "  /exit                 Exit chat",
+          "  /vibers               List connected vibers",
+          "  /use <viberId>        Switch viber",
+          "  /reset                Clear local history (and session file)",
+        ].join("\n"),
+      );
+      return "continue";
+    case "vibers": {
+      const vibers = await hubGetVibers(ctx.hubUrl);
+      if (!vibers.connected || vibers.vibers.length === 0) {
+        console.log("No vibers connected.");
+        return "continue";
+      }
+      console.log("Connected vibers:");
+      for (const v of vibers.vibers) {
+        const active = v.id === ctx.getActiveViberId() ? " (active)" : "";
+        console.log(`  - ${v.id} (${v.name})${active}`);
+      }
+      return "continue";
+    }
+    case "use": {
+      const next = rest[0];
+      if (!next) {
+        console.log("Usage: /use <viberId>");
+        return "continue";
+      }
+      const vibers = await hubGetVibers(ctx.hubUrl);
+      const exists = vibers.vibers.some((v) => v.id === next);
+      if (!exists) {
+        console.log(`Viber not found: ${next}`);
+        return "continue";
+      }
+      ctx.setActiveViberId(next);
+      console.log(`Active viber: ${next}`);
+      return "continue";
+    }
+    case "reset":
+      await ctx.resetHistory();
+      console.log("History cleared.");
+      return "continue";
+    default:
+      console.log(`Unknown command: /${cmd}. Try /help`);
+      return "continue";
+  }
+}
+
+type JsonlMessage = { role: "user" | "assistant" | "system"; content: string };
+
+async function readJsonlMessages(filePath: string): Promise<JsonlMessage[]> {
+  try {
+    const content = await fs.readFile(filePath, "utf8");
+    const lines = content.split("\n").map((l) => l.trim()).filter(Boolean);
+    const out: JsonlMessage[] = [];
+    for (const line of lines) {
+      try {
+        const parsed = JSON.parse(line) as any;
+        if (
+          parsed &&
+          (parsed.role === "user" ||
+            parsed.role === "assistant" ||
+            parsed.role === "system") &&
+          typeof parsed.content === "string"
+        ) {
+          out.push({ role: parsed.role, content: parsed.content });
+        }
+      } catch {
+        // ignore bad lines
+      }
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
+async function appendJsonlMessage(filePath: string, msg: JsonlMessage): Promise<void> {
+  const line = JSON.stringify({ ...msg, ts: Date.now() });
+  await fs.appendFile(filePath, `${line}\n`, "utf8");
+}
+
+// ==================== Terminal WS helpers ====================
+
+function openWebSocket(url: string): Promise<WebSocket> {
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(url);
+    const timeout = setTimeout(() => {
+      try {
+        ws.close();
+      } catch {
+        // ignore
+      }
+      reject(new Error("WebSocket connect timed out"));
+    }, 5000);
+
+    ws.once("open", () => {
+      clearTimeout(timeout);
+      resolve(ws);
+    });
+
+    ws.once("error", (err) => {
+      clearTimeout(timeout);
+      reject(err);
+    });
+  });
+}
+
+function waitForWsMessage(
+  ws: WebSocket,
+  predicate: (msg: any) => boolean,
+  timeoutMs: number,
+): Promise<any> {
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      cleanup();
+      reject(new Error("Timed out waiting for message"));
+    }, timeoutMs);
+
+    const onMessage = (data: WebSocket.RawData) => {
+      try {
+        const msg = JSON.parse(data.toString());
+        if (predicate(msg)) {
+          cleanup();
+          resolve(msg);
+        }
+      } catch {
+        // ignore
+      }
+    };
+
+    const onClose = () => {
+      cleanup();
+      reject(new Error("WebSocket closed"));
+    };
+
+    const cleanup = () => {
+      clearTimeout(timeout);
+      ws.off("message", onMessage);
+      ws.off("close", onClose);
+      ws.off("error", onClose as any);
+    };
+
+    ws.on("message", onMessage);
+    ws.once("close", onClose);
+    ws.once("error", onClose as any);
+  });
 }
 
 // ==================== Main ====================

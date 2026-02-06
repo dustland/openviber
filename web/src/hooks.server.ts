@@ -1,5 +1,6 @@
 import type { Handle } from "@sveltejs/kit";
 import { getAuthUser } from "$lib/server/auth";
+import { env } from "$env/dynamic/private";
 
 // Only these routes require authentication
 const PROTECTED_PATHS = ["/vibers", "/api/vibers"];
@@ -10,8 +11,7 @@ function requiresAuth(pathname: string) {
 
 export const handle: Handle = async ({ event, resolve }) => {
   // Skip auth for local testing when SKIP_AUTH is set (via shell env or .env)
-  const skipAuth = process.env.SKIP_AUTH === "true";
-  console.log('[hooks] SKIP_AUTH:', process.env.SKIP_AUTH, '-> skipAuth:', skipAuth);
+  const skipAuth = env.SKIP_AUTH === "true";
 
   if (skipAuth) {
     event.locals.user = {

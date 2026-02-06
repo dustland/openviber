@@ -100,7 +100,7 @@ function sanitizeName(name: string): string {
 // Tool definitions using CoreTool interface (zod schema + execute function)
 export const createJobTool = {
     description: `Create a scheduled job that runs automatically. Use natural language for timing like "8am daily", "every hour", "Monday 9am", "every 30 minutes". The job will execute the given task/prompt on the schedule.`,
-    parameters: z.object({
+    inputSchema: z.object({
         name: z.string().describe("Short name for the job, e.g. 'daily-weather'"),
         schedule: z.string().describe("When to run, in natural language like '8am daily' or 'every hour'"),
         task: z.string().describe("What the job should do - the prompt/task to execute"),
@@ -154,7 +154,7 @@ export const createJobTool = {
 
 export const listJobsTool = {
     description: "List all scheduled jobs",
-    parameters: z.object({}),
+    inputSchema: z.object({}),
     execute: async () => {
         const jobsDir = getJobsDir();
 
@@ -190,7 +190,7 @@ export const listJobsTool = {
 
 export const deleteJobTool = {
     description: "Delete a scheduled job by name",
-    parameters: z.object({
+    inputSchema: z.object({
         name: z.string().describe("Name of the job to delete")
     }),
     execute: async (args: { name: string }) => {

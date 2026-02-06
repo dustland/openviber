@@ -64,19 +64,19 @@ export interface ViberStatus {
 // Server -> Viber messages (messages = full chat history from Viber Board for context)
 export type ControllerServerMessage =
   | {
-      type: "task:submit";
-      taskId: string;
-      goal: string;
-      options?: ViberOptions;
-      messages?: { role: string; content: string }[];
-    }
+    type: "task:submit";
+    taskId: string;
+    goal: string;
+    options?: ViberOptions;
+    messages?: { role: string; content: string }[];
+  }
   | { type: "task:stop"; taskId: string }
   | {
-      type: "task:message";
-      taskId: string;
-      message: string;
-      injectionMode?: "steer" | "followup" | "collect";
-    }
+    type: "task:message";
+    taskId: string;
+    message: string;
+    injectionMode?: "steer" | "followup" | "collect";
+  }
   | { type: "ping" }
   | { type: "config:update"; config: Partial<ViberControllerConfig> }
   // Terminal streaming messages
@@ -249,7 +249,7 @@ export class ViberController extends EventEmitter {
         version: getOpenViberVersion(),
         platform: process.platform,
         capabilities,
-          runningTasks: Array.from(this.runningTasks.keys()),
+        runningTasks: Array.from(this.runningTasks.keys()),
         skills: skills.length > 0 ? skills : undefined,
       },
     });
@@ -441,22 +441,22 @@ export class ViberController extends EventEmitter {
       runtime.messageHistory
     );
 
-      let finalText = "";
-      let pendingDelta = "";
-      let lastProgressAt = 0;
-      const flushProgress = (force = false): void => {
-        if (!pendingDelta) return;
-        const now = Date.now();
-        if (!force && now - lastProgressAt < 250) return;
+    let finalText = "";
+    let pendingDelta = "";
+    let lastProgressAt = 0;
+    const flushProgress = (force = false): void => {
+      if (!pendingDelta) return;
+      const now = Date.now();
+      if (!force && now - lastProgressAt < 250) return;
 
-        this.emitTaskProgress(runtime, {
-          kind: "text-delta",
-          delta: pendingDelta,
-          totalLength: finalText.length,
-        });
-        pendingDelta = "";
-        lastProgressAt = now;
-      };
+      this.emitTaskProgress(runtime, {
+        kind: "text-delta",
+        delta: pendingDelta,
+        totalLength: finalText.length,
+      });
+      pendingDelta = "";
+      lastProgressAt = now;
+    };
 
     this.emitTaskProgress(runtime, {
       kind: "status",
@@ -466,38 +466,40 @@ export class ViberController extends EventEmitter {
 
     for await (const part of streamResult.fullStream) {
       switch (part.type) {
-          case "text-delta":
-            if (part.text) {
-              finalText += part.text;
-              pendingDelta += part.text;
-              flushProgress(false);
-            }
-            break;
-          case "tool-call":
-            this.emitTaskProgress(runtime, {
-              kind: "tool-call",
-              toolName: part.toolName,
-              toolCallId: part.toolCallId,
-            });
-            break;
-          case "tool-result":
-            this.emitTaskProgress(runtime, {
-              kind: "tool-result",
-              toolCallId: part.toolCallId,
-            });
-            break;
-          case "error":
-            throw new Error(part.error?.message || "Task stream error");
-          case "finish":
-            flushProgress(true);
-            this.emitTaskProgress(runtime, {
-              kind: "status",
-              phase: "verifying",
-              message: "Agent execution finished, preparing final output",
-            });
-            break;
-          default:
-            break;
+        case "text-delta":
+          if (part.text) {
+            finalText += part.text;
+            pendingDelta += part.text;
+            flushProgress(false);
+          }
+          break;
+        case "tool-call":
+          console.log(`[Viber] Tool call: ${part.toolName}`);
+          this.emitTaskProgress(runtime, {
+            kind: "tool-call",
+            toolName: part.toolName,
+            toolCallId: part.toolCallId,
+          });
+          break;
+        case "tool-result":
+          this.emitTaskProgress(runtime, {
+            kind: "tool-result",
+            toolCallId: part.toolCallId,
+          });
+          break;
+        case "error":
+          console.error(`[Viber] Stream error:`, part.error);
+          throw new Error(part.error?.message || "Task stream error");
+        case "finish":
+          flushProgress(true);
+          this.emitTaskProgress(runtime, {
+            kind: "status",
+            phase: "verifying",
+            message: "Agent execution finished, preparing final output",
+          });
+          break;
+        default:
+          break;
       }
     }
 

@@ -80,7 +80,7 @@
 </script>
 
 <svelte:head>
-  <title>Vibers - Viber Board</title>
+  <title>Vibers - OpenViber</title>
 </svelte:head>
 
 <div class="p-6 h-full overflow-y-auto">

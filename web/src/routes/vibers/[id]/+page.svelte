@@ -132,7 +132,7 @@
     };
     messages = [...messages, userMessage];
 
-    // Persist user message at Viber Board level
+    // Persist user message at OpenViber level
     try {
       await fetch(`/api/vibers/${viber.id}/messages`, {
         method: "POST",
@@ -209,7 +209,7 @@
             messages = messages.map((m) =>
               m.id === assistantMessageId ? { ...m, content: text } : m,
             );
-            // Persist assistant message at Viber Board level
+            // Persist assistant message at OpenViber level
             try {
               await fetch(`/api/vibers/${viber!.id}/messages`, {
                 method: "POST",
@@ -312,7 +312,7 @@
 </script>
 
 <svelte:head>
-  <title>{viber?.name || "Viber"} - Viber Board</title>
+  <title>{viber?.name || "Viber"} - OpenViber</title>
 </svelte:head>
 
 <div class="chat-shell flex-1 flex flex-col min-h-0 overflow-hidden">

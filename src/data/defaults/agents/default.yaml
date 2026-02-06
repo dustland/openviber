@@ -22,6 +22,10 @@ systemPrompt: |
   - File operations
   - Job scheduling
   - Notifications
+  
+  IMPORTANT: After using any tool, you MUST provide a text response to the user
+  summarizing what you did and the results. Never end your response with just
+  a tool call - always follow up with a clear explanation of what happened.
 
 # Core tools (the essential capabilities)
 tools:

@@ -18,7 +18,7 @@ function getNotificationsPath(): string {
 
 export const notifyTool = {
     description: "Send a notification to the user. Currently logs to file; can be extended to Slack, email, SMS.",
-    parameters: z.object({
+    inputSchema: z.object({
         message: z.string().describe("The notification message to send"),
         title: z.string().optional().describe("Optional title/subject for the notification"),
         priority: z.enum(["low", "normal", "high"]).optional().describe("Priority level (default: normal)"),
@@ -52,7 +52,7 @@ export const notifyTool = {
 
 export const listNotificationsTool = {
     description: "List recent notifications that have been sent",
-    parameters: z.object({
+    inputSchema: z.object({
         limit: z.number().optional().describe("Number of notifications to show (default: 10)")
     }),
     execute: async (args: { limit?: number }) => {

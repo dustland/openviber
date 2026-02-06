@@ -1,7 +1,7 @@
 /**
  * Hub Client - Connects to the Viber Playground/Hub server
  *
- * The Viber Board delegates viber management to the hub server,
+ * The OpenViber web app delegates viber management to the hub server,
  * which handles WebSocket connections from viber daemons.
  */
 

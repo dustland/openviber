@@ -17,6 +17,7 @@
     Check,
     Home,
     ChevronDown,
+    Calendar,
   } from "@lucide/svelte";
 
   type Theme = "light" | "dark" | "system";
@@ -95,6 +96,16 @@
                     <a href="/vibers" {...props}>
                       <Server class="size-4" />
                       <span>Vibers</span>
+                    </a>
+                  {/snippet}
+                </Sidebar.MenuButton>
+              </Sidebar.MenuItem>
+              <Sidebar.MenuItem>
+                <Sidebar.MenuButton tooltipContent="Jobs">
+                  {#snippet child({ props })}
+                    <a href="/jobs" {...props}>
+                      <Calendar class="size-4" />
+                      <span>Jobs</span>
                     </a>
                   {/snippet}
                 </Sidebar.MenuButton>

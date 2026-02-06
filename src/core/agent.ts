@@ -6,7 +6,7 @@
  * its role, tools, and LLM settings.
  */
 
-import { generateText, streamText } from "ai";
+import { generateText, streamText, stepCountIs } from "ai";
 import type { LanguageModel, ModelMessage } from "ai";
 import { getViberPath } from "../config";
 import { AgentConfig } from "./config";
@@ -305,9 +305,9 @@ export class Agent {
             ? m.content
             : Array.isArray(m.content)
               ? (m.content as Array<{ type: string; text?: string }>)
-                  .filter((p) => p.type === "text" && p.text)
-                  .map((p) => p.text as string)
-                  .join("\n")
+                .filter((p) => p.type === "text" && p.text)
+                .map((p) => p.text as string)
+                .join("\n")
               : "",
       }))
       .filter((m) => m.content);
@@ -400,9 +400,9 @@ export class Agent {
             ? m.content
             : Array.isArray(m.content)
               ? (m.content as Array<{ type: string; text?: string }>)
-                  .filter((p) => p.type === "text" && p.text)
-                  .map((p) => p.text as string)
-                  .join("\n")
+                .filter((p) => p.type === "text" && p.text)
+                .map((p) => p.text as string)
+                .join("\n")
               : "",
       }))
       .filter((m) => m.content); // Remove empty messages
@@ -414,16 +414,18 @@ export class Agent {
       messages: modelMessages,
       tools,
       toolChoice: "auto", // Explicitly set tool choice mode
-      maxSteps: 5, // Allow up to 5 tool call steps
+      stopWhen: stepCountIs(5), // Enable multi-step: continue until no more tool calls or 5 steps
       temperature: this.temperature,
       maxOutputTokens: this.maxTokens,
       topP: this.topP,
       frequencyPenalty: this.frequencyPenalty,
       presencePenalty: this.presencePenalty,
       maxRetries: 3,
-      // Add callback to monitor tool calls
-      onStepFinish: ({ text, toolCalls, toolResults, finishReason }) => {
-        // ... logging logic ...
+      // onStepFinish callback for debugging multi-step execution if needed
+      onStepFinish: ({ toolCalls }) => {
+        if (toolCalls?.length) {
+          console.log(`[Agent] Tool calls: ${toolCalls.map(t => t.toolName).join(', ')}`);
+        }
       },
       // Override with any provided options
       ...aiSdkOptions,
@@ -496,9 +498,9 @@ export class Agent {
             ? m.content
             : Array.isArray(m.content)
               ? (m.content as Array<{ type: string; text?: string }>)
-                  .filter((p) => p.type === "text" && p.text)
-                  .map((p) => p.text as string)
-                  .join("\n")
+                .filter((p) => p.type === "text" && p.text)
+                .map((p) => p.text as string)
+                .join("\n")
               : "",
       }))
       .filter((m) => m.content);

@@ -41,11 +41,11 @@ export class SearchTool extends Tool {
       .filter(p => p.available)
       .map(p => p.name)
       .join(' and ');
-    
+
     return {
       id: 'search',
       name: 'Web Search',
-      description: availableProviders 
+      description: availableProviders
         ? `Search the web for current information using ${availableProviders}`
         : 'Web search functionality (requires TAVILY_API_KEY or SERPER_API_KEY)',
       category: 'search',
@@ -60,6 +60,7 @@ export class SearchTool extends Tool {
         description: '选择默认使用的搜索引擎提供商',
         options: [
           { value: 'auto', label: '自动选择', description: '根据可用性自动选择最佳搜索引擎' },
+          { value: 'exa', label: 'Exa', description: '神经/语义搜索引擎，按意义而非关键词查找结果' },
           { value: 'tavily', label: 'Tavily', description: '专为 AI 优化的搜索引擎，提供高质量结构化结果' },
           { value: 'serper', label: 'Serper', description: 'Google 搜索 API，提供全面的搜索结果' },
         ],
@@ -71,6 +72,13 @@ export class SearchTool extends Tool {
         type: 'boolean',
         description: '当主提供商失败时自动切换到备用提供商',
         defaultValue: true,
+        required: false,
+      },
+      exaApiKey: {
+        name: 'Exa API 密钥',
+        type: 'string',
+        description: '用于 Exa 神经/语义搜索服务的 API 密钥。可以在此直接设置，或通过环境变量 EXA_API_KEY 提供',
+        envVar: 'EXA_API_KEY',
         required: false,
       },
       tavilyApiKey: {
@@ -165,6 +173,7 @@ export class SearchTool extends Tool {
 
     // Update config manager with new settings
     this.configManager = new SearchConfigManager({
+      exaApiKey: config.exaApiKey,
       tavilyApiKey: config.tavilyApiKey,
       serperApiKey: config.serperApiKey,
       defaultProvider: config.defaultProvider,
@@ -177,7 +186,7 @@ export class SearchTool extends Tool {
   }
 
   @ToolFunction({
-    description: 'Search the web for information using configured search providers (Tavily or Serper). Returns relevant web pages with titles, URLs, and snippets. For news queries, automatically prioritizes recent articles and news sources. Supports multiple languages and locales.',
+    description: 'Search the web for information using configured search providers (Exa, Tavily, or Serper). Exa provides semantic/neural search that finds results by meaning. Returns relevant web pages with titles, URLs, and snippets. For news queries, automatically prioritizes recent articles and news sources. Supports multiple languages and locales.',
     input: z.object({
       query: z.string().min(1).describe('The search query or keywords to search for'),
       maxResults: z.number().min(1).max(20).optional().default(10).describe('Maximum number of search results to return (1-20, default: 10)'),
@@ -202,7 +211,7 @@ export class SearchTool extends Tool {
     const provider = this.configManager.selectProvider();
 
     if (!provider) {
-      throw new Error('No search provider available. Please configure TAVILY_API_KEY or SERPER_API_KEY.');
+      throw new Error('No search provider available. Please configure EXA_API_KEY, TAVILY_API_KEY, or SERPER_API_KEY.');
     }
 
     // Apply config defaults for missing parameters
@@ -250,6 +259,8 @@ export class SearchTool extends Tool {
     const endpoint = SEARCH_PROVIDERS[provider].endpoint;
 
     switch (provider) {
+      case 'exa':
+        return await this.searchWithExa(endpoint, apiKey, input);
       case 'tavily':
         return await this.searchWithTavily(endpoint, apiKey, input);
       case 'serper':
@@ -257,6 +268,108 @@ export class SearchTool extends Tool {
       default:
         throw new Error(`Search provider ${provider} is not implemented`);
     }
+  }
+
+  private async searchWithExa(
+    endpoint: string,
+    apiKey: string,
+    input: {
+      query: string;
+      maxResults?: number;
+      searchType?: 'general' | 'news';
+      days?: number;
+      language?: string;
+      country?: string;
+      includeDomains?: string[];
+      excludeDomains?: string[];
+    }
+  ): Promise<SearchResponse> {
+    const isNews = input.searchType === 'news';
+
+    // EXA API request body
+    const requestBody: any = {
+      query: input.query,
+      numResults: input.maxResults || 10,
+      type: 'neural', // Use neural/semantic search for better AI results
+      useAutoprompt: true, // Let EXA optimize the query
+      contents: {
+        text: true, // Include extracted text content
+        highlights: true, // Include relevant highlights
+      },
+    };
+
+    // Add time filter for news searches
+    if (isNews && input.days) {
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - input.days);
+      requestBody.startPublishedDate = startDate.toISOString();
+    } else if (input.days) {
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - input.days);
+      requestBody.startPublishedDate = startDate.toISOString();
+    }
+
+    // Add domain filters
+    if (input.includeDomains && input.includeDomains.length > 0) {
+      requestBody.includeDomains = input.includeDomains;
+    }
+    if (input.excludeDomains && input.excludeDomains.length > 0) {
+      requestBody.excludeDomains = input.excludeDomains;
+    }
+
+    // For news, prefer news-focused categories
+    if (isNews) {
+      requestBody.category = 'news';
+    }
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Exa search failed: ${response.statusText} - ${errorText}`);
+    }
+
+    const data = await response.json();
+
+    return {
+      provider: 'exa',
+      query: input.query,
+      results: (data.results || []).map((r: any) => {
+        // Extract domain from URL for favicon
+        let domain = '';
+        let favicon = '';
+        try {
+          const urlObj = new URL(r.url);
+          domain = urlObj.hostname.replace('www.', '');
+          favicon = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+        } catch {
+          // Invalid URL, skip favicon
+        }
+
+        // Get snippet from highlights or text
+        const snippet = r.highlights?.join(' ') || r.text?.substring(0, 300) || r.title || '';
+
+        return {
+          title: r.title,
+          url: r.url,
+          snippet: snippet,
+          description: snippet,
+          content: r.text,
+          score: r.score,
+          publishedDate: r.publishedDate,
+          domain,
+          favicon,
+        };
+      }),
+      totalResults: data.results?.length || 0,
+    };
   }
 
   private async searchWithTavily(

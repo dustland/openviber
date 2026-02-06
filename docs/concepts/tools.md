@@ -17,13 +17,17 @@ Think of tools like apps on your phone — each one does something specific, and
 
 OpenViber comes with several tools ready to use:
 
+For terminal automation, OpenViber uses the **tmux skill** (`tmux`, `cursor-agent`) rather than a standalone terminal tool.
+
 | Tool | What It Does |
 |------|--------------|
 | **File** | Read, write, create, and delete files |
-| **Terminal** | Run shell commands and scripts |
-| **Browser** | Navigate web pages, click, type, extract content |
 | **Search** | Find information online |
+| **Web** | Fetch, parse, and crawl web content |
+| **Browser** | Navigate web pages, click, type, and extract content |
 | **Desktop** | Interact with desktop applications |
+| **Schedule** | Create, list, and manage recurring job schedules |
+| **Notify** | Send desktop notifications for important events |
 
 ## How Agents Use Tools
 

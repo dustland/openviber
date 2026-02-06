@@ -17,11 +17,12 @@
     Check,
     Home,
     ChevronDown,
+    Calendar,
   } from "@lucide/svelte";
 
   type Theme = "light" | "dark" | "system";
 
-  let { children } = $props();
+  let { children, data } = $props();
   let theme = $state<Theme>("system");
 
   // Check if we're on a nested viber page (has its own layout)
@@ -60,7 +61,10 @@
       <Sidebar.Header class="p-2 pb-1">
         <Sidebar.Menu>
           <Sidebar.MenuItem>
-            <Sidebar.MenuButton size="sm" class="group-data-[collapsible=icon]:p-0!">
+            <Sidebar.MenuButton
+              size="sm"
+              class="group-data-[collapsible=icon]:p-0!"
+            >
               {#snippet child({ props })}
                 <a href="/" {...props}>
                   <img src="/favicon.png" alt="OpenViber" class="size-6" />
@@ -97,6 +101,16 @@
                 </Sidebar.MenuButton>
               </Sidebar.MenuItem>
               <Sidebar.MenuItem>
+                <Sidebar.MenuButton tooltipContent="Jobs">
+                  {#snippet child({ props })}
+                    <a href="/jobs" {...props}>
+                      <Calendar class="size-4" />
+                      <span>Jobs</span>
+                    </a>
+                  {/snippet}
+                </Sidebar.MenuButton>
+              </Sidebar.MenuItem>
+              <Sidebar.MenuItem>
                 <Sidebar.MenuButton tooltipContent="Documentation">
                   {#snippet child({ props })}
                     <a href="/docs" {...props}>
@@ -125,8 +139,13 @@
                 {:else}
                   <Laptop class="size-4 shrink-0" />
                 {/if}
-                <span class="capitalize flex-1 text-left group-data-[collapsible=icon]:hidden">{theme}</span>
-                <ChevronDown class="size-3.5 opacity-50 group-data-[collapsible=icon]:hidden" />
+                <span
+                  class="capitalize flex-1 text-left group-data-[collapsible=icon]:hidden"
+                  >{theme}</span
+                >
+                <ChevronDown
+                  class="size-3.5 opacity-50 group-data-[collapsible=icon]:hidden"
+                />
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 side="right"
@@ -160,6 +179,68 @@
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+          </Sidebar.MenuItem>
+          <Sidebar.MenuItem>
+            {#if data?.user}
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  class="w-full h-9 rounded-md px-2 text-sm text-sidebar-foreground inline-flex items-center gap-2.5 hover:bg-sidebar-accent transition-colors group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center"
+                >
+                  {#if data.user.avatarUrl}
+                    <img
+                      src={data.user.avatarUrl}
+                      alt={data.user.name}
+                      class="size-6 rounded-full object-cover shrink-0"
+                    />
+                  {:else}
+                    <div
+                      class="size-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary shrink-0"
+                    >
+                      {data.user.name?.charAt(0)?.toUpperCase() || "U"}
+                    </div>
+                  {/if}
+                  <span
+                    class="truncate flex-1 text-left group-data-[collapsible=icon]:hidden"
+                    >{data.user.name}</span
+                  >
+                  <ChevronDown
+                    class="size-3.5 opacity-50 group-data-[collapsible=icon]:hidden"
+                  />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  side="right"
+                  align="end"
+                  sideOffset={8}
+                  class="min-w-48 rounded-md border border-border bg-popover p-1 shadow-md"
+                >
+                  <div class="px-2.5 py-2 border-b border-border mb-1">
+                    <p class="text-sm font-medium">{data.user.name}</p>
+                    <p class="text-xs text-muted-foreground">
+                      {data.user.email}
+                    </p>
+                  </div>
+                  <DropdownMenuItem
+                    class="w-full rounded px-2.5 py-2 text-left text-sm hover:bg-accent flex items-center gap-2.5 outline-none cursor-pointer text-destructive"
+                    onSelect={() => {
+                      const form = document.createElement("form");
+                      form.method = "POST";
+                      form.action = "/auth/logout";
+                      document.body.appendChild(form);
+                      form.submit();
+                    }}
+                  >
+                    Sign out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            {:else}
+              <a
+                href="/login"
+                class="w-full text-left text-sm text-sidebar-foreground/80 hover:text-sidebar-foreground px-2 py-1.5 rounded-md hover:bg-sidebar-accent"
+              >
+                Sign in
+              </a>
+            {/if}
           </Sidebar.MenuItem>
         </Sidebar.Menu>
       </Sidebar.Footer>

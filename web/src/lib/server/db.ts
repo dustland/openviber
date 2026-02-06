@@ -67,10 +67,30 @@ export function initializeDatabase() {
       created_at INTEGER NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      auth_user_id TEXT NOT NULL UNIQUE,
+      email TEXT NOT NULL UNIQUE,
+      name TEXT NOT NULL,
+      avatar_url TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS sessions (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      token_hash TEXT NOT NULL UNIQUE,
+      created_at INTEGER NOT NULL,
+      expires_at INTEGER NOT NULL
+    );
+
     CREATE INDEX IF NOT EXISTS idx_spaces_viber_id ON spaces(viber_id);
     CREATE INDEX IF NOT EXISTS idx_tasks_viber_id ON tasks(viber_id);
     CREATE INDEX IF NOT EXISTS idx_messages_viber_id ON messages(viber_id);
     CREATE INDEX IF NOT EXISTS idx_messages_task_id ON messages(task_id);
+    CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
+    CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
   `);
 }
 

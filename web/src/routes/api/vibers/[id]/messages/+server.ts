@@ -3,7 +3,7 @@ import type { RequestHandler } from "./$types";
 import { db, schema } from "$lib/server/db";
 import { eq, asc } from "drizzle-orm";
 
-// GET /api/vibers/[id]/messages - Load chat history for this viber (Viber Board-level persistence)
+// GET /api/vibers/[id]/messages - Load chat history for this viber (OpenViber-level persistence)
 export const GET: RequestHandler = async ({ params }) => {
   try {
     const rows = await db
@@ -27,7 +27,7 @@ export const GET: RequestHandler = async ({ params }) => {
   }
 };
 
-// POST /api/vibers/[id]/messages - Append one or more messages (Viber Board-level persistence)
+// POST /api/vibers/[id]/messages - Append one or more messages (OpenViber-level persistence)
 export const POST: RequestHandler = async ({ params, request }) => {
   try {
     const body = await request.json();
@@ -37,29 +37,51 @@ export const POST: RequestHandler = async ({ params, request }) => {
     const toInsert = Array.isArray(body.messages)
       ? body.messages
       : [
-          {
-            role: body.role,
-            content: body.content,
-            taskId: body.taskId ?? null,
-          },
-        ];
+        {
+          role: body.role,
+          content: body.content,
+          taskId: body.taskId ?? null,
+        },
+      ];
 
     const created = [];
     const now = new Date();
+
+    // Ensure viber exists in local DB (auto-create if needed)
+    const existingViber = await db.select().from(schema.vibers).where(eq(schema.vibers.id, viberId)).limit(1);
+    if (existingViber.length === 0) {
+      await db.insert(schema.vibers).values({
+        id: viberId,
+        name: viberId,
+        createdAt: now,
+      });
+    }
+
     for (const msg of toInsert) {
+      // Skip messages without valid content (e.g., tool-only messages)
+      const content = typeof msg.content === 'string'
+        ? msg.content
+        : (msg.content != null ? JSON.stringify(msg.content) : null);
+
+      if (!msg.role || content == null) {
+        console.warn('[Messages] Skipping message with missing role or content:', msg);
+        continue;
+      }
+
       const id = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+      // Don't store taskId to avoid FK constraint - tasks are ephemeral hub-side
       await db.insert(schema.messages).values({
         id,
         viberId,
-        taskId: msg.taskId ?? null,
+        taskId: null,
         role: msg.role,
-        content: msg.content,
+        content,
         createdAt: now,
       });
       created.push({
         id,
         role: msg.role,
-        content: msg.content,
+        content,
         createdAt: now,
         taskId: msg.taskId ?? undefined,
       });

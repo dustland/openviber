@@ -25,7 +25,7 @@ export const POST: RequestHandler = async ({ request }) => {
       );
     }
 
-    const systemPrompt = `You are a helpful AI assistant in the Viber Board. You help users understand and work with their Viber agents.`;
+    const systemPrompt = `You are a helpful AI assistant in OpenViber. You help users understand and work with their Viber agents.`;
 
     const chatMessages = [
       { role: "system", content: systemPrompt },
@@ -41,7 +41,7 @@ export const POST: RequestHandler = async ({ request }) => {
         Authorization: `Bearer ${OPENROUTER_API_KEY}`,
         "Content-Type": "application/json",
         "HTTP-Referer": "https://viber.dustland.ai",
-        "X-Title": "Viber Board",
+        "X-Title": "OpenViber",
       },
       body: JSON.stringify({
         model: "anthropic/claude-3.5-sonnet",

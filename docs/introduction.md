@@ -28,7 +28,7 @@ Open the browser-based interface to chat with your viber:
 
 ```bash
 npx openviber start
-# Open http://localhost:5173
+# Start the web UI (`pnpm dev:web`) and open http://localhost:6006
 ```
 
 ### 2. Command Line
@@ -51,7 +51,7 @@ openviber run jobs/morning-standup.yaml
 Connect to DingTalk or WeCom for team collaboration:
 
 ```bash
-openviber start --channel dingtalk --token YOUR_TOKEN
+openviber gateway
 ```
 
 ## Key Concepts
@@ -60,7 +60,7 @@ openviber start --channel dingtalk --token YOUR_TOKEN
 |---------|------------|
 | **Viber** | Your machine + OpenViber = an AI teammate |
 | **Agent** | The AI that reasons, plans, and executes tasks |
-| **Tools** | Actions the agent can take (file, terminal, browser) |
+| **Tools** | Actions the agent can take (file, search, web, browser, desktop, etc.) |
 | **Skills** | Domain knowledge injected as instructions |
 | **Jobs** | Scheduled tasks defined in YAML |
 

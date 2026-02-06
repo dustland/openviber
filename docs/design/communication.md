@@ -32,16 +32,16 @@ Daemon -> Board:
 - `task:completed` (`summary`, `artifactRefs`, `verificationRefs`)
 - `task:error`
 
-## 3. Runtime observability messages (tmux)
+## 3. Runtime observability messages (tmux-first, multi-app ready)
 
-- `terminal:list`
-- `terminal:attach`
-- `terminal:output`
-- `terminal:input`
-- `terminal:resize`
-- `terminal:detach`
+- `terminal:list` (returns `apps[]`, `sessions[]`, `panes[]`)
+- `terminal:attach` (`target`, optional `appId`)
+- `terminal:output` (`target`, optional `appId`, `data`)
+- `terminal:input` (`target`, optional `appId`, `keys`)
+- `terminal:resize` (`target`, optional `appId`, `cols`, `rows`)
+- `terminal:detach` (`target`, optional `appId`)
 
-These expose execution state without requiring GUI remoting.
+`tmux` is the default primary runtime. `appId` enables incremental support for other terminal-capable runtimes while preserving the same board contract.
 
 ## 4. Reporting envelope
 

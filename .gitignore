@@ -33,5 +33,5 @@ coverage/
 # Environment
 .env
 .env.local
+.env.test
 .env.*.local
-.env

@@ -16,6 +16,7 @@ import WebSocket from "ws";
 import type { ViberOptions } from "../core/viber-agent";
 import { runTask } from "./runtime";
 import { TerminalManager } from "./terminal";
+import { getOpenViberVersion } from "../utils/version";
 
 // ==================== Types ====================
 
@@ -63,22 +64,27 @@ export interface ViberStatus {
 // Server -> Viber messages (messages = full chat history from Viber Board for context)
 export type ControllerServerMessage =
   | {
-      type: "task:submit";
-      taskId: string;
-      goal: string;
-      options?: ViberOptions;
-      messages?: { role: string; content: string }[];
-    }
+    type: "task:submit";
+    taskId: string;
+    goal: string;
+    options?: ViberOptions;
+    messages?: { role: string; content: string }[];
+  }
   | { type: "task:stop"; taskId: string }
-  | { type: "task:message"; taskId: string; message: string }
+  | {
+    type: "task:message";
+    taskId: string;
+    message: string;
+    injectionMode?: "steer" | "followup" | "collect";
+  }
   | { type: "ping" }
   | { type: "config:update"; config: Partial<ViberControllerConfig> }
   // Terminal streaming messages
   | { type: "terminal:list" }
-  | { type: "terminal:attach"; target: string }
-  | { type: "terminal:detach"; target: string }
-  | { type: "terminal:input"; target: string; keys: string }
-  | { type: "terminal:resize"; target: string; cols: number; rows: number };
+  | { type: "terminal:attach"; target: string; appId?: string }
+  | { type: "terminal:detach"; target: string; appId?: string }
+  | { type: "terminal:input"; target: string; keys: string; appId?: string }
+  | { type: "terminal:resize"; target: string; cols: number; rows: number; appId?: string };
 
 // Viber -> Server messages
 export type ControllerClientMessage =
@@ -90,11 +96,34 @@ export type ControllerClientMessage =
   | { type: "heartbeat"; status: ViberStatus }
   | { type: "pong" }
   // Terminal streaming messages
-  | { type: "terminal:list"; sessions: any[]; panes: any[] }
-  | { type: "terminal:attached"; target: string; ok: boolean; error?: string }
-  | { type: "terminal:detached"; target: string }
-  | { type: "terminal:output"; target: string; data: string }
-  | { type: "terminal:resized"; target: string; ok: boolean };
+  | { type: "terminal:list"; apps: any[]; sessions: any[]; panes: any[] }
+  | { type: "terminal:attached"; target: string; appId?: string; ok: boolean; error?: string }
+  | { type: "terminal:detached"; target: string; appId?: string }
+  | { type: "terminal:output"; target: string; appId?: string; data: string }
+  | { type: "terminal:resized"; target: string; appId?: string; ok: boolean };
+
+interface TaskProgressEnvelope {
+  eventId: string;
+  sequence: number;
+  taskId: string;
+  conversationId: string;
+  createdAt: string;
+  model?: string;
+  event: Record<string, unknown>;
+}
+
+interface TaskRuntimeState {
+  taskId: string;
+  goal: string;
+  options?: ViberOptions;
+  sequence: number;
+  controller: AbortController;
+  running: boolean;
+  stopped: boolean;
+  messageHistory: { role: string; content: string }[];
+  queuedFollowups: string[];
+  collectBuffer: string[];
+}
 
 // ==================== Controller ====================
 
@@ -102,8 +131,8 @@ export class ViberController extends EventEmitter {
   private ws: WebSocket | null = null;
   private reconnectTimer: NodeJS.Timeout | null = null;
   private heartbeatTimer: NodeJS.Timeout | null = null;
-  /** taskId -> AbortController for stop (daemon = thin runtime, no Space/agent instance) */
-  private runningTasks: Map<string, AbortController> = new Map();
+  /** taskId -> runtime state */
+  private runningTasks: Map<string, TaskRuntimeState> = new Map();
   private isConnected = false;
   private shouldReconnect = true;
   /** Terminal manager for streaming tmux panes */
@@ -130,8 +159,9 @@ export class ViberController extends EventEmitter {
     console.log("[Viber] Stopping viber...");
     this.shouldReconnect = false;
 
-    for (const [taskId, controller] of this.runningTasks) {
-      controller.abort();
+    for (const [taskId, runtime] of this.runningTasks) {
+      runtime.stopped = true;
+      runtime.controller.abort();
       this.runningTasks.delete(taskId);
     }
 
@@ -172,7 +202,7 @@ export class ViberController extends EventEmitter {
         headers: {
           Authorization: `Bearer ${this.config.token}`,
           "X-Viber-Id": this.config.viberId,
-          "X-Viber-Version": "1.0.0",
+          "X-Viber-Version": getOpenViberVersion(),
         },
       });
 
@@ -216,7 +246,7 @@ export class ViberController extends EventEmitter {
       viber: {
         id: this.config.viberId,
         name: this.config.viberName || this.config.viberId,
-        version: "1.0.0",
+        version: getOpenViberVersion(),
         platform: process.platform,
         capabilities,
         runningTasks: Array.from(this.runningTasks.keys()),
@@ -259,7 +289,11 @@ export class ViberController extends EventEmitter {
           break;
 
         case "task:message":
-          await this.handleTaskMessage(message.taskId, message.message);
+          await this.handleTaskMessage(
+            message.taskId,
+            message.message,
+            message.injectionMode
+          );
           break;
 
         case "ping":
@@ -277,19 +311,19 @@ export class ViberController extends EventEmitter {
           break;
 
         case "terminal:attach":
-          await this.handleTerminalAttach(message.target);
+          await this.handleTerminalAttach(message.target, message.appId);
           break;
 
         case "terminal:detach":
-          this.handleTerminalDetach(message.target);
+          this.handleTerminalDetach(message.target, message.appId);
           break;
 
         case "terminal:input":
-          this.handleTerminalInput(message.target, message.keys);
+          this.handleTerminalInput(message.target, message.keys, message.appId);
           break;
 
         case "terminal:resize":
-          this.handleTerminalResize(message.target, message.cols, message.rows);
+          this.handleTerminalResize(message.target, message.cols, message.rows, message.appId);
           break;
       }
     } catch (error) {
@@ -310,8 +344,22 @@ export class ViberController extends EventEmitter {
     console.log(`[Viber] Received task: ${taskId}`);
     console.log(`[Viber] Goal: ${goal}`);
 
-    const controller = new AbortController();
-    this.runningTasks.set(taskId, controller);
+    const runtime: TaskRuntimeState = {
+      taskId,
+      goal,
+      options,
+      sequence: 0,
+      controller: new AbortController(),
+      running: false,
+      stopped: false,
+      messageHistory:
+        messages && messages.length > 0
+          ? [...messages]
+          : [{ role: "user", content: goal }],
+      queuedFollowups: [],
+      collectBuffer: [],
+    };
+    this.runningTasks.set(taskId, runtime);
 
     this.send({
       type: "task:started",
@@ -320,29 +368,46 @@ export class ViberController extends EventEmitter {
     });
 
     try {
-      const { streamResult, agent } = await runTask(
-        goal,
-        {
+      let result = await this.executeTask(runtime);
+
+      while (!runtime.stopped) {
+        const nextMessage = this.dequeueNextMessage(runtime);
+        if (!nextMessage) {
+          break;
+        }
+
+        runtime.messageHistory.push({ role: "user", content: nextMessage });
+        this.emitTaskProgress(runtime, {
+          kind: "status",
+          phase: "followup",
+          message: "Processing follow-up intervention message",
+        });
+        try {
+          result = await this.executeTask(runtime);
+        } catch (error: any) {
+          if (error?.name === "AbortError" && !runtime.stopped) {
+            this.emitTaskProgress(runtime, {
+              kind: "status",
+              phase: "interrupted",
+              message: "Run interrupted; applying latest intervention message",
+            });
+            continue;
+          }
+          throw error;
+        }
+      }
+
+      if (!runtime.stopped) {
+        this.send({
+          type: "task:completed",
           taskId,
-          model: options?.model,
-          singleAgentId: options?.singleAgentId || "default",
-          signal: controller.signal,
-        },
-        messages
-      );
-
-      // Consume stream to completion; do not send intermediate chunks to Viber Board by default.
-      const finalText = await streamResult.text;
-
-      this.send({
-        type: "task:completed",
-        taskId,
-        result: {
-          spaceId: taskId,
-          text: finalText,
-          summary: agent.getSummary(),
-        },
-      });
+          result: {
+            spaceId: taskId,
+            text: result.finalText,
+            summary: result.agent.getSummary(),
+          },
+        });
+      }
     } catch (error: any) {
       if (error?.name === "AbortError") {
         console.log(`[Viber] Task ${taskId} stopped`);
@@ -359,60 +424,207 @@ export class ViberController extends EventEmitter {
     }
   }
 
+  private async executeTask(
+    runtime: TaskRuntimeState
+  ): Promise<{ finalText: string; agent: Awaited<ReturnType<typeof runTask>>["agent"] }> {
+    runtime.controller = new AbortController();
+    runtime.running = true;
+
+    const { streamResult, agent } = await runTask(
+      runtime.goal,
+      {
+        taskId: runtime.taskId,
+        model: runtime.options?.model,
+        singleAgentId: runtime.options?.singleAgentId || "default",
+        signal: runtime.controller.signal,
+      },
+      runtime.messageHistory
+    );
+
+    let finalText = "";
+    let pendingDelta = "";
+    let lastProgressAt = 0;
+    const flushProgress = (force = false): void => {
+      if (!pendingDelta) return;
+      const now = Date.now();
+      if (!force && now - lastProgressAt < 250) return;
+
+      this.emitTaskProgress(runtime, {
+        kind: "text-delta",
+        delta: pendingDelta,
+        totalLength: finalText.length,
+      });
+      pendingDelta = "";
+      lastProgressAt = now;
+    };
+
+    this.emitTaskProgress(runtime, {
+      kind: "status",
+      phase: "executing",
+      message: "Agent execution started",
+    });
+
+    for await (const part of streamResult.fullStream) {
+      switch (part.type) {
+        case "text-delta":
+          if (part.text) {
+            finalText += part.text;
+            pendingDelta += part.text;
+            flushProgress(false);
+          }
+          break;
+        case "tool-call":
+          console.log(`[Viber] Tool call: ${part.toolName}`);
+          this.emitTaskProgress(runtime, {
+            kind: "tool-call",
+            toolName: part.toolName,
+            toolCallId: part.toolCallId,
+          });
+          break;
+        case "tool-result":
+          this.emitTaskProgress(runtime, {
+            kind: "tool-result",
+            toolCallId: part.toolCallId,
+          });
+          break;
+        case "error":
+          console.error(`[Viber] Stream error:`, part.error);
+          throw new Error(part.error?.message || "Task stream error");
+        case "finish":
+          flushProgress(true);
+          this.emitTaskProgress(runtime, {
+            kind: "status",
+            phase: "verifying",
+            message: "Agent execution finished, preparing final output",
+          });
+          break;
+        default:
+          break;
+      }
+    }
+
+    runtime.running = false;
+    runtime.messageHistory.push({ role: "assistant", content: finalText });
+    return { finalText, agent };
+  }
+
   private async handleTaskStop(taskId: string): Promise<void> {
-    const controller = this.runningTasks.get(taskId);
-    if (controller) {
-      controller.abort();
+    const runtime = this.runningTasks.get(taskId);
+    if (runtime) {
+      runtime.stopped = true;
+      runtime.controller.abort();
       this.runningTasks.delete(taskId);
       console.log(`[Viber] Task stopped: ${taskId}`);
     }
   }
 
   private async handleTaskMessage(
-    _taskId: string,
-    _message: string
+    taskId: string,
+    message: string,
+    injectionMode: "steer" | "followup" | "collect" = "followup"
   ): Promise<void> {
-    // Daemon is thin: no in-memory conversation. Viber Board sends full messages on next task submit.
+    const runtime = this.runningTasks.get(taskId);
+    if (!runtime || runtime.stopped) {
+      return;
+    }
+
+    if (injectionMode === "collect") {
+      runtime.collectBuffer.push(message);
+      return;
+    }
+
+    if (injectionMode === "steer") {
+      runtime.queuedFollowups.unshift(message);
+      if (runtime.running) {
+        runtime.controller.abort();
+      }
+      return;
+    }
+
+    runtime.queuedFollowups.push(message);
+  }
+
+  private dequeueNextMessage(runtime: TaskRuntimeState): string | null {
+    const followup = runtime.queuedFollowups.shift();
+    if (followup) {
+      return followup;
+    }
+
+    if (runtime.collectBuffer.length > 0) {
+      const merged = runtime.collectBuffer.join("\n");
+      runtime.collectBuffer = [];
+      return merged;
+    }
+
+    return null;
+  }
+
+  private emitTaskProgress(
+    runtime: TaskRuntimeState,
+    event: Record<string, unknown>
+  ): void {
+    const createdAt = new Date().toISOString();
+    runtime.sequence += 1;
+    const envelope: TaskProgressEnvelope = {
+      eventId: `${runtime.taskId}-${runtime.sequence}`,
+      sequence: runtime.sequence,
+      taskId: runtime.taskId,
+      conversationId: runtime.taskId,
+      createdAt,
+      model: runtime.options?.model,
+      event: {
+        ...event,
+        at: createdAt,
+      },
+    };
+
+    this.send({
+      type: "task:progress",
+      taskId: runtime.taskId,
+      event: envelope,
+    });
   }
 
   // ==================== Terminal Streaming ====================
 
   private handleTerminalList(): void {
-    const { sessions, panes } = this.terminalManager.list();
-    this.send({ type: "terminal:list", sessions, panes });
+    const { apps, sessions, panes } = this.terminalManager.list();
+    this.send({ type: "terminal:list", apps, sessions, panes });
   }
 
-  private async handleTerminalAttach(target: string): Promise<void> {
+  private async handleTerminalAttach(target: string, appId?: string): Promise<void> {
     console.log(`[Viber] Attaching to terminal: ${target}`);
     const ok = await this.terminalManager.attach(
       target,
       (data) => {
-        this.send({ type: "terminal:output", target, data });
+        this.send({ type: "terminal:output", target, appId, data });
       },
       () => {
-        this.send({ type: "terminal:detached", target });
-      }
+        this.send({ type: "terminal:detached", target, appId });
+      },
+      appId
     );
-    this.send({ type: "terminal:attached", target, ok });
+    this.send({ type: "terminal:attached", target, appId, ok });
   }
 
-  private handleTerminalDetach(target: string): void {
+  private handleTerminalDetach(target: string, appId?: string): void {
     console.log(`[Viber] Detaching from terminal: ${target}`);
-    this.terminalManager.detach(target);
-    this.send({ type: "terminal:detached", target });
+    this.terminalManager.detach(target, appId);
+    this.send({ type: "terminal:detached", target, appId });
   }
 
-  private handleTerminalInput(target: string, keys: string): void {
-    this.terminalManager.sendInput(target, keys);
+  private handleTerminalInput(target: string, keys: string, appId?: string): void {
+    this.terminalManager.sendInput(target, keys, appId);
   }
 
   private handleTerminalResize(
     target: string,
     cols: number,
-    rows: number
+    rows: number,
+    appId?: string
   ): void {
-    const ok = this.terminalManager.resize(target, cols, rows);
-    this.send({ type: "terminal:resized", target, ok });
+    const ok = this.terminalManager.resize(target, cols, rows, appId);
+    this.send({ type: "terminal:resized", target, appId, ok });
   }
 
   // ==================== Communication ====================

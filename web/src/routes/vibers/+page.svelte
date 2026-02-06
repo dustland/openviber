@@ -80,14 +80,14 @@
 </script>
 
 <svelte:head>
-  <title>Vibers - Viber Board</title>
+  <title>Vibers - OpenViber</title>
 </svelte:head>
 
-<div class="px-6 py-6 max-w-6xl">
-  <div class="flex items-center justify-between mb-8">
+<div class="p-6 h-full overflow-y-auto">
+  <div class="flex items-center justify-between mb-6">
     <div>
-      <h1 class="text-3xl font-bold text-foreground">Vibers</h1>
-      <p class="text-sm mt-1 text-muted-foreground flex items-center gap-2">
+      <h1 class="text-2xl font-semibold text-foreground">Vibers</h1>
+      <p class="text-sm mt-0.5 text-muted-foreground flex items-center gap-2">
         {#if hubConnected}
           <span class="flex items-center gap-1">
             <Circle class="size-2 fill-green-500 text-green-500" />

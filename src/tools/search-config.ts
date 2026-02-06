@@ -5,12 +5,13 @@
 
 import { z } from 'zod';
 
-export type SearchProvider = 'tavily' | 'serper';
+export type SearchProvider = 'exa' | 'tavily' | 'serper';
 
 export const SearchConfigSchema = z.object({
+  exaApiKey: z.string().optional(),
   tavilyApiKey: z.string().optional(),
   serperApiKey: z.string().optional(),
-  defaultProvider: z.enum(['tavily', 'serper', 'auto']).default('auto'),
+  defaultProvider: z.enum(['exa', 'tavily', 'serper', 'auto']).default('auto'),
   enableFallback: z.boolean().default(true),
 });
 
@@ -18,14 +19,20 @@ export type SearchConfig = z.infer<typeof SearchConfigSchema>;
 
 // Provider metadata
 export const SEARCH_PROVIDERS = {
+  exa: {
+    name: 'Exa',
+    endpoint: 'https://api.exa.ai/search',
+    envVar: 'EXA_API_KEY',
+    priority: 0, // Highest priority - semantic/neural search preferred for AI agents
+  },
   tavily: {
     name: 'Tavily',
     endpoint: 'https://api.tavily.com/search',
     envVar: 'TAVILY_API_KEY',
-    priority: 1, // Higher priority
+    priority: 1,
   },
   serper: {
-    name: 'Serper',  
+    name: 'Serper',
     endpoint: 'https://google.serper.dev/search',
     envVar: 'SERPER_API_KEY',
     priority: 2,
@@ -37,20 +44,23 @@ export const SEARCH_PROVIDERS = {
  */
 export class SearchConfigManager {
   private config: SearchConfig;
-  
+
   constructor(config?: Partial<SearchConfig>) {
     this.config = SearchConfigSchema.parse(config || {});
   }
 
   getApiKey(provider: SearchProvider): string | null {
     // First check config, then fall back to env vars
+    if (provider === 'exa' && this.config.exaApiKey) {
+      return this.config.exaApiKey;
+    }
     if (provider === 'tavily' && this.config.tavilyApiKey) {
       return this.config.tavilyApiKey;
     }
     if (provider === 'serper' && this.config.serperApiKey) {
       return this.config.serperApiKey;
     }
-    
+
     // Fall back to environment variable
     return process.env[SEARCH_PROVIDERS[provider].envVar] || null;
   }
@@ -72,14 +82,14 @@ export class SearchConfigManager {
         return provider;
       }
     }
-    
+
     const available = this.getAvailableProviders();
     return available[0] || null;
   }
 
   getFallbackProvider(excludeProvider: SearchProvider): SearchProvider | null {
     if (!this.config.enableFallback) return null;
-    
+
     const available = this.getAvailableProviders();
     return available.find(p => p !== excludeProvider) || null;
   }

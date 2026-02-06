@@ -2,9 +2,10 @@
   import { onMount, onDestroy } from "svelte";
   import TerminalView from "./terminal-view.svelte";
   import { Button } from "$lib/components/ui/button";
-  import { RefreshCw, Plus, X, Terminal } from "@lucide/svelte";
+  import { RefreshCw, X, Terminal } from "@lucide/svelte";
 
-  interface TmuxPane {
+  interface TerminalPane {
+    appId: string;
     session: string;
     window: string;
     windowName: string;
@@ -13,22 +14,34 @@
     target: string;
   }
 
-  interface TmuxSession {
+  interface TerminalSession {
+    appId: string;
     name: string;
     windows: number;
     attached: boolean;
   }
 
-  let sessions = $state<TmuxSession[]>([]);
-  let panes = $state<TmuxPane[]>([]);
+  interface TerminalAppMeta {
+    id: string;
+    label: string;
+    available: boolean;
+  }
+
+  let apps = $state<TerminalAppMeta[]>([]);
+  let sessions = $state<TerminalSession[]>([]);
+  let panes = $state<TerminalPane[]>([]);
   let ws = $state<WebSocket | null>(null);
   let connected = $state(false);
   let loading = $state(true);
   let error = $state<string | null>(null);
   let creatingSession = $state(false);
 
-  /** Which panes are open in the UI */
+  /** Which panes are open in the UI (appId::target) */
   let openPanes = $state<Set<string>>(new Set());
+
+  function paneKey(appId: string, target: string): string {
+    return `${appId}::${target}`;
+  }
 
   // WebSocket URL - computed in browser only
   let wsUrl = "";
@@ -68,6 +81,7 @@
   function handleMessage(msg: any) {
     switch (msg.type) {
       case "terminal:list":
+        apps = msg.apps || [];
         sessions = msg.sessions || [];
         panes = msg.panes || [];
         break;
@@ -95,25 +109,27 @@
     ws.send(
       JSON.stringify({
         type: "terminal:create-session",
+        appId: "tmux",
         sessionName: "coding",
         windowName: "main",
       })
     );
   }
 
-  function togglePane(target: string) {
+  function togglePane(appId: string, target: string) {
+    const key = paneKey(appId, target);
     const newSet = new Set(openPanes);
-    if (newSet.has(target)) {
-      newSet.delete(target);
+    if (newSet.has(key)) {
+      newSet.delete(key);
     } else {
-      newSet.add(target);
+      newSet.add(key);
     }
     openPanes = newSet;
   }
 
-  function closePane(target: string) {
+  function closePane(appId: string, target: string) {
     const newSet = new Set(openPanes);
-    newSet.delete(target);
+    newSet.delete(paneKey(appId, target));
     openPanes = newSet;
   }
 
@@ -127,11 +143,12 @@
 
   // Group panes by session
   const panesBySession = $derived(() => {
-    const map = new Map<string, TmuxPane[]>();
+    const map = new Map<string, TerminalPane[]>();
     for (const pane of panes) {
-      const list = map.get(pane.session) || [];
+      const key = `${pane.appId}:${pane.session}`;
+      const list = map.get(key) || [];
       list.push(pane);
-      map.set(pane.session, list);
+      map.set(key, list);
     }
     return map;
   });
@@ -159,7 +176,7 @@
       <Terminal class="size-12 opacity-50" />
       <p>No tmux sessions found.</p>
       <p class="text-sm opacity-70">
-        Create and manage terminal sessions directly from Viber Board.
+        tmux is the primary terminal app, with room to expand to other runtimes.
       </p>
       <Button
         variant="outline"
@@ -175,23 +192,23 @@
     <div class="border-b border-border bg-muted/30 px-2 py-1.5">
       <div class="flex items-center gap-2">
         <div class="flex items-center gap-1 flex-1 overflow-x-auto">
-          {#each Array.from(panesBySession().entries()) as [sessionName, sessionPanes]}
+          {#each Array.from(panesBySession().entries()) as [_sessionKey, sessionPanes]}
             {#each sessionPanes as pane}
               <div
-                class="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap cursor-pointer {openPanes.has(pane.target)
+                class="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap cursor-pointer {openPanes.has(paneKey(pane.appId, pane.target))
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted'}"
-                onclick={() => togglePane(pane.target)}
-                onkeydown={(e) => e.key === 'Enter' && togglePane(pane.target)}
+                onclick={() => togglePane(pane.appId, pane.target)}
+                onkeydown={(e) => e.key === 'Enter' && togglePane(pane.appId, pane.target)}
                 role="button"
                 tabindex="0"
               >
                 <Terminal class="size-3.5" />
-                <span>{sessionName}:{pane.windowName}</span>
-                {#if openPanes.has(pane.target)}
+                <span>{pane.appId}:{pane.session}:{pane.windowName}</span>
+                {#if openPanes.has(paneKey(pane.appId, pane.target))}
                   <button
                     class="ml-1 p-0.5 rounded hover:bg-primary-foreground/20"
-                    onclick={(e) => { e.stopPropagation(); closePane(pane.target); }}
+                    onclick={(e) => { e.stopPropagation(); closePane(pane.appId, pane.target); }}
                   >
                     <X class="size-3" />
                   </button>
@@ -208,6 +225,11 @@
 
     <!-- Terminal views -->
     <div class="flex-1 min-h-0 overflow-hidden">
+      {#if apps.length > 0}
+        <div class="px-3 py-2 text-xs text-muted-foreground border-b border-border/50">
+          Available apps: {apps.filter((a) => a.available).map((a) => a.id).join(", ")}
+        </div>
+      {/if}
       {#if openPanes.size === 0}
         <div class="h-full flex items-center justify-center text-muted-foreground text-sm">
           Click a terminal tab above to open it
@@ -217,12 +239,15 @@
           class="h-full grid gap-1 p-1"
           style="grid-template-columns: repeat({Math.min(openPanes.size, 2)}, 1fr);"
         >
-          {#each Array.from(openPanes) as target (target)}
+          {#each Array.from(openPanes) as paneId (paneId)}
+            {@const [appId, target] = paneId.split("::")}
+            {@const pane = panes.find((p) => p.appId === appId && p.target === target)}
             <div class="min-h-0 overflow-hidden rounded border border-border">
               <TerminalView
+                appId={appId || pane?.appId || "tmux"}
                 {target}
                 {ws}
-                onClose={() => closePane(target)}
+                onClose={() => closePane(appId || "tmux", target)}
               />
             </div>
           {/each}

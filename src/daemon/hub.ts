@@ -37,6 +37,25 @@ interface ConnectedViber {
   runningTasks: string[];
 }
 
+interface TaskEvent {
+  at: string;
+  event: any;
+}
+
+interface TaskProgressEnvelope {
+  eventId: string;
+  sequence: number;
+  taskId: string;
+  conversationId: string;
+  createdAt: string;
+  model?: string;
+  event: {
+    kind?: string;
+    delta?: string;
+    [key: string]: unknown;
+  };
+}
+
 interface Task {
   id: string;
   viberId: string;
@@ -46,6 +65,8 @@ interface Task {
   error?: string;
   createdAt: Date;
   completedAt?: Date;
+  events: TaskEvent[];
+  partialText?: string;
 }
 
 export class HubServer {
@@ -241,6 +262,8 @@ export class HubServer {
           goal,
           status: "pending",
           createdAt: new Date(),
+          events: [],
+          partialText: "",
         };
         this.tasks.set(taskId, task);
 
@@ -271,6 +294,8 @@ export class HubServer {
       status: t.status,
       createdAt: t.createdAt.toISOString(),
       completedAt: t.completedAt?.toISOString(),
+      eventCount: t.events.length,
+      partialText: t.partialText,
     }));
 
     res.writeHead(200, { "Content-Type": "application/json" });
@@ -297,6 +322,9 @@ export class HubServer {
         error: task.error,
         createdAt: task.createdAt.toISOString(),
         completedAt: task.completedAt?.toISOString(),
+        events: task.events,
+        eventCount: task.events.length,
+        partialText: task.partialText,
       })
     );
   }
@@ -364,7 +392,7 @@ export class HubServer {
         break;
 
       case "task:progress":
-        // Could emit to Viber Board via SSE/WebSocket in the future
+        this.handleTaskProgress(msg.taskId, msg.event);
         break;
 
       case "task:completed":
@@ -420,8 +448,58 @@ export class HubServer {
       task.status = "completed";
       task.result = result;
       task.completedAt = new Date();
+      if (typeof result?.text === "string") {
+        task.partialText = result.text;
+      }
       console.log(`[Hub] Task completed: ${taskId}`);
     }
+  }
+
+  private handleTaskProgress(taskId: string, event: any): void {
+    const task = this.tasks.get(taskId);
+    if (!task) return;
+
+    const envelope = this.normalizeTaskProgressEvent(taskId, event);
+
+    task.events.push({ at: envelope.createdAt, event: envelope });
+    if (task.events.length > 500) {
+      task.events.shift();
+    }
+
+    if (
+      envelope.event?.kind === "text-delta" &&
+      typeof envelope.event?.delta === "string"
+    ) {
+      task.partialText = (task.partialText || "") + envelope.event.delta;
+      if (task.partialText.length > 20000) {
+        task.partialText = task.partialText.slice(-20000);
+      }
+    }
+  }
+
+  private normalizeTaskProgressEvent(
+    taskId: string,
+    payload: any
+  ): TaskProgressEnvelope {
+    const now = new Date().toISOString();
+    if (
+      payload &&
+      typeof payload === "object" &&
+      "eventId" in payload &&
+      "sequence" in payload &&
+      "event" in payload
+    ) {
+      return payload as TaskProgressEnvelope;
+    }
+
+    return {
+      eventId: `${taskId}-legacy-${Date.now()}`,
+      sequence: 0,
+      taskId,
+      conversationId: taskId,
+      createdAt: now,
+      event: payload || {},
+    };
   }
 
   private handleTaskError(taskId: string, error: string): void {

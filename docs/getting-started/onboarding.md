@@ -36,7 +36,9 @@ Get a key at [openrouter.ai/keys](https://openrouter.ai/keys)
 openviber start
 ```
 
-Open http://localhost:6006 to access the Viber Board.
+For terminal-first usage, keep interacting in your shell.
+
+For the Viber Board web UI, run `pnpm dev:web` in a second terminal and open http://localhost:6006.
 
 ## Alternative: Global Install
 

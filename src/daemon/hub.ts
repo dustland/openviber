@@ -42,6 +42,20 @@ interface TaskEvent {
   event: any;
 }
 
+interface TaskProgressEnvelope {
+  eventId: string;
+  sequence: number;
+  taskId: string;
+  conversationId: string;
+  createdAt: string;
+  model?: string;
+  event: {
+    kind?: string;
+    delta?: string;
+    [key: string]: unknown;
+  };
+}
+
 interface Task {
   id: string;
   viberId: string;
@@ -445,18 +459,47 @@ export class HubServer {
     const task = this.tasks.get(taskId);
     if (!task) return;
 
-    const at = new Date().toISOString();
-    task.events.push({ at, event });
+    const envelope = this.normalizeTaskProgressEvent(taskId, event);
+
+    task.events.push({ at: envelope.createdAt, event: envelope });
     if (task.events.length > 500) {
       task.events.shift();
     }
 
-    if (event?.kind === "text-delta" && typeof event?.delta === "string") {
-      task.partialText = (task.partialText || "") + event.delta;
+    if (
+      envelope.event?.kind === "text-delta" &&
+      typeof envelope.event?.delta === "string"
+    ) {
+      task.partialText = (task.partialText || "") + envelope.event.delta;
       if (task.partialText.length > 20000) {
         task.partialText = task.partialText.slice(-20000);
       }
     }
+  }
+
+  private normalizeTaskProgressEvent(
+    taskId: string,
+    payload: any
+  ): TaskProgressEnvelope {
+    const now = new Date().toISOString();
+    if (
+      payload &&
+      typeof payload === "object" &&
+      "eventId" in payload &&
+      "sequence" in payload &&
+      "event" in payload
+    ) {
+      return payload as TaskProgressEnvelope;
+    }
+
+    return {
+      eventId: `${taskId}-legacy-${Date.now()}`,
+      sequence: 0,
+      taskId,
+      conversationId: taskId,
+      createdAt: now,
+      event: payload || {},
+    };
   }
 
   private handleTaskError(taskId: string, error: string): void {

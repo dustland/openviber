@@ -82,14 +82,48 @@
           </a>
 
           {#if data.user}
-            <form method="POST" action="/auth/logout">
-              <button
-                type="submit"
-                class="text-muted-foreground hover:text-foreground transition-colors shrink-0 px-3 py-2 rounded-md hover:bg-accent/50"
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                class="size-9 rounded-full overflow-hidden hover:ring-2 hover:ring-primary/50 transition-all"
+                aria-label="User menu"
               >
-                Sign out
-              </button>
-            </form>
+                {#if data.user.avatarUrl}
+                  <img
+                    src={data.user.avatarUrl}
+                    alt={data.user.name}
+                    class="size-full object-cover"
+                  />
+                {:else}
+                  <div
+                    class="size-full bg-primary/10 flex items-center justify-center text-sm font-medium text-primary"
+                  >
+                    {data.user.name?.charAt(0)?.toUpperCase() || "U"}
+                  </div>
+                {/if}
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                sideOffset={6}
+                align="end"
+                class="min-w-48 rounded-md border border-border bg-popover p-1 shadow-md"
+              >
+                <div class="px-2.5 py-2 border-b border-border mb-1">
+                  <p class="text-sm font-medium">{data.user.name}</p>
+                  <p class="text-xs text-muted-foreground">{data.user.email}</p>
+                </div>
+                <DropdownMenuItem
+                  class="w-full rounded px-2.5 py-2 text-left text-sm hover:bg-accent flex items-center gap-2.5 outline-none cursor-pointer text-destructive"
+                  onSelect={() => {
+                    const form = document.createElement("form");
+                    form.method = "POST";
+                    form.action = "/auth/logout";
+                    document.body.appendChild(form);
+                    form.submit();
+                  }}
+                >
+                  Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           {:else}
             <a
               href="/login"
@@ -149,7 +183,9 @@
 
   <!-- Docs: Standard navbar with backdrop -->
   {#if isDocs}
-    <header class="border-b border-border/50 shrink-0 bg-background/80 backdrop-blur-md sticky top-0 z-50">
+    <header
+      class="border-b border-border/50 shrink-0 bg-background/80 backdrop-blur-md sticky top-0 z-50"
+    >
       <nav class="flex items-center gap-2 px-4 py-2 text-sm min-h-12">
         <a
           href="/"
@@ -176,14 +212,48 @@
           </a>
 
           {#if data.user}
-            <form method="POST" action="/auth/logout">
-              <button
-                type="submit"
-                class="text-muted-foreground hover:text-foreground transition-colors shrink-0 px-2.5 py-1.5 rounded-md hover:bg-accent"
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                class="size-8 rounded-full overflow-hidden hover:ring-2 hover:ring-primary/50 transition-all"
+                aria-label="User menu"
               >
-                Sign out
-              </button>
-            </form>
+                {#if data.user.avatarUrl}
+                  <img
+                    src={data.user.avatarUrl}
+                    alt={data.user.name}
+                    class="size-full object-cover"
+                  />
+                {:else}
+                  <div
+                    class="size-full bg-primary/10 flex items-center justify-center text-sm font-medium text-primary"
+                  >
+                    {data.user.name?.charAt(0)?.toUpperCase() || "U"}
+                  </div>
+                {/if}
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                sideOffset={6}
+                align="end"
+                class="min-w-48 rounded-md border border-border bg-popover p-1 shadow-md"
+              >
+                <div class="px-2.5 py-2 border-b border-border mb-1">
+                  <p class="text-sm font-medium">{data.user.name}</p>
+                  <p class="text-xs text-muted-foreground">{data.user.email}</p>
+                </div>
+                <DropdownMenuItem
+                  class="w-full rounded px-2.5 py-2 text-left text-sm hover:bg-accent flex items-center gap-2.5 outline-none cursor-pointer text-destructive"
+                  onSelect={() => {
+                    const form = document.createElement("form");
+                    form.method = "POST";
+                    form.action = "/auth/logout";
+                    document.body.appendChild(form);
+                    form.submit();
+                  }}
+                >
+                  Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           {:else}
             <a
               href="/login"

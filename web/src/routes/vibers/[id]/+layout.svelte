@@ -23,7 +23,7 @@
     Sun,
     Laptop,
     Check,
-    Home,
+    Calendar,
   } from "@lucide/svelte";
 
   type Theme = "light" | "dark" | "system";
@@ -72,8 +72,8 @@
 
   // Collapsible group states
   let chatsExpanded = $state(true);
-  let terminalsExpanded = $state(true);
   let portsExpanded = $state(true);
+  let jobsExpanded = $state(true);
 
   // Data
   let chatSessions = $state<ChatSession[]>([]);
@@ -241,33 +241,17 @@
   <Sidebar.Root collapsible="icon" class="border-r border-sidebar-border">
     <Sidebar.Header class="p-2 pb-1">
       <Sidebar.Menu>
-        <Sidebar.MenuItem>
-          <Sidebar.MenuButton
-            size="sm"
-            tooltipContent="Back to Vibers"
-            class="group-data-[collapsible=icon]:p-0!"
+        <Sidebar.MenuItem class="flex items-center gap-2">
+          <a
+            href="/"
+            class="shrink-0 p-1 rounded hover:bg-sidebar-accent transition-colors group-data-[collapsible=icon]:mx-auto"
+            title="Home"
           >
-            {#snippet child({ props })}
-              <a href="/vibers" {...props}>
-                <Home class="size-5" />
-                <span class="truncate font-semibold text-sm">Vibers</span>
-              </a>
-            {/snippet}
-          </Sidebar.MenuButton>
-        </Sidebar.MenuItem>
-        <Sidebar.MenuItem>
-          <div class="flex items-center gap-2 px-2 py-1">
             <img src="/favicon.png" alt="OpenViber" class="size-5" />
-            <span class="truncate text-sm text-muted-foreground"
-              >{viber?.name || "Viber"}</span
-            >
-            {#if viber?.isConnected}
-              <span class="size-1.5 rounded-full bg-green-500 shrink-0"></span>
-            {:else}
-              <span class="size-1.5 rounded-full bg-muted-foreground shrink-0"
-              ></span>
-            {/if}
-          </div>
+          </a>
+          {#await import("$lib/components/viber-switcher.svelte") then { default: ViberSwitcher }}
+            <ViberSwitcher currentViber={viber} />
+          {/await}
         </Sidebar.MenuItem>
       </Sidebar.Menu>
     </Sidebar.Header>
@@ -314,65 +298,6 @@
         {/if}
       </Sidebar.Group>
 
-      <!-- Terminals Group -->
-      <Sidebar.Group>
-        <Sidebar.GroupLabel class="flex items-center justify-between">
-          <button
-            onclick={() => (terminalsExpanded = !terminalsExpanded)}
-            class="flex items-center gap-1 hover:text-foreground transition-colors"
-          >
-            {#if terminalsExpanded}
-              <ChevronDown class="size-3" />
-            {:else}
-              <ChevronRight class="size-3" />
-            {/if}
-            <span>Terminals</span>
-            {#if terminalPanes.length > 0}
-              <span
-                class="text-[9px] bg-sidebar-accent px-1.5 py-0.5 rounded-full font-normal normal-case ml-1"
-              >
-                {terminalPanes.length}
-              </span>
-            {/if}
-          </button>
-        </Sidebar.GroupLabel>
-        {#if terminalsExpanded}
-          <Sidebar.GroupContent>
-            <Sidebar.Menu>
-              {#if terminalPanes.length === 0}
-                <div class="px-2 py-1 text-[10px] text-muted-foreground">
-                  No terminals
-                </div>
-              {:else}
-                {#each Array.from(terminalsBySession().entries()) as [sessionName, panes]}
-                  <div class="mb-1">
-                    <div
-                      class="px-2 py-0.5 text-[9px] font-medium text-muted-foreground uppercase group-data-[collapsible=icon]:hidden"
-                    >
-                      {sessionName}
-                    </div>
-                    {#each panes as pane}
-                      <Sidebar.MenuItem>
-                        <Sidebar.MenuButton
-                          isActive={activeTerminal === pane.target}
-                          onclick={() => selectTerminal(pane.target)}
-                          tooltipContent={`${pane.windowName}:${pane.pane}`}
-                        >
-                          <Terminal class="size-4" />
-                          <span class="font-mono text-[10px]"
-                            >{pane.windowName}:{pane.pane}</span
-                          >
-                        </Sidebar.MenuButton>
-                      </Sidebar.MenuItem>
-                    {/each}
-                  </div>
-                {/each}
-              {/if}
-            </Sidebar.Menu>
-          </Sidebar.GroupContent>
-        {/if}
-      </Sidebar.Group>
-
       <!-- Ports Group -->
       <Sidebar.Group>
         <Sidebar.GroupLabel class="flex items-center justify-between">
@@ -407,6 +332,39 @@
                   </Sidebar.MenuButton>
                 </Sidebar.MenuItem>
               {/each}
+            </Sidebar.Menu>
+          </Sidebar.GroupContent>
+        {/if}
+      </Sidebar.Group>
+
+      <!-- Jobs Group -->
+      <Sidebar.Group>
+        <Sidebar.GroupLabel class="flex items-center justify-between">
+          <button
+            onclick={() => (jobsExpanded = !jobsExpanded)}
+            class="flex items-center gap-1 hover:text-foreground transition-colors"
+          >
+            {#if jobsExpanded}
+              <ChevronDown class="size-3" />
+            {:else}
+              <ChevronRight class="size-3" />
+            {/if}
+            <span>Jobs</span>
+          </button>
+        </Sidebar.GroupLabel>
+        {#if jobsExpanded}
+          <Sidebar.GroupContent>
+            <Sidebar.Menu>
+              <Sidebar.MenuItem>
+                <Sidebar.MenuButton tooltipContent="Scheduled Jobs">
+                  {#snippet child({ props })}
+                    <a href={`/vibers/${viberId}/jobs`} {...props}>
+                      <Calendar class="size-4" />
+                      <span>Scheduled Jobs</span>
+                    </a>
+                  {/snippet}
+                </Sidebar.MenuButton>
+              </Sidebar.MenuItem>
             </Sidebar.Menu>
           </Sidebar.GroupContent>
         {/if}
@@ -612,12 +570,67 @@
                   <div class="size-3 rounded-full bg-[#febc2e]"></div>
                   <div class="size-3 rounded-full bg-[#28c840]"></div>
                 </div>
-                <!-- Session name -->
-                <span class="text-xs text-zinc-400 font-medium ml-2 truncate">
-                  {activeTerminal
-                    ? activeTerminal.replace(/:/g, " › ")
-                    : "My Computer"}
-                </span>
+                <!-- Terminal Selector Dropdown -->
+                <div class="flex-1 flex items-center justify-center">
+                  {#if terminalPanes.length > 1}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger
+                        class="inline-flex items-center gap-1.5 px-2 py-1 rounded hover:bg-zinc-800 transition-colors"
+                      >
+                        <Terminal class="size-3.5 text-zinc-400" />
+                        <span
+                          class="text-xs text-zinc-300 font-medium truncate max-w-32"
+                        >
+                          {activeTerminal
+                            ? activeTerminal.replace(/:/g, " › ")
+                            : "Select Terminal"}
+                        </span>
+                        <ChevronDown class="size-3 text-zinc-500" />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent
+                        align="center"
+                        sideOffset={4}
+                        class="min-w-48 rounded-md border border-zinc-700 bg-zinc-900 p-1 shadow-lg"
+                      >
+                        {#each Array.from(terminalsBySession().entries()) as [sessionName, panes]}
+                          <div
+                            class="px-2 py-1 text-[10px] font-medium text-zinc-500 uppercase"
+                          >
+                            {sessionName}
+                          </div>
+                          {#each panes as pane}
+                            <DropdownMenuItem
+                              class="w-full rounded px-2 py-1.5 text-left text-sm hover:bg-zinc-800 flex items-center gap-2 outline-none cursor-pointer {activeTerminal ===
+                              pane.target
+                                ? 'bg-zinc-800'
+                                : ''}"
+                              onSelect={() => selectTerminal(pane.target)}
+                            >
+                              <Terminal class="size-3.5 text-zinc-400" />
+                              <span class="font-mono text-xs text-zinc-300"
+                                >{pane.windowName}:{pane.pane}</span
+                              >
+                              {#if activeTerminal === pane.target}
+                                <Check
+                                  class="size-3.5 text-green-500 ml-auto"
+                                />
+                              {/if}
+                            </DropdownMenuItem>
+                          {/each}
+                        {/each}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  {:else}
+                    <div class="flex items-center gap-1.5">
+                      <Terminal class="size-3.5 text-zinc-400" />
+                      <span class="text-xs text-zinc-400 font-medium truncate">
+                        {activeTerminal
+                          ? activeTerminal.replace(/:/g, " › ")
+                          : "My Computer"}
+                      </span>
+                    </div>
+                  {/if}
+                </div>
               </div>
               <!-- Terminal Content -->
               <div class="flex-1 overflow-hidden">

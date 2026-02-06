@@ -15,9 +15,7 @@
     Sun,
     Laptop,
     Check,
-    Home,
     ChevronDown,
-    Calendar,
   } from "@lucide/svelte";
 
   type Theme = "light" | "dark" | "system";
@@ -60,18 +58,17 @@
     <Sidebar.Root collapsible="icon" class="border-r border-sidebar-border">
       <Sidebar.Header class="p-2 pb-1">
         <Sidebar.Menu>
-          <Sidebar.MenuItem>
-            <Sidebar.MenuButton
-              size="sm"
-              class="group-data-[collapsible=icon]:p-0!"
+          <Sidebar.MenuItem class="flex items-center gap-2">
+            <a
+              href="/"
+              class="shrink-0 p-1 rounded hover:bg-sidebar-accent transition-colors group-data-[collapsible=icon]:mx-auto"
+              title="Home"
             >
-              {#snippet child({ props })}
-                <a href="/" {...props}>
-                  <img src="/favicon.png" alt="OpenViber" class="size-6" />
-                  <span class="truncate font-semibold text-sm">OpenViber</span>
-                </a>
-              {/snippet}
-            </Sidebar.MenuButton>
+              <img src="/favicon.png" alt="OpenViber" class="size-5" />
+            </a>
+            {#await import("$lib/components/viber-switcher.svelte") then { default: ViberSwitcher }}
+              <ViberSwitcher />
+            {/await}
           </Sidebar.MenuItem>
         </Sidebar.Menu>
       </Sidebar.Header>
@@ -81,31 +78,11 @@
           <Sidebar.GroupContent>
             <Sidebar.Menu>
               <Sidebar.MenuItem>
-                <Sidebar.MenuButton tooltipContent="Home">
-                  {#snippet child({ props })}
-                    <a href="/" {...props}>
-                      <Home class="size-4" />
-                      <span>Home</span>
-                    </a>
-                  {/snippet}
-                </Sidebar.MenuButton>
-              </Sidebar.MenuItem>
-              <Sidebar.MenuItem>
                 <Sidebar.MenuButton isActive={true} tooltipContent="Vibers">
                   {#snippet child({ props })}
                     <a href="/vibers" {...props}>
                       <Server class="size-4" />
                       <span>Vibers</span>
-                    </a>
-                  {/snippet}
-                </Sidebar.MenuButton>
-              </Sidebar.MenuItem>
-              <Sidebar.MenuItem>
-                <Sidebar.MenuButton tooltipContent="Jobs">
-                  {#snippet child({ props })}
-                    <a href="/jobs" {...props}>
-                      <Calendar class="size-4" />
-                      <span>Jobs</span>
                     </a>
                   {/snippet}
                 </Sidebar.MenuButton>

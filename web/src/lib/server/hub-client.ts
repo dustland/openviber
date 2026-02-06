@@ -5,9 +5,11 @@
  * which handles WebSocket connections from viber daemons.
  */
 
-const HUB_URL = process.env.VIBER_HUB_URL || "http://localhost:6007";
-const HUB_API_TOKEN = process.env.VIBER_HUB_API_TOKEN;
-const ENFORCE_SECURE_HUB = process.env.VIBER_HUB_SECURE === "true";
+import { env } from "$env/dynamic/private";
+
+const HUB_URL = env.VIBER_HUB_URL || "http://localhost:6007";
+const HUB_API_TOKEN = env.VIBER_HUB_API_TOKEN;
+const ENFORCE_SECURE_HUB = env.VIBER_HUB_SECURE === "true";
 
 function getHubBaseUrl() {
   const parsed = new URL(HUB_URL);

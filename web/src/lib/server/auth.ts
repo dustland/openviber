@@ -1,14 +1,15 @@
 import { randomBytes } from "crypto";
 import { redirect, type Cookies, type RequestEvent } from "@sveltejs/kit";
+import { env } from "$env/dynamic/private";
 
 const SESSION_TTL_DAYS = 30;
 const OAUTH_STATE_COOKIE = "openviber_oauth_state";
 const ACCESS_TOKEN_COOKIE = "openviber_sb_access_token";
 
-const APP_URL = process.env.APP_URL || "http://localhost:5173";
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const APP_URL = env.APP_URL || "http://localhost:5173";
+const SUPABASE_URL = env.SUPABASE_URL;
+const SUPABASE_ANON_KEY = env.SUPABASE_ANON_KEY;
+const SUPABASE_SERVICE_ROLE_KEY = env.SUPABASE_SERVICE_ROLE_KEY;
 
 export interface AuthUser {
   id: string;

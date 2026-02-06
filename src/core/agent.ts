@@ -206,9 +206,12 @@ export class Agent {
 
     // Add current date and time context
     const now = new Date();
-    segments.push("\nDate/Time Information:");
-    segments.push(`- Same rules as before...`);
-    // Truncating mainly to save space, assuming logic remains similar to original but with skills
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const dayOfWeek = now.toLocaleDateString('en-US', { weekday: 'long' });
+    segments.push("\nCurrent Date/Time:");
+    segments.push(`- Date: ${now.toISOString().split('T')[0]} (${dayOfWeek})`);
+    segments.push(`- Time: ${now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}`);
+    segments.push(`- Timezone: ${timezone}`);
 
     return segments.join("\n");
   }

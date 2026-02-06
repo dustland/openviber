@@ -70,7 +70,12 @@ export type ControllerServerMessage =
       messages?: { role: string; content: string }[];
     }
   | { type: "task:stop"; taskId: string }
-  | { type: "task:message"; taskId: string; message: string }
+  | {
+      type: "task:message";
+      taskId: string;
+      message: string;
+      injectionMode?: "steer" | "followup" | "collect";
+    }
   | { type: "ping" }
   | { type: "config:update"; config: Partial<ViberControllerConfig> }
   // Terminal streaming messages
@@ -96,14 +101,37 @@ export type ControllerClientMessage =
   | { type: "terminal:output"; target: string; appId?: string; data: string }
   | { type: "terminal:resized"; target: string; appId?: string; ok: boolean };
 
+interface TaskProgressEnvelope {
+  eventId: string;
+  sequence: number;
+  taskId: string;
+  conversationId: string;
+  createdAt: string;
+  model?: string;
+  event: Record<string, unknown>;
+}
+
+interface TaskRuntimeState {
+  taskId: string;
+  goal: string;
+  options?: ViberOptions;
+  sequence: number;
+  controller: AbortController;
+  running: boolean;
+  stopped: boolean;
+  messageHistory: { role: string; content: string }[];
+  queuedFollowups: string[];
+  collectBuffer: string[];
+}
+
 // ==================== Controller ====================
 
 export class ViberController extends EventEmitter {
   private ws: WebSocket | null = null;
   private reconnectTimer: NodeJS.Timeout | null = null;
   private heartbeatTimer: NodeJS.Timeout | null = null;
-  /** taskId -> AbortController for stop (daemon = thin runtime, no Space/agent instance) */
-  private runningTasks: Map<string, AbortController> = new Map();
+  /** taskId -> runtime state */
+  private runningTasks: Map<string, TaskRuntimeState> = new Map();
   private isConnected = false;
   private shouldReconnect = true;
   /** Terminal manager for streaming tmux panes */
@@ -130,8 +158,9 @@ export class ViberController extends EventEmitter {
     console.log("[Viber] Stopping viber...");
     this.shouldReconnect = false;
 
-    for (const [taskId, controller] of this.runningTasks) {
-      controller.abort();
+    for (const [taskId, runtime] of this.runningTasks) {
+      runtime.stopped = true;
+      runtime.controller.abort();
       this.runningTasks.delete(taskId);
     }
 
@@ -219,7 +248,7 @@ export class ViberController extends EventEmitter {
         version: "1.0.0",
         platform: process.platform,
         capabilities,
-        runningTasks: Array.from(this.runningTasks.keys()),
+          runningTasks: Array.from(this.runningTasks.keys()),
         skills: skills.length > 0 ? skills : undefined,
       },
     });
@@ -259,7 +288,11 @@ export class ViberController extends EventEmitter {
           break;
 
         case "task:message":
-          await this.handleTaskMessage(message.taskId, message.message);
+          await this.handleTaskMessage(
+            message.taskId,
+            message.message,
+            message.injectionMode
+          );
           break;
 
         case "ping":
@@ -310,8 +343,22 @@ export class ViberController extends EventEmitter {
     console.log(`[Viber] Received task: ${taskId}`);
     console.log(`[Viber] Goal: ${goal}`);
 
-    const controller = new AbortController();
-    this.runningTasks.set(taskId, controller);
+    const runtime: TaskRuntimeState = {
+      taskId,
+      goal,
+      options,
+      sequence: 0,
+      controller: new AbortController(),
+      running: false,
+      stopped: false,
+      messageHistory:
+        messages && messages.length > 0
+          ? [...messages]
+          : [{ role: "user", content: goal }],
+      queuedFollowups: [],
+      collectBuffer: [],
+    };
+    this.runningTasks.set(taskId, runtime);
 
     this.send({
       type: "task:started",
@@ -320,111 +367,46 @@ export class ViberController extends EventEmitter {
     });
 
     try {
-      const { streamResult, agent } = await runTask(
-        goal,
-        {
-          taskId,
-          model: options?.model,
-          singleAgentId: options?.singleAgentId || "default",
-          signal: controller.signal,
-        },
-        messages
-      );
+      let result = await this.executeTask(runtime);
 
-      let finalText = "";
-      let pendingDelta = "";
-      let lastProgressAt = 0;
-      const flushProgress = (force = false): void => {
-        if (!pendingDelta) return;
-        const now = Date.now();
-        if (!force && now - lastProgressAt < 250) return;
+      while (!runtime.stopped) {
+        const nextMessage = this.dequeueNextMessage(runtime);
+        if (!nextMessage) {
+          break;
+        }
 
-        this.send({
-          type: "task:progress",
-          taskId,
-          event: {
-            kind: "text-delta",
-            delta: pendingDelta,
-            totalLength: finalText.length,
-            at: new Date(now).toISOString(),
-          },
-        });
-        pendingDelta = "";
-        lastProgressAt = now;
-      };
-
-      this.send({
-        type: "task:progress",
-        taskId,
-        event: {
+        runtime.messageHistory.push({ role: "user", content: nextMessage });
+        this.emitTaskProgress(runtime, {
           kind: "status",
-          phase: "executing",
-          message: "Agent execution started",
-          at: new Date().toISOString(),
-        },
-      });
-
-      for await (const part of streamResult.fullStream) {
-        switch (part.type) {
-          case "text-delta":
-            if (part.text) {
-              finalText += part.text;
-              pendingDelta += part.text;
-              flushProgress(false);
-            }
-            break;
-          case "tool-call":
-            this.send({
-              type: "task:progress",
-              taskId,
-              event: {
-                kind: "tool-call",
-                toolName: part.toolName,
-                toolCallId: part.toolCallId,
-                at: new Date().toISOString(),
-              },
+          phase: "followup",
+          message: "Processing follow-up intervention message",
+        });
+        try {
+          result = await this.executeTask(runtime);
+        } catch (error: any) {
+          if (error?.name === "AbortError" && !runtime.stopped) {
+            this.emitTaskProgress(runtime, {
+              kind: "status",
+              phase: "interrupted",
+              message: "Run interrupted; applying latest intervention message",
             });
-            break;
-          case "tool-result":
-            this.send({
-              type: "task:progress",
-              taskId,
-              event: {
-                kind: "tool-result",
-                toolCallId: part.toolCallId,
-                at: new Date().toISOString(),
-              },
-            });
-            break;
-          case "error":
-            throw new Error(part.error?.message || "Task stream error");
-          case "finish":
-            flushProgress(true);
-            this.send({
-              type: "task:progress",
-              taskId,
-              event: {
-                kind: "status",
-                phase: "verifying",
-                message: "Agent execution finished, preparing final output",
-                at: new Date().toISOString(),
-              },
-            });
-            break;
-          default:
-            break;
+            continue;
+          }
+          throw error;
         }
       }
 
-      this.send({
-        type: "task:completed",
-        taskId,
-        result: {
-          spaceId: taskId,
-          text: finalText,
-          summary: agent.getSummary(),
-        },
-      });
+      if (!runtime.stopped) {
+        this.send({
+          type: "task:completed",
+          taskId,
+          result: {
+            spaceId: taskId,
+            text: result.finalText,
+            summary: result.agent.getSummary(),
+          },
+        });
+      }
     } catch (error: any) {
       if (error?.name === "AbortError") {
         console.log(`[Viber] Task ${taskId} stopped`);
@@ -441,20 +423,163 @@ export class ViberController extends EventEmitter {
     }
   }
 
+  private async executeTask(
+    runtime: TaskRuntimeState
+  ): Promise<{ finalText: string; agent: Awaited<ReturnType<typeof runTask>>["agent"] }> {
+    runtime.controller = new AbortController();
+    runtime.running = true;
+
+    const { streamResult, agent } = await runTask(
+      runtime.goal,
+      {
+        taskId: runtime.taskId,
+        model: runtime.options?.model,
+        singleAgentId: runtime.options?.singleAgentId || "default",
+        signal: runtime.controller.signal,
+      },
+      runtime.messageHistory
+    );
+
+      let finalText = "";
+      let pendingDelta = "";
+      let lastProgressAt = 0;
+      const flushProgress = (force = false): void => {
+        if (!pendingDelta) return;
+        const now = Date.now();
+        if (!force && now - lastProgressAt < 250) return;
+
+        this.emitTaskProgress(runtime, {
+          kind: "text-delta",
+          delta: pendingDelta,
+          totalLength: finalText.length,
+        });
+        pendingDelta = "";
+        lastProgressAt = now;
+      };
+
+    this.emitTaskProgress(runtime, {
+      kind: "status",
+      phase: "executing",
+      message: "Agent execution started",
+    });
+
+    for await (const part of streamResult.fullStream) {
+      switch (part.type) {
+          case "text-delta":
+            if (part.text) {
+              finalText += part.text;
+              pendingDelta += part.text;
+              flushProgress(false);
+            }
+            break;
+          case "tool-call":
+            this.emitTaskProgress(runtime, {
+              kind: "tool-call",
+              toolName: part.toolName,
+              toolCallId: part.toolCallId,
+            });
+            break;
+          case "tool-result":
+            this.emitTaskProgress(runtime, {
+              kind: "tool-result",
+              toolCallId: part.toolCallId,
+            });
+            break;
+          case "error":
+            throw new Error(part.error?.message || "Task stream error");
+          case "finish":
+            flushProgress(true);
+            this.emitTaskProgress(runtime, {
+              kind: "status",
+              phase: "verifying",
+              message: "Agent execution finished, preparing final output",
+            });
+            break;
+          default:
+            break;
+      }
+    }
+
+    runtime.running = false;
+    runtime.messageHistory.push({ role: "assistant", content: finalText });
+    return { finalText, agent };
+  }
+
   private async handleTaskStop(taskId: string): Promise<void> {
-    const controller = this.runningTasks.get(taskId);
-    if (controller) {
-      controller.abort();
+    const runtime = this.runningTasks.get(taskId);
+    if (runtime) {
+      runtime.stopped = true;
+      runtime.controller.abort();
       this.runningTasks.delete(taskId);
       console.log(`[Viber] Task stopped: ${taskId}`);
     }
   }
 
   private async handleTaskMessage(
-    _taskId: string,
-    _message: string
+    taskId: string,
+    message: string,
+    injectionMode: "steer" | "followup" | "collect" = "followup"
   ): Promise<void> {
-    // Daemon is thin: no in-memory conversation. Viber Board sends full messages on next task submit.
+    const runtime = this.runningTasks.get(taskId);
+    if (!runtime || runtime.stopped) {
+      return;
+    }
+
+    if (injectionMode === "collect") {
+      runtime.collectBuffer.push(message);
+      return;
+    }
+
+    if (injectionMode === "steer") {
+      runtime.queuedFollowups.unshift(message);
+      if (runtime.running) {
+        runtime.controller.abort();
+      }
+      return;
+    }
+
+    runtime.queuedFollowups.push(message);
+  }
+
+  private dequeueNextMessage(runtime: TaskRuntimeState): string | null {
+    const followup = runtime.queuedFollowups.shift();
+    if (followup) {
+      return followup;
+    }
+
+    if (runtime.collectBuffer.length > 0) {
+      const merged = runtime.collectBuffer.join("\n");
+      runtime.collectBuffer = [];
+      return merged;
+    }
+
+    return null;
+  }
+
+  private emitTaskProgress(
+    runtime: TaskRuntimeState,
+    event: Record<string, unknown>
+  ): void {
+    const createdAt = new Date().toISOString();
+    runtime.sequence += 1;
+    const envelope: TaskProgressEnvelope = {
+      eventId: `${runtime.taskId}-${runtime.sequence}`,
+      sequence: runtime.sequence,
+      taskId: runtime.taskId,
+      conversationId: runtime.taskId,
+      createdAt,
+      model: runtime.options?.model,
+      event: {
+        ...event,
+        at: createdAt,
+      },
+    };
+
+    this.send({
+      type: "task:progress",
+      taskId: runtime.taskId,
+      event: envelope,
+    });
   }
 
   // ==================== Terminal Streaming ====================

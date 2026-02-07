@@ -9,6 +9,8 @@ OpenViber vibers are **stateless** between requests, so the OpenViber Board (or 
 
 ## 1. What counts as context
 
+Because the node is process-stateless — no in-process conversation memory carries across requests — context management is handled collaboratively between the Viber Board and the local workspace.
+
 Context is everything sent to the model for a run:
 
 - system prompt (rules, tools, skill list, runtime info),
@@ -60,4 +62,4 @@ If a session becomes too noisy:
 - keep a short transfer summary,
 - carry forward only essential memory entries.
 
-This keeps the daemon stateless while still preserving continuity in the Board.
+This keeps the node stateless while still preserving continuity in the Board.

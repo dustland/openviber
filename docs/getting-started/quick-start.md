@@ -5,7 +5,7 @@ description: "Get OpenViber running in minutes"
 
 # Quick Start
 
-Get your AI teammate up and running in minutes.
+Get your first viber up and running in minutes.
 
 ## Prerequisites
 
@@ -64,7 +64,7 @@ When you send a message, OpenViber:
 ## Next Steps
 
 - [Introduction](/docs/introduction) — What OpenViber is and how it works
-- [Agents](/docs/concepts/agents) — Configure agent behavior
+- [Viber](/docs/concepts/viber) — Configure viber behavior
 - [Tools](/docs/concepts/tools) — Available actions
 - [Skills](/docs/concepts/skills) — Add domain knowledge
 - [Jobs](/docs/concepts/jobs) — Set up scheduled tasks

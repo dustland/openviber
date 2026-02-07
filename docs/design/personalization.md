@@ -1,48 +1,60 @@
 ---
 title: "Personalization Architecture"
-description: "The three-file pattern for agent personality, user context, and persistent memory"
+description: "The three-file pattern for viber personality, user context, and persistent memory"
 ---
 
 # Personalization Architecture
 
-OpenViber adopts the **three-file pattern** that has emerged as the standard across modern agent systems (Claude Projects, Custom GPTs, Cursor Rules, OpenClaw). This architecture defines agent behavior through human-readable markdown files that work together as a coherent system.
+OpenViber adopts the **three-file pattern** that has emerged as the standard across modern agent systems (Claude Projects, Custom GPTs, Cursor Rules, OpenClaw). This architecture defines viber behavior through human-readable markdown files that work together as a coherent system.
 
 ## Why Three Files?
 
-Every serious agent system has converged on this pattern because it solves the fundamental problem of making agents actually useful:
+Every serious agent system has converged on this pattern because it solves the fundamental problem of making vibers actually useful:
 
-1. **SOUL.md** — How the agent thinks and communicates
-2. **USER.md** — Who the agent is working for
-3. **MEMORY.md** — What the agent retains over time
+1. **SOUL.md** — How the viber thinks and communicates
+2. **USER.md** — Who the viber is working for
+3. **MEMORY.md** — What the viber retains over time
 
 These files are not independent — they form a system where each file enhances the others. A detailed SOUL.md is useless without USER.md context. Memory without personality produces generic responses. The power comes from alignment between all three.
 
 ## File Location
 
+With multi-viber support, the three files are split between **shared** (node-level) and **per-viber** locations:
+
 ```
 ~/.openviber/
-├── soul.md               # Personality and communication style
-├── user.md               # User context and preferences
-├── memory.md             # Curated long-term memory
-├── memory/               # Daily logs
-│   ├── 2024-01-15.md
-│   └── 2024-01-16.md
-└── agents/               # Agent configurations
-    └── default.yaml
+├── user.md                    # SHARED — who you are (same for all vibers)
+└── vibers/
+    ├── dev.yaml
+    ├── dev/
+    │   ├── soul.md            # PER-VIBER — this viber's persona
+    │   ├── memory.md          # PER-VIBER — this viber's long-term memory
+    │   └── memory/            # PER-VIBER — daily logs
+    │       ├── 2024-01-15.md
+    │       └── 2024-01-16.md
+    ├── researcher.yaml
+    └── researcher/
+        ├── soul.md
+        ├── memory.md
+        └── memory/
 ```
+
+**Why `user.md` is shared**: You're the same person regardless of which viber you're talking to. Your projects, preferences, and team context don't change per viber.
+
+**Why `soul.md` is per-viber**: A dev-viber and a researcher-viber need fundamentally different personas, tone, and operational boundaries.
 
 ---
 
-## File 1: SOUL.md (How Your Agent Thinks)
+## File 1: SOUL.md (How Your Viber Thinks)
 
-SOUL.md defines the agent's personality in the most literal and practical sense. The agent reads it at the beginning of every session and uses it as the foundation for how it communicates.
+SOUL.md defines the viber's personality in the most literal and practical sense. The viber reads it at the beginning of every session and uses it as the foundation for how it communicates.
 
 ### What SOUL.md Controls
 
 - **Communication style** — Tone, verbosity, formality
 - **Response priorities** — What to lead with, what to emphasize
 - **Uncertainty handling** — How to flag unknowns
-- **Operational boundaries** — What the agent should/shouldn't do autonomously
+- **Operational boundaries** — What the viber should/shouldn't do autonomously
 - **Negative constraints** — What to explicitly avoid
 
 ### Example SOUL.md
@@ -86,7 +98,7 @@ SOUL.md defines the agent's personality in the most literal and practical sense.
 
 ### Why Most SOUL.md Files Fail
 
-The default configuration shipped with any agent was written by someone who doesn't know you. Running with defaults means hiring someone without telling them how you work. The output feels generic and compounds into friction over hundreds of daily interactions.
+The default configuration shipped with any viber was written by someone who doesn't know you. Running with defaults means hiring someone without telling them how you work. The output feels generic and compounds into friction over hundreds of daily interactions.
 
 **Key insight**: Negative constraints eliminate the low-grade annoyances that cause people to stop using AI tools without ever being able to explain why.
 
@@ -94,7 +106,7 @@ The default configuration shipped with any agent was written by someone who does
 
 ## File 2: USER.md (Who You Are)
 
-USER.md answers "who am I working for?" The depth of your answer directly determines how relevant the agent's output becomes.
+USER.md answers "who am I working for?" The depth of your answer directly determines how relevant the viber's output becomes.
 
 ### What USER.md Should Contain
 
@@ -157,11 +169,11 @@ USER.md answers "who am I working for?" The depth of your answer directly determ
 
 ### How USER.md Connects to SOUL.md
 
-The soul file defines *how* the agent communicates. The user file defines the *context* it communicates within. Without well-configured USER.md, SOUL.md is useless — the agent has no target to calibrate its communication toward.
+The soul file defines *how* the viber communicates. The user file defines the *context* it communicates within. Without well-configured USER.md, SOUL.md is useless — the viber has no target to calibrate its communication toward.
 
 ### USER.md Goes Stale
 
-This is the file that goes stale fastest. Priorities shift weekly if not daily. **Recommended habit**: Spend 5 minutes each evening updating current priorities and blockers. This is the single highest-leverage maintenance habit for agent usefulness.
+This is the file that goes stale fastest. Priorities shift weekly if not daily. **Recommended habit**: Spend 5 minutes each evening updating current priorities and blockers. This is the single highest-leverage maintenance habit for viber usefulness.
 
 ---
 
@@ -174,8 +186,8 @@ See [Memory Architecture](./memory.md) for full details. Summary:
 
 ### Memory Update Patterns
 
-1. **Explicit logging**: Tell the agent "log this to memory" when something is worth remembering
-2. **Automatic extraction**: Agent extracts key decisions at session end (optional)
+1. **Explicit logging**: Tell the viber "log this to memory" when something is worth remembering
+2. **Automatic extraction**: Viber extracts key decisions at session end (optional)
 3. **Manual curation**: Edit MEMORY.md directly to add/remove information
 
 ### Memory Scoring (Advanced)
@@ -187,7 +199,7 @@ To prevent memory bloat, establish a scoring system for what's important:
 
 Log to MEMORY.md (permanent):
 - Decisions that affect future work
-- Corrections to agent mistakes
+- Corrections to viber mistakes
 - User preferences discovered through interaction
 
 Log to daily log (ephemeral):
@@ -207,16 +219,16 @@ Don't log:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Agent Request Flow                        │
+│                    Viber Request Flow                        │
 ├─────────────────────────────────────────────────────────────┤
 │                                                              │
-│   1. Load SOUL.md → Defines HOW agent responds              │
+│   1. Load SOUL.md → Defines HOW viber responds              │
 │                     (tone, style, boundaries)               │
 │                            ↓                                │
-│   2. Load USER.md → Defines WHO agent serves                │
+│   2. Load USER.md → Defines WHO viber serves                │
 │                     (context, priorities, preferences)      │
 │                            ↓                                │
-│   3. Load MEMORY.md → Defines WHAT agent remembers          │
+│   3. Load MEMORY.md → Defines WHAT viber remembers          │
 │                       (decisions, patterns, history)        │
 │                            ↓                                │
 │   4. Inject into system prompt as context                   │
@@ -243,17 +255,17 @@ Don't log:
 
 ## Integration with OpenViber
 
-### Daemon Injection
+### Node Injection
 
-The OpenViber daemon loads these files and injects them into every request:
+The OpenViber node loads these files and injects them into every request:
 
 ```typescript
-// In daemon/runtime.ts
+// In node/runtime.ts
 async function loadPersonalization(): Promise<string> {
   const viberPath = getViberPath();
   
   const soul = await readFileIfExists(join(viberPath, 'soul.md'));
-  const user = await readFileIfExists(join(viberPath, 'user.md'));
+  const user = await readFileIfExists(join(storageRoot, 'user.md'));  // shared
   const memory = await readFileIfExists(join(viberPath, 'memory.md'));
   
   return `
@@ -274,7 +286,7 @@ ${memory || 'No memory.md configured'}
 
 ### Memory Tool
 
-The agent can update memory via a built-in tool:
+The viber can update memory via a built-in tool:
 
 ```typescript
 const memoryLogTool = tool({
@@ -306,18 +318,21 @@ Proactive monitoring (heartbeat) only works if the three files are configured:
 ### 1. Create the files
 
 ```bash
-mkdir -p ~/.openviber
-touch ~/.openviber/soul.md
+# Shared user context (node-level)
 touch ~/.openviber/user.md
-touch ~/.openviber/memory.md
+
+# Default viber persona and memory
+mkdir -p ~/.openviber/vibers/default
+touch ~/.openviber/vibers/default/soul.md
+touch ~/.openviber/vibers/default/memory.md
 ```
 
-### 2. Start with SOUL.md
+### 2. Start with SOUL.md (per-viber)
 
 Begin with your communication pet peeves:
 - What annoys you about AI responses?
 - How do you prefer information structured?
-- What should the agent never do?
+- What should the viber never do?
 
 ### 3. Fill USER.md deeply
 
@@ -331,7 +346,7 @@ Don't just add name and timezone. Add:
 
 ### 4. Let MEMORY.md grow organically
 
-Start empty. As you work with the agent:
+Start empty. As you work with the viber:
 - Explicitly say "remember this" for important patterns
 - After significant decisions, log them
 - Review weekly and prune noise
@@ -346,7 +361,7 @@ Start empty. As you work with the agent:
 
 ## This Pattern Is Bigger Than OpenViber
 
-The three-file architecture (persistent personality, filesystem-based memory, human-readable config) is the dominant pattern across the agent category. The time you invest in learning to configure these files isn't locked into OpenViber — it transfers to whatever agent platform comes next.
+The three-file architecture (persistent personality, filesystem-based memory, human-readable config) is the dominant pattern across the agent category. The time you invest in learning to configure these files isn't locked into OpenViber — it transfers to whatever platform comes next.
 
 The underlying control surface is stabilizing even as models and platforms change. Getting good at this is a compounding advantage.
 
@@ -356,9 +371,9 @@ The underlying control surface is stabilizing even as models and platforms chang
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| SOUL.md loading | ⏳ Planned | Daemon injection |
-| USER.md loading | ⏳ Planned | Daemon injection |
+| SOUL.md loading | ⏳ Planned | Node injection |
+| USER.md loading | ⏳ Planned | Node injection |
 | MEMORY.md loading | 🔶 Partial | See memory.md design |
-| memory_log tool | ⏳ Planned | Agent-initiated updates |
+| memory_log tool | ⏳ Planned | Viber-initiated updates |
 | Heartbeat integration | ⏳ Planned | Requires all three files |
 | File templates | ⏳ Planned | `openviber init` command |

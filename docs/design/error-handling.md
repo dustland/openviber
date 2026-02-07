@@ -5,16 +5,16 @@ description: "Failure modes, retry policies, and recovery strategies for OpenVib
 
 # Error Handling & Recovery
 
-OpenViber operates in open environments where failures are expected. This document defines how the system handles errors at each layer while maintaining the stateless daemon principle.
+OpenViber operates in open environments where failures are expected. This document defines how the system handles errors at each layer while maintaining the stateless node principle.
 
 ## 1. Failure Categories
 
 | Category | Examples | Recovery Owner |
 |----------|----------|----------------|
-| **Provider Failures** | LLM timeout, rate limit, API error | Daemon (retry) |
-| **Tool Failures** | Command timeout, permission denied, network error | Daemon (report) |
+| **Provider Failures** | LLM timeout, rate limit, API error | Node (retry) |
+| **Tool Failures** | Command timeout, permission denied, network error | Node (report) |
 | **Protocol Failures** | WebSocket disconnect, malformed message | Transport layer |
-| **Configuration Errors** | Invalid agent YAML, missing credentials | Startup validation |
+| **Configuration Errors** | Invalid viber YAML, missing credentials | Startup validation |
 | **Resource Exhaustion** | Budget exceeded, context overflow | Policy enforcement |
 
 ## 2. LLM Provider Error Handling
@@ -103,7 +103,7 @@ async function executeTool(tool: Tool, params: unknown): Promise<ToolResult> {
 
 ### Error Classification
 
-| Type | Meaning | Agent Action |
+| Type | Meaning | Viber Action |
 |------|---------|--------------|
 | `timeout` | Execution exceeded limit | Retry with simpler params or report |
 | `permission` | Access denied | Report to user, suggest approval |
@@ -147,13 +147,13 @@ interface TaskSubmitRequest {
 }
 ```
 
-The daemon deduplicates requests with the same key within a 5-minute window.
+The node deduplicates requests with the same key within a 5-minute window.
 
 ## 5. Configuration Errors
 
 ### Startup Validation
 
-The daemon validates configuration at startup and fails fast:
+The node validates configuration at startup and fails fast:
 
 ```typescript
 // Startup sequence
@@ -171,8 +171,8 @@ async function start() {
     await verifyProviders();
   }
 
-  // 3. Start daemon
-  await startDaemon();
+  // 3. Start node
+  await startNode();
 }
 ```
 
@@ -232,17 +232,17 @@ interface ContextOverflowError {
 }
 ```
 
-## 8. Daemon Crash Recovery
+## 8. Node Crash Recovery
 
-Since the daemon is stateless, recovery is straightforward:
+Since the node is stateless, recovery is straightforward:
 
-1. **Restart daemon** — No state to restore
+1. **Restart node** — No state to restore
 2. **Viber Board re-sends** — Current task context on next request
 3. **In-flight work** — Lost; Viber Board should retry with same idempotency key
 
 ### Crash Detection
 
-The Viber Board detects daemon unavailability via:
+The Viber Board detects node unavailability via:
 
 - WebSocket disconnect without clean close
 - Heartbeat timeout (default: 30s)
@@ -250,7 +250,7 @@ The Viber Board detects daemon unavailability via:
 
 ### Session Logs
 
-Optional session logs (`~/.openviber/agents/{id}/sessions/*.jsonl`) provide forensic data but are **not used for recovery** — they're write-only audit trails.
+Optional session logs (`~/.openviber/vibers/{id}/sessions/*.jsonl`) provide forensic data but are **not used for recovery** — they're write-only audit trails.
 
 ## 9. Graceful Degradation
 
@@ -309,12 +309,12 @@ Local logs follow structured format:
 
 | Failure Type | Strategy | Owner |
 |--------------|----------|-------|
-| LLM transient | Retry with backoff | Daemon |
-| LLM permanent | Fail fast, report | Daemon → Board |
-| Tool error | Return structured error to LLM | Daemon |
+| LLM transient | Retry with backoff | Node |
+| LLM permanent | Fail fast, report | Node → Board |
+| Tool error | Return structured error to LLM | Node |
 | Connection loss | Reconnect with backoff | Transport |
 | Budget exceeded | Pause or warn based on mode | Policy layer |
-| Context overflow | Compact or fail with suggestion | Daemon → Board |
-| Daemon crash | Stateless restart, Board re-sends | Board |
+| Context overflow | Compact or fail with suggestion | Node → Board |
+| Node crash | Stateless restart, Board re-sends | Board |
 
-The key principle: **errors are data, not exceptions**. The daemon reports errors clearly; the Viber Board decides how to proceed.
+The key principle: **errors are data, not exceptions**. The node reports errors clearly; the Viber Board decides how to proceed.

@@ -10,7 +10,7 @@ A **Job** is a YAML file that defines:
 - A prompt (what to do)
 - Optional agent configuration (model, skills, tools)
 
-Jobs are stored in `~/.openviber/jobs/` (or configured jobs directory) and are loaded automatically when OpenViber starts.
+Jobs are stored per-viber in `~/.openviber/vibers/{id}/jobs/` and are loaded automatically when OpenViber starts.
 
 ## Example Job
 
@@ -61,14 +61,19 @@ Jobs use standard cron syntax with optional seconds:
 | Automation | Clean up old files weekly |
 | Integration | Sync data between services |
 
-## Default Jobs Location
+## Jobs Location
+
+Jobs are viber-scoped — each viber has its own scheduled tasks:
 
 ```
-~/.openviber/
-├── jobs/
-│   ├── daily-summary.yaml
-│   ├── health-check.yaml
-│   └── weekly-cleanup.yaml
+~/.openviber/vibers/
+├── dev/
+│   └── jobs/
+│       ├── daily-summary.yaml
+│       └── health-check.yaml
+└── researcher/
+    └── jobs/
+        └── weekly-report.yaml
 ```
 
 Jobs are loaded when `openviber start` runs. Changes to job files require a restart.

@@ -32,7 +32,7 @@ Set the environment variable:
 export OLLAMA_BASE_URL="http://localhost:11434"
 ```
 
-Then in your agent config (`~/.openviber/agents/default.yaml`):
+Then in your viber config (`~/.openviber/vibers/default.yaml`):
 
 ```yaml
 provider: ollama

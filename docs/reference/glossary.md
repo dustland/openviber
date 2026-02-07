@@ -1,14 +1,7 @@
 ---
 title: "Glossary"
 ---
-A comprehensive reference for Viber terminology and concepts.
-
-
-- [A - H](/docs/#a)
-
-  - [M - S](/docs/#m)
-
-  - [T - X](/docs/#t)
+A comprehensive reference for OpenViber terminology and concepts.
 
 
 ## A
@@ -24,19 +17,9 @@ A living document within a Space that evolves over time. Artifacts can be:
 
 Each artifact maintains version history, allowing you to track changes and rollback if needed.
 
-### Agent
-
-A specialized AI worker within Viber. Agents have specific roles and capabilities:
-
-- **XAgent**: The orchestrating agent that coordinates the workspace
-- **Researcher**: Gathers and synthesizes information
-- **Writer**: Creates content and documentation
-- **Developer**: Writes and reviews code
-- **Reviewer**: Provides quality assurance
-
 ### Adapter
 
-A storage backend implementation. Viber supports:
+A storage backend implementation. OpenViber supports:
 
 - **Local Adapter**: SQLite + Filesystem (default)
 - **Supabase Adapter**: PostgreSQL + Supabase Storage (cloud)
@@ -45,16 +28,16 @@ A storage backend implementation. Viber supports:
 
 ### Context
 
-The accumulated information within a Space that agents use to understand and respond to requests. Context includes:
+The accumulated information that vibers use to understand and respond to requests. Context includes:
 
 - Conversation history
 - Artifact contents
 - Space goal and metadata
-- Previous agent decisions
+- Previous decisions
 
 ### Conversation History
 
-The complete record of messages between users and agents within a Space. History persists across sessions, enabling agents to maintain continuity.
+The complete record of messages between users and vibers within a Space. History persists across sessions, enabling vibers to maintain continuity.
 
 ## H
 
@@ -70,24 +53,25 @@ A single unit of communication within a conversation. Messages have:
 
 - **role**: `user`, `assistant`, or `system`
 - **content**: The message text
-- **metadata**: Additional information (timestamps, agent info)
+- **metadata**: Additional information (timestamps, viber info)
 
 ### Metadata
 
-Additional information attached to messages, Spaces, or artifacts. Used for tracking, filtering, and agent coordination.
+Additional information attached to messages, Spaces, or artifacts. Used for tracking, filtering, and coordination.
 
 ### Mode
 
-The operational mode for agent interactions:
+The operational mode for viber interactions:
 
-- **agent**: Standard agent mode for conversations
-- **tool**: Mode for tool execution
+- **Always Ask**: Viber asks before each action
+- **Viber Decides**: Viber acts within policy boundaries
+- **Always Execute**: Maximum autonomy, minimal interruption
 
 ## P
 
 ### Persistence
 
-Viber's core capability of saving and restoring workspace state. Persistence enables:
+OpenViber's core capability of saving and restoring workspace state. Persistence enables:
 
 - Session continuity across restarts
 - Multi-day workflows
@@ -101,48 +85,33 @@ An LLM service provider. Supported providers:
 - **Anthropic**: Claude 3.5 Sonnet, Claude 3 Opus
 - **DeepSeek**: DeepSeek Chat, DeepSeek Coder
 - **Google**: Gemini 1.5 Pro, Gemini 1.5 Flash
+- **OpenRouter**: Access to multiple providers through a single API
 
 ## S
 
+### Skill
+
+A reusable bundle of instructions and context that gives a viber domain-specific knowledge. Skills are loaded from `~/.openviber/skills/` and can include:
+
+- System prompts with domain expertise
+- Example workflows
+- Best practices and guardrails
+
 ### Space
 
-The central container in Viber that holds all work. A Space includes:
+A working directory that vibers operate in. Spaces live at `~/openviber_spaces/` by default, but vibers can be pointed at any directory (e.g., an existing Git repo). A Space can be:
 
-- **spaceId**: Unique identifier
-- **name**: Human-readable name
-- **goal**: The workspace objective
-- **history**: All conversation messages
-- **artifacts**: Documents and files
+- A cloned Git repository (code projects)
+- A research folder (non-code work)
+- An output directory (reports, generated content)
 
-Spaces are persistent — you can resume them at any time.
-
-### Space-Oriented
-
-Viber's design philosophy that differs from task-oriented frameworks:
-
-| Aspect | Task-Oriented | Space-Oriented |
-| ------ | ------------- | -------------- |
-| Lifecycle | One-shot execution | Persistent, continuous |
-| State | Ephemeral | Persistent |
-| Artifacts | Output files | Living documents |
-| Mental Model | "Run and done" | "Evolve and iterate" |
-
-### Stream
-
-Real-time delivery of agent responses as they're generated. Streaming provides better UX by showing content immediately rather than waiting for completion.
-
-```typescript
-const stream = await xAgent.streamText({...});
-for await (const chunk of stream.textStream) {
-  process.stdout.write(chunk);
-}
-```
+Multiple vibers can work on the same Space.
 
 ## T
 
 ### Tool
 
-A capability that extends what agents can do. Tools allow agents to:
+A capability that extends what vibers can do. Tools allow vibers to:
 
 - Fetch external data
 - Read/write files
@@ -150,97 +119,59 @@ A capability that extends what agents can do. Tools allow agents to:
 - Execute code
 - Interact with APIs
 
-### Viber
-
-The Space-oriented Collaborative Workspace Platform. Main exports:
-
-| Export | Purpose |
-| ------- | ------- |
-| `viber` | Core runtime, types, orchestration, tools |
-| `viber/react` | React hooks and components |
-| `viber/svelte` | Svelte 5 reactive stores |
-
-### TypeScript SDK
-
-Viber is built with TypeScript and provides type-safe APIs:
-
-```typescript
-import type { Message } from "viber";
-```
-
 ## V
 
-### Version History
+### Viber
 
-The record of changes to an artifact over time. Enables:
+A role-scoped AI worker that runs on a Viber Node. Each viber has its own:
 
-- Tracking evolution of documents
-- Rollback to previous versions
-- Audit trail of modifications
+- **Persona** — Name, personality, communication style
+- **Goals** — What it's designed to accomplish
+- **Tools** — What actions it can take
+- **Skills** — Domain knowledge it applies
+- **Model** — Which LLM provider it uses
 
-## X
+Vibers are configured through YAML files in `~/.openviber/vibers/`.
 
-### XAgent
+### Viber Node
 
-The Strategic Task Orchestrator and Project Manager. XAgent:
+A machine running the OpenViber runtime that hosts one or more vibers. A Viber Node provides:
 
-- Serves as the primary interface for user interaction
-- Coordinates specialist agents within a Space
+- **Runtime** — The process that executes viber tasks
+- **Scheduler** — Cron-based job scheduling for automated tasks
+- **Credentials** — Shared account access for hosted vibers
+- **Config** — Identity and viber settings at `~/.openviber/` (lightweight, portable)
+- **Spaces** — Working data at `~/openviber_spaces/` (repos, research, outputs)
+
+Nodes connect to the OpenViber Board via a one-time token command (`npx openviber connect --token ...`). Multiple vibers on one node coordinate through external systems (GitHub, email) rather than direct inter-viber messaging.
+
+### ViberAgent
+
+The core class that orchestrates a viber's task execution. ViberAgent:
+
+- Processes user requests through an LLM
+- Coordinates tool calls and skill loading
 - Maintains context across sessions
-- Adapts plans based on evolving requirements
-
-```typescript
-// Start a new workspace
-const xAgent = await XAgent.start("Write my thesis");
-
-// Resume an existing workspace
-const xAgent = await XAgent.resume(spaceId);
-
-// Stream a response
-const stream = await xAgent.streamText({
-  messages: [{ role: "user", content: "Write the introduction" }],
-  metadata: { mode: "agent", requestedAgent: "X" },
-});
-```
+- Reports progress and results
 
 ---
 
 ## Quick Reference
 
-### Core API
+### Core Concepts
 
-```typescript
-// Start a new Space
-const xAgent = await XAgent.start(goal);
-
-// Get the Space object
-const space = xAgent.getSpace();
-
-// Stream a response
-const stream = await xAgent.streamText({ messages, metadata });
-
-// Save the workspace
-await space.persistState();
-
-// Resume a Space
-const xAgent = await XAgent.resume(spaceId);
-```
-
-### Space Properties
-
-```typescript
-space.spaceId       // Unique identifier
-space.name          // Human-readable name
-space.goal          // Workspace objective
-space.history       // Conversation history
-space.history.messages  // Array of messages
-```
+| Concept | Definition |
+|---------|-----------|
+| **Viber** | A role-scoped AI worker with persona, goals, tools, and skills |
+| **Viber Node** | A machine running OpenViber, hosting one or more vibers |
+| **Space** | A persistent workspace container for a viber's work |
+| **Skill** | Reusable domain knowledge loaded from the skills directory |
+| **Tool** | An action capability (file ops, terminal, browser, search) |
 
 ### Common Patterns
 
 | Pattern | Description |
-| ------- | ----------- |
-| **Start → Work → Save** | Create workspace, collaborate, persist |
-| **Resume → Continue** | Load existing workspace, continue work |
-| **Multi-session** | Work over multiple days with full context |
-| **Multi-agent** | XAgent coordinates specialists |
+|---------|-------------|
+| **Single Viber** | One viber per node for general-purpose use |
+| **Multi-Viber Team** | Multiple role-scoped vibers on one node coordinating via GitHub |
+| **Scheduled Tasks** | Vibers running on cron schedules for automated workflows |

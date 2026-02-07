@@ -19,13 +19,13 @@ Communication in OpenViber serves three needs:
 
 ## 2. Core task messages
 
-Board -> daemon:
+Board -> node:
 
 - `task:submit` (`goal`, `messages`, optional `plan/artifacts/memory`)
 - `task:stop`
 - `task:message` (manager follow-up / intervention text)
 
-Daemon -> Board:
+Node -> Board:
 
 - `task:started`
 - `task:progress` (optional periodic updates)

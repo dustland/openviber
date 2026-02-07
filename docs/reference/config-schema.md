@@ -5,22 +5,38 @@ description: "Complete reference for agent, channel, and budget configuration"
 
 # Configuration Schema
 
-This document defines the configuration file formats used by OpenViber. All configuration lives under `~/.openviber/` on the work machine.
+This document defines the configuration file formats used by OpenViber. Configuration lives under `~/.openviber/` (lightweight, portable). Working data lives in `~/openviber_spaces/` or any directory you point vibers at.
 
 ## 1. Directory Layout
 
 ```
-~/.openviber/
-├── config.yaml                  # Global daemon configuration
-├── agents/
-│   ├── default.yaml             # Default agent config
-│   └── {agent-id}.yaml          # Named agent configs
-├── workspace/
-│   ├── task.md                  # Current plan (Board-managed)
-│   ├── MEMORY.md                # Long-term notes
-│   └── memory/                  # Daily memory logs
-├── artifacts/{task-id}/         # Task output blobs
-└── skills/                      # Installed skill bundles
+~/.openviber/                        # Config-only (small, portable)
+├── config.yaml                      # Node-level daemon configuration
+├── user.md                          # Shared user context (who you are)
+├── skills/                          # Shared skill bundles
+│   └── my-skill/
+│       └── SKILL.md
+├── mcp/                             # MCP server configs (optional)
+└── vibers/
+    ├── default.yaml                 # Default viber config
+    ├── default/
+    │   ├── soul.md                  # Persona for this viber
+    │   ├── memory.md                # Long-term memory
+    │   ├── memory/                  # Daily memory logs
+    │   ├── sessions/                # Conversation logs (*.jsonl)
+    │   └── jobs/                    # Scheduled tasks
+    ├── dev.yaml                     # Named viber config
+    └── dev/
+        ├── soul.md
+        ├── memory.md
+        ├── memory/
+        ├── sessions/
+        └── jobs/
+
+~/openviber_spaces/                  # Working data (large, git-managed)
+├── my-webapp/                       # Cloned repo
+├── data-pipeline/                   # Another repo
+└── market-research/                 # Non-code workspace
 ```
 
 ## 2. Global Configuration (`config.yaml`)
@@ -89,32 +105,24 @@ Values starting with `${` and ending with `}` are expanded from environment vari
 api_key: "${ANTHROPIC_API_KEY}"  # Reads $ANTHROPIC_API_KEY
 ```
 
-## 3. Agent Configuration (`agents/{id}.yaml`)
+## 3. Viber Configuration (`vibers/{id}.yaml`)
 
 ```yaml
-# ~/.openviber/agents/default.yaml
+# ~/.openviber/vibers/default.yaml
 
 # Required fields
-name: "Assistant"                 # Display name
+name: "Developer"                    # Display name
 model: "anthropic/claude-sonnet-4-20250514"    # Provider/model identifier
 
 # Optional fields
-description: "General-purpose assistant"
-
-# System prompt (inline or file reference)
-system_prompt: |
-  You are a helpful assistant with access to the local machine.
-  Always explain your actions before taking them.
-
-# Or reference an external file:
-# system_prompt_file: "./prompts/assistant.md"
+description: "Full-stack development viber"
 
 # Model parameters
 temperature: 0.7
 max_tokens: 4096
 top_p: 1.0
 
-# Tools available to this agent
+# Tools available to this viber
 tools:
   - file                         # read_file, write_file, list_files
   - terminal                     # shell_command
@@ -127,18 +135,23 @@ require_approval:
   - shell_command
   - browser_action
 
-# Skills to load (by ID)
+# Skills to load (from ~/.openviber/skills/)
 skills:
   - antigravity
   - cursor-agent
 
-# Per-agent budget override
+# Per-viber budget override
 budget:
   limit_usd: 10.00
   mode: "hard"
 
 # Working mode default
-mode: "agent_decides"            # always_ask | agent_decides | always_execute
+mode: "viber_decides"            # always_ask | viber_decides | always_execute
+
+# Spaces this viber works on
+spaces:
+  - ~/openviber_spaces/my-webapp
+  - ~/code/legacy-api            # Can point anywhere
 
 # Retry configuration
 retry:
@@ -280,10 +293,10 @@ Costs are estimated using provider pricing:
 
 ## 6. Job/Schedule Configuration
 
-Jobs are YAML files in `examples/jobs/` or `~/.openviber/jobs/`:
+Jobs are YAML files stored per-viber in `~/.openviber/vibers/{id}/jobs/`:
 
 ```yaml
-# ~/.openviber/jobs/morning-standup.yaml
+# ~/.openviber/vibers/dev/jobs/morning-standup.yaml
 
 name: "morning-standup"
 description: "Daily standup summary"
@@ -291,15 +304,12 @@ description: "Daily standup summary"
 # Cron schedule (cron syntax)
 schedule: "0 9 * * 1-5"          # 9 AM, Monday-Friday
 
-# Which agent to use
-agent: "default"                 # Agent ID from agents/
-
 # Task configuration
 prompt: |
   Check my GitHub notifications and summarize what needs attention.
   Format as a brief bullet list.
 
-# Override agent settings for this job
+# Override viber settings for this job
 model: "anthropic/claude-3-haiku-20240307"  # Use cheaper model for routine tasks
 
 # Skills to include
@@ -438,14 +448,9 @@ security:
 ```
 
 ```yaml
-# ~/.openviber/agents/default.yaml
+# ~/.openviber/vibers/default.yaml
 name: "Viber"
 model: "anthropic/claude-sonnet-4-20250514"
-
-system_prompt: |
-  You are Viber, a helpful AI assistant running on the user's machine.
-  You have access to the filesystem, terminal, and browser.
-  Always confirm before making changes to important files.
 
 tools:
   - file
@@ -458,7 +463,10 @@ require_approval:
 skills:
   - cursor-agent
 
-mode: "agent_decides"
+mode: "viber_decides"
+
+spaces:
+  - ~/openviber_spaces/my-project
 ```
 
 ---
@@ -478,20 +486,19 @@ interface GlobalConfig {
   mcp_servers?: McpServerConfig[];
 }
 
-interface AgentConfig {
+interface ViberConfig {
   name: string;
   model: string;
   description?: string;
-  system_prompt?: string;
-  system_prompt_file?: string;
   temperature?: number;
   max_tokens?: number;
   top_p?: number;
   tools?: string[];
   require_approval?: string[];
   skills?: string[];
-  budget?: AgentBudgetConfig;
-  mode?: "always_ask" | "agent_decides" | "always_execute";
+  budget?: ViberBudgetConfig;
+  mode?: "always_ask" | "viber_decides" | "always_execute";
+  spaces?: string[];
   retry?: RetryConfig;
   fallback_model?: string;
   context?: ContextConfig;

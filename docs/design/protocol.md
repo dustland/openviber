@@ -5,32 +5,32 @@ description: "Message schemas and connection lifecycle for the OpenViber control
 
 # WebSocket Protocol
 
-This document specifies the WebSocket protocol between Viber Board (client) and the daemon (server). The protocol is designed for stateless operation with explicit message contracts.
+This document specifies the WebSocket protocol between Viber Board (client) and the node (server). The protocol is designed for stateless operation with explicit message contracts.
 
 ## 1. Connection Lifecycle
 
 ```mermaid
 sequenceDiagram
     participant Board as Viber Board
-    participant Daemon as Daemon
+    participant Node as Node
 
-    Board->>Daemon: WebSocket connect
-    Daemon->>Board: connection:welcome
-    Board->>Daemon: connection:auth
-    Daemon->>Board: connection:authenticated
+    Board->>Node: WebSocket connect
+    Node->>Board: connection:welcome
+    Board->>Node: connection:auth
+    Node->>Board: connection:authenticated
     
     loop Heartbeat
-        Board->>Daemon: ping
-        Daemon->>Board: pong
+        Board->>Node: ping
+        Node->>Board: pong
     end
 
-    Board->>Daemon: task:submit
-    Daemon->>Board: task:started
-    Daemon->>Board: task:progress (optional)
-    Daemon->>Board: task:completed
+    Board->>Node: task:submit
+    Node->>Board: task:started
+    Node->>Board: task:progress (optional)
+    Node->>Board: task:completed
     
-    Board->>Daemon: connection:close
-    Daemon->>Board: connection:goodbye
+    Board->>Node: connection:close
+    Node->>Board: connection:goodbye
 ```
 
 ## 2. Message Envelope
@@ -70,7 +70,7 @@ Sent immediately after WebSocket connection is established.
 interface ConnectionWelcome {
   type: "connection:welcome";
   payload: {
-    daemon_version: string;      // e.g., "1.2.0"
+    daemon_version: string;      // Node version, e.g., "1.2.0"
     protocol_version: string;    // e.g., "1"
     challenge: string;           // Nonce for authentication
     capabilities: string[];      // ["streaming", "terminal", "approval"]
@@ -80,7 +80,7 @@ interface ConnectionWelcome {
 
 ### `connection:auth` (Client → Server)
 
-Client authenticates with the daemon.
+Client authenticates with the node.
 
 ```typescript
 interface ConnectionAuth {
@@ -155,7 +155,7 @@ interface TaskSubmit {
     artifacts?: ArtifactRef[];   // Optional artifact references
     memory?: string;             // Optional memory excerpt
     options?: {
-      mode?: "always_ask" | "agent_decides" | "always_execute";
+      mode?: "always_ask" | "viber_decides" | "always_execute";
       stream_deltas?: boolean;   // Request token-level streaming
       max_tokens?: number;
       timeout_ms?: number;
@@ -506,15 +506,15 @@ interface HealthPong {
 }
 ```
 
-### `status:agent` (Server → Client)
+### `status:viber` (Server → Client)
 
-Push notification of agent status change.
+Push notification of viber status change.
 
 ```typescript
-interface StatusAgent {
-  type: "status:agent";
+interface StatusViber {
+  type: "status:viber";
   payload: {
-    agent_id: string;
+    viber_id: string;
     status: "idle" | "running" | "paused" | "error";
     current_task_id?: string;
     budget_used_usd?: number;

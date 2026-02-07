@@ -24,7 +24,7 @@ Streaming should auto-detect per channel:
 - **Web UI**: prefer **token-delta streaming** for the best visual effect.
 - **Chat apps**: fall back to **block streaming** when token deltas aren’t supported.
 
-The transport layer should expose a capability flag so the agent runtime can pick the appropriate mode without manual configuration.
+The transport layer should expose a capability flag so the viber runtime can pick the appropriate mode without manual configuration.
 
 ## Basic Streaming
 

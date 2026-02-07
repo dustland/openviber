@@ -7,13 +7,13 @@ description: "Long-term memory, semantic indexing, and context injection strateg
 
 Memory in OpenViber refers to persistent knowledge that outlives a single conversation. This document defines the memory model, storage format, and injection strategies.
 
-> **Related**: Memory is one part of the [Three-File Personalization Pattern](./personalization.md). See that document for how MEMORY.md works together with SOUL.md and USER.md to create a coherent agent configuration.
+> **Related**: Memory is one part of the [Three-File Personalization Pattern](./personalization.md). See that document for how MEMORY.md works together with SOUL.md and USER.md to create a coherent viber configuration.
 
 ## 1. Design Principles
 
-1. **Workspace-first**: Memory lives in `~/.openviber/workspace/` as human-readable files
+1. **Per-viber storage**: Memory lives in `~/.openviber/vibers/{id}/` as human-readable files
 2. **Board-controlled injection**: The Viber Board decides what memory to include in each request
-3. **No implicit retrieval**: The daemon does not autonomously search memory — it receives memory as context
+3. **No implicit retrieval**: The node does not autonomously search memory — it receives memory as context
 4. **Optional indexing**: Semantic search is opt-in; flat files work without it
 
 ## 2. Memory Tiers
@@ -36,7 +36,7 @@ Memory in OpenViber refers to persistent knowledge that outlives a single conver
 │  • Persists across tasks and sessions                        │
 ├─────────────────────────────────────────────────────────────┤
 │  Tier 4: Semantic Index (optional)                          │
-│  • memory/{agent-id}.sqlite — vector embeddings             │
+│  • memory/{viber-id}.sqlite — vector embeddings             │
 │  • Enables similarity search over Tier 3                     │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -59,7 +59,7 @@ Memory in OpenViber refers to persistent knowledge that outlives a single conver
 - Package manager: pnpm (never npm or yarn)
 
 ## Important Decisions
-- 2024-01-10: Chose stateless daemon architecture
+- 2024-01-10: Chose stateless node architecture
 - 2024-01-15: Adopted workspace-first storage model
 
 ## Learned Patterns
@@ -187,20 +187,20 @@ async function updateMemory(result: TaskResult) {
 
 ### Manual Curation
 
-Users can edit memory files directly. The daemon reads them as static context:
+Users can edit memory files directly. The node reads them as static context:
 
 ```bash
 # Edit long-term memory
-vim ~/.openviber/workspace/MEMORY.md
+vim ~/.openviber/vibers/default/memory.md
 
 # View recent daily logs
-ls ~/.openviber/workspace/memory/
-cat ~/.openviber/workspace/memory/2024-01-15.md
+ls ~/.openviber/vibers/default/memory/
+cat ~/.openviber/vibers/default/memory/2024-01-15.md
 ```
 
-### Agent-Suggested Updates
+### Viber-Suggested Updates
 
-The agent can suggest memory updates in its response:
+The viber can suggest memory updates in its response:
 
 ```markdown
 I've completed the task. 
@@ -220,7 +220,7 @@ For large memory stores, an optional SQLite-based semantic index enables similar
 ### Schema
 
 ```sql
--- ~/.openviber/memory/{agent-id}.sqlite
+-- ~/.openviber/vibers/{id}/memory.sqlite
 
 CREATE TABLE chunks (
   id INTEGER PRIMARY KEY,
@@ -291,7 +291,7 @@ Before compacting conversation history, a "memory flush" extracts durable notes:
 ```typescript
 async function memoryFlush(conversation: Message[]) {
   // 1. Identify key information to preserve
-  const extraction = await agent.generateText({
+  const extraction = await viber.generateText({
     messages: [
       {
         role: "system",
@@ -335,16 +335,18 @@ memory:
 
 ### Memory Isolation
 
-In multi-agent setups, each agent has isolated memory:
+In multi-viber setups, each viber has isolated memory:
 
 ```
-~/.openviber/
-├── workspace/                   # Shared workspace
-│   ├── MEMORY.md               # Shared memory
-│   └── memory/                 # Shared daily logs
-└── memory/
-    ├── agent-a.sqlite          # Agent A's semantic index
-    └── agent-b.sqlite          # Agent B's semantic index
+~/.openviber/vibers/
+├── dev/
+│   ├── memory.md                # Dev viber's curated memory
+│   ├── memory/                  # Dev viber's daily logs
+│   └── memory.sqlite            # Dev viber's semantic index
+└── researcher/
+    ├── memory.md
+    ├── memory/
+    └── memory.sqlite
 ```
 
 ## 9. Implementation Status
@@ -364,9 +366,9 @@ In multi-agent setups, each agent has isolated memory:
 
 Memory in OpenViber is **file-first and Board-controlled**:
 
-1. **Files are the source of truth** — MEMORY.md and daily logs under `~/.openviber/workspace/`
-2. **Viber Board injects memory** — Daemon receives memory as context, doesn't retrieve autonomously
+1. **Files are the source of truth** — memory.md and daily logs under `~/.openviber/vibers/{id}/`
+2. **Viber Board injects memory** — Node receives memory as context, doesn't retrieve autonomously
 3. **Semantic search is optional** — SQLite index for large memory stores
 4. **Human-readable and editable** — Users can directly edit memory files
 
-This design keeps the daemon stateless while enabling rich, persistent context across sessions.
+This design keeps the node stateless while enabling rich, persistent context across sessions.

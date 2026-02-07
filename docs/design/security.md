@@ -1,6 +1,6 @@
 ---
 title: "Security & Multi-Tenancy in Viber"
-description: "Understanding the layered security model in Viber, from Space isolation to secure tool execution and multi-tenancy."
+description: "Security architecture for OpenViber viber execution"
 ---
 
 # Security & Multi-Tenancy in Viber
@@ -64,27 +64,27 @@ All interactions with the Viber framework are mediated by a secure API layer.
 
 This is the most fundamental security boundary in Viber. Every Space is encapsulated within its own isolated environment, completely separate from all other Spaces.
 
-- **Artifact Isolation**: Each Space has its own dedicated artifact storage. Agents operating within one Space have no ability to read, write, or even be aware of the existence of files in another Space. Path traversal attacks are mitigated by resolving all file paths relative to the Space's root.
-- **Memory Isolation**: The AI's long-term, semantic memory is also strictly partitioned by Space. An agent's query will only ever search for information within the context of the current Space.
+- **Artifact Isolation**: Each Space has its own dedicated artifact storage. Vibers operating within one Space have no ability to read, write, or even be aware of the existence of files in another Space. Path traversal attacks are mitigated by resolving all file paths relative to the Space's root.
+- **Memory Isolation**: The AI's long-term, semantic memory is also strictly partitioned by Space. A viber's query will only ever search for information within the context of the current Space.
 - **State Isolation**: All Space state, including the plan, conversation history, and execution status, is stored within the Space's isolated environment.
 
-This strict separation ensures that even if an agent behaves unexpectedly, the potential impact is confined to its own sandboxed environment.
+This strict separation ensures that even if a viber behaves unexpectedly, the potential impact is confined to its own sandboxed environment.
 
 ### 3. Layer 3: Secure Tool Execution
 
-Agents in Viber do not have direct access to system resources. All interactions with the outside world are mediated by the Tool Manager, which acts as a security-aware sandbox.
+Vibers in Viber do not have direct access to system resources. All interactions with the outside world are mediated by the Tool Manager, which acts as a security-aware sandbox.
 
-- **Declarative Permissions**: The specific tools that an agent is allowed to use are explicitly defined in the agent's configuration. An agent cannot invoke a tool that it has not been granted permission to use.
+- **Declarative Permissions**: The specific tools that a viber is allowed to use are explicitly defined in the viber's configuration. A viber cannot invoke a tool that it has not been granted permission to use.
 
 ```typescript
-const agent = new Agent({
+const viber = new Agent({
   name: "Developer",
   tools: ["read_file", "write_file", "execute_code"],
   requireApproval: ["write_file", "execute_code"], // Human approval required
 });
 ```
 
-- **Parameter Validation**: Before executing any tool, the Tool Manager validates the arguments provided by the agent against the tool's defined schema. This prevents malformed calls and a class of potential injection attacks.
+- **Parameter Validation**: Before executing any tool, the Tool Manager validates the arguments provided by the viber against the tool's defined schema. This prevents malformed calls and a class of potential injection attacks.
 - **Human-in-the-Loop**: Sensitive tools can require human approval before execution, providing an additional layer of control.
 
 #### Tool sandboxing (containerized execution)
@@ -98,7 +98,7 @@ Optional **container sandboxing** for tool execution is a critical defense-in-de
   - `all`: every session uses a sandbox.
 - **Scope**:
   - `session`: one container per session.
-  - `agent`: one container per agent.
+  - `viber`: one container per viber.
   - `shared`: one container shared by all sandboxed sessions.
 - **Workspace access**:
   - `none`: sandbox has its own workspace.
@@ -112,7 +112,7 @@ This preserves the open-environment requirement while reducing blast radius for 
 
 A secure system must be auditable. The Activity Timeline provides a complete log of every significant action taken within Viber.
 
-- **Comprehensive Event Trail**: Every API request, every agent decision, every tool call, and every artifact modification is captured as a structured event.
+- **Comprehensive Event Trail**: Every API request, every viber action, every tool call, and every artifact modification is captured as a structured event.
 - **Real-Time Monitoring**: This event stream can be monitored in real-time to detect anomalous behavior or potential security threats.
 - **Forensic Analysis**: In the event of a security incident, the detailed event log provides a powerful tool for forensic analysis, allowing administrators to trace the exact sequence of actions that occurred.
 
@@ -177,5 +177,35 @@ ON spaces
 FOR ALL
 USING (user_id = auth.uid());
 ```
+
+## Node Onboarding Security
+
+Node registration follows a **Cloudflare Zero Trust** pattern: the Board generates a one-time token, the user runs a single command on the target machine, and the node connects outbound.
+
+```bash
+npx openviber connect --token eyJub2RlIjoiYTFiMmMz...
+```
+
+### Security Properties
+
+| Property | How |
+|----------|-----|
+| **One-time token** | Expires after first use or after TTL (default: 15 minutes) |
+| **No inbound ports** | Node connects outbound to the Board via WebSocket |
+| **Device binding** | After initial connect, device ID is pinned — reconnections use the bound identity |
+| **Revocable** | Board can revoke node access at any time from the dashboard |
+| **Token contents** | Signed JWT containing: node ID, Board URL, expiry, org scope |
+
+### What the Token Does NOT Contain
+
+- No API keys or provider credentials (those are configured locally in `~/.openviber/config.yaml`)
+- No user data or viber configurations
+- No long-lived secrets — the token bootstraps a device binding, then is discarded
+
+### Post-Onboarding
+
+After the initial token handshake, the node uses a **device certificate** for reconnections. This certificate is stored in `~/.openviber/` and is tied to the machine's hardware identity. If the node moves to a different machine, the user must re-pair from the Board.
+
+---
 
 This layered approach ensures that Viber can be deployed with confidence in shared environments, providing the robust isolation required for production applications while maintaining the flexibility and power of the underlying framework.

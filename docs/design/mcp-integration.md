@@ -5,27 +5,20 @@ description: "Model Context Protocol server integration for extended capabilitie
 
 # MCP Integration
 
-OpenViber integrates with [Model Context Protocol (MCP)](https://modelcontextprotocol.io) servers to extend agent capabilities with standardized tools and resources.
+OpenViber integrates with [Model Context Protocol (MCP)](https://modelcontextprotocol.io) servers to extend viber capabilities with standardized tools and resources.
 
 ## 1. Overview
 
-MCP provides a standard way for AI agents to interact with external systems. OpenViber acts as an MCP **client**, connecting to MCP **servers** that expose tools and resources.
+MCP provides a standard way for AI vibers to interact with external systems. OpenViber acts as an **MCP client** that connects to one or more MCP servers. Each MCP server provides tools that the viber can discover and use during task execution.
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    OpenViber Daemon                          │
-│                                                              │
-│  ┌──────────┐    ┌──────────────────────────────────────┐   │
-│  │  Agent   │───▶│         MCP Client Manager           │   │
-│  └──────────┘    └──────────────────────────────────────┘   │
-│                              │                               │
-│         ┌────────────────────┼────────────────────┐         │
-│         ▼                    ▼                    ▼         │
-│  ┌────────────┐      ┌────────────┐      ┌────────────┐    │
-│  │ MCP Server │      │ MCP Server │      │ MCP Server │    │
-│  │  (GitHub)  │      │ (Postgres) │      │   (Slack)  │    │
-│  └────────────┘      └────────────┘      └────────────┘    │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    subgraph Node["Viber Node"]
+        Viber["Viber (MCP Client)"]
+        Viber --> MCPS1(MCP Server GitHub)
+        Viber --> MCPS2(MCP Server Postgres)
+        Viber --> MCPS3(MCP Server Slack)
+    end
 ```
 
 ## 2. Configuration
@@ -70,17 +63,15 @@ mcp_servers:
     # Connection settings
     startup_timeout_ms: 10000         # Max time to wait for server start
     request_timeout_ms: 30000         # Per-request timeout
-    
-    # Security settings
     require_approval:                 # Tools requiring human approval
       - "create_issue"
       - "create_pull_request"
     
     # Resource access
-    expose_resources: true            # Allow agent to read MCP resources
+    expose_resources: true            # Allow viber to read MCP resources
     
     # Lifecycle
-    auto_start: true                  # Start with daemon
+    auto_start: true                  # Start with node
     restart_on_failure: true          # Auto-restart if process dies
     max_restarts: 3                   # Max restart attempts
 ```
@@ -91,12 +82,12 @@ mcp_servers:
 
 | Concept | Description | Example |
 |---------|-------------|---------|
-| **Tools** | Actions the agent can take | `create_issue`, `run_query` |
-| **Resources** | Data the agent can read | `github://repo/issues`, `postgres://table/schema` |
+| **Tools** | Actions the viber can take | `create_issue`, `run_query` |
+| **Resources** | Data the viber can read | `github://repo/issues`, `postgres://table/schema` |
 
 ### Tool Discovery
 
-When an MCP server starts, OpenViber discovers its tools:
+When the node starts, it connects to all configured MCP servers and discovers available tools:
 
 ```typescript
 // MCP server advertises tools
@@ -118,8 +109,8 @@ When an MCP server starts, OpenViber discovers its tools:
   ]
 }
 
-// OpenViber registers these as agent tools
-// Agent sees: github_create_issue(repo, title, body?)
+// OpenViber registers these as viber tools
+// Viber sees: github_create_issue(repo, title, body?)
 ```
 
 ### Resource Access
@@ -127,7 +118,7 @@ When an MCP server starts, OpenViber discovers its tools:
 Resources are read-only data sources:
 
 ```typescript
-// Agent requests a resource
+// Viber requests a resource
 const issues = await mcp.readResource("github://dustland/openviber/issues");
 
 // Returns structured data
@@ -181,7 +172,7 @@ mcp_servers:
 
 ### Credential Isolation
 
-MCP servers receive only their required credentials:
+MCP servers are configured per viber in `~/.openviber/vibers/{id}.yaml`:
 
 ```yaml
 mcp_servers:
@@ -214,16 +205,16 @@ mcp_servers:
 
 ```mermaid
 sequenceDiagram
-    participant D as Daemon
+    participant N as Node
     participant M as MCP Manager
     participant S as MCP Server
 
-    D->>M: Initialize
+    N->>M: Initialize
     M->>S: Spawn process
     S->>M: Ready signal
     M->>S: List tools
     S->>M: Tool definitions
-    M->>D: Server ready with N tools
+    M->>N: Server ready with N tools
 ```
 
 ### Health Monitoring
@@ -244,6 +235,7 @@ interface McpServerHealth {
 
 ```typescript
 async function shutdownMcpServers() {
+  // Shutdown all servers when node stops
   for (const server of mcpServers) {
     // 1. Stop accepting new requests
     server.pause();
@@ -279,7 +271,7 @@ async function handleMcpError(error: McpError) {
     // Attempt restart
     await restartServer(error.server);
   } else {
-    // Report to agent as tool failure
+    // Report to viber as tool failure
     return {
       success: false,
       error: `MCP server '${error.server}' error: ${error.message}`,
@@ -303,16 +295,16 @@ mcp_servers:
 
 ## 7. Tool Namespacing
 
-MCP tools are namespaced by server name to avoid collisions:
+MCP tools are registered in the viber's tool registry alongside built-in tools:
 
 ```
 Server: github
 Tool: create_issue
-→ Agent sees: github_create_issue
+→ Viber sees: github_create_issue
 
 Server: gitlab  
 Tool: create_issue
-→ Agent sees: gitlab_create_issue
+→ Viber sees: gitlab_create_issue
 ```
 
 ### Custom Prefixes
@@ -329,7 +321,7 @@ mcp_servers:
 mcp_servers:
   - name: "postgres"
     tool_aliases:
-      execute_query: "db_query"     # Agent sees db_query
+      execute_query: "db_query"     # Viber sees db_query
       list_tables: "db_tables"
 ```
 
@@ -371,18 +363,19 @@ mcp_servers:
       max_size_mb: 50
 ```
 
-## 9. Integration with Agent
+## 9. Integration with Viber
 
 ### Tool Registration
 
 ```typescript
-// During agent initialization
-async function registerMcpTools(agent: Agent, mcpManager: McpManager) {
+// During viber initialization
+async function registerMcpTools(viber: Viber, mcpManager: McpManager) {
   for (const server of mcpManager.servers) {
+    // 3. Viber discovers tools from all servers
     const tools = await server.listTools();
     
     for (const tool of tools) {
-      agent.registerTool({
+      viber.registerTool({
         name: `${server.name}_${tool.name}`,
         description: tool.description,
         parameters: tool.inputSchema,
@@ -397,7 +390,7 @@ async function registerMcpTools(agent: Agent, mcpManager: McpManager) {
 
 ### Context Injection
 
-MCP resources can be injected into agent context:
+The node injects MCP context into the viber's system prompt:
 
 ```typescript
 // In task submission
@@ -484,4 +477,4 @@ MCP integration in OpenViber:
 4. **Namespaced tools** — No collisions between servers
 5. **Resource support** — Read-only data access via URIs
 
-This enables agents to safely interact with external systems while maintaining the stateless daemon principle.
+This enables vibers to safely interact with external systems while maintaining the stateless node principle.

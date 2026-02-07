@@ -11,18 +11,25 @@ description: "How your viber remembers context across conversations"
 
 OpenViber's memory system has two parts:
 
-### 1. The Space (Human-Readable)
+### 1. Viber Memory (Human-Readable)
 
-The space contains everything you and your viber work on together:
+Each viber maintains its own memory:
 
-- **Plan** — Current tasks and goals (`task.md`)
-- **Notes** — Important decisions and context (`MEMORY.md`)
+- **Notes** — Important decisions and context (`memory.md`)
 - **Daily logs** — Rolling record of work (`memory/YYYY-MM-DD.md`)
-- **Artifacts** — Files, documents, code produced
 
-**Location:** `~/.openviber/space/`
+**Location:** `~/.openviber/vibers/{id}/`
 
 You can browse, edit, and version-control these files like any project.
+
+### Working Data (Spaces)
+
+The things vibers produce and work on live in **spaces**:
+
+- **Plans** — Current tasks and goals
+- **Artifacts** — Files, documents, code produced
+
+**Location:** `~/openviber_spaces/` (or any directory the viber is pointed at)
 
 ### 2. Semantic Memory (AI-Optimized)
 
@@ -54,13 +61,13 @@ With memory:
 
 ## Local by Default
 
-All memory lives on your machine at `~/.openviber/`. This means:
+All memory lives on your machine at `~/.openviber/vibers/{id}/`. This means:
 
 - **Privacy** — Your context never leaves your machine
 - **Persistence** — Switching chat apps doesn't lose context
-- **Transparency** — You can see exactly what the agent remembers
+- **Transparency** — You can see exactly what the viber remembers
+- **Isolation** — Each viber has independent memory
 
 ## Next Steps
 
-- [Viber](/docs/concepts/viber) — The complete agent teammate
-- [Context](/docs/concepts/state) — How context flows through requests
+- [Viber](/docs/concepts/viber) — Core viber concepts and working modes

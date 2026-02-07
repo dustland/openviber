@@ -1,24 +1,42 @@
 # Onboarding
 
-Set up OpenViber on your machine with automated configuration.
+Set up an OpenViber node on your machine.
 
-## Prerequisites
+## Option A: Connect to a Board (Recommended)
 
-- Node.js 18 or later
-- pnpm (recommended) or npm
+If you have an OpenViber Board, the fastest path is:
 
-## Quick Setup
+1. Log in to your OpenViber Board
+2. Click **"Add Node"**
+3. Copy the generated command
+4. Run it on your machine:
 
-Run the onboard command to create your config:
+```bash
+npx openviber connect --token eyJub2RlIjoiYTFiMmMz...
+```
+
+This single command:
+- Installs/updates OpenViber
+- Creates `~/.openviber/` with your node config
+- Registers the node with the Board
+- Starts the node runtime
+
+The token is one-time-use and expires after 15 minutes. After connecting, the node communicates outbound to the Board — no inbound ports needed.
+
+## Option B: Standalone Setup
+
+For local-only use without a Board:
 
 ```bash
 npx openviber onboard
 ```
 
 This creates:
-- `~/.openviber/agents/default.yaml` — Default agent configuration
-- `~/.openviber/jobs/` — Directory for scheduled tasks
-- `~/.openviber/space/` — Space files
+- `~/.openviber/config.yaml` — Node configuration
+- `~/.openviber/user.md` — Shared user context
+- `~/.openviber/vibers/default.yaml` — Default viber config
+- `~/.openviber/vibers/default/soul.md` — Viber persona
+- `~/.openviber/vibers/default/memory.md` — Long-term memory
 
 ## Set Your API Key
 
@@ -40,12 +58,19 @@ For terminal-first usage, keep interacting in your shell.
 
 For the Viber Board web UI, run `pnpm dev:web` in a second terminal and open http://localhost:6006.
 
-## Alternative: Global Install
+## File Structure After Setup
 
-Install the CLI globally for easier access:
+```
+~/.openviber/                    # Config (small, portable)
+├── config.yaml                  # Provider keys, daemon settings
+├── user.md                      # Who you are (shared)
+└── vibers/
+    └── default/
+        ├── soul.md              # Viber's persona
+        └── memory.md            # Long-term memory
 
-```bash
-pnpm add -g openviber
+~/openviber_spaces/              # Working data (created as needed)
+└── (vibers clone and create spaces here)
 ```
 
 ## Verify
@@ -59,5 +84,5 @@ openviber status
 ## Next Steps
 
 - [Quick Start](/docs/getting-started/quick-start) — Run your first task
-- [Agents](/docs/concepts/agents) — Customize agent behavior
+- [Viber](/docs/concepts/viber) — Customize viber behavior
 - [Jobs](/docs/concepts/jobs) — Set up scheduled tasks

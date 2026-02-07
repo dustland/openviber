@@ -183,15 +183,15 @@ const { streamResult, agent } = await runTask(
 );
 ```
 
-### loadAgentConfig
+### loadViberConfig
 
-Load agent configuration from file.
+Load viber configuration from file.
 
 ```typescript
-import { loadAgentConfig } from "openviber";
+import { loadViberConfig } from "openviber";
 
-const config = await loadAgentConfig("developer");
-// Loads from ~/.openviber/agents/developer.yaml
+const config = await loadViberConfig("developer");
+// Loads from ~/.openviber/vibers/developer.yaml
 ```
 
 ---

@@ -1,11 +1,13 @@
 ---
 title: "Introduction"
-description: "What is OpenViber and how to get started"
+description: "You Imagine. Let Vibers Work."
 ---
 
 # Introduction
 
-**OpenViber** is an open-source Cowork Agent platform that turns your machine into an AI teammate. Unlike cloud-based agent frameworks, OpenViber runs locally with full privacy, connects to your enterprise channels, and works autonomously on real tasks.
+**You Imagine. Let Vibers Work.**
+
+**OpenViber** is an open-source platform that turns your machine into a **Viber Node** — hosting role-scoped AI workers called **vibers** that handle real tasks autonomously. Runs locally with full privacy, connects to your channels, and works while you sleep.
 
 The CLI is available as both `openviber` and the shorter alias `viber` (when installed).
 
@@ -60,9 +62,9 @@ openviber gateway
 
 | Concept | What It Is |
 |---------|------------|
-| **Viber** | Your machine + OpenViber = an AI teammate |
-| **Agent** | The AI that reasons, plans, and executes tasks |
-| **Tools** | Actions the agent can take (file, search, web, browser, desktop, etc.) |
+| **Viber** | A role-scoped AI worker with its own persona, goals, and tools |
+| **Viber Node** | Your machine running OpenViber — hosts one or more vibers |
+| **Tools** | Actions vibers can take (file, search, web, browser, desktop, etc.) |
 | **Skills** | Domain knowledge injected as instructions |
 | **Jobs** | Scheduled tasks defined in YAML |
 
@@ -72,16 +74,16 @@ OpenViber supports three levels of autonomy:
 
 | Mode | Behavior |
 |------|----------|
-| **Always Ask** | Agent asks before each action — you approve everything |
-| **Agent Decides** | Agent acts within policy, escalates risky actions |
+| **Always Ask** | Viber asks before each action — you approve everything |
+| **Viber Decides** | Viber acts within policy, escalates risky actions |
 | **Always Execute** | Maximum autonomy, intervene by exception |
 
 Start with "Always Ask" and gradually increase autonomy as you build trust.
 
 ## Next Steps
 
-1. **[Quick Start](/docs/getting-started/quick-start)** — Run your first agent in minutes
-2. **[Agents](/docs/concepts/agents)** — Configure agent behavior
+1. **[Quick Start](/docs/getting-started/quick-start)** — Run your first viber in minutes
+2. **[Viber](/docs/concepts/viber)** — Configure viber behavior
 3. **[Jobs](/docs/concepts/jobs)** — Set up scheduled tasks
 4. **[Tools](/docs/concepts/tools)** — Available actions
 5. **[Skills](/docs/concepts/skills)** — Add domain knowledge

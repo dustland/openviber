@@ -4,7 +4,7 @@
 
 # OpenViber
 
-### The Open Source Cowork Desktop for Your AI Workforce
+### You Imagine. Let Vibers Work.
 
 <!-- SHIELD GROUP -->
 
@@ -19,12 +19,12 @@
 
 ---
 
-**Viber** is an open-source Cowork Agent platform that runs AI teammates on your machine. Unlike cloud-based agent frameworks, Viber runs locally with full privacy, connects outbound to your enterprise channels, and automates real work while you sleep.
+**OpenViber** is an open-source platform that turns your machine into a **Viber Node** — hosting role-scoped AI workers called **vibers** that automate real work. Unlike cloud-based agent frameworks, OpenViber runs locally with full privacy, connects outbound to your enterprise channels, and works autonomously while you sleep.
 
 ### ⭐ 100% Open Source · 🥇 Local Deployment · 🏆 MCP Integration
 
 - ✅ **Zero Setup** — No servers to host, just `npx openviber start`
-- ✅ **Multi-Agent Workforce** — Specialized agents working in parallel
+- ✅ **Viber Workforce** — Role-scoped vibers working in parallel
 - ✅ **Human-in-the-Loop** — Enterprise messaging channels (DingTalk, WeCom)
 - ✅ **Privacy First** — 100% local execution, data never leaves your machine
 
@@ -46,7 +46,7 @@ Use OpenViber from any terminal (including inside tmux) via the local hub.
 # 1) Start the hub
 openviber hub
 
-# 2) Start the viber daemon (connects to the hub)
+# 2) Start the viber node (connects to the hub)
 openviber start
 
 # 3) Chat from your terminal
@@ -59,20 +59,21 @@ openviber term attach <session:window.pane>
 
 ## 🧠 Personalization (The Three-File Pattern)
 
-OpenViber follows the same configuration pattern that has emerged across all serious agent systems (Claude Projects, Custom GPTs, Cursor Rules). Three markdown files define your agent's complete behavior:
+OpenViber follows the same configuration pattern that has emerged across serious AI platforms (Claude Projects, Custom GPTs, Cursor Rules). Three markdown files define your viber's complete behavior:
 
 ```
 ~/.openviber/
-├── soul.md     # How your agent thinks and communicates
-├── user.md     # Who you are and what you're working on  
-├── memory.md   # What your agent remembers over time
+├── user.md                    # Who you are (shared across vibers)
+└── vibers/default/
+    ├── soul.md                # How this viber thinks and communicates
+    └── memory.md              # What this viber remembers over time
 ```
 
-| File | Purpose | Update Frequency |
-|------|---------|------------------|
-| **soul.md** | Communication style, boundaries, operational rules | Monthly |
-| **user.md** | Current projects, priorities, preferences | Daily/Weekly |
-| **memory.md** | Decisions, learned patterns, corrections | Grows organically |
+| File | Scope | Purpose | Update Frequency |
+|------|-------|---------|------------------|
+| **user.md** | Shared | Current projects, priorities, preferences | Daily/Weekly |
+| **soul.md** | Per-viber | Communication style, boundaries, operational rules | Monthly |
+| **memory.md** | Per-viber | Decisions, learned patterns, corrections | Grows organically |
 
 These files work as a system — a detailed personality is useless without user context, and memory without personality produces generic responses. The power comes from alignment between all three.
 
@@ -82,9 +83,9 @@ See [Personalization Architecture](./docs/design/personalization.md) for setup i
 
 ## ✨ Features
 
-### 🤖 Multi-Agent Workforce
+### 🤖 Viber Workforce
 
-Deploy specialized agents that work in parallel via simple YAML configuration:
+Deploy role-scoped vibers that work in parallel via simple YAML configuration:
 
 ```yaml
 # examples/jobs/morning-standup.yaml
@@ -123,8 +124,8 @@ Critical for long-running vibe-working tasks like vibe-coding:
 
 - **Approval Gates** — Pause for human review before critical actions
 - **Interactive Channels** — Real-time collaboration via DingTalk/WeCom
-- **Progressive Autonomy** — Start supervised, gradually increase agent freedom
-- **Context Handoff** — Seamlessly transfer context between human and agent
+- **Progressive Autonomy** — Start supervised, gradually increase viber freedom
+- **Context Handoff** — Seamlessly transfer context between human and viber
 
 ```yaml
 # Example: Require approval for deployments
@@ -169,21 +170,25 @@ prompt: "Check Antigravity IDE status and auto-recover if errors found"
 
 ```
 ┌─────────────────────────────────────────────────┐
-│              Viber Cowork Desktop               │
+│                  Viber Node                     │
 │                                                 │
-│  ┌──────────┐  ┌────────┐  ┌────────────────┐   │
-│  │ViberAgent│──│ Agents │──│     Tools      │   │
-│  │ (Leader) │  │(Workers)│  │(Browser/File)  │   │
-│  └──────────┘  └────────┘  └────────────────┘   │
+│  ┌────────────────────────────────────────────┐  │
+│  │  dev-viber │ researcher-viber │ pm-viber   │  │
+│  └────────────────────────────────────────────┘  │
 │        │                                        │
 │   ┌────┴─────────────────────┐                  │
-│   │         Scheduler        │                  │
+│   │  Scheduler + Dispatcher  │                  │
 │   │    (YAML Cron Jobs)      │                  │
 │   └──────────────────────────┘                  │
 │        │                                        │
 │   ┌────┴─────────────────────┐                  │
+│   │     Tools + Skills       │                  │
+│   │  (Browser/File/MCP/CLI)  │                  │
+│   └──────────────────────────┘                  │
+│        │                                        │
+│   ┌────┴─────────────────────┐                  │
 │   │        Channels          │                  │
-│   │  DingTalk | WeCom | Web  │                  │
+│   │  Board │ DingTalk │ CLI  │                  │
 │   └──────────────────────────┘                  │
 └─────────────────────────────────────────────────┘
           ↓                    ↓

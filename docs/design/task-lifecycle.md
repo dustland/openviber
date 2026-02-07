@@ -7,7 +7,7 @@ description: "Lifecycle for self-initiated and assigned work in OpenViber"
 
 OpenViber supports two task origins:
 
-- **Self-initiated** (agent discovers and proposes/picks work),
+- **Self-initiated** (viber discovers and proposes/picks work),
 - **Manager-assigned** (explicit human request).
 
 Both follow the same lifecycle with human checkpoints.

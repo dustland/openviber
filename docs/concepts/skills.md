@@ -69,4 +69,4 @@ This makes skills easy to write, read, and share.
 ## Next Steps
 
 - [Tools](/docs/concepts/tools) — Actions that agents can take
-- [Agents](/docs/concepts/agents) — How to configure agents with skills
+- [Viber](/docs/concepts/viber) — How to configure vibers with skills

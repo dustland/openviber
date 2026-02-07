@@ -59,5 +59,5 @@ See [Skills](/docs/concepts/skills) for how domain knowledge bundles tools with 
 ## Next Steps
 
 - [Skills](/docs/concepts/skills) — Domain knowledge that includes specialized tools
-- [Agents](/docs/concepts/agents) — How agents use tools
+- [Viber](/docs/concepts/viber) — How vibers use tools
 - [Security](/docs/design/security) — Tool permissions and safety

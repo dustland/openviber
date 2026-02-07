@@ -19,7 +19,7 @@ export function getViberRoot(): string {
 
 /**
  * Get a path within the OpenViber directory structure
- * @param subPath - Relative path within .openviber directory (e.g., 'config/agents', 'bin/OfficeMcp')
+ * @param subPath - Relative path within .openviber directory (e.g., 'vibers/default', 'skills/tmux')
  */
 export function getViberPath(...subPaths: string[]): string {
   return path.join(getViberRoot(), ...subPaths);
@@ -39,7 +39,7 @@ export const ViberPaths = {
   mcpServerShared: () => getViberPath("mcp-servers", "shared"),
 
   // Specific paths
-  agents: () => getViberPath("agents"),
+  vibers: () => getViberPath("vibers"),
   datasets: () => getViberPath("config", "datasets"),
   tools: () => getViberPath("config", "tools"),
 
@@ -48,7 +48,7 @@ export const ViberPaths = {
   officeMcpExecutable: () => "office-mcp", // npm package command
 
   // Default templates and configuration
-  defaultsAgents: () => getViberPath("defaults", "agents"),
+  defaultsVibers: () => getViberPath("defaults", "vibers"),
   defaultsSpaces: () => getViberPath("defaults", "spaces"),
 
   // Space-specific paths

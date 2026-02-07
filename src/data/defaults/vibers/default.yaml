@@ -1,5 +1,5 @@
-# Default Agent Configuration
-# This agent is used when no specific agent is requested
+# Default Viber Configuration
+# This viber is used when no specific viber is requested
 
 name: Default
 description: A general-purpose assistant that can help with various tasks using terminal, browser, and desktop control.

@@ -1,6 +1,6 @@
 /**
  * LocalDataAdapter - File-based data storage using YAML/JSON files
- * Uses ~/.openviber/ directory for local agent mode
+ * Uses ~/.openviber/ directory for local viber storage
  */
 
 import type { DataAdapter } from "../adapter";
@@ -46,38 +46,38 @@ export class LocalDataAdapter implements DataAdapter {
     const rootStorage = new BaseStorage(getViberRoot());
     const agents: Agent[] = [];
 
-    // Load built-in agents from defaults/agents/
+    // Load built-in vibers from defaults/vibers/
     try {
-      const files = await defaultsStorage.list("agents");
+      const files = await defaultsStorage.list("vibers");
       for (const file of files.filter(
         (f) => f.endsWith(".yaml") || f.endsWith(".yml"),
       )) {
         const agent = await this.readYamlFile(
           defaultsStorage,
-          `agents/${file}`,
+          `vibers/${file}`,
         );
         if (agent) {
           agents.push({ ...agent, isCustom: false });
         }
       }
     } catch {
-      // No built-in agents
+      // No built-in vibers
     }
 
-    // Load user agents from ~/.openviber/agents/
+    // Load user vibers from ~/.openviber/vibers/
     try {
-      const files = await rootStorage.list("agents");
+      const files = await rootStorage.list("vibers");
       for (const file of files.filter(
         (f) => f.endsWith(".yaml") || f.endsWith(".yml"),
       )) {
         0;
-        const agent = await this.readYamlFile(rootStorage, `agents/${file}`);
+        const agent = await this.readYamlFile(rootStorage, `vibers/${file}`);
         if (agent) {
           agents.push({ ...agent, isCustom: true });
         }
       }
     } catch {
-      // No user agents
+      // No user vibers
     }
 
     return agents;
@@ -92,14 +92,14 @@ export class LocalDataAdapter implements DataAdapter {
     for (const ext of ["yaml", "yml"]) {
       const agent = await this.readYamlFile(
         defaultsStorage,
-        `agents/${id}.${ext}`,
+        `vibers/${id}.${ext}`,
       );
       if (agent) return { ...agent, id, isCustom: false };
     }
 
-    // Try user agents
+    // Try user vibers
     for (const ext of ["yaml", "yml"]) {
-      const agent = await this.readYamlFile(rootStorage, `agents/${id}.${ext}`);
+      const agent = await this.readYamlFile(rootStorage, `vibers/${id}.${ext}`);
       if (agent) return { ...agent, id, isCustom: true };
     }
 
@@ -109,16 +109,16 @@ export class LocalDataAdapter implements DataAdapter {
   async saveAgent(agent: Agent): Promise<Agent> {
     const rootStorage = new BaseStorage(getViberRoot());
     const content = yaml.stringify(agent);
-    await rootStorage.writeFile(`agents/${agent.id}.yaml`, content);
+    await rootStorage.writeFile(`vibers/${agent.id}.yaml`, content);
     return agent;
   }
 
   async deleteAgent(id: string): Promise<void> {
     const rootStorage = new BaseStorage(getViberRoot());
     try {
-      await rootStorage.delete(`agents/${id}.yaml`);
+      await rootStorage.delete(`vibers/${id}.yaml`);
     } catch {
-      await rootStorage.delete(`agents/${id}.yml`);
+      await rootStorage.delete(`vibers/${id}.yml`);
     }
   }
 

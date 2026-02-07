@@ -35,12 +35,14 @@ export interface AgentConfig {
   promptFile?: string; // Optional prompt file path
   mode?: "always_ask" | "agent_decides" | "always_execute";
   workingMode?:
-    | "always_ask"
-    | "agent_decides"
-    | "always_execute"
-    | "always-ask"
-    | "agent-decides"
-    | "always-execute";
+  | "always_ask"
+  | "agent_decides"
+  | "viber_decides"
+  | "always_execute"
+  | "always-ask"
+  | "agent-decides"
+  | "viber-decides"
+  | "always-execute";
   require_approval?: string[];
   requireApproval?: string[];
   [key: string]: any; // Allow additional properties

@@ -25,16 +25,16 @@ export interface DaemonRunTaskOptions {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const DEFAULTS_AGENTS_DIR = path.join(
+const DEFAULTS_VIBERS_DIR = path.join(
   path.dirname(__dirname),
   "data",
   "defaults",
-  "agents"
+  "vibers"
 );
 
 /**
  * Load agent config from file (no DataAdapter).
- * Tries built-in defaults then ~/.openviber/agents/{id}.yaml
+ * Tries built-in defaults then ~/.openviber/vibers/{id}.yaml
  */
 export async function loadAgentConfig(
   agentId: string
@@ -52,7 +52,7 @@ export async function loadAgentConfig(
 
   for (const ext of ["yaml", "yml"]) {
     const fromDefaults = await tryRead(
-      path.join(DEFAULTS_AGENTS_DIR, `${agentId}.${ext}`)
+      path.join(DEFAULTS_VIBERS_DIR, `${agentId}.${ext}`)
     );
     if (fromDefaults) return fromDefaults;
   }
@@ -60,7 +60,7 @@ export async function loadAgentConfig(
   const root = getViberPath();
   for (const ext of ["yaml", "yml"]) {
     const fromUser = await tryRead(
-      path.join(root, "agents", `${agentId}.${ext}`)
+      path.join(root, "vibers", `${agentId}.${ext}`)
     );
     if (fromUser) return fromUser;
   }
@@ -108,7 +108,7 @@ export async function runTask(
   let config = overrideConfig ?? (await loadAgentConfig(singleAgentId));
   if (!config) {
     throw new Error(
-      `Agent '${singleAgentId}' not found. Add ~/.openviber/agents/${singleAgentId}.yaml or use built-in default.`
+      `Agent '${singleAgentId}' not found. Add ~/.openviber/vibers/${singleAgentId}.yaml or use built-in default.`
     );
   }
 
@@ -121,9 +121,9 @@ export async function runTask(
   const viberMessages: ViberMessage[] =
     messages && messages.length > 0
       ? messages.map((m) => ({
-          role: m.role as "user" | "assistant" | "system",
-          content: m.content,
-        }))
+        role: m.role as "user" | "assistant" | "system",
+        content: m.content,
+      }))
       : [{ role: "user" as const, content: goal }];
 
   const streamResult = await agent.streamText({

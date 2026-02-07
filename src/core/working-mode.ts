@@ -8,6 +8,8 @@ const MODE_ALIASES: Record<string, WorkingMode> = {
   "always-ask": "always_ask",
   "agent_decides": "agent_decides",
   "agent-decides": "agent_decides",
+  "viber_decides": "agent_decides",
+  "viber-decides": "agent_decides",
   "always_execute": "always_execute",
   "always-execute": "always_execute",
 };

@@ -46,13 +46,15 @@ openviber chat
 openviber run jobs/morning-standup.yaml
 ```
 
-### 3. Enterprise Channels
+### 3. Enterprise Channels *(Coming Soon)*
 
 Connect to DingTalk or WeCom for team collaboration:
 
 ```bash
 openviber gateway
 ```
+
+> **Note:** Enterprise channel integration is planned but not yet available.
 
 ## Key Concepts
 

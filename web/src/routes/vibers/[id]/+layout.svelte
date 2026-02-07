@@ -11,7 +11,6 @@
   import * as Sidebar from "$lib/components/ui/sidebar";
   import * as Resizable from "$lib/components/ui/resizable";
   import {
-    MessageSquare,
     Terminal,
     Server,
     ChevronDown,
@@ -26,6 +25,7 @@
     Calendar,
     ArrowLeft,
   } from "@lucide/svelte";
+  import ViberAvatar from "$lib/components/icons/ViberAvatar.svelte";
 
   type Theme = "light" | "dark" | "system";
 
@@ -83,7 +83,7 @@
 
   // Active app panel
   let activeTerminal = $state<string | null>(null);
-  let appPanelExpanded = $state(true);
+  let appPanelExpanded = $state(false);
   let mobileViewMode = $state<"chat" | "computer">("chat");
 
   // Terminal WebSocket
@@ -289,7 +289,7 @@
                     isActive={true}
                     tooltipContent={chat.name}
                   >
-                    <MessageSquare class="size-4" />
+                    <ViberAvatar class="size-4" />
                     <span>{chat.name}</span>
                   </Sidebar.MenuButton>
                 </Sidebar.MenuItem>
@@ -503,7 +503,7 @@
     <Sidebar.Rail />
   </Sidebar.Root>
 
-  <Sidebar.Inset class="flex flex-col h-full min-h-0 bg-sidebar">
+  <Sidebar.Inset class="flex flex-col h-full min-h-0 bg-background">
     <!-- Mobile Header Bar (only visible on mobile) -->
     <div class="md:hidden flex items-center gap-1.5 p-2 bg-muted/30">
       <a
@@ -523,7 +523,7 @@
           ? 'bg-primary text-primary-foreground'
           : 'text-muted-foreground hover:text-foreground'}"
       >
-        <MessageSquare class="size-4 inline mr-1" />
+        <ViberAvatar class="size-4 inline mr-1" />
         Chat
       </button>
       <button

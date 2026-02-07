@@ -24,7 +24,7 @@
   interface SidebarNode {
     id: string;
     name: string;
-    status: "pending" | "active" | "offline";
+    status: "online" | "offline";
   }
 
   type Theme = "light" | "dark" | "system";
@@ -66,9 +66,14 @@
 
   async function fetchSidebarNodes() {
     try {
-      const res = await fetch("/api/nodes");
+      const res = await fetch("/api/vibers");
       const data = await res.json();
-      sidebarNodes = Array.isArray(data.nodes) ? data.nodes : [];
+      const vibers = Array.isArray(data) ? data : [];
+      sidebarNodes = vibers.map((v: any) => ({
+        id: v.id,
+        name: v.name,
+        status: "online" as const,
+      }));
     } catch {
       sidebarNodes = [];
     }
@@ -140,11 +145,9 @@
                         <span class="flex-1 truncate">{node.name}</span>
                         <span
                           class="w-1.5 h-1.5 rounded-full shrink-0 {node.status ===
-                          'active'
+                          'online'
                             ? 'bg-green-500'
-                            : node.status === 'pending'
-                              ? 'bg-amber-500'
-                              : 'bg-gray-400'}"
+                            : 'bg-gray-400'}"
                         ></span>
                       </a>
                     {/snippet}

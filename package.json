@@ -21,10 +21,11 @@
     }
   },
   "scripts": {
-    "dev": "concurrently -n hub,web,viber \"tsx watch src/cli/index.ts hub\" \"cd web && pnpm dev\" \"tsx watch src/cli/index.ts start\"",
+    "dev": "tsx scripts/dev-setup.ts && concurrently -n hub,web,viber \"tsx watch src/cli/index.ts hub\" \"cd web && pnpm dev\" \"tsx watch src/cli/index.ts start\"",
     "dev:hub": "tsx watch src/cli/index.ts hub",
     "dev:viber": "tsx watch src/cli/index.ts start",
     "dev:web": "cd web && pnpm dev",
+    "dev:setup": "tsx scripts/dev-setup.ts",
     "build": "tsup",
     "build:web": "cd web && pnpm build",
     "start": "node dist/cli/index.js start",

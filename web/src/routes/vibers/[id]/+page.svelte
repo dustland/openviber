@@ -11,6 +11,7 @@
     Settings2,
     Sparkles,
     User,
+    X,
   } from "@lucide/svelte";
   import { marked } from "marked";
   import { Button } from "$lib/components/ui/button";
@@ -131,6 +132,7 @@
   let configuredSkills = $state<string[]>([]);
   let toolOptions = $state<string[]>([]);
   let skillsInput = $state("");
+  let showConfigDialog = $state(false);
 
   $effect(() => {
     // Track messages length to trigger on new messages
@@ -612,84 +614,8 @@
     {/if}
   </div>
 
-  <div class="chat-composer-wrap border-t border-border/70 p-3 shrink-0 sm:p-4">
+  <div class="chat-composer-wrap p-3 shrink-0 sm:p-4">
     <div class="mx-auto w-full max-w-4xl space-y-3">
-      <div class="rounded-xl border border-border bg-card/80 p-3">
-        <div class="mb-2 flex items-center justify-between gap-2">
-          <p
-            class="flex items-center gap-1.5 text-xs font-medium text-foreground"
-          >
-            <Settings2 class="size-3.5" />
-            Agent config
-          </p>
-          {#if configFile}
-            <p class="text-[11px] text-muted-foreground">{configFile}</p>
-          {/if}
-        </div>
-
-        {#if configLoading}
-          <p class="text-xs text-muted-foreground">Loading tools and skills…</p>
-        {:else if configError}
-          <p class="text-xs text-amber-600 dark:text-amber-400">
-            {configError}
-          </p>
-          <p class="mt-1 text-[11px] text-muted-foreground">
-            If this is a first-time setup, run <code>openviber onboard</code> to
-            create
-            <code>~/.openviber/vibers/default.yaml</code>.
-          </p>
-        {:else}
-          <div class="space-y-2.5">
-            <div>
-              <p
-                class="mb-1 text-[11px] uppercase tracking-wide text-muted-foreground"
-              >
-                Tools
-              </p>
-              <div class="flex flex-wrap gap-1.5">
-                {#each toolOptions as tool}
-                  <button
-                    type="button"
-                    class="rounded-full border px-2.5 py-1 text-[11px] transition-colors {configuredTools.includes(
-                      tool,
-                    )
-                      ? 'border-primary/40 bg-primary/10 text-primary'
-                      : 'border-border bg-muted/30 text-muted-foreground hover:text-foreground'}"
-                    onclick={() => toggleConfiguredTool(tool)}
-                  >
-                    {tool}
-                  </button>
-                {/each}
-              </div>
-            </div>
-
-            <label
-              class="block text-[11px] uppercase tracking-wide text-muted-foreground"
-              for="skill-input"
-            >
-              Skills (comma-separated)
-            </label>
-            <input
-              id="skill-input"
-              type="text"
-              bind:value={skillsInput}
-              placeholder="tmux, cursor-agent"
-              class="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground"
-            />
-
-            <div class="flex justify-end">
-              <Button
-                size="sm"
-                onclick={saveAgentConfig}
-                disabled={configSaving}
-              >
-                {configSaving ? "Saving..." : "Save config"}
-              </Button>
-            </div>
-          </div>
-        {/if}
-      </div>
-
       {#if viber?.skills && viber.skills.length > 0 && messages.length > 0}
         <div class="overflow-x-auto pb-0.5">
           <div class="flex items-center gap-1.5 flex-wrap">
@@ -710,20 +636,35 @@
       <div
         class="composer-card flex gap-2.5 items-end rounded-2xl border border-border bg-background/95 px-3 py-2.5 shadow-sm backdrop-blur"
       >
+        <button
+          type="button"
+          class="size-10 shrink-0 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors {configError
+            ? 'text-amber-500'
+            : ''}"
+          onclick={() => (showConfigDialog = true)}
+          title="Agent config"
+        >
+          <Settings2 class="size-4" />
+        </button>
         <textarea
           bind:this={inputEl}
           bind:value={inputValue}
           onkeydown={handleKeydown}
-          placeholder={viber?.isConnected
-            ? "Send a task or command..."
-            : "Viber is offline"}
+          placeholder={configError
+            ? "Agent config missing — run openviber onboard first"
+            : viber?.isConnected
+              ? "Send a task or command..."
+              : "Viber is offline"}
           class="composer-input flex-1 min-h-[40px] max-h-36 resize-none rounded-xl border border-transparent bg-transparent px-2 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
           rows="1"
-          disabled={sending || !viber?.isConnected}
+          disabled={sending || !viber?.isConnected || !!configError}
         ></textarea>
         <Button
           onclick={() => sendMessage()}
-          disabled={sending || !inputValue.trim() || !viber?.isConnected}
+          disabled={sending ||
+            !inputValue.trim() ||
+            !viber?.isConnected ||
+            !!configError}
           class="size-10 shrink-0 rounded-xl"
         >
           <Send class="size-4" />
@@ -738,6 +679,132 @@
     </div>
   </div>
 </div>
+
+<!-- Agent Config Dialog -->
+{#if showConfigDialog}
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+    onclick={(e) => {
+      if (e.target === e.currentTarget) showConfigDialog = false;
+    }}
+    onkeydown={(e) => {
+      if (e.key === "Escape") showConfigDialog = false;
+    }}
+  >
+    <div
+      class="bg-background rounded-xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden border border-border"
+    >
+      <!-- Header -->
+      <div class="flex items-center justify-between p-4 pb-3">
+        <div class="flex items-center gap-2">
+          <Settings2 class="size-4 text-muted-foreground" />
+          <h2 class="text-sm font-semibold">Agent Config</h2>
+          {#if configFile}
+            <span class="text-[11px] text-muted-foreground">{configFile}</span>
+          {/if}
+        </div>
+        <button
+          type="button"
+          class="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+          onclick={() => (showConfigDialog = false)}
+        >
+          <X class="size-4" />
+        </button>
+      </div>
+
+      <!-- Content -->
+      <div class="px-4 pb-4 space-y-4">
+        {#if configLoading}
+          <p class="text-xs text-muted-foreground">Loading tools and skills…</p>
+        {:else if configError}
+          <div
+            class="rounded-lg border border-destructive/30 bg-destructive/5 p-3"
+          >
+            <p class="text-sm font-medium text-destructive">
+              {configError}
+            </p>
+            <p class="mt-1.5 text-xs text-muted-foreground">
+              Run <code class="px-1 py-0.5 rounded bg-muted text-foreground"
+                >openviber onboard</code
+              >
+              to create
+              <code class="px-1 py-0.5 rounded bg-muted text-foreground"
+                >~/.openviber/vibers/default.yaml</code
+              >. Chat is disabled until config is available.
+            </p>
+          </div>
+        {:else}
+          <div class="space-y-3">
+            <div>
+              <p
+                class="mb-1.5 text-[11px] uppercase tracking-wide text-muted-foreground"
+              >
+                Tools
+              </p>
+              <div class="flex flex-wrap gap-1.5">
+                {#each toolOptions as tool}
+                  <button
+                    type="button"
+                    class="rounded-full border px-2.5 py-1 text-[11px] transition-colors {configuredTools.includes(
+                      tool,
+                    )
+                      ? 'border-primary/40 bg-primary/10 text-primary'
+                      : 'border-border bg-muted/30 text-muted-foreground hover:text-foreground'}"
+                    onclick={() => toggleConfiguredTool(tool)}
+                  >
+                    {tool}
+                  </button>
+                {/each}
+              </div>
+            </div>
+
+            <div>
+              <label
+                class="block text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5"
+                for="dialog-skill-input"
+              >
+                Skills (comma-separated)
+              </label>
+              <input
+                id="dialog-skill-input"
+                type="text"
+                bind:value={skillsInput}
+                placeholder="tmux, cursor-agent"
+                class="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground"
+              />
+            </div>
+          </div>
+        {/if}
+      </div>
+
+      <!-- Footer -->
+      {#if !configLoading && !configError}
+        <div
+          class="flex items-center justify-end gap-2 px-4 py-3 border-t border-border bg-muted/30"
+        >
+          <Button
+            variant="outline"
+            size="sm"
+            onclick={() => (showConfigDialog = false)}
+          >
+            Cancel
+          </Button>
+          <Button
+            size="sm"
+            onclick={() => {
+              saveAgentConfig();
+              showConfigDialog = false;
+            }}
+            disabled={configSaving}
+          >
+            {configSaving ? "Saving..." : "Save config"}
+          </Button>
+        </div>
+      {/if}
+    </div>
+  </div>
+{/if}
 
 <style>
   .chat-shell {

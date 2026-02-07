@@ -20,9 +20,12 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import * as readline from "readline";
 import WebSocket from "ws";
+import YAML from "yaml";
 import { getOpenViberVersion } from "../utils/version";
 
 const VERSION = getOpenViberVersion();
+const OPENVIBER_DIR = path.join(os.homedir(), ".openviber");
+const CONFIG_FILE = path.join(OPENVIBER_DIR, "config.yaml");
 
 function getCliName(): string {
   const invokedPath = process.argv[1];
@@ -41,10 +44,10 @@ program
 program
   .command("start")
   .description(
-    "Start viber with all apps (local mode, or connect to server with --server)",
+    "Start viber daemon (auto-connects if previously onboarded with --token)",
   )
-  .option("-s, --server <url>", "Command center URL (enables connected mode)")
-  .option("-t, --token <token>", "Authentication token (or set VIBER_TOKEN)")
+  .option("-s, --server <url>", "Command center URL (overrides saved config)")
+  .option("-t, --token <token>", "Authentication token (overrides saved config)")
   .option("-n, --name <name>", "Viber name", `${os.hostname()}-viber`)
   .option("--desktop", "Enable desktop control (UI-TARS)")
   .option("--disable-app <apps...>", "Disable specific apps (comma-separated)")
@@ -62,19 +65,25 @@ program
     // Get or generate viber ID
     const viberId = await getViberId();
 
-    // Token from CLI or env (only required if connecting to server)
-    const token = options.token || process.env.VIBER_TOKEN;
-    const connectToServer = options.server && token;
+    // Load saved config from ~/.openviber/config.yaml if it exists
+    const savedConfig = await loadSavedConfig();
 
-    if (options.server && !token) {
-      console.error(
-        "Error: Authentication token required when using --server.",
-      );
-      console.error(
-        "Use --token <token> or set VIBER_TOKEN environment variable.",
-      );
-      console.error("\nTo get a token, run: viber login");
-      process.exit(1);
+    // Determine connection mode: CLI flags > saved config > local hub
+    const serverUrl =
+      options.server ||
+      savedConfig?.hubUrl ||
+      "ws://localhost:6007/ws";
+    const authToken =
+      options.token ||
+      process.env.VIBER_TOKEN ||
+      savedConfig?.authToken ||
+      "local-dev-token";
+
+    const isConnectedMode = !!(options.server || savedConfig?.hubUrl);
+    const isLocalHub = !isConnectedMode;
+
+    if (isConnectedMode) {
+      console.log("[Viber] Connected mode — using saved config");
     }
 
     // Initialize Scheduler
@@ -124,28 +133,22 @@ program
       process.exit(0);
     });
 
-    // Determine server URL - use provided server, or default to local hub
-    const serverUrl = options.server || "ws://localhost:6007/ws";
-    const authToken = token || "local-dev-token"; // Local hub doesn't require auth
-
     const controller = new ViberController({
       serverUrl,
       token: authToken,
       viberId,
-      viberName: options.name,
+      viberName: options.name || savedConfig?.name || `${os.hostname()}-viber`,
       enableDesktop: options.desktop,
       reconnectInterval: parseInt(options.reconnectInterval, 10),
       heartbeatInterval: parseInt(options.heartbeatInterval, 10),
     });
-
-    const isLocalHub = !options.server;
 
     controller.on("connected", () => {
       console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║                     VIBER RUNNING                          ║
 ╠═══════════════════════════════════════════════════════════╣
-║  Mode:         ${isLocalHub ? "Local Hub".padEnd(41) : "Remote Server".padEnd(41)
+║  Mode:         ${isLocalHub ? "Local Hub".padEnd(41) : "Connected".padEnd(41)
         }║
 ║  Viber ID:     ${viberId.slice(0, 40).padEnd(40)}║
 ║  Server:       ${serverUrl.slice(0, 40).padEnd(40)}║
@@ -699,9 +702,11 @@ Viber Status
 
 program
   .command("onboard")
-  .description("Initialize OpenViber configuration (first-time setup)")
-  .action(async () => {
-    const configDir = path.join(os.homedir(), ".openviber");
+  .description("Set up OpenViber on this machine (use --token to connect to OpenViber Web)")
+  .option("-t, --token <token>", "Onboard token from OpenViber Web (connect mode)")
+  .option("--hub <url>", "Hub URL override (default: auto from web)")
+  .action(async (options) => {
+    const configDir = OPENVIBER_DIR;
     const vibersDir = path.join(configDir, "vibers");
     const skillsDir = path.join(configDir, "skills");
 
@@ -720,7 +725,90 @@ program
     console.log(`  ✓ ${vibersDir}`);
     console.log(`  ✓ ${skillsDir}`);
 
-    // Create default viber config
+    // ===== Connected mode: onboard with token =====
+    if (options.token) {
+      console.log("\nConnecting to OpenViber Web...");
+
+      // Determine the web URL to call
+      const hubBaseUrl = options.hub || process.env.OPENVIBER_WEB_URL || "http://localhost:6006";
+
+      try {
+        const response = await fetch(`${hubBaseUrl}/api/nodes/onboard`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: options.token }),
+        });
+
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({ error: "Unknown error" }));
+          console.error(`\n  ✗ Onboarding failed: ${err.error || "Invalid or expired token"}`);
+          console.error("\n  Create a new viber node on the web and try again.");
+          process.exit(1);
+        }
+
+        const data = await response.json() as {
+          ok: boolean;
+          nodeId: string;
+          name: string;
+          authToken: string;
+          config: Record<string, unknown>;
+        };
+
+        // Determine the hub WebSocket URL from the web URL
+        const hubWsUrl = options.hub
+          ? options.hub.replace(/^http/, "ws") + "/ws"
+          : hubBaseUrl.replace(/^http/, "ws").replace(":6006", ":6007") + "/ws";
+
+        // Save config for future `openviber start` calls
+        const savedConfig = {
+          mode: "connected",
+          nodeId: data.nodeId,
+          name: data.name,
+          hubUrl: hubWsUrl,
+          authToken: data.authToken,
+          webUrl: hubBaseUrl,
+          onboardedAt: new Date().toISOString(),
+        };
+
+        await fs.writeFile(
+          CONFIG_FILE,
+          `# OpenViber Config — auto-generated by 'openviber onboard --token'
+# Do not edit manually. Manage your viber at ${hubBaseUrl}
+${YAML.stringify(savedConfig)}`,
+        );
+
+        console.log(`  ✓ Connected to ${hubBaseUrl}`);
+        console.log(`  ✓ Node: ${data.name} (${data.nodeId.slice(0, 8)}...)`);
+        console.log(`  ✓ Config saved to ${CONFIG_FILE}`);
+
+      } catch (error: any) {
+        console.error(`\n  ✗ Failed to connect: ${error.message}`);
+        console.error(`\n  Make sure the OpenViber web is running at ${options.hub || "http://localhost:6006"}.`);
+        process.exit(1);
+      }
+    } else {
+      // ===== Standalone mode: local-only setup =====
+      console.log("Setting up standalone mode (local-only)...");
+
+      // Save standalone config
+      const savedConfig = {
+        mode: "standalone",
+        onboardedAt: new Date().toISOString(),
+      };
+
+      try {
+        await fs.access(CONFIG_FILE);
+        console.log(`\n  ⏭ config.yaml already exists, skipping`);
+      } catch {
+        await fs.writeFile(
+          CONFIG_FILE,
+          `# OpenViber Config — standalone mode\n# To connect to OpenViber Web, re-run: openviber onboard --token <token>\n${YAML.stringify(savedConfig)}`,
+        );
+        console.log(`  ✓ Created config.yaml (standalone mode)`);
+      }
+    }
+
+    // Scaffold viber files (both modes)
     const defaultViberPath = path.join(vibersDir, "default.yaml");
     try {
       await fs.access(defaultViberPath);
@@ -785,9 +873,31 @@ workingMode: viber-decides
     // Generate viber ID
     const viberId = await getViberId();
 
-    console.log(`
+    if (options.token) {
+      console.log(`
 ────────────────────────────────────────────────────────────
-Setup complete!
+Setup complete! Your viber is connected to OpenViber Web.
+
+Your viber ID: ${viberId}
+Config directory: ${configDir}
+
+Next steps:
+  1. Set your API key:
+     export OPENROUTER_API_KEY="sk-or-v1-xxx"
+
+  2. Start your viber:
+     openviber start
+
+  Your viber will auto-connect. No extra flags needed.
+  Manage config on the web — your viber will pull updates.
+
+Get an API key at: https://openrouter.ai/keys
+────────────────────────────────────────────────────────────
+`);
+    } else {
+      console.log(`
+────────────────────────────────────────────────────────────
+Setup complete! (standalone mode)
 
 Your viber ID: ${viberId}
 Config directory: ${configDir}
@@ -802,9 +912,13 @@ Next steps:
   3. Or run a quick task:
      openviber run "Hello, what can you do?"
 
+  To connect to OpenViber Web later:
+     openviber onboard --token <token-from-web>
+
 Get an API key at: https://openrouter.ai/keys
 ────────────────────────────────────────────────────────────
 `);
+    }
   });
 
 // ==================== viber gateway ====================
@@ -922,6 +1036,33 @@ async function getViberId(): Promise<string> {
       .replace(/[^a-z0-9]/g, "")}-${Date.now().toString(36).slice(-6)}`;
     await fs.writeFile(idFile, id);
     return id;
+  }
+}
+
+interface SavedConfig {
+  mode?: string;
+  nodeId?: string;
+  name?: string;
+  hubUrl?: string;
+  authToken?: string;
+  webUrl?: string;
+  onboardedAt?: string;
+}
+
+/**
+ * Load saved config from ~/.openviber/config.yaml.
+ * Returns null if file doesn't exist or is invalid.
+ */
+async function loadSavedConfig(): Promise<SavedConfig | null> {
+  try {
+    const content = await fs.readFile(CONFIG_FILE, "utf8");
+    const parsed = YAML.parse(content) as SavedConfig;
+    if (parsed && typeof parsed === "object") {
+      return parsed;
+    }
+    return null;
+  } catch {
+    return null;
   }
 }
 

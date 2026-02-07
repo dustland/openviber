@@ -1,88 +1,114 @@
-# Onboarding
+# Getting Started with OpenViber
 
-Set up an OpenViber node on your machine.
+OpenViber is an AI agent that runs on your machine. There are two ways to set it up:
 
-## Option A: Connect to a Board (Recommended)
+## Option A: Connect to OpenViber Web (Recommended)
 
-If you have an OpenViber Board, the fastest path is:
+This connects your local viber to the web dashboard where you can manage config,
+send tasks, and monitor your viber remotely.
 
-1. Log in to your OpenViber Board
-2. Click **"Add Node"**
-3. Copy the generated command
-4. Run it on your machine:
+### Step 1: Create a Viber Node on the Web
 
-```bash
-npx openviber connect --token eyJub2RlIjoiYTFiMmMz...
-```
+1. Log in to [OpenViber Web](http://localhost:6006) (or your deployed URL)
+2. Go to **Vibers** → Click **"New Viber Node"**
+3. Give your viber a name
+4. Copy the generated command
 
-This single command:
-- Installs/updates OpenViber
-- Creates `~/.openviber/` with your node config
-- Registers the node with the Board
-- Starts the node runtime
+### Step 2: Run the Onboard Command
 
-The token is one-time-use and expires after 15 minutes. After connecting, the node communicates outbound to the Board — no inbound ports needed.
-
-## Option B: Standalone Setup
-
-For local-only use without a Board:
+Paste the command in your terminal:
 
 ```bash
-npx openviber onboard
+npx openviber onboard --token <token>
 ```
 
-This creates:
-- `~/.openviber/config.yaml` — Node configuration
-- `~/.openviber/user.md` — Shared user context
-- `~/.openviber/vibers/default.yaml` — Default viber config
-- `~/.openviber/vibers/default/soul.md` — Viber persona
-- `~/.openviber/vibers/default/memory.md` — Long-term memory
+This will:
+- Install/update OpenViber
+- Create `~/.openviber/` configuration directory
+- Connect your machine to the web dashboard
+- Save connection config for future use
 
-## Set Your API Key
+> **Note:** The token expires in **15 minutes**. If it expires, generate a new one on the web.
 
-OpenViber uses OpenRouter by default for access to multiple models:
+### Step 3: Set Your API Key
 
 ```bash
-export OPENROUTER_API_KEY="sk-or-v1-..."
+export OPENROUTER_API_KEY="sk-or-v1-xxx"
 ```
 
-Get a key at [openrouter.ai/keys](https://openrouter.ai/keys)
+Get an API key at: [openrouter.ai/keys](https://openrouter.ai/keys)
 
-## Start Your Viber
+### Step 4: Start Your Viber
 
 ```bash
 openviber start
 ```
 
-For terminal-first usage, keep interacting in your shell.
+That's it! Your viber will automatically connect to OpenViber Web.
+**No extra flags needed** — it reads your saved config.
 
-For the Viber Board web UI, run `pnpm dev:web` in a second terminal and open http://localhost:6006.
+---
 
-## File Structure After Setup
+## Option B: Standalone Setup (Local Only)
 
-```
-~/.openviber/                    # Config (small, portable)
-├── config.yaml                  # Provider keys, daemon settings
-├── user.md                      # Who you are (shared)
-└── vibers/
-    └── default/
-        ├── soul.md              # Viber's persona
-        └── memory.md            # Long-term memory
-
-~/openviber_spaces/              # Working data (created as needed)
-└── (vibers clone and create spaces here)
-```
-
-## Verify
-
-Check your setup:
+If you just want to run a viber locally without the web dashboard:
 
 ```bash
-openviber status
+npx openviber onboard
 ```
 
-## Next Steps
+Then:
 
-- [Quick Start](/docs/getting-started/quick-start) — Run your first task
-- [Viber](/docs/concepts/viber) — Customize viber behavior
-- [Jobs](/docs/concepts/jobs) — Set up scheduled tasks
+```bash
+export OPENROUTER_API_KEY="sk-or-v1-xxx"
+openviber start
+```
+
+You can connect to OpenViber Web later:
+
+```bash
+openviber onboard --token <token-from-web>
+```
+
+---
+
+## File Structure
+
+After onboarding, your `~/.openviber/` directory looks like:
+
+```
+~/.openviber/
+├── config.yaml          # Connection config (auto-generated)
+├── viber-id             # Unique machine identifier
+├── user.md              # Your context (shared across vibers)
+├── vibers/
+│   ├── default.yaml     # Default viber configuration
+│   └── default/
+│       ├── soul.md      # Viber personality
+│       └── memory.md    # Long-term notes
+└── skills/              # Custom skills
+```
+
+---
+
+## Commands Reference
+
+| Command | Description |
+|---------|-------------|
+| `openviber onboard` | Set up standalone mode |
+| `openviber onboard --token <t>` | Connect to OpenViber Web |
+| `openviber start` | Start the viber daemon |
+| `openviber run "<task>"` | Run a one-off task |
+| `openviber chat` | Interactive chat mode |
+| `openviber status` | Check viber status |
+
+---
+
+## Troubleshooting
+
+**Token expired?** Create a new viber node on the web and run `onboard --token` again.
+
+**Can't connect?** Make sure OpenViber Web is running. By default: `http://localhost:6006`
+
+**Need to switch modes?** You can always re-run `openviber onboard --token <token>` to switch
+from standalone to connected mode.

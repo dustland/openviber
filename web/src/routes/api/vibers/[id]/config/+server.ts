@@ -28,12 +28,12 @@ function getOpenViberDir(): string {
 }
 
 async function resolveConfigPath(viberId: string): Promise<string> {
-  const agentsDir = path.join(getOpenViberDir(), "agents");
+  const vibersDir = path.join(getOpenViberDir(), "vibers");
   const candidates = [
-    path.join(agentsDir, `${viberId}.yaml`),
-    path.join(agentsDir, `${viberId}.yml`),
-    path.join(agentsDir, "default.yaml"),
-    path.join(agentsDir, "default.yml"),
+    path.join(vibersDir, `${viberId}.yaml`),
+    path.join(vibersDir, `${viberId}.yml`),
+    path.join(vibersDir, "default.yaml"),
+    path.join(vibersDir, "default.yml"),
   ];
 
   for (const candidate of candidates) {

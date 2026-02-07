@@ -1,28 +1,20 @@
 import type { Handle } from "@sveltejs/kit";
 import { getAuthUser } from "$lib/server/auth";
-import { env } from "$env/dynamic/private";
 
 // Only these routes require authentication
-const PROTECTED_PATHS = ["/vibers", "/api/vibers"];
+const PROTECTED_PATHS = ["/vibers", "/api/vibers", "/api/nodes"];
+
+// These paths are excluded from auth even if they match a protected prefix
+const AUTH_EXCLUDED_PATHS = ["/api/nodes/onboard"];
 
 function requiresAuth(pathname: string) {
+  if (AUTH_EXCLUDED_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`))) {
+    return false;
+  }
   return PROTECTED_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
 }
 
 export const handle: Handle = async ({ event, resolve }) => {
-  // Skip auth for local testing when SKIP_AUTH is set (via shell env or .env)
-  const skipAuth = env.SKIP_AUTH === "true";
-
-  if (skipAuth) {
-    event.locals.user = {
-      id: "local-dev-user",
-      email: "dev@localhost",
-      name: "Local Developer",
-      avatarUrl: null,
-    };
-    return resolve(event);
-  }
-
   event.locals.user = await getAuthUser(event.cookies);
 
   const { pathname } = event.url;

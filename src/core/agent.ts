@@ -127,6 +127,7 @@ export class Agent {
         // Load skill metadata and instructions
         const skill = await defaultRegistry.loadSkill(skillId);
         if (skill) {
+          console.log(`[Agent] Loaded skill '${skillId}' with ${skill.instructions ? 'instructions' : 'no instructions'}`);
           instructionParts.push(`\n### Skill: ${skill.metadata.name}`);
           instructionParts.push(skill.metadata.description);
           if (skill.instructions) {
@@ -135,6 +136,8 @@ export class Agent {
 
           // Load tools
           const tools = await defaultRegistry.getTools(skillId);
+          const toolNames = Object.keys(tools);
+          console.log(`[Agent] Skill '${skillId}' provides ${toolNames.length} tools: ${toolNames.join(', ')}`);
           Object.assign(this.loadedSkillTools, tools);
         } else {
           console.warn(`[Agent] Skill '${skillId}' not found`);
@@ -251,7 +254,10 @@ export class Agent {
   }
 
   /**
-   * Get tools available to this agent
+   * Get tools available to this agent.
+   *
+   * Converts CoreTool format ({inputSchema}) to AI SDK format ({parameters})
+   * so that streamText() recognizes and exposes the tools to the model.
    */
   protected async getTools(context?: {
     spaceId?: string;
@@ -269,7 +275,26 @@ export class Agent {
       }
     }
 
-    const resolvedTools = Object.keys(tools).length > 0 ? tools : undefined;
+    // Convert CoreTool ({inputSchema, execute}) → AI SDK ({parameters, execute}).
+    // The AI SDK silently ignores tools that lack a `parameters` property.
+    const aiSdkTools: Record<string, any> = {};
+    for (const [name, tool] of Object.entries(tools) as [string, any][]) {
+      if (tool.parameters) {
+        // Already in AI SDK format
+        aiSdkTools[name] = tool;
+      } else if (tool.inputSchema) {
+        // Convert CoreTool → AI SDK tool
+        aiSdkTools[name] = {
+          ...tool,
+          parameters: tool.inputSchema,
+        };
+      } else {
+        // No schema at all — pass through as-is
+        aiSdkTools[name] = tool;
+      }
+    }
+
+    const resolvedTools = Object.keys(aiSdkTools).length > 0 ? aiSdkTools : undefined;
 
     return applyWorkingModeToTools(resolvedTools, {
       mode: this.mode,
@@ -409,6 +434,7 @@ export class Agent {
 
     const model = this.getModel({ spaceId, userId: enrichedMetadata.userId });
     const tools = await this.getTools({ spaceId, metadata: enrichedMetadata });
+    console.log(`[Agent] ${this.name} streaming with model=${this.provider}/${this.model}, tools=${tools ? Object.keys(tools).length : 0}: ${tools ? Object.keys(tools).join(', ') : 'none'}`);
 
     // Generate a message ID that includes the agent name
     const agentPrefix = this.name.toLowerCase().replace(/\s+/g, "-");
@@ -437,7 +463,7 @@ export class Agent {
       messages: modelMessages,
       tools,
       toolChoice: "auto", // Explicitly set tool choice mode
-      stopWhen: stepCountIs(5), // Enable multi-step: continue until no more tool calls or 5 steps
+      stopWhen: stepCountIs(10), // Enable multi-step: continue until no more tool calls or 10 steps
       temperature: this.temperature,
       maxOutputTokens: this.maxTokens,
       topP: this.topP,

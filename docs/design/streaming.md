@@ -1,151 +1,143 @@
 ---
 title: "Streaming"
-description: Real-time response streaming in Viber
+description: "How OpenViber streams LLM responses from daemon to browser using the AI SDK"
 ---
-## Overview
 
-Viber provides first-class support for streaming LLM responses, enabling real-time UI updates and progressive content display.
+# Streaming
 
-## Channel block streaming (chat surfaces)
+OpenViber streams LLM responses end-to-end using the [Vercel AI SDK](https://sdk.vercel.ai). The SDK handles token generation, tool calls, and UI rendering — OpenViber's job is to relay the stream from daemon to browser through the hub.
 
-Many chat apps do **not** support token-delta updates, so streaming there is effectively **block streaming** (coarse chunks). This is a key reason the OpenViber Board web UI remains the preferred surface for high-fidelity streaming UX.
+---
 
-- **Block streaming**: send completed text blocks as the model generates them (coarse chunks), rather than token-by-token deltas.
-- **Channel caps**: respect per-channel message limits (text length, max lines).
-- **Chunking rules**: avoid splitting inside code fences; prefer paragraph/newline/sentence boundaries before hard cuts.
-- **Coalescing**: allow a small idle window to merge tiny chunks to reduce spam.
+## 1. End-to-End Flow
 
-This keeps output responsive on chat surfaces that cannot display token deltas.
+```
+Agent (AI SDK streamText)
+  → streamResult.toUIMessageStreamResponse()   ← AI SDK generates SSE bytes
+    → Controller reads SSE, sends task:stream-chunk over WebSocket
+      → Hub buffers and pipes to SSE endpoint
+        → Web API route pipes hub SSE to browser
+          → @ai-sdk/svelte Chat class renders UI
+```
 
-## Streaming mode selection (auto-detect)
+Every hop is a byte-level passthrough of the AI SDK's **UI Message Stream** format. OpenViber doesn't parse, transform, or re-encode the stream — it just relays it.
 
-Streaming should auto-detect per channel:
+---
 
-- **Web UI**: prefer **token-delta streaming** for the best visual effect.
-- **Chat apps**: fall back to **block streaming** when token deltas aren’t supported.
+## 2. How Each Layer Works
 
-The transport layer should expose a capability flag so the viber runtime can pick the appropriate mode without manual configuration.
+### Daemon (Controller)
 
-## Basic Streaming
+The controller calls `runTask()` which invokes AI SDK `streamText()`. The result is converted to an SSE response and piped chunk-by-chunk over WebSocket:
 
 ```typescript
-const agent = new Agent({
-  name: 'Assistant',
-  model: 'openai:gpt-4o',
+const { streamResult } = await runTask(goal, options, messages);
+
+// AI SDK converts the stream to SSE format
+const response = streamResult.toUIMessageStreamResponse();
+const reader = response.body.getReader();
+
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+  const chunk = decoder.decode(value, { stream: true });
+  // Relay raw SSE bytes to hub
+  ws.send(JSON.stringify({
+    type: "task:stream-chunk",
+    taskId,
+    chunk,
+  }));
+}
+```
+
+### Hub
+
+The hub holds SSE connections open for web app subscribers. When `task:stream-chunk` messages arrive from the daemon, it writes them directly to subscribers:
+
+```
+GET /api/tasks/:id/stream
+  Headers: x-vercel-ai-ui-message-stream: v1
+  Content-Type: text/event-stream
+```
+
+The hub buffers chunks so that late-connecting subscribers can catch up. When the task completes, it closes all subscriber connections.
+
+### Web App API Route
+
+The SvelteKit API route at `/api/vibers/[id]/chat` submits the task to the hub, then pipes the hub's SSE stream to the browser:
+
+```typescript
+// Submit task
+const { taskId } = await hubClient.submitTask(goal, viberId, messages);
+
+// Connect to hub SSE stream and pipe to frontend
+const streamResponse = await fetch(`${HUB_URL}/api/tasks/${taskId}/stream`);
+return new Response(streamResponse.body, {
+  headers: { "x-vercel-ai-ui-message-stream": "v1" },
 });
+```
 
-const result = await agent.streamText({
-  messages: [{ role: 'user', content: 'Tell me a story' }],
+### Frontend
+
+The `@ai-sdk/svelte` `Chat` class consumes the SSE stream automatically:
+
+```typescript
+const chat = new Chat({
+  transport: new DefaultChatTransport({
+    api: `/api/vibers/${viberId}/chat`,
+  }),
 });
-
-for await (const chunk of result.textStream) {
-  process.stdout.write(chunk);
-}
 ```
 
-## Stream Events
+The Chat class handles text deltas, tool call rendering, and state management. OpenViber's frontend code focuses on UI — not stream parsing.
 
-The streaming result provides multiple event streams:
+---
 
-```typescript
-const result = await agent.streamText({ messages });
+## 3. What the AI SDK Handles
 
-// Text chunks
-for await (const text of result.textStream) {
-  console.log('Text:', text);
-}
+| Concern | Handled By |
+|---------|-----------|
+| Token-by-token streaming | AI SDK `streamText()` |
+| SSE encoding | AI SDK `toUIMessageStreamResponse()` |
+| Client-side state management | `@ai-sdk/svelte` `Chat` class |
+| Tool call / result rendering | AI SDK message parts |
+| Multi-step tool loops | AI SDK `maxSteps` / `stepCountIs()` |
+| Backpressure | Built-in to SSE + `ReadableStream` |
 
-// Or access the full stream with metadata
-for await (const event of result.fullStream) {
-  switch (event.type) {
-    case 'text-delta':
-      console.log('Text:', event.textDelta);
-      break;
-    case 'tool-call':
-      console.log('Tool called:', event.toolName);
-      break;
-    case 'tool-result':
-      console.log('Tool result:', event.result);
-      break;
-  }
-}
+---
+
+## 4. What OpenViber Adds
+
+### WebSocket Relay
+
+The AI SDK is designed for direct HTTP (browser → server → LLM). OpenViber adds a relay layer because the daemon runs on a separate machine from the web server:
+
+```
+Browser  ←SSE→  Web App  ←SSE→  Hub  ←WS→  Daemon  ←HTTP→  LLM
 ```
 
-## React Integration
+The hub bridges WebSocket (daemon side) and SSE (browser side). This is the core infrastructure OpenViber provides on top of the AI SDK.
 
-```tsx
-function Chat() {
-  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
-    model: 'openai:gpt-4o',
-  });
+### Chunk Buffering
 
-  return (
-    <div>
-      {messages.map((m) => (
-        <div key={m.id}>
-          <strong>{m.role}:</strong> {m.content}
-        </div>
-      ))}
-      
-      <form onSubmit={handleSubmit}>
-        <input
-          value={input}
-          onChange={handleInputChange}
-          disabled={isLoading}
-        />
-      </form>
-    </div>
-  );
-}
-```
+The hub buffers stream chunks per task so that:
+- Late-connecting SSE subscribers catch up.
+- Completed tasks can replay their full stream on request.
+- Network interruptions don't lose data.
 
-## Svelte Integration
+### Task Lifecycle Messages
 
-```svelte
-<script lang="ts">
-  import { createChatStore } from 'viber/svelte';
+Beyond the stream relay, the hub tracks task state transitions (`pending → running → completed | error | stopped`) and provides REST endpoints for task management.
 
-  const chat = createChatStore({
-    model: 'openai:gpt-4o',
-  });
-</script>
+---
 
-{#each $chat.messages as message}
-  <div>
-    <strong>{message.role}:</strong>
-    {message.content}
-  </div>
-{/each}
+## 5. Future: Block Streaming for Chat Channels
 
-<form on:submit|preventDefault={() => chat.submit()}>
-  <input bind:value={$chat.input} disabled={$chat.isLoading} />
-</form>
-```
+Chat platforms (DingTalk, WeCom, Slack) cannot consume SSE streams. For these channels, a **block chunking** layer will coalesce token deltas into completed text blocks:
 
-::: tip
-Both React and Svelte integrations handle streaming automatically, updating the UI as chunks arrive.
-:::
-## Server-Side Streaming
+- Buffer tokens until a paragraph/sentence boundary.
+- Respect per-channel message length limits.
+- Never split inside code fences.
+- Coalesce small bursts to reduce message spam.
 
-For HTTP endpoints, use the streaming response helpers:
-
-```typescript
-export async function POST(request: Request) {
-  const { messages } = await request.json();
-  
-  const result = await agent.streamText({ messages });
-  
-  return streamToResponse(result);
-}
-```
-
-## Chunking guidelines (for chat channels)
-
-When block streaming is enabled, use a chunker with low/high bounds:
-
-- **Low bound**: don’t emit until a minimum character count is reached.
-- **High bound**: split before max size; if forced, split at max size.
-- **Boundary preference**: paragraph → newline → sentence → whitespace → hard break.
-- **Code fences**: never split inside a fence; if forced, close + reopen the fence.
-
-Channel-level overrides should allow per-channel chunk sizes and chunking modes.
+This layer sits between the AI SDK stream and channel delivery — it doesn't change the core streaming architecture.

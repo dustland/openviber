@@ -139,6 +139,7 @@ require_approval:
 skills:
   - antigravity
   - cursor-agent
+  - codex-cli
 
 # Per-viber budget override
 budget:
@@ -462,6 +463,7 @@ require_approval:
 
 skills:
   - cursor-agent
+  - codex-cli
 
 mode: "viber_decides"
 

@@ -91,6 +91,7 @@ export type ControllerClientMessage =
   | { type: "connected"; viber: ViberInfo }
   | { type: "task:started"; taskId: string; spaceId: string }
   | { type: "task:progress"; taskId: string; event: any }
+  | { type: "task:stream-chunk"; taskId: string; chunk: string }
   | { type: "task:completed"; taskId: string; result: any }
   | { type: "task:error"; taskId: string; error: string }
   | { type: "heartbeat"; status: ViberStatus }
@@ -441,71 +442,37 @@ export class ViberController extends EventEmitter {
       runtime.messageHistory
     );
 
-    let finalText = "";
-    let pendingDelta = "";
-    let lastProgressAt = 0;
-    const flushProgress = (force = false): void => {
-      if (!pendingDelta) return;
-      const now = Date.now();
-      if (!force && now - lastProgressAt < 250) return;
+    // Pipe the AI SDK UIMessageStream SSE bytes through to the hub,
+    // so the frontend can consume them with @ai-sdk/svelte Chat class.
+    const response = streamResult.toUIMessageStreamResponse();
+    const body = response.body;
 
-      this.emitTaskProgress(runtime, {
-        kind: "text-delta",
-        delta: pendingDelta,
-        totalLength: finalText.length,
-      });
-      pendingDelta = "";
-      lastProgressAt = now;
-    };
-
-    this.emitTaskProgress(runtime, {
-      kind: "status",
-      phase: "executing",
-      message: "Agent execution started",
-    });
-
-    for await (const part of streamResult.fullStream) {
-      switch (part.type) {
-        case "text-delta":
-          if (part.text) {
-            finalText += part.text;
-            pendingDelta += part.text;
-            flushProgress(false);
+    if (body) {
+      const reader = body.getReader();
+      const decoder = new TextDecoder();
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+          if (chunk) {
+            this.send({
+              type: "task:stream-chunk",
+              taskId: runtime.taskId,
+              chunk,
+            });
           }
-          break;
-        case "tool-call":
-          console.log(`[Viber] Tool call: ${part.toolName}`);
-          this.emitTaskProgress(runtime, {
-            kind: "tool-call",
-            toolName: part.toolName,
-            toolCallId: part.toolCallId,
-            args: part.args,
-          });
-          break;
-        case "tool-result":
-          this.emitTaskProgress(runtime, {
-            kind: "tool-result",
-            toolCallId: part.toolCallId,
-            toolName: part.toolName,
-            result: part.result,
-            isError: part.isError,
-          });
-          break;
-        case "error":
-          console.error(`[Viber] Stream error:`, part.error);
-          throw new Error(part.error?.message || "Task stream error");
-        case "finish":
-          flushProgress(true);
-          this.emitTaskProgress(runtime, {
-            kind: "status",
-            phase: "verifying",
-            message: "Agent execution finished, preparing final output",
-          });
-          break;
-        default:
-          break;
+        }
+      } catch (err: any) {
+        if (err?.name !== "AbortError") {
+          console.error(`[Viber] Stream read error:`, err);
+          throw err;
+        }
       }
     }
+
+    // Await the final text for persistence in message history
+    const finalText = await streamResult.text;
 
     runtime.running = false;
     runtime.messageHistory.push({ role: "assistant", content: finalText });

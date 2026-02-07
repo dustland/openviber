@@ -1,186 +1,194 @@
 ---
-title: "Security & Multi-Tenancy in Viber"
-description: "Security architecture for OpenViber viber execution"
+title: "Security & Isolation"
+description: "Security architecture for OpenViber viber execution and workspace isolation"
 ---
 
-# Security & Multi-Tenancy in Viber
+# Security & Isolation
 
-The Viber framework is architected with a security-first mindset, designed to support both single-user experimentation and secure, multi-tenant production deployments. The core principle is **Isolation by Default**: every Space operates within a completely separate, sandboxed environment.
+OpenViber is designed with a security-first mindset — vibers execute real tools on real machines, so isolation, auditability, and human oversight are non-negotiable. This document describes the layered security model that governs viber execution.
 
-This document outlines the layered security model that makes this possible.
+---
+
+## 1. Security Layers
 
 ```mermaid
 graph TD
-    subgraph "User"
-        direction LR
-        User["Authenticated User"]
+    subgraph "Operator"
+        User["Authenticated Operator"]
     end
 
     subgraph "Security Layers"
         direction TB
-        L1["Layer 1: API & Access Control"]
-        L2["Layer 2: Space Isolation"]
+        L1["Layer 1: Authentication & Access"]
+        L2["Layer 2: Workspace Isolation"]
         L3["Layer 3: Secure Tool Execution"]
-        L4["Layer 4: Auditability & Observability"]
+        L4["Layer 4: Auditability"]
     end
 
-    subgraph "Space Resources"
+    subgraph "Node Resources"
         direction LR
-        Space["Space"]
+        Vibers["Vibers"]
         Tools["Tools"]
-        Events["Event Log"]
+        Spaces["Workspaces"]
+        Logs["Audit Log"]
     end
 
-    User -- "Requests Access" --> L1
-    L1 -- "Enforces Permissions For" --> L2
-    L2 -- "Contains" --> Space
-    L2 -- "Protects" --> L3
-    L3 -- "Manages" --> Tools
-    L4 -- "Records Everything From" --> L1
-    L4 -- "Records Everything From" --> L2
-    L4 -- "Records Everything From" --> L3
-    L4 -- "Generates" --> Events
-
-    style User fill:#D6EAF8
-    style L1 fill:#E8F8F5
-    style L2 fill:#EBF5FB
-    style L3 fill:#FDF2E9
-    style L4 fill:#FEF9E7
+    User -- "Authenticates" --> L1
+    L1 -- "Scopes access" --> L2
+    L2 -- "Isolates" --> Vibers
+    L2 -- "Isolates" --> Spaces
+    L3 -- "Sandboxes" --> Tools
+    L4 -- "Logs everything from" --> L1
+    L4 -- "Logs everything from" --> L2
+    L4 -- "Logs everything from" --> L3
+    L4 -- "Generates" --> Logs
 ```
 
-## The Four Layers of Security
+---
 
-Viber's security model is composed of four distinct layers that work together to protect the system and its users.
+### Layer 1: Authentication & Access
 
-### 1. Layer 1: API & Access Control
+All interactions with an OpenViber node are mediated by the [WebSocket protocol](./protocol.md) authentication flow.
 
-All interactions with the Viber framework are mediated by a secure API layer.
+- **Connection authentication**: Clients authenticate during the WebSocket handshake using device certificates or tokens (see [Node Onboarding](#5-node-onboarding) below).
+- **Role-based scoping**: Clients declare their role (`operator` or `node`) and requested scopes at connection time. The node grants only the permissions appropriate for that role.
+- **Viber-scoped operations**: Each viber has its own configuration, memory, and sessions. API operations are implicitly scoped to the target viber.
 
-- **Authentication**: The API layer is responsible for verifying the identity of the user. In a production environment, this is typically handled via JWTs, API keys, or other standard authentication mechanisms. The core framework remains agnostic to the specific method used.
-- **Authorization**: Once a user is authenticated, the API layer ensures they are only able to access the Spaces and resources they are authorized to use. A request from `user_A` to access a Space owned by `user_B` will be rejected at this outermost layer.
-- **User-Scoped Operations**: Every API endpoint is implicitly scoped to the authenticated user. A call to list Spaces will only ever return the Spaces owned by the currently logged-in user.
+### Layer 2: Workspace Isolation
 
-### 2. Layer 2: Space Isolation
+Workspaces (called **Spaces** in [viber.md](./viber.md)) are working directories where vibers operate — repos, research folders, output directories.
 
-This is the most fundamental security boundary in Viber. Every Space is encapsulated within its own isolated environment, completely separate from all other Spaces.
+- **Filesystem isolation**: Each viber declares which spaces it can access in its config. Path traversal is prevented by resolving all file paths relative to declared space roots.
+- **Memory isolation**: Each viber has its own `soul.md`, `memory.md`, and session history (see [personalization.md](./personalization.md)). A viber cannot read another viber's memory.
+- **Config isolation**: Viber configurations (`~/.openviber/vibers/{id}.yaml`) are individually loaded. One viber's tool permissions, budget, and model settings are independent of another's.
 
-- **Artifact Isolation**: Each Space has its own dedicated artifact storage. Vibers operating within one Space have no ability to read, write, or even be aware of the existence of files in another Space. Path traversal attacks are mitigated by resolving all file paths relative to the Space's root.
-- **Memory Isolation**: The AI's long-term, semantic memory is also strictly partitioned by Space. A viber's query will only ever search for information within the context of the current Space.
-- **State Isolation**: All Space state, including the plan, conversation history, and execution status, is stored within the Space's isolated environment.
-
-This strict separation ensures that even if a viber behaves unexpectedly, the potential impact is confined to its own sandboxed environment.
-
-### 3. Layer 3: Secure Tool Execution
-
-Vibers in Viber do not have direct access to system resources. All interactions with the outside world are mediated by the Tool Manager, which acts as a security-aware sandbox.
-
-- **Declarative Permissions**: The specific tools that a viber is allowed to use are explicitly defined in the viber's configuration. A viber cannot invoke a tool that it has not been granted permission to use.
-
-```typescript
-const viber = new Agent({
-  name: "Developer",
-  tools: ["read_file", "write_file", "execute_code"],
-  requireApproval: ["write_file", "execute_code"], // Human approval required
-});
+```yaml
+# ~/.openviber/vibers/dev.yaml
+spaces:
+  - ~/openviber_spaces/my-webapp    # Can access this
+  - ~/code/legacy-api               # And this
+  # Cannot access anything else on the filesystem
 ```
 
-- **Parameter Validation**: Before executing any tool, the Tool Manager validates the arguments provided by the viber against the tool's defined schema. This prevents malformed calls and a class of potential injection attacks.
-- **Human-in-the-Loop**: Sensitive tools can require human approval before execution, providing an additional layer of control.
+### Layer 3: Secure Tool Execution
 
-#### Tool sandboxing (containerized execution)
+Vibers do not have unrestricted system access. All interactions with the OS, network, and external services are mediated through the tool system.
 
-Optional **container sandboxing** for tool execution is a critical defense-in-depth feature:
+- **Declarative tool permissions**: The specific tools a viber can use are listed in its configuration. A viber cannot invoke tools not granted to it.
+- **Human-in-the-loop approval**: Sensitive tools can require operator approval before execution. The approval flow uses the `approval:required` / `approval:response` messages defined in the [protocol](./protocol.md).
+- **Parameter validation**: Tool arguments are validated against schemas before execution, preventing malformed calls and injection attacks.
 
-- **Sandbox on/off**: tools run in a container when enabled; otherwise they run on the host.
-- **Modes**:
-  - `off`: no sandboxing.
-  - `non-main`: sandbox only non-main sessions (e.g., background/autoreply).
-  - `all`: every session uses a sandbox.
-- **Scope**:
-  - `session`: one container per session.
-  - `viber`: one container per viber.
-  - `shared`: one container shared by all sandboxed sessions.
-- **Workspace access**:
-  - `none`: sandbox has its own workspace.
-  - `ro`: mounts workspace read-only.
-  - `rw`: mounts workspace read/write.
-- **Elevated tools**: explicitly host-executed tools (e.g., `tools.elevated`) bypass sandboxing and require stricter approvals.
-
-This preserves the open-environment requirement while reducing blast radius for tool execution.
-
-### 4. Layer 4: Auditability & Observability
-
-A secure system must be auditable. The Activity Timeline provides a complete log of every significant action taken within Viber.
-
-- **Comprehensive Event Trail**: Every API request, every viber action, every tool call, and every artifact modification is captured as a structured event.
-- **Real-Time Monitoring**: This event stream can be monitored in real-time to detect anomalous behavior or potential security threats.
-- **Forensic Analysis**: In the event of a security incident, the detailed event log provides a powerful tool for forensic analysis, allowing administrators to trace the exact sequence of actions that occurred.
-
-## Multi-Tenancy in Practice
-
-These four layers work in concert to enable secure multi-tenancy. When a user creates a Space, it is tied to their identity at the API layer. From that point on, all other security mechanisms—from Space isolation to tool permissions—are enforced within the context of that Space.
-
-```typescript
-// Each user only sees their own Spaces
-const spaces = await spaceManager.listSpaces({ userId: currentUser.id });
-
-// Space operations are scoped
-const space = await spaceManager.getSpace(spaceId);
-if (space.userId !== currentUser.id) {
-  throw new UnauthorizedError("Access denied");
-}
+```yaml
+# ~/.openviber/vibers/dev.yaml
+tools:
+  - file
+  - search
+  - web
+  - browser
+  - tmux
+require_approval:
+  - file.write     # Writing files needs approval
+  - tmux.execute   # Running commands needs approval
 ```
 
-## Tool Approval Flow
+#### Container Sandboxing (Optional)
 
-For sensitive operations, Viber supports human-in-the-loop approval:
+For defense-in-depth, tool execution can run inside containers:
 
-```typescript
-// Frontend: Handle approval status
-const { messages, status, approveToolCall } = useXChat({
-  spaceId,
-});
+| Setting | Options | Default |
+|---------|---------|---------|
+| **sandbox** | `off`, `non-main`, `all` | `off` |
+| **scope** | `session`, `viber`, `shared` | `session` |
+| **workspace_access** | `none`, `ro`, `rw` | `rw` |
 
-if (status === "awaiting-approval") {
-  const message = messages[messages.length - 1];
-  const pendingTools = getPendingApprovals(message);
+- `non-main` sandboxes background and auto-reply sessions while leaving interactive sessions on the host.
+- `all` sandboxes every session — maximum isolation.
+- **Elevated tools** (e.g., desktop interaction, system settings) bypass sandboxing and require stricter approval policies.
 
-  return (
-    <ApprovalDialog
-      tools={pendingTools}
-      onApprove={(toolCallId) => approveToolCall(toolCallId, true)}
-      onReject={(toolCallId) => approveToolCall(toolCallId, false)}
-    />
-  );
-}
-```
+### Layer 4: Auditability & Observability
 
-## Storage Security
+Every action taken by a viber is logged to session JSONL files:
 
-### Local Storage (`@viber/local`)
+- **Comprehensive trail**: Every tool call, tool result, model response, and operator intervention is recorded.
+- **Real-time observability**: The Board provides terminal streaming (via tmux), task status updates, and artifact browsing — operators can watch vibers work in real time (see [viber.md](./viber.md) human control model).
+- **Forensic analysis**: Session logs provide a complete replay of viber behavior for debugging or incident review.
 
-- SQLite database with per-user isolation
-- Filesystem storage with directory-based separation
-- No network exposure by default
+---
 
-### Cloud Storage (`@viber/supabase`)
+## 2. Budget Controls
 
-- Row-Level Security (RLS) policies enforce user isolation
-- Supabase Storage with bucket-level permissions
-- Encrypted connections (TLS)
-- Service role keys isolated from client
+Budget limits are a core security mechanism — they prevent vibers from running up costs or executing indefinitely.
+
+| Control | Scope | Behavior |
+|---------|-------|----------|
+| **Token budget** | Per-task or per-viber | Task pauses when limit reached |
+| **Cost limit (USD)** | Per-viber or per-day | Viber transitions to Paused state |
+| **Execution timeout** | Per-task | Task stopped after timeout |
+| **Tool call limit** | Per-task | Task escalates to operator after N tool calls |
+
+Budget status is reported via `status:viber` messages and visible in the Board's status panel. See [error-handling.md](./error-handling.md) for budget exhaustion recovery flows.
+
+---
+
+## 3. Storage Security
+
+### Local Storage (Default)
+
+OpenViber stores all data locally by default:
+
+- **SQLite** for structured data (session metadata, task state).
+- **Filesystem** for artifacts, configs, and session JSONL logs.
+- **No network exposure** — the node only makes outbound connections (to LLM providers and the Board).
+- **Directory-based separation** — config in `~/.openviber/`, working data in declared spaces.
+
+### Cloud Storage (Optional)
+
+For teams or multi-device setups, cloud storage can sync viber state:
+
+- **Row-Level Security (RLS)** policies enforce user isolation in shared databases.
+- **Encrypted connections (TLS)** for all cloud communication.
+- **Service role separation** — client keys never have admin access.
 
 ```sql
--- Example RLS policy
-CREATE POLICY "Users can only access their own spaces"
-ON spaces
+-- Example RLS policy for shared cloud storage
+CREATE POLICY "Users can only access their own vibers"
+ON viber_sessions
 FOR ALL
 USING (user_id = auth.uid());
 ```
 
-## Node Onboarding Security
+---
 
-Node registration follows a **Cloudflare Zero Trust** pattern: the Board generates a one-time token, the user runs a single command on the target machine, and the node connects outbound.
+## 4. Tool Approval Flow
+
+For sensitive operations, the protocol supports human-in-the-loop approval:
+
+```mermaid
+sequenceDiagram
+    participant V as Viber
+    participant N as Node
+    participant B as Board
+    participant O as Operator
+
+    V->>N: Invoke sensitive tool
+    N->>B: approval:required
+    B->>O: Show approval dialog
+    O->>B: Approve / Reject
+    B->>N: approval:response
+    N->>V: Execute or skip tool
+```
+
+Approval requests include:
+
+- **Tool name and arguments** — what the viber wants to do.
+- **Reason** — why the viber thinks this action is needed.
+- **Timeout** — auto-reject if operator doesn't respond (configurable, default: 5 minutes).
+
+---
+
+## 5. Node Onboarding
+
+Node registration follows a **Cloudflare Zero Trust** pattern — the Board generates a one-time token, the operator runs a single command, and the node connects outbound. See also [viber.md](./viber.md) for the full onboarding flow.
 
 ```bash
 npx openviber connect --token eyJub2RlIjoiYTFiMmMz...
@@ -193,19 +201,25 @@ npx openviber connect --token eyJub2RlIjoiYTFiMmMz...
 | **One-time token** | Expires after first use or after TTL (default: 15 minutes) |
 | **No inbound ports** | Node connects outbound to the Board via WebSocket |
 | **Device binding** | After initial connect, device ID is pinned — reconnections use the bound identity |
-| **Revocable** | Board can revoke node access at any time from the dashboard |
+| **Revocable** | Board can revoke node access at any time |
 | **Token contents** | Signed JWT containing: node ID, Board URL, expiry, org scope |
 
 ### What the Token Does NOT Contain
 
-- No API keys or provider credentials (those are configured locally in `~/.openviber/config.yaml`)
-- No user data or viber configurations
-- No long-lived secrets — the token bootstraps a device binding, then is discarded
+- No API keys or provider credentials (configured locally in `~/.openviber/config.yaml`).
+- No user data or viber configurations.
+- No long-lived secrets — the token bootstraps a device binding, then is discarded.
 
 ### Post-Onboarding
 
-After the initial token handshake, the node uses a **device certificate** for reconnections. This certificate is stored in `~/.openviber/` and is tied to the machine's hardware identity. If the node moves to a different machine, the user must re-pair from the Board.
+After the initial handshake, the node uses a **device certificate** for reconnections. This certificate is stored in `~/.openviber/` and tied to the machine's identity. If the node moves to a different machine, the operator must re-pair from the Board.
 
 ---
 
-This layered approach ensures that Viber can be deployed with confidence in shared environments, providing the robust isolation required for production applications while maintaining the flexibility and power of the underlying framework.
+## 6. Design Principles
+
+1. **Outbound-only** — nodes never open inbound ports. All connectivity is initiated by the node.
+2. **Least privilege** — vibers can only use tools and access spaces explicitly granted to them.
+3. **Human oversight always available** — approval gates, terminal streaming, and budget limits ensure operators stay in control.
+4. **Defense in depth** — authentication, workspace isolation, tool sandboxing, and audit logging form independent security layers.
+5. **Fail safe** — budget exhaustion pauses (doesn't kill), context overflow compacts (doesn't crash), approval timeout rejects (doesn't auto-approve).

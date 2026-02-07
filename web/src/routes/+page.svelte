@@ -2,15 +2,22 @@
   import { onMount } from "svelte";
   import {
     ArrowRight,
+    Bot,
+    Brain,
     Chrome,
     Clock,
     Code,
+    Eye,
     FileText,
+    Github,
     Globe,
+    Layers,
     Monitor,
     Moon,
+    Puzzle,
     Search,
     Shield,
+    Sparkles,
     Terminal,
     Wrench,
     Zap,
@@ -19,27 +26,75 @@
   const valueProps = [
     {
       icon: Monitor,
-      title: "Runs Locally",
+      title: "Runs on Your Machine",
       description:
-        "Your machine is the runtime. No cloud dependency, full control over data and compute.",
+        "No cloud servers. Your laptop is the runtime — full control over data, compute, and costs. Just start it and go.",
     },
     {
       icon: Moon,
       title: "Works While You Sleep",
       description:
-        "Scheduled jobs run autonomously on cron. Wake up to finished research, updated repos, and reports.",
+        "Cron-scheduled jobs run autonomously overnight. Wake up to finished research, updated repos, and polished reports.",
     },
     {
       icon: Shield,
-      title: "Fully Private",
+      title: "Private by Design",
       description:
-        "API keys, files, and data never leave your machine. Outbound-only connections, no inbound ports.",
+        "API keys, files, and data never leave your machine. Outbound-only connections — no open ports, no data exfiltration.",
     },
     {
-      icon: Zap,
-      title: "Multi-Viber",
+      icon: Layers,
+      title: "Multi-Viber Workforce",
       description:
-        "Run multiple vibers on one node — each with its own persona, tools, memory, and scheduled jobs.",
+        "Run a dev viber, a researcher, and a PM on one machine — each with its own persona, tools, memory, and budget.",
+    },
+  ];
+
+  const useCases = [
+    {
+      icon: Code,
+      label: "Development",
+      example: '"Build a landing page with dark theme and deploy it"',
+      color: "primary",
+    },
+    {
+      icon: Search,
+      label: "Research",
+      example: '"Analyze competitors and write a market report"',
+      color: "primary",
+    },
+    {
+      icon: Clock,
+      label: "Automation",
+      example: '"Check GitHub issues every morning and summarize"',
+      color: "primary",
+    },
+    {
+      icon: Eye,
+      label: "Monitoring",
+      example: '"Watch CI pipelines and alert me on failures"',
+      color: "primary",
+    },
+  ];
+
+  const howItWorks = [
+    {
+      step: "01",
+      title: "Define Your Viber",
+      description:
+        "Give it a role, persona, tools, and skills in a simple YAML config. Each viber is a specialist — not a generic chatbot.",
+    },
+    {
+      step: "02",
+      title: "Assign Work",
+      description:
+        "Chat from the Board, run a CLI command, or schedule a cron job. Vibers plan, execute, and verify — then report back with evidence.",
+    },
+    {
+      step: "03",
+      title: "Stay in Control",
+      description:
+        "Watch terminals in real time, approve sensitive actions, set budget limits. Intervene anytime — or let the viber run autonomously.",
     },
   ];
 
@@ -71,13 +126,13 @@
   ];
 
   const integrations = [
-    "Cursor",
-    "Claude Code",
-    "Codex CLI",
-    "Chrome",
-    "tmux",
-    "Office",
-    "Any MCP Server",
+    { name: "Cursor", category: "IDE" },
+    { name: "Claude Code", category: "Agent" },
+    { name: "Codex CLI", category: "Agent" },
+    { name: "Chrome", category: "Browser" },
+    { name: "tmux", category: "Terminal" },
+    { name: "Office", category: "Productivity" },
+    { name: "Any MCP Server", category: "Protocol" },
   ];
 
   // Scroll-reveal with IntersectionObserver
@@ -102,11 +157,15 @@
 </script>
 
 <svelte:head>
-  <title>OpenViber · You Imagine. Vibers Build.</title>
+  <title>OpenViber — You Imagine It. Vibers Build It.</title>
+  <meta
+    name="description"
+    content="Turn your machine into an AI workforce. OpenViber runs role-scoped AI agents locally — fully private, fully autonomous, fully yours."
+  />
 </svelte:head>
 
 <div class="homepage relative h-full overflow-x-hidden overflow-y-auto">
-  <!-- Edge glow frame (Antigravity-inspired) -->
+  <!-- Edge glow frame -->
   <div class="edge-glow"></div>
 
   <!-- Grain texture overlay -->
@@ -121,7 +180,7 @@
 
   <main class="container relative mx-auto px-6 py-16 md:px-8 md:py-24">
     <!-- Hero -->
-    <section class="mx-auto max-w-5xl text-center">
+    <section class="mx-auto max-w-5xl pt-8 text-center md:pt-12">
       <div class="hero-logo-wrap mx-auto mb-8 w-fit">
         <img
           src="/favicon.png"
@@ -133,15 +192,39 @@
       <h1
         class="hero-title pb-1 text-4xl font-semibold leading-[1.15] tracking-tight md:text-6xl"
       >
-        You Imagine. Vibers Build.
+        You Imagine It. Vibers Build It.
       </h1>
       <p
         class="hero-subtitle mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground md:text-xl"
       >
-        Turn your machine into an AI coworker. OpenViber runs vibers locally —
-        autonomous agents that write code, research the web, manage files, and
-        run scheduled tasks while you sleep. Fully private, fully yours.
+        Turn your machine into an AI workforce. Deploy role-scoped agents that
+        write code, research the web, manage files, and run scheduled jobs — all
+        locally, all private, all yours.
       </p>
+
+      <!-- Open source badge -->
+      <div
+        class="hero-badge mx-auto mt-6 flex items-center justify-center gap-2"
+      >
+        <span
+          class="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/50 px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur-sm"
+        >
+          <Sparkles class="size-3 text-primary" />
+          100% Open Source
+        </span>
+        <span
+          class="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/50 px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur-sm"
+        >
+          <Shield class="size-3 text-primary" />
+          Local-First
+        </span>
+        <span
+          class="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/50 px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur-sm"
+        >
+          <Puzzle class="size-3 text-primary" />
+          MCP Native
+        </span>
+      </div>
 
       <div
         class="hero-cta mt-9 flex flex-wrap items-center justify-center gap-3"
@@ -150,7 +233,7 @@
           href="/vibers"
           class="cta-primary group inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-all duration-300 hover:-translate-y-1"
         >
-          Open Control Board
+          Viber Board
           <ArrowRight
             class="size-4 transition-transform duration-300 group-hover:translate-x-0.5"
           />
@@ -164,19 +247,83 @@
       </div>
     </section>
 
-    <!-- Divider with gradient line -->
+    <!-- Divider -->
     <div class="section-divider mx-auto mt-20 md:mt-28"></div>
+
+    <!-- What Vibers Can Do -->
+    <section class="reveal mx-auto mt-12 max-w-6xl md:mt-16">
+      <h2 class="section-label mb-3 text-center">What Vibers Can Do</h2>
+      <p
+        class="mx-auto mb-12 max-w-2xl text-center text-base text-muted-foreground"
+      >
+        Give a viber a goal in plain language. It plans, executes, verifies, and
+        reports back — with evidence.
+      </p>
+
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {#each useCases as useCase, i}
+          <div
+            class="reveal-card use-case-card group rounded-2xl p-5"
+            style="--delay: {i * 100}ms"
+          >
+            <div
+              class="use-case-icon mb-3 inline-flex size-10 items-center justify-center rounded-xl"
+            >
+              <useCase.icon class="size-5" />
+            </div>
+            <div class="mb-2 text-sm font-semibold text-card-foreground">
+              {useCase.label}
+            </div>
+            <p class="text-sm italic leading-relaxed text-muted-foreground/80">
+              {useCase.example}
+            </p>
+          </div>
+        {/each}
+      </div>
+    </section>
+
+    <!-- How it Works -->
+    <section class="reveal mx-auto mt-20 max-w-6xl md:mt-28">
+      <h2 class="section-label mb-3 text-center">How it Works</h2>
+      <p
+        class="mx-auto mb-12 max-w-2xl text-center text-base text-muted-foreground"
+      >
+        From YAML config to autonomous execution in three steps.
+      </p>
+
+      <div class="grid gap-6 md:grid-cols-3">
+        {#each howItWorks as step, i}
+          <div
+            class="reveal-card how-step group relative rounded-2xl p-6"
+            style="--delay: {i * 120}ms"
+          >
+            <div class="step-number mb-4">{step.step}</div>
+            <h3 class="mb-2 text-lg font-semibold text-card-foreground">
+              {step.title}
+            </h3>
+            <p class="text-sm leading-relaxed text-muted-foreground">
+              {step.description}
+            </p>
+            {#if i < howItWorks.length - 1}
+              <div class="step-connector hidden md:block">
+                <ArrowRight class="size-4 text-primary/40" />
+              </div>
+            {/if}
+          </div>
+        {/each}
+      </div>
+    </section>
 
     <!-- Why OpenViber — dark contrast section -->
     <section
-      class="reveal dark-section mx-auto mt-12 max-w-6xl rounded-3xl px-6 py-14 md:px-10 md:py-16"
+      class="reveal dark-section mx-auto mt-20 max-w-6xl rounded-3xl px-6 py-14 md:mt-28 md:px-10 md:py-16"
     >
       <h2 class="section-label mb-3 text-center">Why OpenViber</h2>
       <p
         class="mx-auto mb-12 max-w-2xl text-center text-base text-[hsl(var(--muted-foreground)/0.8)]"
       >
-        A local-first AI platform designed for people who want their agents to
-        actually do things — not just chat.
+        A local-first AI platform for people who want their agents to actually
+        do things — not just chat.
       </p>
 
       <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -205,8 +352,8 @@
       <p
         class="mx-auto mb-12 max-w-2xl text-center text-base text-muted-foreground"
       >
-        Every viber comes loaded with tools to get real work done — from file
-        ops to browser automation.
+        Every viber ships with real tools — file ops, web search, browser
+        automation, terminal sessions, and more.
       </p>
 
       <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -235,21 +382,21 @@
 
     <!-- Works With -->
     <section class="reveal mx-auto mt-20 max-w-6xl md:mt-28">
-      <h2 class="section-label mb-3 text-center">Works With</h2>
+      <h2 class="section-label mb-3 text-center">Integrations</h2>
       <p
         class="mx-auto mb-10 max-w-xl text-center text-base text-muted-foreground"
       >
-        Vibers drive your favorite dev tools through skills and MCP
-        integrations.
+        Vibers drive your favorite dev tools through skills and MCP servers.
       </p>
 
       <div class="flex flex-wrap items-center justify-center gap-3">
-        {#each integrations as name, i}
+        {#each integrations as item, i}
           <span
             class="reveal-card integration-pill"
             style="--delay: {i * 70}ms"
           >
-            {name}
+            <span class="integration-name">{item.name}</span>
+            <span class="integration-category">{item.category}</span>
           </span>
         {/each}
       </div>
@@ -258,13 +405,15 @@
     <!-- Get Started CTA -->
     <section class="reveal mx-auto mt-20 max-w-3xl text-center md:mt-28">
       <div class="cta-card rounded-2xl px-8 py-10 md:px-12 md:py-14">
-        <Wrench class="mx-auto mb-4 size-8 text-primary" />
+        <Bot class="mx-auto mb-4 size-8 text-primary" />
         <h2 class="text-2xl font-semibold text-card-foreground">
-          Get your first viber running in 5 minutes
+          Your first viber, running in 5 minutes
         </h2>
-        <p class="mx-auto mt-3 max-w-md text-sm text-muted-foreground">
-          Install OpenViber, run the onboarding command, and start your first
-          viber — all from your terminal.
+        <p
+          class="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-muted-foreground"
+        >
+          Install OpenViber, run the onboarding wizard, and deploy your first
+          viber — all from the terminal.
         </p>
 
         <div class="code-block mx-auto mt-6 max-w-sm rounded-lg px-4 py-3">
@@ -287,6 +436,7 @@
             rel="noopener noreferrer"
             class="inline-flex items-center gap-2 rounded-lg border border-border/80 bg-background/60 px-6 py-3 text-sm font-medium text-foreground backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-accent/80"
           >
+            <Github class="size-4" />
             View on GitHub
           </a>
         </div>
@@ -305,7 +455,7 @@
         <img src="/favicon.png" alt="OpenViber" class="size-5" />
         <span class="text-sm font-medium text-foreground/80">OpenViber</span>
         <span class="text-xs text-muted-foreground"
-          >© {new Date().getFullYear()} Dustland</span
+          >&copy; {new Date().getFullYear()} Dustland</span
         >
       </div>
       <nav class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
@@ -339,7 +489,7 @@
 </div>
 
 <style>
-  /* ── Edge glow frame (Antigravity-inspired) ── */
+  /* ── Edge glow frame ── */
   .edge-glow {
     position: fixed;
     inset: 0;
@@ -471,9 +621,13 @@
     animation: hero-fade-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
     animation-delay: 0.4s;
   }
+  .hero-badge {
+    animation: hero-fade-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: 0.5s;
+  }
   .hero-cta {
     animation: hero-fade-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
-    animation-delay: 0.55s;
+    animation-delay: 0.6s;
   }
   @keyframes hero-fade-in {
     from {
@@ -527,6 +681,73 @@
     text-transform: uppercase;
     letter-spacing: 0.15em;
     color: hsl(var(--primary));
+  }
+
+  /* ── Use case card ── */
+  .use-case-card {
+    border: 1px solid hsl(var(--border) / 0.5);
+    background: hsl(var(--card) / 0.4);
+    backdrop-filter: blur(8px);
+    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .use-case-card:hover {
+    border-color: hsl(var(--primary) / 0.3);
+    background: hsl(var(--card) / 0.7);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px -8px hsl(var(--primary) / 0.1);
+  }
+  .use-case-icon {
+    background: hsl(var(--primary) / 0.08);
+    color: hsl(var(--primary));
+    border: 1px solid hsl(var(--primary) / 0.15);
+    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .use-case-card:hover .use-case-icon {
+    background: hsl(var(--primary) / 0.14);
+    border-color: hsl(var(--primary) / 0.25);
+    transform: scale(1.1);
+  }
+
+  /* ── How-it-works step card ── */
+  .how-step {
+    border: 1px solid hsl(var(--border) / 0.5);
+    background: hsl(var(--card) / 0.4);
+    backdrop-filter: blur(8px);
+    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .how-step:hover {
+    border-color: hsl(var(--primary) / 0.3);
+    background: hsl(var(--card) / 0.7);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px -8px hsl(var(--primary) / 0.1);
+  }
+  .step-number {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+    background: linear-gradient(
+      135deg,
+      hsl(var(--primary)),
+      hsl(var(--primary) / 0.4)
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .step-connector {
+    position: absolute;
+    right: -1.25rem;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    background: hsl(var(--background));
+    border: 1px solid hsl(var(--border) / 0.5);
   }
 
   /* ── Dark contrast section ── */
@@ -596,16 +817,30 @@
 
   /* ── Integration pill ── */
   .integration-pill {
-    display: inline-block;
-    padding: 0.5rem 1.1rem;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.6rem 1.2rem;
     border-radius: 9999px;
     border: 1px solid hsl(var(--border) / 0.6);
     background: hsl(var(--card) / 0.5);
     backdrop-filter: blur(8px);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    gap: 0.125rem;
+  }
+  .integration-name {
     font-size: 0.875rem;
     font-weight: 500;
     color: hsl(var(--foreground) / 0.9);
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    line-height: 1.2;
+  }
+  .integration-category {
+    font-size: 0.625rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: hsl(var(--muted-foreground) / 0.6);
+    line-height: 1.2;
   }
   .integration-pill:hover {
     border-color: hsl(var(--primary) / 0.4);
@@ -719,6 +954,7 @@
     .hero-logo,
     .hero-title,
     .hero-subtitle,
+    .hero-badge,
     .hero-cta,
     .reveal,
     .reveal-card,

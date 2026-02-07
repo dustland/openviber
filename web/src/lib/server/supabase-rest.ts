@@ -1,0 +1,95 @@
+import { env } from "$env/dynamic/private";
+
+const SUPABASE_URL = env.SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = env.SUPABASE_SERVICE_ROLE_KEY;
+
+export function requireSupabaseServiceConfig() {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error(
+      "Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).",
+    );
+  }
+
+  return {
+    supabaseUrl: SUPABASE_URL,
+    serviceRoleKey: SUPABASE_SERVICE_ROLE_KEY,
+  };
+}
+
+export function serviceRoleHeaders(extra: Record<string, string> = {}) {
+  const { serviceRoleKey } = requireSupabaseServiceConfig();
+  return {
+    apikey: serviceRoleKey,
+    Authorization: `Bearer ${serviceRoleKey}`,
+    ...extra,
+  };
+}
+
+export function restUrl(path: string, params?: Record<string, string | null | undefined>) {
+  const { supabaseUrl } = requireSupabaseServiceConfig();
+  const url = new URL(`/rest/v1/${path}`, supabaseUrl);
+
+  if (params) {
+    for (const [key, value] of Object.entries(params)) {
+      if (value !== undefined && value !== null) {
+        url.searchParams.set(key, value);
+      }
+    }
+  }
+
+  return url;
+}
+
+export function toInFilter(values: string[]) {
+  return `in.(${values.map((value) => JSON.stringify(value)).join(",")})`;
+}
+
+export interface SupabaseRequestOptions {
+  method?: "GET" | "POST" | "PATCH" | "DELETE";
+  params?: Record<string, string | null | undefined>;
+  body?: unknown;
+  prefer?: string;
+  headers?: Record<string, string>;
+}
+
+export async function supabaseRequest<T>(
+  path: string,
+  options: SupabaseRequestOptions = {},
+): Promise<T> {
+  const url = restUrl(path, options.params);
+  const method = options.method || "GET";
+
+  const headers: Record<string, string> = serviceRoleHeaders(options.headers || {});
+
+  if (options.prefer) {
+    headers.Prefer = options.prefer;
+  }
+
+  let body: string | undefined;
+  if (options.body !== undefined) {
+    headers["Content-Type"] = headers["Content-Type"] || "application/json";
+    body = JSON.stringify(options.body);
+  }
+
+  const response = await fetch(url, {
+    method,
+    headers,
+    body,
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Supabase request failed (${response.status}) ${method} ${path}: ${text}`);
+  }
+
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
+  const text = await response.text();
+  if (!text) {
+    return undefined as T;
+  }
+
+  return JSON.parse(text) as T;
+}

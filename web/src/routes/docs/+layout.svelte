@@ -73,6 +73,10 @@
       items: [
         { title: "Architecture", href: "/docs/design/arch" },
         {
+          title: "Environments and Threads",
+          href: "/docs/design/environments-and-threads",
+        },
+        {
           title: "Multi-Agent Collaboration",
           href: "/docs/design/multi-agent-collaboration",
         },

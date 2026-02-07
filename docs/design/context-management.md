@@ -5,61 +5,145 @@ description: "Context window, compaction, and session hygiene for stateless vibe
 
 # Context Management
 
-OpenViber vibers are **stateless** between requests, so the OpenViber Board (or caller) must own session history and decide what to send. The practices below keep context useful and within model limits.
+OpenViber vibers are **stateless** between requests — no in-process memory carries across calls. The Board (or caller) owns session history and decides what to include in each request. The strategies below keep context useful and within model limits.
 
-## 1. What counts as context
+---
 
-Because the node is process-stateless — no in-process conversation memory carries across requests — context management is handled collaboratively between the Viber Board and the local workspace.
+## 1. What Counts as Context
 
-Context is everything sent to the model for a run:
+Context is everything sent to the model for a single run:
 
-- system prompt (rules, tools, skill list, runtime info),
-- conversation history,
-- tool calls/results and attachments,
-- selected workspace files.
+| Layer | Examples | Typical Size |
+|-------|----------|--------------|
+| **System prompt** | Rules, tool definitions, skill instructions, runtime info | 2-6K tokens |
+| **Personalization** | `soul.md`, `user.md`, `memory.md` (see [personalization.md](./personalization.md)) | 1-3K tokens |
+| **Conversation history** | Prior user/assistant turns, compacted summaries | Variable |
+| **Tool calls & results** | Function calls, returned data, attachments | Often the largest contributor |
+| **Workspace files** | Code, docs, configs selected for the task | Variable |
 
-**Memory** is separate: it can live on disk or in Board-managed stores, but it only becomes context when it is injected.
+**Memory is separate from context.** Memory lives on disk or in Board-managed stores (see [memory.md](./memory.md)), but only becomes context when explicitly injected into a request.
 
-## 2. Context inspection (Board-facing)
+---
 
-The Board should expose simple diagnostics:
+## 2. Context Budget
 
-- **Context breakdown**: how many tokens are used by system prompt, tools, skills, and injected files.
-- **Per-file limits**: indicate truncation when a workspace file is too large.
-- **Session size**: current message count / token usage.
+Each model has a fixed context window. The Board should maintain a budget breakdown:
 
-This makes it obvious when compaction is needed.
+```
+┌─────────────────────────────────────────────────┐
+│ Model context window (e.g., 128K tokens)        │
+├─────────────────────────────────────────────────┤
+│ System prompt + tools + skills     │  ~4K       │
+│ Personalization (soul/user/memory) │  ~2K       │
+│ Reserved for response              │  ~4K       │
+│ ─────────────────────────────────────────────── │
+│ Available for history + workspace  │  ~118K     │
+└─────────────────────────────────────────────────┘
+```
 
-## 3. Compaction (summarize older history)
+### Board Diagnostics
 
-When the context window gets tight, the Board should compact older history into a summary entry and re-send that summary on subsequent requests.
+The Board should expose simple diagnostics so operators know when compaction is needed:
 
-Recommended behavior:
+- **Context breakdown**: tokens used by each layer (system, tools, skills, history, files).
+- **Per-file limits**: indication when a workspace file was truncated.
+- **Session gauge**: current token usage vs. model limit.
+- **Compaction hint**: visual indicator when history exceeds 70% of available budget.
 
-1. Keep the most recent turns intact.
-2. Replace older history with a compacted summary.
-3. Persist the summary in Board-managed session history.
+---
 
-Compaction can be **automatic** (when nearing limits) or **manual** (explicit user request).
+## 3. Compaction (Summarize Older History)
 
-## 4. Pruning (tool-result hygiene)
+When the context window gets tight, the Board compacts older history into a summary and replaces the original turns.
 
-Tool outputs are often the largest token contributor. The Board should:
+### Strategy
 
-- truncate oversized tool outputs,
-- drop non-essential historical tool outputs when needed,
-- preserve only the minimal evidence required for verification.
+1. **Keep recent turns intact** — the last N turns (typically 4-8) stay verbatim for continuity.
+2. **Summarize older turns** — replace everything before the keep-window with a structured summary.
+3. **Persist the summary** — store it in Board-managed session history so future requests include it.
 
-## 5. Memory flushes (optional)
+### Summary Format
 
-Before compaction, a “memory flush” step can capture durable notes (decisions, preferences, key artifacts) into the Board’s memory store. These notes may be re-injected later without keeping the entire history in context.
+```markdown
+## Session Summary (compacted)
+- User asked to build a landing page with dark theme.
+- Created `index.html` with Tailwind CSS setup.
+- Added hero section and responsive navigation.
+- User approved the design; requested footer changes.
+- Footer updated with three-column layout.
+```
 
-## 6. Session reset
+### Trigger Modes
 
-If a session becomes too noisy:
+| Mode | Behavior |
+|------|----------|
+| **Automatic** | Board compacts when history exceeds the compaction threshold (e.g., 70% of available budget) |
+| **Manual** | Operator explicitly requests compaction via Board UI or `/compact` command |
+| **Pre-flush** | Memory flush happens first (see Section 5), then compaction runs |
 
-- start a new session id,
-- keep a short transfer summary,
-- carry forward only essential memory entries.
+---
 
-This keeps the node stateless while still preserving continuity in the Board.
+## 4. Pruning (Tool-Result Hygiene)
+
+Tool outputs are often the largest token contributor. The Board should aggressively manage them:
+
+- **Truncate oversized outputs** — cap tool results at a configurable max (e.g., 8K tokens). Include a `[truncated, {N} tokens omitted]` marker.
+- **Drop stale tool results** — historical tool outputs beyond the keep-window can be replaced with a one-line summary: `[tool: read_file("src/app.ts") → 247 lines, TypeScript]`.
+- **Preserve verification evidence** — keep tool results that serve as proof of task completion (screenshots, test output, build logs).
+
+### Example: Before and After Pruning
+
+**Before** (12K tokens of tool results):
+```
+tool_result: read_file("src/components/App.tsx") → [full 500-line file contents]
+tool_result: search_web("react hooks best practices") → [full search results]
+tool_result: write_file("src/hooks/useAuth.ts") → [file written successfully]
+```
+
+**After** (200 tokens):
+```
+[tool: read_file("src/components/App.tsx") → 500 lines, React component]
+[tool: search_web("react hooks best practices") → 8 results summarized]
+tool_result: write_file("src/hooks/useAuth.ts") → [file written successfully]
+```
+
+---
+
+## 5. Memory Flushes
+
+Before compaction discards older history, a **memory flush** can capture durable insights into the memory system (see [memory.md](./memory.md)).
+
+The flush extracts:
+
+- **Decisions made** — "User chose Tailwind over styled-components."
+- **Preferences discovered** — "User prefers concise responses, no emojis."
+- **Key artifacts** — "Landing page lives at `src/routes/+page.svelte`."
+- **Patterns observed** — "This repo uses conventional commits."
+
+These notes are written to `memory.md` or the daily memory log and may be re-injected in future sessions without keeping the entire history.
+
+---
+
+## 6. Session Reset
+
+If a session becomes too noisy or context-polluted:
+
+1. **Start a new session ID** — clean slate in the Board.
+2. **Transfer summary** — carry a short summary of the prior session's outcome.
+3. **Re-inject memory** — load relevant memory entries from `memory.md`.
+4. **Discard stale tool results** — only bring forward conclusions, not raw outputs.
+
+This keeps the node stateless while preserving continuity in the Board.
+
+---
+
+## 7. Handling Context Overflow
+
+When context exceeds the model's window despite compaction, the Board should follow the recovery path defined in [error-handling.md](./error-handling.md):
+
+1. **Emergency compaction** — aggressively summarize all but the last 2 turns.
+2. **Tool result purge** — replace all historical tool results with one-line summaries.
+3. **File content drop** — remove injected workspace files (they can be re-read by tools).
+4. **Session reset** — as a last resort, start a fresh session with a transfer summary.
+
+The node reports context overflow via `task:error` with error type `context_overflow`, giving the Board a chance to compact and retry.

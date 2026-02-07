@@ -108,7 +108,7 @@
       progressLines.push(text);
     }
 
-    return progressLines.length > 0 ? progressLines.join("\n") : "Processing task...";
+    return progressLines.length > 0 ? progressLines.join("\n") : "⏳ Thinking...";
   }
 
   let viber = $state<Viber | null>(null);
@@ -301,7 +301,7 @@
       const assistantMessage: Message = {
         id: assistantMessageId,
         role: "assistant",
-        content: "Processing task...",
+        content: "⏳ Thinking...",
         createdAt: new Date(),
       };
       messages = [...messages, assistantMessage];
@@ -675,7 +675,7 @@
 
       {#if viber?.skills && viber.skills.length > 0 && messages.length > 0}
         <div class="overflow-x-auto pb-0.5">
-          <div class="flex items-center gap-1.5 min-w-max">
+          <div class="flex items-center gap-1.5 flex-wrap">
             {#each viber.skills as skill}
               <button
                 type="button"

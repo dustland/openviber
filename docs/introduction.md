@@ -1,11 +1,11 @@
 ---
 title: "Introduction"
-description: "You Imagine. Let Vibers Work."
+description: "You Imagine. Vibers Build."
 ---
 
 # Introduction
 
-**You Imagine. Let Vibers Work.**
+**You Imagine. Vibers Build.**
 
 **OpenViber** is an open-source platform that turns your machine into a **Viber Node** — hosting role-scoped AI workers called **vibers** that handle real tasks autonomously. Runs locally with full privacy, connects to your channels, and works while you sleep.
 

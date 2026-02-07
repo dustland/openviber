@@ -2,7 +2,7 @@
   "name": "openviber",
   "version": "0.5.1",
   "type": "module",
-  "description": "OpenViber: You Imagine. Let Vibers Work.",
+  "description": "OpenViber: You Imagine. Vibers Build.",
   "main": "dist/index.cjs",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",

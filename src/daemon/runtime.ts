@@ -72,7 +72,7 @@ export async function loadAgentConfig(
       name: "Default",
       description: "General-purpose assistant with local skills.",
       provider: "openrouter",
-      model: "deepseek/deepseek-chat-v3-0324",
+      model: "openai/gpt-4o", // Changed from "google/gemini-2.5-flash"
       temperature: 0.7,
       maxTokens: 4096,
       systemPrompt:

@@ -1,8 +1,0 @@
-Implemented fix for issue #37 by improving assistant response polling cadence in the web chat UI.
-
-### ✅ What changed
-- Reduced task progress polling interval from **1200ms** to **250ms** for much more responsive incremental updates.
-- Kept the same total timeout window by deriving max poll attempts from a fixed 120s budget.
-
-### Result
-Users now see partial assistant output update much closer to real-time instead of appearing in large delayed chunks.

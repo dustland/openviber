@@ -2,8 +2,17 @@
   import { onMount, tick } from "svelte";
   import { page } from "$app/stores";
   import { goto } from "$app/navigation";
+  import { Chat } from "@ai-sdk/svelte";
+  import { DefaultChatTransport } from "ai";
+  import { ToolCall } from "$lib/components/ai-elements";
+  import { Reasoning } from "$lib/components/ai-elements";
+  import {
+    SessionIndicator,
+    type ActivityStep,
+  } from "$lib/components/ai-elements";
   import {
     Bot,
+    ChevronDown,
     CornerDownLeft,
     Cpu,
     MessageSquare,
@@ -51,77 +60,11 @@
     createdAt: Date;
   }
 
-  interface TaskProgressEnvelope {
-    event?: Record<string, unknown>;
-  }
-
-  interface TaskEventEntry {
-    event?: TaskProgressEnvelope;
-  }
-
-  function toToolLabel(value: unknown): string {
-    if (typeof value !== "string" || !value.trim()) return "tool";
-    return value.trim();
-  }
-
-  function stringifyToolDetails(value: unknown): string {
-    if (value == null) return "";
-    if (typeof value === "string") return value;
-    try {
-      return JSON.stringify(value, null, 2);
-    } catch {
-      return String(value);
-    }
-  }
-
-  function buildProgressText(task: {
-    partialText?: string;
-    events?: TaskEventEntry[];
-  }): string {
-    const progressLines: string[] = [];
-
-    for (const entry of task.events ?? []) {
-      const payload = entry?.event?.event;
-      if (!payload || typeof payload !== "object") continue;
-      const data = payload as Record<string, unknown>;
-
-      const kind = data.kind;
-      if (kind === "tool-call") {
-        const toolName = toToolLabel(data.toolName);
-        progressLines.push(`🛠️ Calling ${toolName}...`);
-        continue;
-      }
-
-      if (kind === "tool-result") {
-        const toolName = toToolLabel(data.toolName);
-        progressLines.push(`✅ ${toolName} finished`);
-
-        const result = stringifyToolDetails(data.result);
-        if (result) {
-          const preview =
-            result.length > 400 ? `${result.slice(0, 400)}…` : result;
-          progressLines.push(`Result: ${preview}`);
-        }
-      }
-    }
-
-    const text =
-      typeof task.partialText === "string" ? task.partialText.trim() : "";
-    if (text) {
-      progressLines.push(text);
-    }
-
-    return progressLines.length > 0
-      ? progressLines.join("\n")
-      : "⏳ Thinking...";
-  }
-
   let viber = $state<Viber | null>(null);
-  let messages = $state<Message[]>([]);
+  let dbMessages = $state<Message[]>([]);
   let loading = $state(true);
   let inputValue = $state("");
   let sending = $state(false);
-  let currentTaskId = $state<string | null>(null);
   let messagesContainer = $state<HTMLDivElement | null>(null);
   let inputEl = $state<HTMLTextAreaElement | null>(null);
   let configLoading = $state(true);
@@ -134,11 +77,18 @@
   let skillsInput = $state("");
   let showConfigDialog = $state(false);
 
+  // Session activity tracking for long-running AI tasks
+  let sessionStartedAt = $state<number | null>(null);
+
+  // AI SDK Chat instance — created reactively when viberId is known
+  let chat = $state<any>(null);
+  let chatInitialized = $state(false);
+
   $effect(() => {
-    // Track messages length to trigger on new messages
-    const _len = messages.length;
+    // Track chat messages length and dbMessages to trigger scroll on new messages
+    const _chatLen = chat?.messages?.length ?? 0;
+    const _dbLen = dbMessages.length;
     if (messagesContainer) {
-      // Use tick to ensure DOM is updated before scrolling
       tick().then(() => {
         messagesContainer?.scrollTo({
           top: messagesContainer.scrollHeight,
@@ -153,7 +103,7 @@
       const res = await fetch(`/api/vibers/${viberId}/messages`);
       if (!res.ok) return;
       const data = await res.json();
-      messages = (data.messages || []).map(
+      dbMessages = (data.messages || []).map(
         (m: {
           id: string;
           role: string;
@@ -180,7 +130,8 @@
       const response = await fetch(`/api/vibers/${id}`);
       if (response.ok) {
         viber = await response.json();
-        if (id) await fetchMessages(id);
+        // Only reload messages when NOT actively sending (prevents duplicates)
+        if (id && !sending) await fetchMessages(id);
       } else {
         goto("/vibers");
       }
@@ -263,17 +214,9 @@
 
     inputValue = "";
     sending = true;
+    sessionStartedAt = Date.now();
 
-    // Add user message
-    const userMessage: Message = {
-      id: `msg-${Date.now()}`,
-      role: "user",
-      content,
-      createdAt: new Date(),
-    };
-    messages = [...messages, userMessage];
-
-    // Persist user message at OpenViber level
+    // Persist user message to DB
     try {
       await fetch(`/api/vibers/${viber.id}/messages`, {
         method: "POST",
@@ -284,147 +227,57 @@
       /* ignore */
     }
 
-    let pollingStarted = false;
-
-    try {
-      // Send full chat history so viber has context (orchestration only; no viber-side persistence)
-      const response = await fetch(`/api/vibers/${viber.id}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          goal: content,
-          messages: messages.map((m) => ({ role: m.role, content: m.content })),
+    // Initialize Chat if needed
+    if (!chat || !chatInitialized) {
+      chat = new Chat({
+        transport: new DefaultChatTransport({
+          api: `/api/vibers/${viber.id}/chat`,
         }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to submit task");
-      }
-
-      const { taskId } = await response.json();
-      currentTaskId = taskId;
-
-      const assistantMessageId = `msg-${Date.now()}-assistant`;
-      const assistantMessage: Message = {
-        id: assistantMessageId,
-        role: "assistant",
-        content: "⏳ Thinking...",
-        createdAt: new Date(),
-      };
-      messages = [...messages, assistantMessage];
-
-      const pollInterval = 250;
-      const maxPollDurationMs = 120000;
-      const maxAttempts = Math.ceil(maxPollDurationMs / pollInterval);
-      let attempts = 0;
-
-      const poll = async (): Promise<boolean> => {
-        try {
-          const taskRes = await fetch(`/api/tasks/${taskId}`);
-          if (!taskRes.ok) return false;
-          const task = await taskRes.json();
-          if (task.status === "running" || task.status === "pending") {
-            const streamingText = buildProgressText(
-              task as {
-                partialText?: string;
-                events?: TaskEventEntry[];
-              },
-            );
-
-            messages = messages.map((m) =>
-              m.id === assistantMessageId
-                ? { ...m, content: streamingText }
-                : m,
-            );
-          }
-          if (task.status === "completed") {
-            const text =
-              (task.result?.text as string)?.trim() ||
-              task.result?.summary ||
-              "(No response text)";
-            messages = messages.map((m) =>
-              m.id === assistantMessageId ? { ...m, content: text } : m,
-            );
-            // Persist assistant message at OpenViber level
+        // Seed with existing DB messages as initial messages
+        messages: dbMessages.map((m) => ({
+          id: m.id,
+          role: m.role as "user" | "assistant" | "system",
+          parts: [{ type: "text" as const, text: m.content }],
+        })) as any[],
+        onFinish: async (message: any) => {
+          // Persist assistant's response to DB once streaming completes
+          const textParts =
+            message.parts
+              ?.filter((p: any) => p.type === "text")
+              .map((p: any) => p.text)
+              .join("\n") || "";
+          if (textParts) {
             try {
               await fetch(`/api/vibers/${viber!.id}/messages`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  role: "assistant",
-                  content: text,
-                  taskId,
-                }),
+                body: JSON.stringify({ role: "assistant", content: textParts }),
               });
             } catch (_) {
               /* ignore */
-            }
-            return true;
-          }
-          if (task.status === "error") {
-            const errText = `Error: ${task.error || "Task failed"}`;
-            messages = messages.map((m) =>
-              m.id === assistantMessageId ? { ...m, content: errText } : m,
-            );
-            try {
-              await fetch(`/api/vibers/${viber!.id}/messages`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  role: "assistant",
-                  content: errText,
-                  taskId,
-                }),
-              });
-            } catch (_) {
-              /* ignore */
-            }
-            return true;
-          }
-        } catch (_) {
-          /* ignore */
-        }
-        return false;
-      };
-
-      pollingStarted = true;
-      const intervalId = setInterval(async () => {
-        attempts++;
-        const done = await poll();
-        if (done || attempts >= maxAttempts) {
-          clearInterval(intervalId);
-          if (attempts >= maxAttempts) {
-            const last = await poll();
-            if (!last) {
-              messages = messages.map((m) =>
-                m.id === assistantMessageId
-                  ? { ...m, content: "Task timed out. No response received." }
-                  : m,
-              );
             }
           }
           sending = false;
-        }
-      }, pollInterval);
+          sessionStartedAt = null;
+        },
+        onError: (error: Error) => {
+          console.error("Chat error:", error);
+          sending = false;
+          sessionStartedAt = null;
+        },
+      } as any);
+      chatInitialized = true;
+    }
 
-      const done = await poll();
-      if (done) {
-        clearInterval(intervalId);
-        sending = false;
+    // Send via AI SDK Chat class (handles streaming automatically)
+    try {
+      if (chat) {
+        await chat.sendMessage({ text: content });
       }
     } catch (error) {
       console.error("Failed to send message:", error);
-      const errorMessage: Message = {
-        id: `msg-${Date.now()}-error`,
-        role: "assistant",
-        content: `Error: ${error instanceof Error ? error.message : "Failed to submit task"}`,
-        createdAt: new Date(),
-      };
-      messages = [...messages, errorMessage];
-    } finally {
-      if (!pollingStarted) {
-        sending = false;
-      }
+      sending = false;
+      sessionStartedAt = null;
     }
   }
 
@@ -439,6 +292,45 @@
     inputValue = `Use ${skill.name} to `;
     inputEl?.focus();
   }
+
+  // Derived: build activity steps from tool calls in the message stream
+  let activitySteps = $derived.by((): ActivityStep[] => {
+    if (!sending || !chat?.messages) return [];
+    const steps: ActivityStep[] = [];
+    for (const msg of chat.messages) {
+      if (msg.role !== "assistant") continue;
+      for (const part of msg.parts || []) {
+        const p = part as any;
+        if (p.toolName) {
+          const isComplete =
+            p.state === "output-available" || p.state === "result";
+          const isError =
+            p.state === "output-error" || p.state === "output-denied";
+          steps.push({
+            name: p.toolName,
+            status: isError ? "error" : isComplete ? "complete" : "running",
+            summary:
+              p.input?.path || p.input?.query || p.input?.url || undefined,
+          });
+        }
+      }
+    }
+    return steps;
+  });
+
+  // Computed: messages to display. Uses Chat messages if available, else DB messages.
+  let displayMessages = $derived.by(() => {
+    if (chatInitialized && chat?.messages && chat.messages.length > 0) {
+      return chat.messages;
+    }
+    // Convert DB messages to a compatible shape
+    return dbMessages.map((m) => ({
+      id: m.id,
+      role: m.role,
+      parts: [{ type: "text" as const, text: m.content }],
+      createdAt: m.createdAt,
+    }));
+  });
 
   onMount(() => {
     fetchViber();
@@ -479,7 +371,7 @@
           </p>
         </div>
       </div>
-    {:else if messages.length === 0}
+    {:else if displayMessages.length === 0}
       <div class="h-full flex flex-col items-center justify-center py-12 px-4">
         <div class="text-center mb-8">
           <div
@@ -576,7 +468,7 @@
     {:else}
       <div class="px-3 py-6 sm:px-5">
         <div class="mx-auto w-full max-w-4xl space-y-5">
-          {#each messages as message (message.id)}
+          {#each displayMessages as message (message.id)}
             <div
               class="message-row flex {message.role === 'user'
                 ? 'justify-end user-row'
@@ -594,11 +486,35 @@
                   ? 'user-bubble bg-primary text-primary-foreground'
                   : 'assistant-bubble bg-card text-foreground'}"
               >
-                <div class="message-markdown">
-                  {@html renderMarkdown(message.content)}
-                </div>
+                {#each message.parts as part, i}
+                  {#if part.type === "text" && (part as any).text}
+                    <div class="message-markdown">
+                      {@html renderMarkdown((part as any).text)}
+                    </div>
+                  {:else if part.type === "reasoning"}
+                    <Reasoning
+                      content={(part as any).reasoning ||
+                        (part as any).text ||
+                        ""}
+                      isStreaming={false}
+                    />
+                  {:else if part.type !== "text"}
+                    {@const toolPart = part as any}
+                    {#if toolPart.toolName}
+                      <ToolCall
+                        toolName={toolPart.toolName}
+                        toolState={toolPart.state || "input-available"}
+                        input={toolPart.input}
+                        output={toolPart.output}
+                        errorText={toolPart.errorText}
+                      />
+                    {/if}
+                  {/if}
+                {/each}
                 <p class="text-[11px] mt-2 opacity-60 tracking-wide">
-                  {new Date(message.createdAt).toLocaleTimeString()}
+                  {new Date(
+                    (message as any).createdAt || Date.now(),
+                  ).toLocaleTimeString()}
                 </p>
               </div>
 
@@ -609,6 +525,31 @@
               {/if}
             </div>
           {/each}
+
+          {#if sending && (!chat?.messages || chat.messages.length === 0 || chat.messages[chat.messages.length - 1]?.role === "user")}
+            <div class="message-row flex justify-start assistant-row">
+              <div class="message-avatar assistant-avatar" aria-hidden="true">
+                <Bot class="size-4" />
+              </div>
+              <div
+                class="message-bubble max-w-[90%] sm:max-w-[82%] rounded-2xl px-4 py-3 assistant-bubble bg-card text-foreground"
+              >
+                {#if sessionStartedAt}
+                  <SessionIndicator
+                    startedAt={sessionStartedAt}
+                    steps={activitySteps}
+                  />
+                {:else}
+                  <div
+                    class="flex items-center gap-2 text-sm text-muted-foreground"
+                  >
+                    <Sparkles class="size-4 animate-pulse" />
+                    <span>Starting...</span>
+                  </div>
+                {/if}
+              </div>
+            </div>
+          {/if}
         </div>
       </div>
     {/if}
@@ -616,7 +557,12 @@
 
   <div class="chat-composer-wrap p-3 shrink-0 sm:p-4">
     <div class="mx-auto w-full max-w-4xl space-y-3">
-      {#if viber?.skills && viber.skills.length > 0 && messages.length > 0}
+      <!-- Persistent session activity bar for long-running tasks -->
+      {#if sending && sessionStartedAt}
+        <SessionIndicator startedAt={sessionStartedAt} steps={activitySteps} />
+      {/if}
+
+      {#if viber?.skills && viber.skills.length > 0 && displayMessages.length > 0}
         <div class="overflow-x-auto pb-0.5">
           <div class="flex items-center gap-1.5 flex-wrap">
             {#each viber.skills as skill}

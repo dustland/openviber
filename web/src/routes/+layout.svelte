@@ -29,16 +29,28 @@
   const isVibers = $derived($page.url.pathname.startsWith("/vibers"));
   const isDocs = $derived($page.url.pathname.startsWith("/docs"));
 
+  type MediaQueryListLegacy = MediaQueryList & {
+    addListener?: (listener: (event: MediaQueryListEvent) => void) => void;
+    removeListener?: (listener: (event: MediaQueryListEvent) => void) => void;
+  };
+
   function applyTheme(selectedTheme: Theme) {
+    const setColorScheme = (isDark: boolean) => {
+      document.documentElement.style.colorScheme = isDark ? "dark" : "light";
+    };
+
     if (selectedTheme === "system") {
       localStorage.removeItem("theme");
       const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
       document.documentElement.classList.toggle("dark", isDark);
+      setColorScheme(isDark);
       return;
     }
 
     localStorage.setItem("theme", selectedTheme);
-    document.documentElement.classList.toggle("dark", selectedTheme === "dark");
+    const isDark = selectedTheme === "dark";
+    document.documentElement.classList.toggle("dark", isDark);
+    setColorScheme(isDark);
   }
 
   function setTheme(nextTheme: Theme) {
@@ -50,6 +62,27 @@
     const stored = localStorage.getItem("theme");
     theme = stored === "dark" || stored === "light" ? stored : "system";
     applyTheme(theme);
+
+    const media = window.matchMedia(
+      "(prefers-color-scheme: dark)",
+    ) as MediaQueryListLegacy;
+
+    const onSystemThemeChange = (event: MediaQueryListEvent) => {
+      const storedTheme = localStorage.getItem("theme");
+      if (storedTheme === "dark" || storedTheme === "light") return;
+
+      const isDark = event.matches;
+      document.documentElement.classList.toggle("dark", isDark);
+      document.documentElement.style.colorScheme = isDark ? "dark" : "light";
+    };
+
+    if (typeof media.addEventListener === "function") {
+      media.addEventListener("change", onSystemThemeChange);
+      return () => media.removeEventListener("change", onSystemThemeChange);
+    }
+
+    media.addListener?.(onSystemThemeChange);
+    return () => media.removeListener?.(onSystemThemeChange);
   });
 </script>
 

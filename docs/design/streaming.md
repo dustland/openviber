@@ -1,151 +1,178 @@
 ---
 title: "Streaming"
-description: Real-time response streaming in Viber
+description: "Real-time response streaming architecture for OpenViber"
 ---
-## Overview
 
-Viber provides first-class support for streaming LLM responses, enabling real-time UI updates and progressive content display.
+# Streaming
 
-## Channel block streaming (chat surfaces)
+OpenViber supports real-time streaming of LLM responses from the node to clients. The streaming architecture has two layers: **token-delta streaming** for high-fidelity UIs and **block streaming** for chat channels with limited capabilities.
 
-Many chat apps do **not** support token-delta updates, so streaming there is effectively **block streaming** (coarse chunks). This is a key reason the OpenViber Board web UI remains the preferred surface for high-fidelity streaming UX.
+---
 
-- **Block streaming**: send completed text blocks as the model generates them (coarse chunks), rather than token-by-token deltas.
-- **Channel caps**: respect per-channel message limits (text length, max lines).
-- **Chunking rules**: avoid splitting inside code fences; prefer paragraph/newline/sentence boundaries before hard cuts.
-- **Coalescing**: allow a small idle window to merge tiny chunks to reduce spam.
+## 1. Streaming Modes
 
-This keeps output responsive on chat surfaces that cannot display token deltas.
+| Mode | Transport | Best For |
+|------|-----------|----------|
+| **Token-delta** | WebSocket `task:delta` messages | OpenViber Board (web UI), CLI |
+| **Block** | Channel-specific delivery (chat APIs, email) | DingTalk, WeCom, Slack |
 
-## Streaming mode selection (auto-detect)
+Mode selection is automatic based on channel capabilities. The node's runtime detects the transport and emits the appropriate stream granularity.
 
-Streaming should auto-detect per channel:
+---
 
-- **Web UI**: prefer **token-delta streaming** for the best visual effect.
-- **Chat apps**: fall back to **block streaming** when token deltas aren’t supported.
+## 2. Token-Delta Streaming (WebSocket)
 
-The transport layer should expose a capability flag so the viber runtime can pick the appropriate mode without manual configuration.
+The primary streaming path uses the WebSocket protocol defined in [protocol.md](./protocol.md). When a client submits a task with `stream_deltas: true`, the node emits `task:delta` messages as the model generates output.
 
-## Basic Streaming
+### Protocol Integration
 
 ```typescript
-const agent = new Agent({
-  name: 'Assistant',
-  model: 'openai:gpt-4o',
-});
+// Client requests streaming
+const submit: TaskSubmit = {
+  type: "task:submit",
+  payload: {
+    idempotency_key: "abc-123",
+    goal: "Build a landing page",
+    messages: [...],
+    options: {
+      stream_deltas: true,  // Enable token-level streaming
+    },
+  },
+};
 
-const result = await agent.streamText({
-  messages: [{ role: 'user', content: 'Tell me a story' }],
-});
-
-for await (const chunk of result.textStream) {
-  process.stdout.write(chunk);
-}
+// Node emits deltas as they arrive
+// → task:started
+// → task:delta { delta_type: "text", text: "I'll start by..." }
+// → task:delta { delta_type: "text", text: " creating the HTML..." }
+// → task:delta { delta_type: "tool_call", tool_call: { name: "write_file", ... } }
+// → task:delta { delta_type: "tool_result", tool_result: { ... } }
+// → task:completed
 ```
 
-## Stream Events
+### Delta Types
 
-The streaming result provides multiple event streams:
+The `task:delta` message carries three delta types (see [protocol.md](./protocol.md) for full schemas):
+
+| `delta_type` | Content | UI Behavior |
+|--------------|---------|-------------|
+| `text` | Partial text token | Append to message bubble |
+| `tool_call` | Tool name + partial arguments | Show tool invocation card |
+| `tool_result` | Completed tool output | Render tool result inline |
+
+### Board UI Consumption
+
+The OpenViber Board (SvelteKit) consumes deltas via the existing WebSocket connection:
 
 ```typescript
-const result = await agent.streamText({ messages });
-
-// Text chunks
-for await (const text of result.textStream) {
-  console.log('Text:', text);
-}
-
-// Or access the full stream with metadata
-for await (const event of result.fullStream) {
-  switch (event.type) {
-    case 'text-delta':
-      console.log('Text:', event.textDelta);
+// Simplified Board-side delta handling
+function handleDelta(delta: TaskDelta) {
+  switch (delta.payload.delta_type) {
+    case "text":
+      appendToCurrentMessage(delta.payload.text);
       break;
-    case 'tool-call':
-      console.log('Tool called:', event.toolName);
+    case "tool_call":
+      showToolCallCard(delta.payload.tool_call);
       break;
-    case 'tool-result':
-      console.log('Tool result:', event.result);
+    case "tool_result":
+      updateToolCallResult(delta.payload.tool_result);
       break;
   }
 }
 ```
 
-## React Integration
+---
 
-```tsx
-function Chat() {
-  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
-    model: 'openai:gpt-4o',
-  });
+## 3. Block Streaming (Chat Channels)
 
-  return (
-    <div>
-      {messages.map((m) => (
-        <div key={m.id}>
-          <strong>{m.role}:</strong> {m.content}
-        </div>
-      ))}
-      
-      <form onSubmit={handleSubmit}>
-        <input
-          value={input}
-          onChange={handleInputChange}
-          disabled={isLoading}
-        />
-      </form>
-    </div>
-  );
-}
+Many chat platforms (DingTalk, WeCom, Slack) do not support token-delta updates. For these channels, the node coalesces token deltas into **completed text blocks** before delivery.
+
+### Why Block Streaming
+
+- Chat APIs have rate limits and message-length caps.
+- Token-by-token delivery would spam the channel with tiny updates.
+- Users on mobile prefer fewer, complete messages over rapid partial updates.
+
+### Chunking Pipeline
+
+```
+Token stream → Accumulator → Boundary detector → Channel formatter → Delivery
 ```
 
-## Svelte Integration
+The chunker buffers tokens and emits blocks based on configurable bounds:
 
-```svelte
-<script lang="ts">
-  import { createChatStore } from 'viber/svelte';
+| Parameter | Default | Purpose |
+|-----------|---------|---------|
+| `min_chars` | 200 | Don't emit until this threshold |
+| `max_chars` | 2000 | Force-split before this limit |
+| `idle_ms` | 1500 | Emit accumulated text after idle gap |
+| `coalesce_ms` | 500 | Merge small bursts within this window |
 
-  const chat = createChatStore({
-    model: 'openai:gpt-4o',
-  });
-</script>
+### Boundary Preference
 
-{#each $chat.messages as message}
-  <div>
-    <strong>{message.role}:</strong>
-    {message.content}
-  </div>
-{/each}
+When splitting a block, the chunker picks the best boundary in priority order:
 
-<form on:submit|preventDefault={() => chat.submit()}>
-  <input bind:value={$chat.input} disabled={$chat.isLoading} />
-</form>
+1. **Paragraph break** (`\n\n`) — cleanest split
+2. **Newline** (`\n`) — next best
+3. **Sentence end** (`. `, `! `, `? `) — preserves readability
+4. **Whitespace** — fallback
+5. **Hard cut** at `max_chars` — last resort
+
+### Code Fence Protection
+
+Code blocks require special handling to avoid broken formatting:
+
+- **Never split inside a code fence.** If forced (block exceeds `max_chars`), close the fence at the split point and reopen it in the next block.
+- Track fence state (open/closed) across chunks.
+
+### Channel-Level Overrides
+
+Each channel can override chunking defaults in the viber configuration:
+
+```yaml
+# ~/.openviber/vibers/dev.yaml
+channels:
+  dingtalk:
+    chunk_max_chars: 4000
+    chunk_idle_ms: 2000
+  wecom:
+    chunk_max_chars: 2000
+    chunk_idle_ms: 1000
 ```
 
-::: tip
-Both React and Svelte integrations handle streaming automatically, updating the UI as chunks arrive.
-:::
-## Server-Side Streaming
+---
 
-For HTTP endpoints, use the streaming response helpers:
+## 4. Error Handling During Streaming
 
-```typescript
-export async function POST(request: Request) {
-  const { messages } = await request.json();
-  
-  const result = await agent.streamText({ messages });
-  
-  return streamToResponse(result);
-}
-```
+Streaming introduces failure modes that don't exist in request-response patterns. See [error-handling.md](./error-handling.md) for the full error taxonomy.
 
-## Chunking guidelines (for chat channels)
+| Failure | Behavior |
+|---------|----------|
+| **WebSocket disconnect** | Buffer unsent deltas; resend on reconnect (idempotent) |
+| **Provider stream error** | Emit `task:error` with `partial_result` containing text so far |
+| **Channel delivery failure** | Retry with backoff; coalesce missed blocks into one catch-up message |
+| **Client-initiated stop** | `task:stop` → node aborts stream → `task:stopped` with partial result |
 
-When block streaming is enabled, use a chunker with low/high bounds:
+### Partial Results
 
-- **Low bound**: don’t emit until a minimum character count is reached.
-- **High bound**: split before max size; if forced, split at max size.
-- **Boundary preference**: paragraph → newline → sentence → whitespace → hard break.
-- **Code fences**: never split inside a fence; if forced, close + reopen the fence.
+When a stream fails mid-generation, the node always includes a `partial_result` in the error or stop response. This ensures the Board can display whatever was generated before the failure.
 
-Channel-level overrides should allow per-channel chunk sizes and chunking modes.
+---
+
+## 5. Backpressure
+
+If the client cannot keep up with delta messages (slow network, heavy UI rendering):
+
+- The WebSocket layer applies per-message buffering with a configurable high-water mark.
+- If the buffer overflows, the node **coalesces pending deltas** into a single larger message rather than dropping tokens.
+- The Board should process deltas in `requestAnimationFrame` batches to avoid DOM thrashing.
+
+---
+
+## 6. Design Decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| Auto-detect mode per channel | Vibers shouldn't need to know about channel capabilities |
+| Coalesce rather than drop on backpressure | Every token matters; losing text degrades UX |
+| Code fence tracking in chunker | Broken code blocks are the #1 readability complaint on chat surfaces |
+| `partial_result` on all failure paths | The user should always see what was generated, even if the task failed |

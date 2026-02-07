@@ -32,6 +32,26 @@
     return marked.parse(text) as string;
   }
 
+  /**
+   * AI SDK v6 tool parts use `type: "tool-${NAME}"` (e.g., "tool-list_files").
+   * Dynamic tools use `type: "dynamic-tool"` with a `toolName` field.
+   * This helper extracts the tool name from either format.
+   */
+  function getPartToolName(part: any): string | null {
+    // Dynamic tool parts have an explicit toolName
+    if (part.toolName) return part.toolName;
+    // Static tool parts use type "tool-${NAME}" format
+    if (typeof part.type === "string" && part.type.startsWith("tool-")) {
+      return part.type.slice(5); // Strip "tool-" prefix
+    }
+    return null;
+  }
+
+  /** Check if a message part represents a tool invocation */
+  function isToolPart(part: any): boolean {
+    return getPartToolName(part) !== null;
+  }
+
   interface ViberSkill {
     id: string;
     name: string;
@@ -301,13 +321,14 @@
       if (msg.role !== "assistant") continue;
       for (const part of msg.parts || []) {
         const p = part as any;
-        if (p.toolName) {
+        const toolName = getPartToolName(p);
+        if (toolName) {
           const isComplete =
             p.state === "output-available" || p.state === "result";
           const isError =
             p.state === "output-error" || p.state === "output-denied";
           steps.push({
-            name: p.toolName,
+            name: toolName,
             status: isError ? "error" : isComplete ? "complete" : "running",
             summary:
               p.input?.path || p.input?.query || p.input?.url || undefined,
@@ -498,11 +519,12 @@
                         ""}
                       isStreaming={false}
                     />
-                  {:else if part.type !== "text"}
+                  {:else if isToolPart(part)}
+                    {@const toolName = getPartToolName(part)}
                     {@const toolPart = part as any}
-                    {#if toolPart.toolName}
+                    {#if toolName}
                       <ToolCall
-                        toolName={toolPart.toolName}
+                        {toolName}
                         toolState={toolPart.state || "input-available"}
                         input={toolPart.input}
                         output={toolPart.output}

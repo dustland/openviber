@@ -306,8 +306,9 @@
       };
       messages = [...messages, assistantMessage];
 
-      const pollInterval = 1200;
-      const maxAttempts = 120;
+      const pollInterval = 250;
+      const maxPollDurationMs = 120000;
+      const maxAttempts = Math.ceil(maxPollDurationMs / pollInterval);
       let attempts = 0;
 
       const poll = async (): Promise<boolean> => {

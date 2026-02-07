@@ -72,13 +72,13 @@ export async function loadAgentConfig(
       name: "Default",
       description: "General-purpose assistant with local skills.",
       provider: "openrouter",
-      model: "deepseek/deepseek-chat",
+      model: "openai/gpt-4o",
       temperature: 0.7,
       maxTokens: 4096,
       systemPrompt:
         "You are a helpful AI assistant. You help users accomplish their tasks efficiently and effectively. Be concise, accurate, and helpful.",
       tools: [],
-      skills: ["tmux", "cursor-agent"],
+      skills: ["tmux"],
     } as AgentConfig;
   }
 

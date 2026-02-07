@@ -22,16 +22,33 @@ export {
 export * from "./sidebar";
 
 // Separator
-export * from "./separator";
+export { Separator } from "./separator";
 
 // Skeleton
-export * from "./skeleton";
+export { Skeleton } from "./skeleton";
 
 // Sheet
-export * from "./sheet";
+export {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetOverlay,
+  SheetPortal,
+  SheetTitle,
+  SheetTrigger,
+} from "./sheet";
 
 // Tooltip
-export * from "./tooltip";
+export {
+  Tooltip,
+  TooltipContent,
+  TooltipPortal,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./tooltip";
 
 // Resizable
 export * from "./resizable";

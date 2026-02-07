@@ -239,7 +239,7 @@
 </script>
 
 <Sidebar.Provider>
-  <Sidebar.Root collapsible="icon" class="border-r border-sidebar-border">
+  <Sidebar.Root collapsible="icon">
     <Sidebar.Header class="p-2 pb-1">
       <Sidebar.Menu>
         <Sidebar.MenuItem class="flex items-center gap-2">
@@ -503,11 +503,9 @@
     <Sidebar.Rail />
   </Sidebar.Root>
 
-  <Sidebar.Inset class="flex flex-col h-full min-h-0">
+  <Sidebar.Inset class="flex flex-col h-full min-h-0 bg-sidebar">
     <!-- Mobile Header Bar (only visible on mobile) -->
-    <div
-      class="md:hidden flex items-center gap-1.5 p-2 bg-muted/30 border-b border-border"
-    >
+    <div class="md:hidden flex items-center gap-1.5 p-2 bg-muted/30">
       <a
         href="/vibers"
         class="shrink-0 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
@@ -555,7 +553,7 @@
 
       <!-- Resize Handle + App Panel (Desktop) -->
       {#if appPanelExpanded && terminalPanes.length > 0}
-        <Resizable.Handle withHandle class="bg-border hidden md:flex" />
+        <Resizable.Handle class="w-0 border-0 hidden md:flex" />
         <Resizable.Pane
           defaultSize={50}
           minSize={20}
@@ -563,14 +561,12 @@
           class="md:block {mobileViewMode === 'computer' ? 'block' : 'hidden'}"
         >
           <!-- My Computer Window Frame -->
-          <div class="h-full p-3 bg-zinc-950/50">
+          <div class="h-full p-3">
             <div
-              class="h-full flex flex-col rounded-xl bg-[#0d0d0d] border border-zinc-800/80 shadow-2xl overflow-hidden"
+              class="h-full flex flex-col rounded-xl bg-card shadow-lg overflow-hidden"
             >
               <!-- macOS-style Title Bar -->
-              <div
-                class="h-10 bg-zinc-900/90 flex items-center px-3 gap-2 border-b border-zinc-800/50 shrink-0"
-              >
+              <div class="h-10 bg-muted flex items-center px-3 gap-2 shrink-0">
                 <!-- Traffic lights (decorative) -->
                 <div class="flex gap-1.5">
                   <button
@@ -586,39 +582,41 @@
                   {#if terminalPanes.length > 1}
                     <DropdownMenu>
                       <DropdownMenuTrigger
-                        class="inline-flex items-center gap-1.5 px-2 py-1 rounded hover:bg-zinc-800 transition-colors"
+                        class="inline-flex items-center gap-1.5 px-2 py-1 rounded hover:bg-accent transition-colors"
                       >
-                        <Terminal class="size-3.5 text-zinc-400" />
+                        <Terminal class="size-3.5 text-muted-foreground" />
                         <span
-                          class="text-xs text-zinc-300 font-medium truncate max-w-32"
+                          class="text-xs text-foreground font-medium truncate max-w-32"
                         >
                           {activeTerminal
                             ? activeTerminal.replace(/:/g, " › ")
                             : "Select Terminal"}
                         </span>
-                        <ChevronDown class="size-3 text-zinc-500" />
+                        <ChevronDown class="size-3 text-muted-foreground" />
                       </DropdownMenuTrigger>
                       <DropdownMenuContent
                         align="center"
                         sideOffset={4}
-                        class="min-w-48 rounded-md border border-zinc-700 bg-zinc-900 p-1 shadow-lg"
+                        class="min-w-48 rounded-md border border-border bg-popover p-1 shadow-lg"
                       >
                         {#each Array.from(terminalsBySession().entries()) as [sessionName, panes]}
                           <div
-                            class="px-2 py-1 text-[10px] font-medium text-zinc-500 uppercase"
+                            class="px-2 py-1 text-[10px] font-medium text-muted-foreground uppercase"
                           >
                             {sessionName}
                           </div>
                           {#each panes as pane}
                             <DropdownMenuItem
-                              class="w-full rounded px-2 py-1.5 text-left text-sm hover:bg-zinc-800 flex items-center gap-2 outline-none cursor-pointer {activeTerminal ===
+                              class="w-full rounded px-2 py-1.5 text-left text-sm hover:bg-accent flex items-center gap-2 outline-none cursor-pointer {activeTerminal ===
                               pane.target
-                                ? 'bg-zinc-800'
+                                ? 'bg-accent'
                                 : ''}"
                               onSelect={() => selectTerminal(pane.target)}
                             >
-                              <Terminal class="size-3.5 text-zinc-400" />
-                              <span class="font-mono text-xs text-zinc-300"
+                              <Terminal
+                                class="size-3.5 text-muted-foreground"
+                              />
+                              <span class="font-mono text-xs text-foreground"
                                 >{pane.windowName}:{pane.pane}</span
                               >
                               {#if activeTerminal === pane.target}
@@ -633,8 +631,10 @@
                     </DropdownMenu>
                   {:else}
                     <div class="flex items-center gap-1.5">
-                      <Terminal class="size-3.5 text-zinc-400" />
-                      <span class="text-xs text-zinc-400 font-medium truncate">
+                      <Terminal class="size-3.5 text-muted-foreground" />
+                      <span
+                        class="text-xs text-muted-foreground font-medium truncate"
+                      >
                         {activeTerminal
                           ? activeTerminal.replace(/:/g, " › ")
                           : "My Computer"}
@@ -643,8 +643,8 @@
                   {/if}
                 </div>
               </div>
-              <!-- Terminal Content -->
-              <div class="flex-1 overflow-hidden">
+              <!-- Terminal Content (always dark — terminals are inherently dark) -->
+              <div class="flex-1 overflow-hidden bg-[#0d0d0d]">
                 {#if activeTerminal && terminalWs}
                   {#await import("$lib/components/terminal-view.svelte") then { default: TerminalView }}
                     <TerminalView
@@ -672,7 +672,7 @@
           onclick={() => {
             appPanelExpanded = true;
           }}
-          class="w-10 bg-muted/30 border-l border-border flex-col items-center justify-center gap-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors shrink-0 hidden md:flex"
+          class="w-10 bg-muted/30 flex-col items-center justify-center gap-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors shrink-0 hidden md:flex"
           title="Show terminal panel"
         >
           <Terminal class="size-5" />

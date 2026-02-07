@@ -16,12 +16,25 @@
     Laptop,
     Check,
     ChevronDown,
+    Circle,
+    Plus,
   } from "@lucide/svelte";
+  import ViberAvatar from "$lib/components/icons/ViberAvatar.svelte";
+
+  interface SidebarNode {
+    id: string;
+    name: string;
+    status: "pending" | "active" | "offline";
+  }
 
   type Theme = "light" | "dark" | "system";
 
   let { children, data } = $props();
   let theme = $state<Theme>("system");
+  let sidebarNodes = $state<SidebarNode[]>([]);
+
+  // Active node filter from URL
+  const activeNodeFilter = $derived($page.url.searchParams.get("node"));
 
   // Check if we're on a nested viber page (has its own layout)
   const isNestedViber = $derived($page.params.id !== undefined);
@@ -46,7 +59,20 @@
   onMount(() => {
     const stored = localStorage.getItem("theme");
     theme = stored === "dark" || stored === "light" ? stored : "system";
+
+    // Fetch nodes for sidebar
+    fetchSidebarNodes();
   });
+
+  async function fetchSidebarNodes() {
+    try {
+      const res = await fetch("/api/nodes");
+      const data = await res.json();
+      sidebarNodes = Array.isArray(data.nodes) ? data.nodes : [];
+    } catch {
+      sidebarNodes = [];
+    }
+  }
 </script>
 
 <!-- If nested viber page (has id), just render children (they have their own layout) -->
@@ -55,7 +81,7 @@
 {:else}
   <!-- Vibers list page layout -->
   <Sidebar.Provider>
-    <Sidebar.Root collapsible="icon" class="border-r border-sidebar-border">
+    <Sidebar.Root collapsible="icon">
       <Sidebar.Header class="p-2 pb-1">
         <Sidebar.Menu>
           <Sidebar.MenuItem class="flex items-center gap-2">
@@ -78,15 +104,67 @@
           <Sidebar.GroupContent>
             <Sidebar.Menu>
               <Sidebar.MenuItem>
-                <Sidebar.MenuButton isActive={true} tooltipContent="Vibers">
+                <Sidebar.MenuButton
+                  isActive={!activeNodeFilter}
+                  tooltipContent="All Vibers"
+                >
                   {#snippet child({ props })}
                     <a href="/vibers" {...props}>
-                      <Server class="size-4" />
-                      <span>Vibers</span>
+                      <ViberAvatar class="size-4" />
+                      <span>All Vibers</span>
                     </a>
                   {/snippet}
                 </Sidebar.MenuButton>
               </Sidebar.MenuItem>
+            </Sidebar.Menu>
+          </Sidebar.GroupContent>
+        </Sidebar.Group>
+
+        <Sidebar.Group>
+          <Sidebar.GroupLabel
+            class="text-xs text-sidebar-foreground/50 uppercase tracking-wider px-2"
+          >
+            Nodes
+          </Sidebar.GroupLabel>
+          <Sidebar.GroupContent>
+            <Sidebar.Menu>
+              {#each sidebarNodes as node (node.id)}
+                <Sidebar.MenuItem>
+                  <Sidebar.MenuButton
+                    isActive={activeNodeFilter === node.id}
+                    tooltipContent={node.name}
+                  >
+                    {#snippet child({ props })}
+                      <a href="/vibers?node={node.id}" {...props}>
+                        <Server class="size-4" />
+                        <span class="flex-1 truncate">{node.name}</span>
+                        <span
+                          class="w-1.5 h-1.5 rounded-full shrink-0 {node.status ===
+                          'active'
+                            ? 'bg-green-500'
+                            : node.status === 'pending'
+                              ? 'bg-amber-500'
+                              : 'bg-gray-400'}"
+                        ></span>
+                      </a>
+                    {/snippet}
+                  </Sidebar.MenuButton>
+                </Sidebar.MenuItem>
+              {/each}
+              {#if sidebarNodes.length === 0}
+                <Sidebar.MenuItem>
+                  <span class="text-xs text-sidebar-foreground/40 px-2 py-1"
+                    >No nodes yet</span
+                  >
+                </Sidebar.MenuItem>
+              {/if}
+            </Sidebar.Menu>
+          </Sidebar.GroupContent>
+        </Sidebar.Group>
+
+        <Sidebar.Group>
+          <Sidebar.GroupContent>
+            <Sidebar.Menu>
               <Sidebar.MenuItem>
                 <Sidebar.MenuButton tooltipContent="Documentation">
                   {#snippet child({ props })}
@@ -225,7 +303,7 @@
       <Sidebar.Rail />
     </Sidebar.Root>
 
-    <Sidebar.Inset class="flex flex-col h-full">
+    <Sidebar.Inset class="flex flex-col h-full bg-sidebar">
       <div class="flex-1 overflow-y-auto">
         {@render children()}
       </div>

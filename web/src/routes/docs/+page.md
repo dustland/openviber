@@ -1,33 +1,34 @@
-# Viber Documentation
+# OpenViber Documentation
 
-Welcome to the Viber documentation. Viber is an agent framework for vibe-working - enabling AI agents to collaborate and work autonomously.
+Welcome to the OpenViber documentation. OpenViber is an open-source platform that turns your machine into a **Viber Node** — hosting role-scoped AI workers called **vibers** that handle real tasks autonomously.
 
-## What is Viber?
+## What is OpenViber?
 
-Viber is a framework for building and deploying AI agents that can:
+OpenViber is a platform for deploying AI vibers that can:
 
-- **Work Autonomously** - Agents can break down goals into tasks and execute them independently
-- **Collaborate** - Multiple agents can work together on complex projects
-- **Use Tools** - Agents have access to file operations, web search, browser automation, and more
-- **Persist State** - Spaces maintain context and artifacts across sessions
+- **Work Autonomously** — Vibers break down goals into tasks and execute them independently
+- **Use Tools** — File operations, web search, browser automation, terminal, and more
+- **Run Locally** — Full privacy, no cloud dependency, your machine is the runtime
+- **Stay Scheduled** — Cron-like jobs run while you sleep
 
 ## Quick Links
 
-- [Installation](/docs/getting-started/installation) - Get started with Viber
-- [Quick Start](/docs/getting-started/quick-start) - Build your first agent
-- [Agents Guide](/docs/guides/agents) - Learn about agent architecture
-- [Spaces Guide](/docs/guides/spaces) - Understand workspaces and context
+- [Quick Start](/docs/getting-started/quick-start) — Run your first viber in minutes
+- [Onboarding](/docs/getting-started/onboarding) — Set up your Viber Node
+- [Vibers](/docs/concepts/viber) — Configure viber behavior
+- [Jobs](/docs/concepts/jobs) — Set up scheduled tasks
+- [Tools](/docs/concepts/tools) — Available actions
+- [Skills](/docs/concepts/skills) — Add domain knowledge
 
-## Architecture Overview
+## Key Components
 
-Viber consists of several key components:
-
-1. **Agents** - AI entities that can reason and execute tasks
-2. **Spaces** - Workspaces that contain tasks, artifacts, and context
-3. **Tools** - Capabilities that agents can use (file ops, search, etc.)
-4. **Channels** - Communication interfaces (web, DingTalk, WeCom)
+1. **Vibers** — Role-scoped AI workers with their own persona, tools, and memory
+2. **Viber Node** — Your machine running OpenViber, hosting one or more vibers
+3. **Tools** — Capabilities vibers can use (file, search, browser, terminal, etc.)
+4. **Skills** — Domain knowledge injected as instructions
+5. **Jobs** — Scheduled tasks defined in YAML
 
 ## Getting Help
 
 - Check the [API Reference](/docs/api) for detailed documentation
-- Open an issue on [GitHub](https://github.com/dustland/viber)
+- Open an issue on [GitHub](https://github.com/dustland/openviber)

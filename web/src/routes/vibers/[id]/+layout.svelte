@@ -24,6 +24,7 @@
     Laptop,
     Check,
     Calendar,
+    ArrowLeft,
   } from "@lucide/svelte";
 
   type Theme = "light" | "dark" | "system";
@@ -503,28 +504,38 @@
   </Sidebar.Root>
 
   <Sidebar.Inset class="flex flex-col h-full min-h-0">
-    <!-- Mobile Toggle Bar (only visible on mobile) -->
+    <!-- Mobile Header Bar (only visible on mobile) -->
     <div
-      class="md:hidden flex items-center justify-center gap-1 p-2 bg-muted/30 border-b border-border"
+      class="md:hidden flex items-center gap-1.5 p-2 bg-muted/30 border-b border-border"
     >
+      <a
+        href="/vibers"
+        class="shrink-0 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+        title="Back to Vibers"
+      >
+        <ArrowLeft class="size-4" />
+      </a>
+      <span class="text-sm font-medium text-foreground truncate mr-auto">
+        {viber?.name || "Viber"}
+      </span>
       <button
         onclick={() => (mobileViewMode = "chat")}
-        class="flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition-colors {mobileViewMode ===
+        class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors {mobileViewMode ===
         'chat'
           ? 'bg-primary text-primary-foreground'
           : 'text-muted-foreground hover:text-foreground'}"
       >
-        <MessageSquare class="size-4 inline mr-1.5" />
+        <MessageSquare class="size-4 inline mr-1" />
         Chat
       </button>
       <button
         onclick={() => (mobileViewMode = "computer")}
-        class="flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition-colors {mobileViewMode ===
+        class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors {mobileViewMode ===
         'computer'
           ? 'bg-primary text-primary-foreground'
           : 'text-muted-foreground hover:text-foreground'}"
       >
-        <Terminal class="size-4 inline mr-1.5" />
+        <Terminal class="size-4 inline mr-1" />
         Computer
       </button>
     </div>

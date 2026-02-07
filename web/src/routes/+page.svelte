@@ -157,7 +157,7 @@
 </script>
 
 <svelte:head>
-  <title>OpenViber — You Imagine. Vibers Build.</title>
+  <title>OpenViber — You Imagine It. Vibers Build It.</title>
   <meta
     name="description"
     content="Turn your machine into an AI workforce. OpenViber runs role-scoped AI agents locally — fully private, fully autonomous, fully yours."
@@ -192,14 +192,14 @@
       <h1
         class="hero-title pb-1 text-4xl font-semibold leading-[1.15] tracking-tight md:text-6xl"
       >
-        You Imagine. Vibers Build.
+        You Imagine It. Vibers Build It.
       </h1>
       <p
         class="hero-subtitle mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground md:text-xl"
       >
         Turn your machine into an AI workforce. Deploy role-scoped agents that
-        write code, research the web, manage files, and run scheduled jobs —
-        all locally, all private, all yours.
+        write code, research the web, manage files, and run scheduled jobs — all
+        locally, all private, all yours.
       </p>
 
       <!-- Open source badge -->
@@ -233,7 +233,7 @@
           href="/vibers"
           class="cta-primary group inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-all duration-300 hover:-translate-y-1"
         >
-          Open Control Board
+          Viber Board
           <ArrowRight
             class="size-4 transition-transform duration-300 group-hover:translate-x-0.5"
           />
@@ -274,9 +274,7 @@
             <div class="mb-2 text-sm font-semibold text-card-foreground">
               {useCase.label}
             </div>
-            <p
-              class="text-sm italic leading-relaxed text-muted-foreground/80"
-            >
+            <p class="text-sm italic leading-relaxed text-muted-foreground/80">
               {useCase.example}
             </p>
           </div>
@@ -324,8 +322,8 @@
       <p
         class="mx-auto mb-12 max-w-2xl text-center text-base text-[hsl(var(--muted-foreground)/0.8)]"
       >
-        A local-first AI platform for people who want their agents to actually do
-        things — not just chat.
+        A local-first AI platform for people who want their agents to actually
+        do things — not just chat.
       </p>
 
       <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -411,9 +409,11 @@
         <h2 class="text-2xl font-semibold text-card-foreground">
           Your first viber, running in 5 minutes
         </h2>
-        <p class="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-muted-foreground">
-          Install OpenViber, run the onboarding wizard, and deploy your first viber
-          — all from the terminal.
+        <p
+          class="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-muted-foreground"
+        >
+          Install OpenViber, run the onboarding wizard, and deploy your first
+          viber — all from the terminal.
         </p>
 
         <div class="code-block mx-auto mt-6 max-w-sm rounded-lg px-4 py-3">

@@ -1,139 +1,122 @@
 ---
 title: "Communication"
-description: "Message contracts for task execution, reporting, and intervention"
+description: "How operators interact with vibers through the Board, CLI, and channels"
 ---
 
 # Communication
 
-Communication in OpenViber serves three needs:
-
-1. manager assigns or adjusts work,
-2. viber reports progress and asks decisions,
-3. manager observes and intervenes in runtime (especially terminals).
-
-## 1. Principles
-
-- **Workspace-first**: messages are transport; durable context lives in `~/.openviber/`.
-- **Evidence-carrying**: claims should include refs to artifacts/logs/screens.
-- **Decision-friendly**: escalations should prefer multiple-choice questions.
-
-## 2. Core task messages
-
-Board -> node:
-
-- `task:submit` (`goal`, `messages`, optional `plan/artifacts/memory`)
-- `task:stop`
-- `task:message` (manager follow-up / intervention text)
-
-Node -> Board:
-
-- `task:started`
-- `task:progress` (optional periodic updates)
-- `task:completed` (`summary`, `artifactRefs`, `verificationRefs`)
-- `task:error`
-
-## 3. Runtime observability messages (tmux-first, multi-app ready)
-
-- `terminal:list` (returns `apps[]`, `sessions[]`, `panes[]`)
-- `terminal:attach` (`target`, optional `appId`)
-- `terminal:output` (`target`, optional `appId`, `data`)
-- `terminal:input` (`target`, optional `appId`, `keys`)
-- `terminal:resize` (`target`, optional `appId`, `cols`, `rows`)
-- `terminal:detach` (`target`, optional `appId`)
-
-`tmux` is the default primary runtime. `appId` enables incremental support for other terminal-capable runtimes while preserving the same board contract.
-
-## 4. Reporting envelope
-
-Long-running work should emit structured periodic status:
-
-- objective completed,
-- active plan item,
-- blockers/decisions needed,
-- budget used vs limit,
-- evidence refs.
-
-## 5. Escalation format
-
-When viber needs manager input, send:
-
-- one concise question,
-- 2-3 options with tradeoffs,
-- a recommended option first.
-
-This keeps intervention low-friction and manager-time efficient.
+Communication in OpenViber connects operators to their vibers. The primary interaction surface is the **Viber Board** (web UI), with CLI and enterprise channels as secondary paths.
 
 ---
 
-## 6. Channels
+## 1. Interaction Surfaces
 
-Channels are transport surfaces between a manager and one or more vibers.
-They should not be the source of truth for work context; workspace files under `~/.openviber/` are.
-
-### Channel Goals
-
-- Deliver instructions to vibers
-- Deliver periodic progress reports
-- Deliver escalation questions
-- Allow manager intervention quickly
-
-### Supported Interaction Styles
-
-| Style | Purpose |
-|-------|---------|
-| **Interactive chat** (primary) | Assign, redirect, approve, stop |
-| **Email reports** (periodic) | Daily/weekly summaries and blockers |
-| **Board web UI** | Task/terminal visibility and artifact browsing |
-
-### Behavioral Rules
-
-- Channel switch must not lose context (context comes from workspace)
-- Reports should include evidence refs, not only narrative summaries
-- Feedback requests should default to multiple-choice options
-
-### Status Reporting Contract
-
-Every periodic update should include:
-
-- Objective progress
-- Current plan pointer
-- Blockers requiring human input
-- Budget usage and runway
-- Link/refs to proof (terminal snippets, artifact paths, screenshots)
+| Surface | Transport | Use Case |
+|---------|-----------|----------|
+| **Viber Board** (web UI) | HTTP + SSE via AI SDK | Primary: chat, observe terminals, manage vibers |
+| **CLI** | Direct daemon call | Quick tasks: `openviber run "build the landing page"` |
+| **Enterprise channels** | Channel APIs (future) | DingTalk, WeCom, Slack — async task management |
 
 ---
 
-## 7. Queueing and retries (reliable message delivery)
+## 2. Board Communication Flow
 
-The messaging layer should enforce two critical behaviors:
+The Board is a SvelteKit app that communicates with vibers through the hub:
 
-1. **Lane-aware queueing** to prevent overlapping runs per session.
-2. **Provider-aware retries** that avoid duplicating non-idempotent work.
+```
+Operator types message
+  → @ai-sdk/svelte Chat class sends POST to /api/vibers/[id]/chat
+    → SvelteKit API route forwards to hub: hubClient.submitTask()
+      → Hub creates task, sends task:submit to daemon over WebSocket
+        → Daemon runs AI SDK streamText(), streams response back
+      → Hub relays SSE stream to web app
+    → Web app pipes SSE to browser
+  → Chat class renders streaming response
+```
 
-### Queueing (per-session lanes)
+### Message Persistence
 
-- Incoming messages are serialized per session key to avoid concurrent tool runs colliding with shared files, terminals, or rate limits.
-- A global concurrency cap limits overall parallelism (per-host).
-- Queue modes should be configurable per channel:
-  - **collect** (default): coalesce multiple inbound messages into one follow-up turn.
-  - **steer**: inject into the current run at the next safe boundary (tool boundary).
-  - **followup**: wait until the current run ends.
-  - **steer-backlog**: steer now and still enqueue for a follow-up turn.
-- Queue options should include debounce, cap, and overflow policy (drop-old, drop-new, summarize).
+Messages are persisted to SQLite alongside the streaming flow:
+- **User message**: Saved to DB before submitting to hub.
+- **Assistant message**: Saved to DB in the `Chat.onFinish` callback after streaming completes.
+- **Thread scoping**: Messages are grouped by thread ID for conversation continuity.
 
-### Retry policy (per provider)
+### Session Continuity
 
-- Retries happen per HTTP request (not full multi-step flows).
-- Use idempotency keys for side effects (send, agent run) so retries are safe.
-- Respect provider-specific retry-after headers and minimum delays.
-- Non-retriable errors (e.g., malformed Markdown) should fall back to a safer mode.
+When the operator returns to a viber's chat page:
+1. DB messages are loaded and displayed.
+2. A new `Chat` instance is created, seeded with DB message history.
+3. The next message sent includes the full history, giving the viber conversation context.
 
 ---
 
-## 8. Usage tracking (budget visibility)
+## 3. Real-Time Observability
 
-For cost-aware autonomy, include provider usage snapshots when available:
+### Terminal Streaming
 
-- **Status surfaces** (e.g., Board status panel) should show tokens used + cost estimate.
-- **Per-response footers** should be optional (/usage tokens|full).
-- **Provider-native usage** should be preferred over estimated costs when credentials allow.
+Operators can watch viber terminal sessions in real time:
+- Terminal I/O flows over the daemon ↔ hub WebSocket (separate from the AI stream).
+- The Board renders terminal output using xterm.js.
+- Operators can send keyboard input to terminals.
+- tmux is the default terminal runtime.
+
+### Task Status
+
+The Board polls the hub for viber status:
+- Which vibers are connected.
+- Which tasks are running.
+- Running task count and uptime.
+
+---
+
+## 4. Intervention
+
+Operators can intervene during task execution:
+
+| Action | How | Effect |
+|--------|-----|--------|
+| **Send follow-up** | Type a new message during a running task | Message queued for processing after current step |
+| **Steer** | Send with `injectionMode: "steer"` | Aborts current AI call, restarts with new context |
+| **Stop** | Click stop button | Aborts task entirely |
+| **Collect** | Send with `injectionMode: "collect"` | Buffers message, merged into next follow-up turn |
+
+See [task-lifecycle.md](./task-lifecycle.md) for full details on message injection modes.
+
+---
+
+## 5. Escalation Format
+
+When a viber needs operator input, it should present clear choices:
+
+- **One question at a time** (unless tightly coupled).
+- **Recommended option first**, clearly marked.
+- **Clear tradeoffs** per option.
+- **Timeout behavior** — what happens if no response.
+
+This is enforced through the viber's system prompt (personality defined in `soul.md`), not through protocol-level constraints.
+
+---
+
+## 6. Reporting
+
+For long-running or scheduled tasks, vibers should include in their responses:
+
+- **What was done** — actions taken, tools used.
+- **Evidence** — terminal output, file paths, screenshots, URLs.
+- **Blockers** — anything requiring operator attention.
+- **Cost** — tokens used (provided by AI SDK usage tracking).
+
+Reporting cadence is natural to conversation — the viber reports when it has something to report, not on a fixed timer.
+
+---
+
+## 7. Future: Enterprise Channels
+
+Enterprise channel support (DingTalk, WeCom, Slack) will add asynchronous communication:
+
+- **Block streaming** — coalesce tokens into complete message blocks for channels that don't support SSE.
+- **Channel adapters** — translate between channel APIs and the hub's task submission format.
+- **Workspace-first** — channels deliver messages, but durable context lives in `~/.openviber/` (see [personalization.md](./personalization.md)).
+- **Bidirectional** — operators send tasks via channel; vibers report progress back to the same channel.
+
+The channel layer will sit alongside the Board, not replace it — the Board remains the primary surface for real-time observation.

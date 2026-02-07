@@ -1,23 +1,29 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { db, schema } from "$lib/server/db";
-import { eq, asc } from "drizzle-orm";
+import {
+  appendMessagesForViber,
+  listMessagesForViber,
+  type MessageInsertInput,
+} from "$lib/server/messages";
+import { touchThreadActivity } from "$lib/server/environments";
 
-// GET /api/vibers/[id]/messages - Load chat history for this viber (OpenViber-level persistence)
-export const GET: RequestHandler = async ({ params }) => {
+// GET /api/vibers/[id]/messages - Load chat history for this viber
+export const GET: RequestHandler = async ({ params, url, locals }) => {
+  if (!locals.user) {
+    return json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
-    const rows = await db
-      .select()
-      .from(schema.messages)
-      .where(eq(schema.messages.viberId, params.id))
-      .orderBy(asc(schema.messages.createdAt));
+    const threadId = url.searchParams.get("threadId");
+    const rows = await listMessagesForViber(params.id, threadId);
 
-    const messages = rows.map((r) => ({
-      id: r.id,
-      role: r.role as "user" | "assistant" | "system",
-      content: r.content,
-      createdAt: r.createdAt,
-      taskId: r.taskId ?? undefined,
+    const messages = rows.map((row) => ({
+      id: row.id,
+      role: row.role as "user" | "assistant" | "system",
+      content: row.content,
+      createdAt: row.createdAt,
+      taskId: row.taskId ?? undefined,
+      threadId: row.threadId ?? undefined,
     }));
 
     return json({ messages });
@@ -27,70 +33,75 @@ export const GET: RequestHandler = async ({ params }) => {
   }
 };
 
-// POST /api/vibers/[id]/messages - Append one or more messages (OpenViber-level persistence)
-export const POST: RequestHandler = async ({ params, request }) => {
+// POST /api/vibers/[id]/messages - Append one or more messages
+export const POST: RequestHandler = async ({ params, request, locals }) => {
+  if (!locals.user) {
+    return json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const body = await request.json();
     const viberId = params.id;
 
-    // Accept single message or array
-    const toInsert = Array.isArray(body.messages)
+    const defaultThreadId =
+      typeof body.threadId === "string" && body.threadId.trim().length > 0
+        ? body.threadId.trim()
+        : null;
+
+    const rawInputs = Array.isArray(body.messages)
       ? body.messages
       : [
-        {
-          role: body.role,
-          content: body.content,
-          taskId: body.taskId ?? null,
-        },
-      ];
+          {
+            role: body.role,
+            content: body.content,
+            taskId: body.taskId ?? null,
+            threadId: defaultThreadId,
+          },
+        ];
 
-    const created = [];
-    const now = new Date();
+    const inputs: MessageInsertInput[] = rawInputs.map((input: any) => ({
+      role: String(input?.role || "").trim(),
+      content: typeof input?.content === "string"
+        ? input.content
+        : input?.content != null
+          ? JSON.stringify(input.content)
+          : "",
+      taskId:
+        input?.taskId !== undefined
+          ? String(input.taskId || "").trim() || null
+          : null,
+      threadId:
+        input?.threadId !== undefined
+          ? String(input.threadId || "").trim() || null
+          : defaultThreadId,
+    }));
 
-    // Ensure viber exists in local DB (auto-create if needed)
-    const existingViber = await db.select().from(schema.vibers).where(eq(schema.vibers.id, viberId)).limit(1);
-    if (existingViber.length === 0) {
-      await db.insert(schema.vibers).values({
-        id: viberId,
-        name: viberId,
-        createdAt: now,
-      });
-    }
+    const createdRows = await appendMessagesForViber(viberId, inputs);
 
-    for (const msg of toInsert) {
-      // Skip messages without valid content (e.g., tool-only messages)
-      const content = typeof msg.content === 'string'
-        ? msg.content
-        : (msg.content != null ? JSON.stringify(msg.content) : null);
-
-      if (!msg.role || content == null) {
-        console.warn('[Messages] Skipping message with missing role or content:', msg);
-        continue;
-      }
-
-      const id = `msg-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-      // Don't store taskId to avoid FK constraint - tasks are ephemeral hub-side
-      await db.insert(schema.messages).values({
-        id,
-        viberId,
-        taskId: null,
-        role: msg.role,
-        content,
-        createdAt: now,
-      });
-      created.push({
-        id,
-        role: msg.role,
-        content,
-        createdAt: now,
-        taskId: msg.taskId ?? undefined,
-      });
-    }
-
-    return json(
-      Array.isArray(body.messages) ? { messages: created } : created[0],
-      { status: 201 },
+    const touchedThreadIds = new Set(
+      createdRows
+        .map((row) => row.threadId)
+        .filter((threadId): threadId is string => Boolean(threadId)),
     );
+
+    for (const threadId of touchedThreadIds) {
+      await touchThreadActivity(threadId, viberId);
+    }
+
+    const created = createdRows.map((row) => ({
+      id: row.id,
+      role: row.role,
+      content: row.content,
+      createdAt: row.createdAt,
+      taskId: row.taskId ?? undefined,
+      threadId: row.threadId ?? undefined,
+    }));
+
+    if (Array.isArray(body.messages)) {
+      return json({ messages: created }, { status: 201 });
+    }
+
+    return json(created[0] || null, { status: 201 });
   } catch (error) {
     console.error("Failed to save message:", error);
     return json({ error: "Failed to save message" }, { status: 500 });

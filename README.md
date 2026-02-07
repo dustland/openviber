@@ -4,7 +4,7 @@
 
 # OpenViber
 
-### You Imagine. Vibers Build.
+### You Imagine It. Vibers Build It.
 
 <!-- SHIELD GROUP -->
 

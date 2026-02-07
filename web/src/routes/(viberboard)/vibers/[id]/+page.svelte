@@ -71,6 +71,7 @@
       uptime: number;
       runningTasks: number;
     };
+    environmentId?: string | null;
   }
 
   interface Message {
@@ -99,6 +100,7 @@
 
   // Session activity tracking for long-running AI tasks
   let sessionStartedAt = $state<number | null>(null);
+  let bootstrapTaskHandledViberId = $state<string | null>(null);
 
   // AI SDK Chat instance — created reactively when viberId is known
   let chat = $state<any>(null);
@@ -271,7 +273,10 @@
               await fetch(`/api/vibers/${viber!.id}/messages`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ role: "assistant", content: textParts }),
+                body: JSON.stringify({
+                  role: "assistant",
+                  content: textParts,
+                }),
               });
             } catch (_) {
               /* ignore */
@@ -353,6 +358,20 @@
     }));
   });
 
+  $effect(() => {
+    if (typeof window === "undefined") return;
+    if (loading || sending || !viber?.isConnected) return;
+    if (bootstrapTaskHandledViberId === viber.id) return;
+
+    const storageKey = `openviber:new-viber-task:${viber.id}`;
+    const pendingTask = window.sessionStorage.getItem(storageKey);
+    if (!pendingTask) return;
+
+    window.sessionStorage.removeItem(storageKey);
+    bootstrapTaskHandledViberId = viber.id;
+    void sendMessage(pendingTask);
+  });
+
   onMount(() => {
     fetchViber();
     if ($page.params.id) {
@@ -360,6 +379,22 @@
     }
     const interval = setInterval(fetchViber, 5000);
     return () => clearInterval(interval);
+  });
+
+  $effect(() => {
+    if (typeof window === "undefined") return;
+    const viberId = $page.params.id;
+    if (!viberId) return;
+    window.localStorage.setItem("openviber:last-active-viber", viberId);
+  });
+
+  $effect(() => {
+    const viberId = $page.params.id;
+    chat = null;
+    chatInitialized = false;
+    if (viberId) {
+      void fetchMessages(viberId);
+    }
   });
 </script>
 
@@ -625,7 +660,9 @@
               : "Viber is offline"}
           class="composer-input flex-1 min-h-[40px] max-h-36 resize-none rounded-xl border border-transparent bg-transparent px-2 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
           rows="1"
-          disabled={sending || !viber?.isConnected || !!configError}
+          disabled={sending ||
+            !viber?.isConnected ||
+            !!configError}
         ></textarea>
         <Button
           onclick={() => sendMessage()}

@@ -1,6 +1,7 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { getNodeByAuthToken, getViberNode, updateNodeConfig, updateNodeName } from "$lib/server/viber-nodes";
+import { listEnvironmentConfigForNode } from "$lib/server/environments";
 
 /**
  * GET /api/nodes/[id]/config
@@ -21,10 +22,15 @@ export const GET: RequestHandler = async ({ params, request, locals }) => {
     if (!node || node.id !== nodeId) {
       return json({ error: "Unauthorized" }, { status: 401 });
     }
+    const environments = await listEnvironmentConfigForNode(nodeId, {
+      includeSecrets: true,
+    });
     return json({
       nodeId: node.id,
       name: node.name,
       config: node.config,
+      environments,
+      configVersion: Date.now(),
       status: node.status,
     });
   }
@@ -39,10 +45,16 @@ export const GET: RequestHandler = async ({ params, request, locals }) => {
     return json({ error: "Node not found" }, { status: 404 });
   }
 
+  const environments = await listEnvironmentConfigForNode(nodeId, {
+    includeSecrets: false,
+  });
+
   return json({
     nodeId: node.id,
     name: node.name,
     config: node.config,
+    environments,
+    configVersion: Date.now(),
     status: node.status,
   });
 };

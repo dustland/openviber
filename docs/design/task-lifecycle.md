@@ -1,164 +1,137 @@
 ---
 title: "Task Lifecycle"
-description: "Lifecycle for self-initiated and assigned work in OpenViber"
+description: "How tasks flow through OpenViber from submission to completion"
 ---
 
 # Task Lifecycle
 
-OpenViber supports two task origins:
-
-- **Manager-assigned** — explicit human request via chat, Board, or channel.
-- **Self-initiated** — viber discovers work through scheduled jobs, monitoring, or observation.
-
-Both follow the same lifecycle with human checkpoints. The lifecycle integrates with the [WebSocket protocol](./protocol.md) for real-time state updates and the [communication](./communication.md) contracts for reporting.
+A task is a unit of work assigned to a viber. Tasks originate from operator messages in the Board, CLI commands, or scheduled jobs.
 
 ---
 
-## 1. Lifecycle States
+## 1. Task States
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Intake
-    Intake --> Planning
-    Planning --> Executing
-    Executing --> Verifying
-    Verifying --> Reporting
-    Reporting --> AwaitingFeedback
-    AwaitingFeedback --> Planning : revise
-    AwaitingFeedback --> Completed : approved
-    AwaitingFeedback --> Paused : defer
-    Executing --> Blocked
-    Blocked --> AwaitingFeedback
-    Paused --> Planning : resume
-    Reporting --> Completed : auto-complete
-    Completed --> [*]
+    [*] --> pending
+    pending --> running : daemon picks up
+    running --> completed : success
+    running --> error : failure
+    running --> stopped : operator cancels
+    completed --> [*]
+    error --> [*]
+    stopped --> [*]
 ```
 
----
-
-## 2. State Definitions
-
-| State | Intent | Entry Condition | Exit Condition |
-|-------|--------|-----------------|----------------|
-| **Intake** | Classify origin, determine execution mode | Task submitted or viber proposes work | Classification complete |
-| **Planning** | Build or update task plan, estimate effort | After intake, feedback revision, or resume | Plan accepted or auto-approved |
-| **Executing** | Run tools, write code, browse, query | Plan in place | All planned steps attempted |
-| **Verifying** | Validate outcomes from human-observable evidence | Execution complete | Verification checklist evaluated |
-| **Reporting** | Emit structured report with evidence refs | Verification done | Report delivered |
-| **AwaitingFeedback** | Wait for human decision | Report delivered, or blocker encountered | Human responds |
-| **Paused** | Suspended by policy, budget, or human instruction | Human pauses, budget limit hit | Human resumes or budget restored |
-| **Blocked** | Requires external input (account access, credentials, decision) | Missing resource or permission during execution | Resource provided or decision made |
-| **Completed** | Task finished, artifacts persisted | Acceptance criteria met | Terminal state |
-
-### Intake Classification
-
-During intake, the viber determines:
-
-1. **Origin**: manager-assigned or self-initiated.
-2. **Execution mode**: `Always Ask`, `Viber Decides`, or `Always Execute` (see [viber.md](./viber.md)).
-3. **Priority**: based on explicit urgency or viber's assessment.
-4. **Scope estimate**: rough token/cost budget for the task.
-
----
-
-## 3. State Transitions and Protocol Messages
-
-Each state transition maps to protocol messages (see [protocol.md](./protocol.md)):
-
-| Transition | Protocol Message | Direction |
-|------------|-----------------|-----------|
-| Task submitted | `task:submit` | Client → Node |
-| Intake → Planning | `task:started` | Node → Client |
-| Planning → Executing | `task:progress` (status: "planning" → "executing") | Node → Client |
-| Executing (streaming) | `task:delta` (if streaming enabled) | Node → Client |
-| Executing → Blocked | `task:progress` (status: "blocked") | Node → Client |
-| Blocked → AwaitingFeedback | Escalation message via `task:progress` | Node → Client |
-| Verifying → Reporting | `task:progress` (status: "verifying") | Node → Client |
-| → Completed | `task:completed` | Node → Client |
-| → Error | `task:error` | Node → Client |
-| Human stops task | `task:stop` / `task:stopped` | Client → Node → Client |
-
----
-
-## 4. Work Products by Phase
-
-| Phase | Outputs |
+| State | Meaning |
 |-------|---------|
-| **Planning** | Plan diff (what changed), priorities, budget estimate, risk assessment |
-| **Executing** | Terminal traces, intermediate files, code changes, browser actions |
-| **Verifying** | Screenshots, test output, build logs, checklist with pass/fail per item |
-| **Reporting** | Concise status summary + links to evidence (artifact paths, terminal logs, URLs) |
+| `pending` | Task created in the hub, waiting for the daemon to start execution |
+| `running` | Daemon is executing the task (AI SDK `streamText()` in progress) |
+| `completed` | Task finished successfully, result available |
+| `error` | Task failed (provider error, tool error, unrecoverable issue) |
+| `stopped` | Operator explicitly stopped the task via the Board |
 
 ---
 
-## 5. Periodic Reporting
+## 2. Task Flow
 
-For long-running tasks or self-initiated work, vibers report on a cadence. Every periodic update follows the [communication](./communication.md) reporting envelope:
+### Submission
 
-- **What changed** since the last report.
-- **Current risks/blockers** requiring human attention.
-- **Next planned actions** with estimated time/cost.
-- **Budget burn vs. limit** — tokens used, cost accrued, remaining runway.
-- **Evidence refs** — links to artifacts, terminal snapshots, screenshots.
+1. Operator sends a message in the Board (or CLI runs a command).
+2. Web app calls `hubClient.submitTask(goal, viberId, messages)`.
+3. Hub creates a task record (`pending`), sends `task:submit` to the daemon.
 
-Reporting frequency adapts to task duration:
+### Execution
 
-| Task Duration | Report Cadence |
-|---------------|----------------|
-| < 5 minutes | Report at completion only |
-| 5-30 minutes | Report at key milestones |
-| 30+ minutes | Report every 10-15 minutes |
-| Overnight/scheduled | Report at start, completion, and on errors |
+4. Daemon receives `task:submit`, creates a `TaskRuntimeState`.
+5. Daemon sends `task:started` → hub marks task as `running`.
+6. Daemon calls `runTask()` → AI SDK `streamText()` with model, tools, and message history.
+7. AI SDK generates response, calls tools in a loop (up to `maxSteps`).
+8. Stream chunks flow: daemon → hub (WebSocket) → web app (SSE) → browser.
+
+### Completion
+
+9. Stream ends. Daemon sends `task:completed` with the final text and summary.
+10. Hub closes SSE subscribers for that task.
+11. Frontend `Chat.onFinish` callback persists the assistant's message to the database.
+
+### Error
+
+If the AI SDK call fails (provider error, tool error, abort):
+
+- Daemon sends `task:error` with the error message.
+- Hub marks task as `error` and closes SSE subscribers.
 
 ---
 
-## 6. Human Feedback Requests
+## 3. Intervention During Execution
 
-When a viber is blocked by preference ambiguity or needs a decision, it escalates using the format defined in [communication.md](./communication.md):
+Operators can send follow-up messages while a task is running. The daemon supports three injection modes:
 
-- **One question at a time** (unless tightly coupled decisions).
-- **Recommended option first**, clearly marked.
-- **Clear tradeoffs** for each option.
-- **Timeout behavior** specified — what happens if the human doesn't respond.
+| Mode | Behavior |
+|------|----------|
+| **collect** | Buffer the message. After the current run completes, merge all buffered messages into one follow-up turn. |
+| **steer** | Immediately queue the message. Abort the current AI SDK call and restart with the new message added to history. |
+| **followup** | Queue the message. After the current run completes, process it as a new turn. |
 
-### Example Escalation
+The daemon maintains a message history and processes queued follow-ups in a loop until no more remain:
 
 ```
-I need your input on the database schema:
-
-→ **Option A (recommended)**: Use a single `users` table with JSON metadata column.
-  Pro: Simpler queries, fewer migrations. Con: Less strict typing.
-
-→ **Option B**: Separate `users` and `user_profiles` tables with a foreign key.
-  Pro: Normalized, strict types. Con: More joins, more migrations.
-
-→ **Option C**: Defer — skip user profiles for now, add later.
-  Pro: Ship faster. Con: Schema migration needed later.
-
-If I don't hear back in 15 minutes, I'll proceed with Option A.
+while (queued messages remain):
+    add message to history
+    call runTask() again with updated history
 ```
 
 ---
 
-## 7. Completion Criteria
+## 4. What the AI SDK Handles Inside a Task
 
-A task is complete only when:
+Within a single `runTask()` call, the AI SDK manages a multi-step agent loop:
 
-1. **Acceptance checks pass** — outcomes verified from a human-observable perspective (see [viber.md](./viber.md) verification model).
-2. **Report includes verification evidence** — screenshots, logs, test results, or terminal output linked in the report.
-3. **Artifacts persisted** — relevant files, plans, and progress are saved to the workspace.
-4. **Memory updated** — key decisions and outcomes flushed to memory (see [memory.md](./memory.md)).
+```
+streamText({ model, messages, tools, maxSteps: 10 })
+  → Model generates text or tool call
+  → If tool call: execute tool, add result to context, continue
+  → If text: stream to response
+  → Repeat until no more tool calls or maxSteps reached
+```
+
+OpenViber doesn't need to manage the planning/executing/verifying loop — the AI SDK's multi-step tool execution handles it. The viber's system prompt instructs the model on how to approach tasks (plan first, verify results, report evidence).
 
 ---
 
-## 8. Error States
+## 5. Stopping a Task
 
-Task failures follow the error taxonomy in [error-handling.md](./error-handling.md). Key behaviors:
+When the operator clicks "Stop" in the Board:
 
-| Error Type | Task Behavior |
-|------------|---------------|
-| **Provider error** (rate limit, timeout) | Retry with backoff; stay in current state |
-| **Tool error** (command failed, file not found) | Log error, attempt recovery or escalate |
-| **Budget exhaustion** | Transition to Paused; notify human |
-| **Context overflow** | Trigger compaction (see [context-management.md](./context-management.md)); retry |
-| **Unrecoverable error** | Emit `task:error` with partial results; transition to Completed (failed) |
+1. Web app calls `hubClient.stopTask(taskId)`.
+2. Hub sends `task:stop` to the daemon.
+3. Daemon sets `runtime.stopped = true` and calls `controller.abort()`.
+4. The AI SDK's `AbortController` cancels the in-flight LLM call.
+5. Daemon does not send `task:completed` — the task ends silently.
+6. Hub marks the task as `stopped` and closes SSE subscribers.
+
+---
+
+## 6. Scheduled Tasks
+
+Vibers can have cron-scheduled jobs defined in their config:
+
+```yaml
+# ~/.openviber/vibers/dev.yaml
+jobs:
+  - cron: "0 8 * * *"
+    goal: "Check GitHub notifications and summarize"
+  - cron: "0 */4 * * *"
+    goal: "Monitor CI pipelines for failures"
+```
+
+Scheduled tasks follow the same lifecycle — the scheduler submits them like any other task, and they flow through the hub to the daemon.
+
+---
+
+## 7. Persistence
+
+- **Task metadata**: Stored in the hub's in-memory `Map<string, Task>`. Lost on hub restart (tasks are ephemeral).
+- **Message history**: Persisted to SQLite in the web app database (via `/api/vibers/[id]/messages`).
+- **Session memory**: Key decisions and outcomes can be flushed to `memory.md` (see [memory.md](./memory.md)).

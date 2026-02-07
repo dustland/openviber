@@ -2,7 +2,13 @@ import type { Handle } from "@sveltejs/kit";
 import { getAuthUser } from "$lib/server/auth";
 
 // Only these routes require authentication
-const PROTECTED_PATHS = ["/vibers", "/api/vibers", "/api/nodes"];
+const PROTECTED_PATHS = [
+  "/vibers",
+  "/api/vibers",
+  "/api/nodes",
+  "/api/environments",
+  "/api/threads",
+];
 
 // These paths are excluded from auth even if they match a protected prefix
 const AUTH_EXCLUDED_PATHS = ["/api/nodes/onboard"];

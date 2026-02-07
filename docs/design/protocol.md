@@ -1,582 +1,178 @@
 ---
-title: "WebSocket Protocol"
-description: "Message schemas and connection lifecycle for the OpenViber control plane"
+title: "Protocol"
+description: "Communication protocol between OpenViber components: hub, daemon, and web app"
 ---
 
-# WebSocket Protocol
+# Protocol
 
-This document specifies the WebSocket protocol between Viber Board (client) and the node (server). The protocol is designed for stateless operation with explicit message contracts.
+OpenViber's runtime has three components that communicate:
 
-## 1. Connection Lifecycle
+1. **Daemon** (viber controller) — runs on the user's machine, executes AI tasks.
+2. **Hub** — central coordinator that routes messages between daemons and the web app.
+3. **Web App** — SvelteKit frontend that operators use to interact with vibers.
 
-```mermaid
-sequenceDiagram
-    participant Board as Viber Board
-    participant Node as Node
+The protocol is intentionally simple. The AI SDK handles the complex parts (streaming, tool calls, message formatting). OpenViber's protocol is just the plumbing that connects them.
 
-    Board->>Node: WebSocket connect
-    Node->>Board: connection:welcome
-    Board->>Node: connection:auth
-    Node->>Board: connection:authenticated
-    
-    loop Heartbeat
-        Board->>Node: ping
-        Node->>Board: pong
-    end
+---
 
-    Board->>Node: task:submit
-    Node->>Board: task:started
-    Node->>Board: task:progress (optional)
-    Node->>Board: task:completed
-    
-    Board->>Node: connection:close
-    Node->>Board: connection:goodbye
+## 1. Architecture
+
+```
+┌──────────┐   HTTP/SSE   ┌──────────┐   WebSocket   ┌──────────┐    AI SDK    ┌─────┐
+│ Browser  │ ←──────────→ │ Web App  │ ←───────────→ │   Hub    │ ←──────────→ │Daemon│
+│ (Svelte) │              │(SvelteKit)│               │ (Node)   │              │(Node)│
+└──────────┘              └──────────┘               └──────────┘              └──────┘
+  @ai-sdk/svelte            API routes                REST + WS             streamText()
+  Chat class                hub-client               task routing         toUIMessageStream
 ```
 
-## 2. Message Envelope
+### Transport Summary
 
-All messages follow a common envelope:
+| Path | Transport | Protocol |
+|------|-----------|----------|
+| Browser ↔ Web App | HTTP + SSE | AI SDK UI Message Stream |
+| Web App → Hub | HTTP (REST) | JSON API |
+| Hub → Web App | HTTP (SSE) | AI SDK UI Message Stream (passthrough) |
+| Daemon → Hub | WebSocket (outbound) | JSON messages |
+| Hub → Daemon | WebSocket | JSON messages |
+
+---
+
+## 2. Hub REST API
+
+The hub exposes a REST API for the web app (via `hub-client.ts`):
+
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| `GET` | `/health` | Health check (status, viber count, task count) |
+| `GET` | `/api/vibers` | List connected vibers |
+| `POST` | `/api/vibers` | Submit a task (`{ goal, viberId?, messages? }`) |
+| `GET` | `/api/tasks` | List all tasks |
+| `GET` | `/api/tasks/:id` | Get task status and events |
+| `POST` | `/api/tasks/:id/stop` | Stop a running task |
+| `GET` | `/api/tasks/:id/stream` | SSE stream of AI SDK response chunks |
+
+### SSE Stream Endpoint
+
+`GET /api/tasks/:id/stream` holds the connection open and relays AI SDK SSE bytes from the daemon. Key headers:
+
+```
+Content-Type: text/event-stream
+x-vercel-ai-ui-message-stream: v1
+```
+
+The stream closes when the task completes, errors, or is stopped.
+
+---
+
+## 3. Hub ↔ Daemon WebSocket Protocol
+
+Daemons connect outbound to the hub at `ws://{hub}/ws` with auth headers:
+
+```
+Authorization: Bearer {token}
+X-Viber-Id: {viberId}
+X-Viber-Version: {version}
+```
+
+### Daemon → Hub Messages
+
+| Type | Payload | When |
+|------|---------|------|
+| `connected` | `{ viber: ViberInfo }` | On WebSocket open |
+| `task:started` | `{ taskId, spaceId }` | Task execution begins |
+| `task:stream-chunk` | `{ taskId, chunk }` | Raw AI SDK SSE bytes |
+| `task:progress` | `{ taskId, event }` | Progress envelope (status, deltas) |
+| `task:completed` | `{ taskId, result }` | Task finished successfully |
+| `task:error` | `{ taskId, error }` | Task failed |
+| `heartbeat` | `{ status: ViberStatus }` | Periodic health (every 30s) |
+| `pong` | `{}` | Response to ping |
+| `terminal:*` | Various | Terminal streaming responses |
+
+### Hub → Daemon Messages
+
+| Type | Payload | When |
+|------|---------|------|
+| `task:submit` | `{ taskId, goal, messages?, options? }` | New task from operator |
+| `task:stop` | `{ taskId }` | Stop a running task |
+| `task:message` | `{ taskId, message, injectionMode? }` | Follow-up message during task |
+| `ping` | `{}` | Keepalive |
+| `config:update` | `{ config }` | Runtime config change |
+| `terminal:list` | `{}` | Request terminal list |
+| `terminal:attach` | `{ target, appId? }` | Attach to terminal |
+| `terminal:detach` | `{ target, appId? }` | Detach from terminal |
+| `terminal:input` | `{ target, keys, appId? }` | Send input to terminal |
+| `terminal:resize` | `{ target, cols, rows, appId? }` | Resize terminal |
+
+### ViberInfo Shape
 
 ```typescript
-interface Message {
-  type: string;              // Message type (e.g., "task:submit")
-  id: string;                // Unique message ID (UUID)
-  timestamp: string;         // ISO 8601 timestamp
-  payload: object;           // Type-specific payload
-}
-```
-
-### Example
-
-```json
-{
-  "type": "task:submit",
-  "id": "550e8400-e29b-41d4-a716-446655440000",
-  "timestamp": "2024-01-15T10:30:00.000Z",
-  "payload": {
-    "goal": "Build a landing page",
-    "messages": []
-  }
-}
-```
-
-## 3. Connection Messages
-
-### `connection:welcome` (Server → Client)
-
-Sent immediately after WebSocket connection is established.
-
-```typescript
-interface ConnectionWelcome {
-  type: "connection:welcome";
-  payload: {
-    daemon_version: string;      // Node version, e.g., "1.2.0"
-    protocol_version: string;    // e.g., "1"
-    challenge: string;           // Nonce for authentication
-    capabilities: string[];      // ["streaming", "terminal", "approval"]
-  };
-}
-```
-
-### `connection:auth` (Client → Server)
-
-Client authenticates with the node.
-
-```typescript
-interface ConnectionAuth {
-  type: "connection:auth";
-  payload: {
-    device_id: string;           // Unique device identifier
-    token?: string;              // Optional auth token
-    challenge_response?: string; // Signed challenge (if required)
-    role: "operator" | "node";   // Client role
-    scopes: string[];            // Requested permissions
-  };
-}
-```
-
-### `connection:authenticated` (Server → Client)
-
-Confirms successful authentication.
-
-```typescript
-interface ConnectionAuthenticated {
-  type: "connection:authenticated";
-  payload: {
-    session_id: string;          // Session identifier
-    granted_scopes: string[];    // Approved permissions
-    expires_at?: string;         // Session expiry (optional)
-  };
-}
-```
-
-### `connection:error` (Server → Client)
-
-Authentication or connection error.
-
-```typescript
-interface ConnectionError {
-  type: "connection:error";
-  payload: {
-    code: "auth_failed" | "invalid_token" | "rate_limited" | "protocol_error";
-    message: string;
-    retry_after_ms?: number;     // For rate limiting
-  };
-}
-```
-
-### `connection:close` (Either direction)
-
-Graceful connection close.
-
-```typescript
-interface ConnectionClose {
-  type: "connection:close";
-  payload: {
-    reason?: string;
-  };
-}
-```
-
-## 4. Task Messages
-
-### `task:submit` (Client → Server)
-
-Submit a new task for execution.
-
-```typescript
-interface TaskSubmit {
-  type: "task:submit";
-  payload: {
-    idempotency_key: string;     // Deduplication key
-    goal: string;                // Task objective
-    messages: Message[];         // Conversation history
-    plan?: Plan;                 // Optional plan context
-    artifacts?: ArtifactRef[];   // Optional artifact references
-    memory?: string;             // Optional memory excerpt
-    options?: {
-      mode?: "always_ask" | "viber_decides" | "always_execute";
-      stream_deltas?: boolean;   // Request token-level streaming
-      max_tokens?: number;
-      timeout_ms?: number;
-    };
-  };
-}
-
-interface Message {
-  role: "user" | "assistant" | "system";
-  content: string;
-  tool_calls?: ToolCall[];
-  tool_results?: ToolResult[];
-}
-
-interface Plan {
-  format: "markdown" | "structured";
-  content: string | StructuredPlan;
-}
-
-interface StructuredPlan {
-  goal: string;
-  steps: Array<{
-    id: string;
-    title: string;
-    status: "pending" | "in_progress" | "completed" | "blocked";
-  }>;
-}
-
-interface ArtifactRef {
+interface ViberInfo {
   id: string;
-  title?: string;
-  type?: string;                 // "file" | "screenshot" | "log"
-  ref?: string;                  // Path or URL
+  name: string;
+  version: string;
+  platform: string;
+  capabilities: string[];
+  runningTasks: string[];
+  skills?: { id: string; name: string; description: string }[];
 }
 ```
-
-### `task:started` (Server → Client)
-
-Confirms task execution has begun.
-
-```typescript
-interface TaskStarted {
-  type: "task:started";
-  payload: {
-    task_id: string;             // Server-assigned task ID
-    idempotency_key: string;     // Echo back for correlation
-    started_at: string;
-  };
-}
-```
-
-### `task:progress` (Server → Client)
-
-Optional periodic progress update.
-
-```typescript
-interface TaskProgress {
-  type: "task:progress";
-  payload: {
-    task_id: string;
-    status: "planning" | "executing" | "verifying";
-    current_step?: string;       // Current plan step
-    tokens_used?: number;
-    cost_estimate_usd?: number;
-    message?: string;            // Human-readable status
-  };
-}
-```
-
-### `task:delta` (Server → Client)
-
-Token-level streaming delta (only if `stream_deltas: true`).
-
-```typescript
-interface TaskDelta {
-  type: "task:delta";
-  payload: {
-    task_id: string;
-    delta_type: "text" | "tool_call" | "tool_result";
-    text?: string;               // For text deltas
-    tool_call?: {
-      id: string;
-      name: string;
-      arguments: string;         // May be partial JSON
-    };
-    tool_result?: {
-      tool_call_id: string;
-      result: unknown;
-    };
-  };
-}
-```
-
-### `task:completed` (Server → Client)
-
-Task finished successfully.
-
-```typescript
-interface TaskCompleted {
-  type: "task:completed";
-  payload: {
-    task_id: string;
-    result: {
-      text: string;              // Full assistant response
-      summary?: string;          // Optional concise summary
-      artifact_refs?: ArtifactRef[];
-      plan_updates?: string;     // Suggested plan changes (if applicable)
-    };
-    usage: {
-      prompt_tokens: number;
-      completion_tokens: number;
-      total_tokens: number;
-      cost_usd?: number;
-    };
-    completed_at: string;
-  };
-}
-```
-
-### `task:error` (Server → Client)
-
-Task failed.
-
-```typescript
-interface TaskError {
-  type: "task:error";
-  payload: {
-    task_id: string;
-    error: {
-      type: string;              // Error category
-      message: string;
-      recoverable: boolean;
-      suggestion?: string;
-    };
-    partial_result?: {
-      text: string;              // Any partial output
-    };
-    usage?: {
-      prompt_tokens: number;
-      completion_tokens: number;
-      total_tokens: number;
-    };
-  };
-}
-```
-
-### `task:stop` (Client → Server)
-
-Request to stop a running task.
-
-```typescript
-interface TaskStop {
-  type: "task:stop";
-  payload: {
-    task_id: string;
-    reason?: string;
-  };
-}
-```
-
-### `task:stopped` (Server → Client)
-
-Confirms task was stopped.
-
-```typescript
-interface TaskStopped {
-  type: "task:stopped";
-  payload: {
-    task_id: string;
-    partial_result?: {
-      text: string;
-    };
-  };
-}
-```
-
-### `task:message` (Client → Server)
-
-Send a follow-up message to an in-progress task.
-
-```typescript
-interface TaskMessage {
-  type: "task:message";
-  payload: {
-    task_id: string;
-    message: Message;
-    injection_mode: "steer" | "followup" | "collect";
-  };
-}
-```
-
-## 5. Approval Messages
-
-### `approval:required` (Server → Client)
-
-A tool requires human approval before execution.
-
-```typescript
-interface ApprovalRequired {
-  type: "approval:required";
-  payload: {
-    task_id: string;
-    approval_id: string;
-    tool_call: {
-      id: string;
-      name: string;
-      arguments: object;
-    };
-    reason: string;              // Why approval is needed
-    timeout_ms?: number;         // Auto-reject after timeout
-  };
-}
-```
-
-### `approval:response` (Client → Server)
-
-Human responds to approval request.
-
-```typescript
-interface ApprovalResponse {
-  type: "approval:response";
-  payload: {
-    approval_id: string;
-    approved: boolean;
-    reason?: string;             // Optional explanation
-  };
-}
-```
-
-## 6. Terminal Messages
-
-### `terminal:list` (Client → Server)
-
-Request list of active terminals.
-
-```typescript
-interface TerminalList {
-  type: "terminal:list";
-  payload: {};
-}
-```
-
-### `terminal:list_response` (Server → Client)
-
-```typescript
-interface TerminalListResponse {
-  type: "terminal:list_response";
-  payload: {
-    terminals: Array<{
-      id: string;
-      name: string;
-      created_at: string;
-      size: { rows: number; cols: number };
-    }>;
-  };
-}
-```
-
-### `terminal:attach` (Client → Server)
-
-Attach to a terminal for streaming output.
-
-```typescript
-interface TerminalAttach {
-  type: "terminal:attach";
-  payload: {
-    terminal_id: string;
-  };
-}
-```
-
-### `terminal:output` (Server → Client)
-
-Terminal output chunk.
-
-```typescript
-interface TerminalOutput {
-  type: "terminal:output";
-  payload: {
-    terminal_id: string;
-    data: string;                // Raw terminal output
-  };
-}
-```
-
-### `terminal:input` (Client → Server)
-
-Send input to terminal.
-
-```typescript
-interface TerminalInput {
-  type: "terminal:input";
-  payload: {
-    terminal_id: string;
-    data: string;
-  };
-}
-```
-
-### `terminal:resize` (Client → Server)
-
-Resize terminal.
-
-```typescript
-interface TerminalResize {
-  type: "terminal:resize";
-  payload: {
-    terminal_id: string;
-    rows: number;
-    cols: number;
-  };
-}
-```
-
-### `terminal:detach` (Client → Server)
-
-Stop receiving terminal output.
-
-```typescript
-interface TerminalDetach {
-  type: "terminal:detach";
-  payload: {
-    terminal_id: string;
-  };
-}
-```
-
-## 7. Health & Status Messages
-
-### `health:ping` / `health:pong`
-
-Heartbeat to keep connection alive and detect failures.
-
-```typescript
-interface HealthPing {
-  type: "health:ping";
-  payload: {
-    client_time: string;
-  };
-}
-
-interface HealthPong {
-  type: "health:pong";
-  payload: {
-    server_time: string;
-    latency_ms: number;
-  };
-}
-```
-
-### `status:viber` (Server → Client)
-
-Push notification of viber status change.
-
-```typescript
-interface StatusViber {
-  type: "status:viber";
-  payload: {
-    viber_id: string;
-    status: "idle" | "running" | "paused" | "error";
-    current_task_id?: string;
-    budget_used_usd?: number;
-    budget_limit_usd?: number;
-  };
-}
-```
-
-## 8. Error Codes
-
-| Code | Meaning |
-|------|---------|
-| `auth_failed` | Authentication credentials invalid |
-| `invalid_token` | Token expired or malformed |
-| `rate_limited` | Too many requests |
-| `protocol_error` | Malformed message |
-| `task_not_found` | Referenced task doesn't exist |
-| `already_running` | Task with same idempotency key in progress |
-| `budget_exceeded` | Cost limit reached |
-| `approval_timeout` | Approval not received in time |
-| `internal_error` | Unexpected server error |
-
-## 9. Protocol Versioning
-
-The protocol version is exchanged in `connection:welcome`. Clients should check compatibility:
-
-```typescript
-const SUPPORTED_PROTOCOL_VERSIONS = ["1"];
-
-function checkCompatibility(serverVersion: string): boolean {
-  return SUPPORTED_PROTOCOL_VERSIONS.includes(serverVersion);
-}
-```
-
-Breaking changes increment the major version. Additive changes (new message types, new optional fields) are backward compatible.
-
-## 10. Security Considerations
-
-- **TLS required** for non-localhost connections
-- **Challenge-response** authentication prevents replay attacks
-- **Idempotency keys** prevent duplicate task execution
-- **Session tokens** should expire and be rotatable
-- **Scopes** limit what operations a client can perform
 
 ---
 
-## Quick Reference
+## 4. Task States
 
-| Direction | Message Type | Purpose |
-|-----------|--------------|---------|
-| S → C | `connection:welcome` | Initial handshake |
-| C → S | `connection:auth` | Authenticate |
-| S → C | `connection:authenticated` | Confirm auth |
-| C → S | `task:submit` | Start task |
-| S → C | `task:started` | Acknowledge |
-| S → C | `task:progress` | Status update |
-| S → C | `task:delta` | Streaming token |
-| S → C | `task:completed` | Success |
-| S → C | `task:error` | Failure |
-| C → S | `task:stop` | Cancel task |
-| S → C | `approval:required` | Request approval |
-| C → S | `approval:response` | Grant/deny |
-| C → S | `terminal:attach` | Stream terminal |
-| S → C | `terminal:output` | Terminal data |
-| Both | `health:ping/pong` | Keepalive |
+Tasks have a simple lifecycle:
+
+```
+pending → running → completed
+                  → error
+                  → stopped
+```
+
+| State | Meaning |
+|-------|---------|
+| `pending` | Task created, waiting for daemon to start |
+| `running` | Daemon is executing (streaming in progress) |
+| `completed` | Task finished successfully |
+| `error` | Task failed (provider error, tool error, etc.) |
+| `stopped` | Operator explicitly stopped the task |
+
+---
+
+## 5. Message Injection Modes
+
+When an operator sends a follow-up message during a running task, the `injectionMode` controls behavior:
+
+| Mode | Behavior |
+|------|----------|
+| `collect` | Buffer the message; merge into one follow-up after current run |
+| `steer` | Queue for immediate processing; abort current run at next safe point |
+| `followup` | Queue for processing after current run completes |
+
+---
+
+## 6. Terminal Streaming
+
+Terminal I/O uses the same WebSocket connection between daemon and hub, with a dedicated message namespace (`terminal:*`). The hub relays terminal data to the web app via a separate WebSocket connection on port 6008 (not through the SSE stream).
+
+---
+
+## 7. Security
+
+- **Outbound-only**: Daemons connect outbound to the hub. No inbound ports needed.
+- **Auth headers**: WebSocket connections include `Authorization` and `X-Viber-Id` headers.
+- **CORS**: Hub sets `Access-Control-Allow-Origin: *` for development (should be restricted in production).
+- **No secrets in stream**: The SSE stream contains only AI response content, never API keys or credentials.
+
+---
+
+## 8. Design Decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| Passthrough SSE relay | Avoids re-encoding; the AI SDK format is the source of truth |
+| Hub as stateless coordinator | Hub can restart without losing daemon connections (daemons auto-reconnect) |
+| WebSocket for daemon, SSE for browser | WebSocket is bidirectional (needed for task control); SSE is simpler for browser consumption |
+| Simple task states | The AI SDK manages the complex agent loop; OpenViber just tracks the outer lifecycle |
+| Chunk buffering in hub | Late-connecting SSE subscribers need to catch up without data loss |

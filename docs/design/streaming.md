@@ -1,178 +1,143 @@
 ---
 title: "Streaming"
-description: "Real-time response streaming architecture for OpenViber"
+description: "How OpenViber streams LLM responses from daemon to browser using the AI SDK"
 ---
 
 # Streaming
 
-OpenViber supports real-time streaming of LLM responses from the node to clients. The streaming architecture has two layers: **token-delta streaming** for high-fidelity UIs and **block streaming** for chat channels with limited capabilities.
+OpenViber streams LLM responses end-to-end using the [Vercel AI SDK](https://sdk.vercel.ai). The SDK handles token generation, tool calls, and UI rendering — OpenViber's job is to relay the stream from daemon to browser through the hub.
 
 ---
 
-## 1. Streaming Modes
+## 1. End-to-End Flow
 
-| Mode | Transport | Best For |
-|------|-----------|----------|
-| **Token-delta** | WebSocket `task:delta` messages | OpenViber Board (web UI), CLI |
-| **Block** | Channel-specific delivery (chat APIs, email) | DingTalk, WeCom, Slack |
-
-Mode selection is automatic based on channel capabilities. The node's runtime detects the transport and emits the appropriate stream granularity.
-
----
-
-## 2. Token-Delta Streaming (WebSocket)
-
-The primary streaming path uses the WebSocket protocol defined in [protocol.md](./protocol.md). When a client submits a task with `stream_deltas: true`, the node emits `task:delta` messages as the model generates output.
-
-### Protocol Integration
-
-```typescript
-// Client requests streaming
-const submit: TaskSubmit = {
-  type: "task:submit",
-  payload: {
-    idempotency_key: "abc-123",
-    goal: "Build a landing page",
-    messages: [...],
-    options: {
-      stream_deltas: true,  // Enable token-level streaming
-    },
-  },
-};
-
-// Node emits deltas as they arrive
-// → task:started
-// → task:delta { delta_type: "text", text: "I'll start by..." }
-// → task:delta { delta_type: "text", text: " creating the HTML..." }
-// → task:delta { delta_type: "tool_call", tool_call: { name: "write_file", ... } }
-// → task:delta { delta_type: "tool_result", tool_result: { ... } }
-// → task:completed
+```
+Agent (AI SDK streamText)
+  → streamResult.toUIMessageStreamResponse()   ← AI SDK generates SSE bytes
+    → Controller reads SSE, sends task:stream-chunk over WebSocket
+      → Hub buffers and pipes to SSE endpoint
+        → Web API route pipes hub SSE to browser
+          → @ai-sdk/svelte Chat class renders UI
 ```
 
-### Delta Types
+Every hop is a byte-level passthrough of the AI SDK's **UI Message Stream** format. OpenViber doesn't parse, transform, or re-encode the stream — it just relays it.
 
-The `task:delta` message carries three delta types (see [protocol.md](./protocol.md) for full schemas):
+---
 
-| `delta_type` | Content | UI Behavior |
-|--------------|---------|-------------|
-| `text` | Partial text token | Append to message bubble |
-| `tool_call` | Tool name + partial arguments | Show tool invocation card |
-| `tool_result` | Completed tool output | Render tool result inline |
+## 2. How Each Layer Works
 
-### Board UI Consumption
+### Daemon (Controller)
 
-The OpenViber Board (SvelteKit) consumes deltas via the existing WebSocket connection:
+The controller calls `runTask()` which invokes AI SDK `streamText()`. The result is converted to an SSE response and piped chunk-by-chunk over WebSocket:
 
 ```typescript
-// Simplified Board-side delta handling
-function handleDelta(delta: TaskDelta) {
-  switch (delta.payload.delta_type) {
-    case "text":
-      appendToCurrentMessage(delta.payload.text);
-      break;
-    case "tool_call":
-      showToolCallCard(delta.payload.tool_call);
-      break;
-    case "tool_result":
-      updateToolCallResult(delta.payload.tool_result);
-      break;
-  }
+const { streamResult } = await runTask(goal, options, messages);
+
+// AI SDK converts the stream to SSE format
+const response = streamResult.toUIMessageStreamResponse();
+const reader = response.body.getReader();
+
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+  const chunk = decoder.decode(value, { stream: true });
+  // Relay raw SSE bytes to hub
+  ws.send(JSON.stringify({
+    type: "task:stream-chunk",
+    taskId,
+    chunk,
+  }));
 }
 ```
 
----
+### Hub
 
-## 3. Block Streaming (Chat Channels)
-
-Many chat platforms (DingTalk, WeCom, Slack) do not support token-delta updates. For these channels, the node coalesces token deltas into **completed text blocks** before delivery.
-
-### Why Block Streaming
-
-- Chat APIs have rate limits and message-length caps.
-- Token-by-token delivery would spam the channel with tiny updates.
-- Users on mobile prefer fewer, complete messages over rapid partial updates.
-
-### Chunking Pipeline
+The hub holds SSE connections open for web app subscribers. When `task:stream-chunk` messages arrive from the daemon, it writes them directly to subscribers:
 
 ```
-Token stream → Accumulator → Boundary detector → Channel formatter → Delivery
+GET /api/tasks/:id/stream
+  Headers: x-vercel-ai-ui-message-stream: v1
+  Content-Type: text/event-stream
 ```
 
-The chunker buffers tokens and emits blocks based on configurable bounds:
+The hub buffers chunks so that late-connecting subscribers can catch up. When the task completes, it closes all subscriber connections.
 
-| Parameter | Default | Purpose |
-|-----------|---------|---------|
-| `min_chars` | 200 | Don't emit until this threshold |
-| `max_chars` | 2000 | Force-split before this limit |
-| `idle_ms` | 1500 | Emit accumulated text after idle gap |
-| `coalesce_ms` | 500 | Merge small bursts within this window |
+### Web App API Route
 
-### Boundary Preference
+The SvelteKit API route at `/api/vibers/[id]/chat` submits the task to the hub, then pipes the hub's SSE stream to the browser:
 
-When splitting a block, the chunker picks the best boundary in priority order:
+```typescript
+// Submit task
+const { taskId } = await hubClient.submitTask(goal, viberId, messages);
 
-1. **Paragraph break** (`\n\n`) — cleanest split
-2. **Newline** (`\n`) — next best
-3. **Sentence end** (`. `, `! `, `? `) — preserves readability
-4. **Whitespace** — fallback
-5. **Hard cut** at `max_chars` — last resort
-
-### Code Fence Protection
-
-Code blocks require special handling to avoid broken formatting:
-
-- **Never split inside a code fence.** If forced (block exceeds `max_chars`), close the fence at the split point and reopen it in the next block.
-- Track fence state (open/closed) across chunks.
-
-### Channel-Level Overrides
-
-Each channel can override chunking defaults in the viber configuration:
-
-```yaml
-# ~/.openviber/vibers/dev.yaml
-channels:
-  dingtalk:
-    chunk_max_chars: 4000
-    chunk_idle_ms: 2000
-  wecom:
-    chunk_max_chars: 2000
-    chunk_idle_ms: 1000
+// Connect to hub SSE stream and pipe to frontend
+const streamResponse = await fetch(`${HUB_URL}/api/tasks/${taskId}/stream`);
+return new Response(streamResponse.body, {
+  headers: { "x-vercel-ai-ui-message-stream": "v1" },
+});
 ```
 
----
+### Frontend
 
-## 4. Error Handling During Streaming
+The `@ai-sdk/svelte` `Chat` class consumes the SSE stream automatically:
 
-Streaming introduces failure modes that don't exist in request-response patterns. See [error-handling.md](./error-handling.md) for the full error taxonomy.
+```typescript
+const chat = new Chat({
+  transport: new DefaultChatTransport({
+    api: `/api/vibers/${viberId}/chat`,
+  }),
+});
+```
 
-| Failure | Behavior |
-|---------|----------|
-| **WebSocket disconnect** | Buffer unsent deltas; resend on reconnect (idempotent) |
-| **Provider stream error** | Emit `task:error` with `partial_result` containing text so far |
-| **Channel delivery failure** | Retry with backoff; coalesce missed blocks into one catch-up message |
-| **Client-initiated stop** | `task:stop` → node aborts stream → `task:stopped` with partial result |
-
-### Partial Results
-
-When a stream fails mid-generation, the node always includes a `partial_result` in the error or stop response. This ensures the Board can display whatever was generated before the failure.
+The Chat class handles text deltas, tool call rendering, and state management. OpenViber's frontend code focuses on UI — not stream parsing.
 
 ---
 
-## 5. Backpressure
+## 3. What the AI SDK Handles
 
-If the client cannot keep up with delta messages (slow network, heavy UI rendering):
-
-- The WebSocket layer applies per-message buffering with a configurable high-water mark.
-- If the buffer overflows, the node **coalesces pending deltas** into a single larger message rather than dropping tokens.
-- The Board should process deltas in `requestAnimationFrame` batches to avoid DOM thrashing.
+| Concern | Handled By |
+|---------|-----------|
+| Token-by-token streaming | AI SDK `streamText()` |
+| SSE encoding | AI SDK `toUIMessageStreamResponse()` |
+| Client-side state management | `@ai-sdk/svelte` `Chat` class |
+| Tool call / result rendering | AI SDK message parts |
+| Multi-step tool loops | AI SDK `maxSteps` / `stepCountIs()` |
+| Backpressure | Built-in to SSE + `ReadableStream` |
 
 ---
 
-## 6. Design Decisions
+## 4. What OpenViber Adds
 
-| Decision | Rationale |
-|----------|-----------|
-| Auto-detect mode per channel | Vibers shouldn't need to know about channel capabilities |
-| Coalesce rather than drop on backpressure | Every token matters; losing text degrades UX |
-| Code fence tracking in chunker | Broken code blocks are the #1 readability complaint on chat surfaces |
-| `partial_result` on all failure paths | The user should always see what was generated, even if the task failed |
+### WebSocket Relay
+
+The AI SDK is designed for direct HTTP (browser → server → LLM). OpenViber adds a relay layer because the daemon runs on a separate machine from the web server:
+
+```
+Browser  ←SSE→  Web App  ←SSE→  Hub  ←WS→  Daemon  ←HTTP→  LLM
+```
+
+The hub bridges WebSocket (daemon side) and SSE (browser side). This is the core infrastructure OpenViber provides on top of the AI SDK.
+
+### Chunk Buffering
+
+The hub buffers stream chunks per task so that:
+- Late-connecting SSE subscribers catch up.
+- Completed tasks can replay their full stream on request.
+- Network interruptions don't lose data.
+
+### Task Lifecycle Messages
+
+Beyond the stream relay, the hub tracks task state transitions (`pending → running → completed | error | stopped`) and provides REST endpoints for task management.
+
+---
+
+## 5. Future: Block Streaming for Chat Channels
+
+Chat platforms (DingTalk, WeCom, Slack) cannot consume SSE streams. For these channels, a **block chunking** layer will coalesce token deltas into completed text blocks:
+
+- Buffer tokens until a paragraph/sentence boundary.
+- Respect per-channel message length limits.
+- Never split inside code fences.
+- Coalesce small bursts to reduce message spam.
+
+This layer sits between the AI SDK stream and channel delivery — it doesn't change the core streaming architecture.

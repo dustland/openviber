@@ -1,6 +1,6 @@
 # Viber
 
-> **You Imagine. Vibers Build.**
+> **You Imagine It. Vibers Build It.**
 
 A **viber** is a role-scoped AI worker that runs on your machine. It has its own persona, goals, tools, and guardrails — think of it as a specialized teammate who works from your computer.
 

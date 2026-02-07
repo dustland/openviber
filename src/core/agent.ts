@@ -13,6 +13,11 @@ import { AgentConfig } from "./config";
 import { ConversationHistory, ViberMessage } from "./message";
 import { getModelProvider } from "./provider";
 import { buildToolMap } from "./tool";
+import {
+  applyWorkingModeToTools,
+  resolveRequireApprovalTools,
+  resolveWorkingMode,
+} from "./working-mode";
 import { generateShortId } from "../utils/id";
 
 export interface AgentContext {
@@ -60,6 +65,10 @@ export class Agent {
   public skills: string[];
   public personality?: string;
 
+  // Working mode
+  public mode: "always_ask" | "agent_decides" | "always_execute";
+  public requireApproval: Set<string>;
+
   // Skill state
   private skillInstructions: string = "";
   private loadedSkillTools: Record<string, any> = {};
@@ -101,6 +110,8 @@ export class Agent {
     this.tools = config.tools || [];
     this.skills = config.skills || [];
     this.personality = config.personality;
+    this.mode = resolveWorkingMode(config);
+    this.requireApproval = resolveRequireApprovalTools(config);
   }
 
   /**
@@ -242,7 +253,10 @@ export class Agent {
   /**
    * Get tools available to this agent
    */
-  protected async getTools(context?: { spaceId?: string }): Promise<any> {
+  protected async getTools(context?: {
+    spaceId?: string;
+    metadata?: Record<string, unknown>;
+  }): Promise<any> {
     const tools = { ...this.loadedSkillTools };
 
     // Only load config tools if configured
@@ -255,7 +269,13 @@ export class Agent {
       }
     }
 
-    return Object.keys(tools).length > 0 ? tools : undefined;
+    const resolvedTools = Object.keys(tools).length > 0 ? tools : undefined;
+
+    return applyWorkingModeToTools(resolvedTools, {
+      mode: this.mode,
+      requireApproval: this.requireApproval,
+      metadata: context?.metadata,
+    });
   }
 
   /**
@@ -296,7 +316,7 @@ export class Agent {
     // Use agent-specific prompt and append any extra system context
     const basePrompt = this.getSystemPrompt(context);
     const systemPrompt = system ? `${basePrompt}\n\n${system}` : basePrompt;
-    const tools = await this.getTools({ spaceId });
+    const tools = await this.getTools({ spaceId, metadata: enrichedMetadata });
 
     // Convert messages for display
     const modelMessages: any[] = viberMessages
@@ -388,7 +408,7 @@ export class Agent {
     const systemPrompt = system ? `${basePrompt}\n\n${system}` : basePrompt;
 
     const model = this.getModel({ spaceId, userId: enrichedMetadata.userId });
-    const tools = await this.getTools({ spaceId });
+    const tools = await this.getTools({ spaceId, metadata: enrichedMetadata });
 
     // Generate a message ID that includes the agent name
     const agentPrefix = this.name.toLowerCase().replace(/\s+/g, "-");
@@ -489,7 +509,7 @@ export class Agent {
     const systemPrompt = system ? `${basePrompt}\n\n${system}` : basePrompt;
 
     const model = this.getModel({ spaceId, userId: enrichedMetadata.userId });
-    const tools = await this.getTools({ spaceId });
+    const tools = await this.getTools({ spaceId, metadata: enrichedMetadata });
 
     // Convert ViberMessage[] to ModelMessage[] ONLY here, right before AI SDK call
     const modelMessages: ModelMessage[] = viberMessages

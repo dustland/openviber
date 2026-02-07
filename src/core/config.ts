@@ -33,5 +33,15 @@ export interface AgentConfig {
   frequencyPenalty?: number;
   presencePenalty?: number;
   promptFile?: string; // Optional prompt file path
+  mode?: "always_ask" | "agent_decides" | "always_execute";
+  workingMode?:
+    | "always_ask"
+    | "agent_decides"
+    | "always_execute"
+    | "always-ask"
+    | "agent-decides"
+    | "always-execute";
+  require_approval?: string[];
+  requireApproval?: string[];
   [key: string]: any; // Allow additional properties
 }

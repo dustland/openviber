@@ -50,6 +50,67 @@
     createdAt: Date;
   }
 
+  interface TaskProgressEnvelope {
+    event?: Record<string, unknown>;
+  }
+
+  interface TaskEventEntry {
+    event?: TaskProgressEnvelope;
+  }
+
+  function toToolLabel(value: unknown): string {
+    if (typeof value !== "string" || !value.trim()) return "tool";
+    return value.trim();
+  }
+
+  function stringifyToolDetails(value: unknown): string {
+    if (value == null) return "";
+    if (typeof value === "string") return value;
+    try {
+      return JSON.stringify(value, null, 2);
+    } catch {
+      return String(value);
+    }
+  }
+
+  function buildProgressText(task: {
+    partialText?: string;
+    events?: TaskEventEntry[];
+  }): string {
+    const progressLines: string[] = [];
+
+    for (const entry of task.events ?? []) {
+      const payload = entry?.event?.event;
+      if (!payload || typeof payload !== "object") continue;
+      const data = payload as Record<string, unknown>;
+
+      const kind = data.kind;
+      if (kind === "tool-call") {
+        const toolName = toToolLabel(data.toolName);
+        progressLines.push(`🛠️ Calling ${toolName}...`);
+        continue;
+      }
+
+      if (kind === "tool-result") {
+        const toolName = toToolLabel(data.toolName);
+        progressLines.push(`✅ ${toolName} finished`);
+
+        const result = stringifyToolDetails(data.result);
+        if (result) {
+          const preview = result.length > 400 ? `${result.slice(0, 400)}…` : result;
+          progressLines.push(`Result: ${preview}`);
+        }
+      }
+    }
+
+    const text = typeof task.partialText === "string" ? task.partialText.trim() : "";
+    if (text) {
+      progressLines.push(text);
+    }
+
+    return progressLines.length > 0 ? progressLines.join("\n") : "Processing task...";
+  }
+
   let viber = $state<Viber | null>(null);
   let messages = $state<Message[]>([]);
   let loading = $state(true);
@@ -255,18 +316,10 @@
           if (!taskRes.ok) return false;
           const task = await taskRes.json();
           if (task.status === "running" || task.status === "pending") {
-            const streamingText =
-              (task.partialText as string | undefined)?.trim() ||
-              (
-                task.events as
-                  | Array<{ event?: { message?: string } }>
-                  | undefined
-              )
-                ?.slice(-1)
-                ?.map((e) => e?.event?.message)
-                ?.filter(Boolean)
-                ?.join("\n") ||
-              "Processing task...";
+            const streamingText = buildProgressText(task as {
+              partialText?: string;
+              events?: TaskEventEntry[];
+            });
 
             messages = messages.map((m) =>
               m.id === assistantMessageId

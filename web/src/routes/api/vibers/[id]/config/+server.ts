@@ -46,7 +46,7 @@ async function resolveConfigPath(viberId: string): Promise<string> {
   }
 
   throw new Error(
-    "Agent config not found. Run `openviber onboard` to create ~/.openviber/agents/default.yaml.",
+    "Agent config not found. Run `openviber onboard` to create ~/.openviber/vibers/default.yaml.",
   );
 }
 

@@ -97,18 +97,22 @@
 
         const result = stringifyToolDetails(data.result);
         if (result) {
-          const preview = result.length > 400 ? `${result.slice(0, 400)}…` : result;
+          const preview =
+            result.length > 400 ? `${result.slice(0, 400)}…` : result;
           progressLines.push(`Result: ${preview}`);
         }
       }
     }
 
-    const text = typeof task.partialText === "string" ? task.partialText.trim() : "";
+    const text =
+      typeof task.partialText === "string" ? task.partialText.trim() : "";
     if (text) {
       progressLines.push(text);
     }
 
-    return progressLines.length > 0 ? progressLines.join("\n") : "⏳ Thinking...";
+    return progressLines.length > 0
+      ? progressLines.join("\n")
+      : "⏳ Thinking...";
   }
 
   let viber = $state<Viber | null>(null);
@@ -244,7 +248,8 @@
       configuredSkills = payload.skills ?? skills;
       skillsInput = configuredSkills.join(", ");
     } catch (error) {
-      configError = error instanceof Error ? error.message : "Failed to save agent config.";
+      configError =
+        error instanceof Error ? error.message : "Failed to save agent config.";
     } finally {
       configSaving = false;
     }
@@ -317,10 +322,12 @@
           if (!taskRes.ok) return false;
           const task = await taskRes.json();
           if (task.status === "running" || task.status === "pending") {
-            const streamingText = buildProgressText(task as {
-              partialText?: string;
-              events?: TaskEventEntry[];
-            });
+            const streamingText = buildProgressText(
+              task as {
+                partialText?: string;
+                events?: TaskEventEntry[];
+              },
+            );
 
             messages = messages.map((m) =>
               m.id === assistantMessageId
@@ -609,7 +616,9 @@
     <div class="mx-auto w-full max-w-4xl space-y-3">
       <div class="rounded-xl border border-border bg-card/80 p-3">
         <div class="mb-2 flex items-center justify-between gap-2">
-          <p class="flex items-center gap-1.5 text-xs font-medium text-foreground">
+          <p
+            class="flex items-center gap-1.5 text-xs font-medium text-foreground"
+          >
             <Settings2 class="size-3.5" />
             Agent config
           </p>
@@ -621,15 +630,20 @@
         {#if configLoading}
           <p class="text-xs text-muted-foreground">Loading tools and skills…</p>
         {:else if configError}
-          <p class="text-xs text-amber-600 dark:text-amber-400">{configError}</p>
+          <p class="text-xs text-amber-600 dark:text-amber-400">
+            {configError}
+          </p>
           <p class="mt-1 text-[11px] text-muted-foreground">
-            If this is a first-time setup, run <code>openviber onboard</code> to create
-            <code>~/.openviber/agents/default.yaml</code>.
+            If this is a first-time setup, run <code>openviber onboard</code> to
+            create
+            <code>~/.openviber/vibers/default.yaml</code>.
           </p>
         {:else}
           <div class="space-y-2.5">
             <div>
-              <p class="mb-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+              <p
+                class="mb-1 text-[11px] uppercase tracking-wide text-muted-foreground"
+              >
                 Tools
               </p>
               <div class="flex flex-wrap gap-1.5">
@@ -649,7 +663,10 @@
               </div>
             </div>
 
-            <label class="block text-[11px] uppercase tracking-wide text-muted-foreground" for="skill-input">
+            <label
+              class="block text-[11px] uppercase tracking-wide text-muted-foreground"
+              for="skill-input"
+            >
               Skills (comma-separated)
             </label>
             <input

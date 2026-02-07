@@ -5,7 +5,6 @@
     Brain,
     Cpu,
     Shield,
-    Sparkles,
     Workflow,
   } from "@lucide/svelte";
 
@@ -48,7 +47,7 @@
 </script>
 
 <svelte:head>
-  <title>OpenViber · Agent Runtime Platform</title>
+  <title>OpenViber · You Imagine. Vibers Build.</title>
 </svelte:head>
 
 <div class="relative h-full overflow-x-hidden overflow-y-auto">
@@ -61,25 +60,25 @@
     ></div>
   </div>
 
-  <main class="container mx-auto px-4 py-14 md:py-20">
+  <main class="container mx-auto px-6 py-16 md:px-8 md:py-24">
     <section class="mx-auto max-w-5xl text-center">
-      <div
-        class="mb-6 inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/80 px-3 py-1 text-xs text-muted-foreground shadow-sm backdrop-blur"
-      >
-        <Sparkles class="size-3.5 text-primary" />
-        Architecture-first platform for autonomous yet controllable AI work
-      </div>
+      <img
+        src="/favicon.png"
+        alt="OpenViber"
+        class="mx-auto mb-8 size-20 md:size-24"
+      />
 
       <h1
-        class="text-balance bg-gradient-to-b from-foreground to-foreground/70 bg-clip-text text-4xl font-semibold tracking-tight text-transparent md:text-6xl"
+        class="bg-gradient-to-b from-foreground to-foreground/70 bg-clip-text pb-1 text-4xl font-semibold leading-[1.15] tracking-tight text-transparent md:text-6xl"
       >
-        Build powerful AI operations with a calm, operator-friendly control
-        surface
+        You Imagine. Vibers Build.
       </h1>
-      <p class="mx-auto mt-6 max-w-3xl text-pretty text-lg text-muted-foreground md:text-xl">
-        OpenViber combines daemon-driven execution, protocol-level observability,
-        and practical personalization so teams can run advanced agent workflows
-        without drowning in complexity.
+      <p
+        class="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground md:text-xl"
+      >
+        Turn your machine into an AI coworker. OpenViber runs vibers locally —
+        autonomous agents that write code, research the web, manage files, and
+        run scheduled tasks while you sleep. Fully private, fully yours.
       </p>
 
       <div class="mt-9 flex flex-wrap items-center justify-center gap-3">
@@ -110,7 +109,9 @@
           >
             <pillar.icon class="size-5" />
           </div>
-          <h2 class="text-lg font-semibold text-card-foreground">{pillar.title}</h2>
+          <h2 class="text-lg font-semibold text-card-foreground">
+            {pillar.title}
+          </h2>
           <p class="mt-2 text-sm leading-relaxed text-muted-foreground">
             {pillar.description}
           </p>

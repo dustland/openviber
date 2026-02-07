@@ -33,8 +33,8 @@ stateDiagram-v2
 
 ## 2. State intent
 
-- **Intake**: classify origin (self-initiated or manager-assigned) and execution mode (`Always Ask`, `Agent Decides`, or `Always Execute`).
-- **Planning**: update `workspace/task.md` and next actions.
+- **Intake**: classify origin (self-initiated or manager-assigned) and execution mode (`Always Ask`, `Viber Decides`, or `Always Execute`).
+- **Planning**: update the task plan and next actions.
 - **Executing**: run tools, terminals, browser tasks, code edits.
 - **Verifying**: validate outcomes from human-observable perspective.
 - **Reporting**: emit report with evidence refs.

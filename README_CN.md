@@ -236,15 +236,15 @@ Viber 基于以下优秀开源项目构建：
 <!-- LINKS -->
 
 [viber-site]: https://viber.dustland.ai
-[viber-github]: https://github.com/dustland/viber
+[viber-github]: https://github.com/dustland/openviber
 [viber-npm]: https://www.npmjs.com/package/openviber
 [docs-site]: https://viber.dustland.ai/docs
-[github-issues]: https://github.com/dustland/viber/issues
-[license-link]: https://github.com/dustland/viber/blob/main/LICENSE
+[github-issues]: https://github.com/dustland/openviber/issues
+[license-link]: https://github.com/dustland/openviber/blob/main/LICENSE
 
 <!-- SHIELDS -->
 
 [download-shield]: https://img.shields.io/badge/Download-Viber-blue?style=flat-square
-[github-star]: https://img.shields.io/github/stars/dustland/viber?style=flat-square&logo=github
+[github-star]: https://img.shields.io/github/stars/dustland/openviber?style=flat-square&logo=github
 [npm-shield]: https://img.shields.io/npm/v/openviber?style=flat-square&logo=npm
 [license-shield]: https://img.shields.io/badge/License-Apache%202.0-green?style=flat-square

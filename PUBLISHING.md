@@ -59,7 +59,7 @@ git tag v0.2.1
 git push origin v0.2.1
 ```
 
-Monitor the workflow at: https://github.com/dustland/viber/actions
+Monitor the workflow at: https://github.com/dustland/openviber/actions
 
 ---
 
@@ -213,7 +213,7 @@ Fix all errors before tagging a release.
 | Minor release (0.2.0 → 0.3.0) | `pnpm version minor`    |
 | Major release (0.2.0 → 1.0.0) | `pnpm version major`    |
 | Push with tags          | `git push origin main --follow-tags` |
-| View workflow runs      | https://github.com/dustland/viber/actions |
+| View workflow runs      | https://github.com/dustland/openviber/actions |
 | View published package  | https://www.npmjs.com/package/viber |
 | View changelogs         | Docs site: `/changelog/v{version}` |
 
@@ -224,7 +224,7 @@ Fix all errors before tagging a release.
 Each publish creates:
 - 📦 npm package at https://www.npmjs.com/package/viber
 - 📝 `docs/src/content/docs/changelog/v{version}.mdx` (committed to repo)
-- 🏷️ GitHub release at https://github.com/dustland/viber/releases
+- 🏷️ GitHub release at https://github.com/dustland/openviber/releases
 - 🌐 Changelog page at docs site `/changelog/v{version}`
 
 ---

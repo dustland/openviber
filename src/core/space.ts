@@ -404,7 +404,7 @@ export async function startSpace({
     name: name || spaceConfig.name,
   });
 
-  // Create ViberAgent for the space (includes tmux + cursor-agent so Viber Board can verify skills)
+  // Create ViberAgent for the space (includes CLI skills so Viber Board can verify skills)
   const viberAgentConfig: AgentConfig = {
     name: "Viber",
     description: "I manage this space and coordinate all work.",
@@ -412,7 +412,7 @@ export async function startSpace({
     model: model || "deepseek/deepseek-chat",
     temperature: 0.7,
     promptFile: "", // ViberAgent doesn't use prompt files
-    skills: ["tmux", "cursor-agent"],
+    skills: ["tmux", "cursor-agent", "codex-cli"],
   };
 
   const viberAgent = new ViberAgent(viberAgentConfig, space, {

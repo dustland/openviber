@@ -58,6 +58,7 @@ This "atomic" approach keeps detection and recovery bundled together.
 |-------|---------|
 | **antigravity** | Monitor and heal Antigravity IDE agent errors |
 | **cursor-agent** | Run Cursor CLI agent workflows through tmux-backed automation |
+| **codex-cli** | Run OpenAI Codex CLI workflows via non-interactive `codex exec` |
 | **tmux** | Execute TTY-dependent commands and manage persistent terminal sessions |
 
 ## Creating Custom Skills

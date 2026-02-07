@@ -8,6 +8,7 @@
     Cpu,
     MessageSquare,
     Send,
+    Settings2,
     Sparkles,
     User,
   } from "@lucide/svelte";
@@ -57,6 +58,14 @@
   let currentTaskId = $state<string | null>(null);
   let messagesContainer = $state<HTMLDivElement | null>(null);
   let inputEl = $state<HTMLTextAreaElement | null>(null);
+  let configLoading = $state(true);
+  let configSaving = $state(false);
+  let configError = $state<string | null>(null);
+  let configFile = $state<string | null>(null);
+  let configuredTools = $state<string[]>([]);
+  let configuredSkills = $state<string[]>([]);
+  let toolOptions = $state<string[]>([]);
+  let skillsInput = $state("");
 
   $effect(() => {
     // Track messages length to trigger on new messages
@@ -113,6 +122,70 @@
       goto("/vibers");
     } finally {
       loading = false;
+    }
+  }
+
+  async function fetchAgentConfig(viberId: string) {
+    configLoading = true;
+    configError = null;
+    try {
+      const response = await fetch(`/api/vibers/${viberId}/config`);
+      const payload = await response.json();
+      if (!response.ok) {
+        configError = payload.error || "Failed to load agent config.";
+        return;
+      }
+      configFile = payload.configFile ?? null;
+      configuredTools = payload.tools ?? [];
+      configuredSkills = payload.skills ?? [];
+      toolOptions = payload.toolOptions ?? [];
+      skillsInput = configuredSkills.join(", ");
+    } catch (error) {
+      console.error("Failed to fetch agent config:", error);
+      configError = "Failed to load agent config.";
+    } finally {
+      configLoading = false;
+    }
+  }
+
+  function toggleConfiguredTool(toolId: string) {
+    if (configuredTools.includes(toolId)) {
+      configuredTools = configuredTools.filter((tool) => tool !== toolId);
+      return;
+    }
+    configuredTools = [...configuredTools, toolId];
+  }
+
+  async function saveAgentConfig() {
+    if (!viber) return;
+    configSaving = true;
+    configError = null;
+    try {
+      const skills = skillsInput
+        .split(",")
+        .map((skill) => skill.trim())
+        .filter(Boolean);
+
+      const response = await fetch(`/api/vibers/${viber.id}/config`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tools: configuredTools,
+          skills,
+        }),
+      });
+
+      const payload = await response.json();
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error || "Failed to save agent config.");
+      }
+
+      configuredSkills = payload.skills ?? skills;
+      skillsInput = configuredSkills.join(", ");
+    } catch (error) {
+      configError = error instanceof Error ? error.message : "Failed to save agent config.";
+    } finally {
+      configSaving = false;
     }
   }
 
@@ -306,6 +379,9 @@
 
   onMount(() => {
     fetchViber();
+    if ($page.params.id) {
+      fetchAgentConfig($page.params.id);
+    }
     const interval = setInterval(fetchViber, 5000);
     return () => clearInterval(interval);
   });
@@ -477,6 +553,72 @@
 
   <div class="chat-composer-wrap border-t border-border/70 p-3 shrink-0 sm:p-4">
     <div class="mx-auto w-full max-w-4xl space-y-3">
+      <div class="rounded-xl border border-border bg-card/80 p-3">
+        <div class="mb-2 flex items-center justify-between gap-2">
+          <p class="flex items-center gap-1.5 text-xs font-medium text-foreground">
+            <Settings2 class="size-3.5" />
+            Agent config
+          </p>
+          {#if configFile}
+            <p class="text-[11px] text-muted-foreground">{configFile}</p>
+          {/if}
+        </div>
+
+        {#if configLoading}
+          <p class="text-xs text-muted-foreground">Loading tools and skills…</p>
+        {:else if configError}
+          <p class="text-xs text-amber-600 dark:text-amber-400">{configError}</p>
+          <p class="mt-1 text-[11px] text-muted-foreground">
+            If this is a first-time setup, run <code>openviber onboard</code> to create
+            <code>~/.openviber/agents/default.yaml</code>.
+          </p>
+        {:else}
+          <div class="space-y-2.5">
+            <div>
+              <p class="mb-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+                Tools
+              </p>
+              <div class="flex flex-wrap gap-1.5">
+                {#each toolOptions as tool}
+                  <button
+                    type="button"
+                    class="rounded-full border px-2.5 py-1 text-[11px] transition-colors {configuredTools.includes(
+                      tool,
+                    )
+                      ? 'border-primary/40 bg-primary/10 text-primary'
+                      : 'border-border bg-muted/30 text-muted-foreground hover:text-foreground'}"
+                    onclick={() => toggleConfiguredTool(tool)}
+                  >
+                    {tool}
+                  </button>
+                {/each}
+              </div>
+            </div>
+
+            <label class="block text-[11px] uppercase tracking-wide text-muted-foreground" for="skill-input">
+              Skills (comma-separated)
+            </label>
+            <input
+              id="skill-input"
+              type="text"
+              bind:value={skillsInput}
+              placeholder="tmux, cursor-agent"
+              class="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground"
+            />
+
+            <div class="flex justify-end">
+              <Button
+                size="sm"
+                onclick={saveAgentConfig}
+                disabled={configSaving}
+              >
+                {configSaving ? "Saving..." : "Save config"}
+              </Button>
+            </div>
+          </div>
+        {/if}
+      </div>
+
       {#if viber?.skills && viber.skills.length > 0 && messages.length > 0}
         <div class="overflow-x-auto pb-0.5">
           <div class="flex items-center gap-1.5 min-w-max">

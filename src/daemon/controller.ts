@@ -479,12 +479,16 @@ export class ViberController extends EventEmitter {
             kind: "tool-call",
             toolName: part.toolName,
             toolCallId: part.toolCallId,
+            args: part.args,
           });
           break;
         case "tool-result":
           this.emitTaskProgress(runtime, {
             kind: "tool-result",
             toolCallId: part.toolCallId,
+            toolName: part.toolName,
+            result: part.result,
+            isError: part.isError,
           });
           break;
         case "error":

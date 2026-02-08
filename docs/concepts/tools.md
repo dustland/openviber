@@ -50,14 +50,27 @@ For safety, tools can be restricted:
 
 This lets you control the blast radius of agent actions.
 
+## Skill-Provided Tools
+
+Skills can bundle specialized tools for specific domains. When a skill is loaded, its tools become available alongside the built-in tools. For example:
+
+| Skill | Tools Provided |
+|-------|---------------|
+| **antigravity** | `antigravity_check_and_heal` — detect and recover from IDE errors |
+| **cursor-agent** | `cursor_agent_run` — run Cursor CLI in tmux |
+| **codex-cli** | `codex_run` — run Codex CLI non-interactively |
+| **github** | `gh_list_issues`, `gh_get_issue`, `gh_clone_repo`, `gh_create_branch`, `gh_commit_and_push`, `gh_create_pr` |
+| **tmux** | `tmux_install_check`, `tmux_new_session`, `tmux_new_window`, `tmux_split_pane`, `tmux_send_keys`, `tmux_list`, `tmux_run` |
+
+Skill tools follow the same `CoreTool` interface (Zod input schema + async execute function) as built-in tools. See [Skills](/docs/concepts/skills) for details on how skills bundle tools with domain knowledge.
+
 ## Custom Tools
 
-Skills can provide specialized tools for specific domains. For example, an "antigravity" skill might include a tool for checking IDE health and auto-recovering from errors.
-
-See [Skills](/docs/concepts/skills) for how domain knowledge bundles tools with instructions.
+You can create custom tools by writing a skill with an `index.ts` that exports a `getTools()` function. This keeps tools bundled with their domain context and makes them easy to share.
 
 ## Next Steps
 
-- [Skills](/docs/concepts/skills) — Domain knowledge that includes specialized tools
+- [Skills](/docs/concepts/skills) — Domain knowledge bundles with specialized tools
+- [Jobs](/docs/concepts/jobs) — Scheduled tasks that use tools
 - [Viber](/docs/concepts/viber) — How vibers use tools
 - [Security](/docs/design/security) — Tool permissions and safety

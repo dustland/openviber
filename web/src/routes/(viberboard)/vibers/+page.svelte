@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { page } from "$app/stores";
+  import { Skeleton } from "$lib/components/ui/skeleton";
   import {
     RefreshCw,
     Circle,
@@ -134,7 +135,7 @@
   <title>Vibers - OpenViber</title>
 </svelte:head>
 
-<div class="p-6 h-full overflow-y-auto">
+<div class="p-6 h-full overflow-y-auto flex flex-col">
   <div class="flex items-center justify-between mb-6">
     <div>
       <h1 class="text-2xl font-semibold text-foreground">Vibers</h1>
@@ -180,7 +181,25 @@
 
   <!-- Loading -->
   {#if loading}
-    <div class="text-center py-12 text-muted-foreground">Loading...</div>
+    <div class="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+      {#each Array(6) as _}
+        <div class="rounded-xl border border-border bg-card p-4 space-y-3">
+          <div class="flex items-start gap-3">
+            <Skeleton class="size-9 rounded-lg shrink-0" />
+            <div class="flex-1 space-y-2">
+              <Skeleton class="h-4 w-3/4" />
+              <Skeleton class="h-3 w-1/2" />
+            </div>
+          </div>
+          <Skeleton class="h-3 w-full" />
+          <Skeleton class="h-3 w-2/3" />
+          <div class="flex items-center justify-between pt-1">
+            <Skeleton class="h-5 w-16 rounded-full" />
+            <Skeleton class="h-3 w-20" />
+          </div>
+        </div>
+      {/each}
+    </div>
   {:else if vibers.length > 0}
     <div class="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
       {#each vibers as viber (viber.id)}
@@ -249,38 +268,28 @@
       {/each}
     </div>
   {:else if !hubConnected}
-    <Card class="text-center py-12">
-      <CardContent>
-        <div class="mb-4 text-muted-foreground">
-          <Server class="size-12 mx-auto mb-4 opacity-50" />
-          <p class="text-lg font-medium">Hub Not Connected</p>
-          <p class="text-sm mt-2 max-w-md mx-auto">
-            The viber hub server is not running. Start it with:
-          </p>
-        </div>
-        <div class="mt-6 p-4 bg-muted rounded-lg text-left max-w-md mx-auto">
-          <p class="text-sm font-mono text-muted-foreground">
-            # Start everything together<br />
-            pnpm dev
-          </p>
-        </div>
-      </CardContent>
-    </Card>
+    <div class="flex-1 flex flex-col items-center justify-center text-center">
+      <Server class="size-12 mb-4 text-muted-foreground/50" />
+      <p class="text-lg font-medium text-muted-foreground">Hub Not Connected</p>
+      <p class="text-sm mt-2 max-w-md text-muted-foreground">
+        The viber hub server is not running. Start it with:
+      </p>
+      <div class="mt-6 p-4 bg-muted rounded-lg text-left max-w-md">
+        <p class="text-sm font-mono text-muted-foreground">
+          # Start everything together<br />
+          pnpm dev
+        </p>
+      </div>
+    </div>
   {:else}
-    <Card class="text-center py-12">
-      <CardContent>
-        <div class="mb-4 text-muted-foreground">
-          <Server class="size-12 mx-auto mb-4 opacity-50" />
-          <p class="text-lg font-medium">No Vibers Yet</p>
-          <p class="text-sm mt-2 max-w-md mx-auto">
-            Create a new viber from the
-            <a href="/vibers/new" class="text-primary hover:underline"
-              >New Viber</a
-            >
-            page to get started.
-          </p>
-        </div>
-      </CardContent>
-    </Card>
+    <div class="flex-1 flex flex-col items-center justify-center text-center">
+      <Server class="size-12 mb-4 text-muted-foreground/50" />
+      <p class="text-lg font-medium text-muted-foreground">No Vibers Yet</p>
+      <p class="text-sm mt-2 max-w-md text-muted-foreground">
+        Create a new viber from the
+        <a href="/vibers/new" class="text-primary hover:underline">New Viber</a>
+        page to get started.
+      </p>
+    </div>
   {/if}
 </div>

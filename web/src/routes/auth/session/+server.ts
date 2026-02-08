@@ -12,6 +12,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
     const body = (await request.json()) as {
       accessToken?: string;
       refreshToken?: string;
+      providerToken?: string;
       state?: string;
     };
 
@@ -28,7 +29,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 
     const profile = await fetchSupabaseProfile(body.accessToken);
     await upsertSupabaseUserProfile(profile);
-    await createSession(body.accessToken, body.refreshToken, cookies);
+    await createSession(body.accessToken, body.refreshToken, cookies, body.providerToken);
 
     return json({ ok: true });
   } catch (cause) {

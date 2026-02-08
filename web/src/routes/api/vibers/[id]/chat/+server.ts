@@ -1,6 +1,11 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { hubClient } from "$lib/server/hub-client";
+import type { ViberEnvironmentContext } from "$lib/server/hub-client";
+import {
+  getViberEnvironmentForUser,
+  getEnvironmentForUser,
+} from "$lib/server/environments";
 
 const HUB_URL = process.env.VIBER_HUB_URL || "http://localhost:6007";
 
@@ -13,7 +18,7 @@ const HUB_URL = process.env.VIBER_HUB_URL || "http://localhost:6007";
  * 3. Connects to the hub's SSE stream endpoint for that viber
  * 4. Pipes the AI SDK data stream back to the frontend
  */
-export const POST: RequestHandler = async ({ params, request }) => {
+export const POST: RequestHandler = async ({ params, request, locals }) => {
   try {
     const body = await request.json();
     const { messages } = body;
@@ -47,13 +52,50 @@ export const POST: RequestHandler = async ({ params, request }) => {
       }))
       .filter((m: any) => m.content);
 
+    // Look up environment context for this viber
+    let environment: ViberEnvironmentContext | undefined;
+    if (locals.user?.id) {
+      try {
+        const envId = await getViberEnvironmentForUser(locals.user.id, params.id);
+        if (envId) {
+          const envDetail = await getEnvironmentForUser(locals.user.id, envId, {
+            includeSecretValues: true,
+          });
+          if (envDetail) {
+            const vars = envDetail.variables
+              ?.filter((v) => v.value && v.value !== "••••••••")
+              .map((v) => ({ key: v.key, value: v.value })) || [];
+
+            // Auto-inject user's GitHub token for gh CLI if not already set
+            const hasGhToken = vars.some(
+              (v) => v.key === "GH_TOKEN" || v.key === "GITHUB_TOKEN",
+            );
+            if (!hasGhToken && locals.user?.githubToken) {
+              vars.push({ key: "GH_TOKEN", value: locals.user.githubToken });
+            }
+
+            environment = {
+              name: envDetail.name,
+              repoUrl: envDetail.repoUrl ?? undefined,
+              repoOrg: envDetail.repoOrg ?? undefined,
+              repoName: envDetail.repoName ?? undefined,
+              repoBranch: envDetail.repoBranch ?? undefined,
+              variables: vars,
+            };
+          }
+        }
+      } catch (e) {
+        console.error("[Chat] Failed to look up environment:", e);
+      }
+    }
+
     // Try to send message to existing viber on the hub first
     const existingViber = await hubClient.getViber(params.id);
     let viberId: string;
 
     if (existingViber) {
       // Viber exists on hub — send message to it
-      const result = await hubClient.sendMessage(params.id, simpleMessages, goal);
+      const result = await hubClient.sendMessage(params.id, simpleMessages, goal, environment);
       if (!result) {
         return json({ error: "Failed to send message to viber" }, { status: 503 });
       }
@@ -61,7 +103,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
     } else {
       // Viber doesn't exist on hub yet — create it
       // Find a node to run it on (first available)
-      const result = await hubClient.createViber(goal, undefined, simpleMessages);
+      const result = await hubClient.createViber(goal, undefined, simpleMessages, environment);
       if (!result) {
         return json({ error: "Failed to create viber on hub" }, { status: 503 });
       }

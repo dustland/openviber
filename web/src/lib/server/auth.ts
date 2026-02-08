@@ -6,6 +6,7 @@ const SESSION_TTL_DAYS = 30;
 const OAUTH_STATE_COOKIE = "openviber_oauth_state";
 const ACCESS_TOKEN_COOKIE = "openviber_sb_access_token";
 const REFRESH_TOKEN_COOKIE = "openviber_sb_refresh_token";
+const GITHUB_TOKEN_COOKIE = "openviber_gh_token";
 
 const APP_URL = env.APP_URL || "http://localhost:5173";
 const SUPABASE_URL = env.SUPABASE_URL;
@@ -17,6 +18,7 @@ export interface AuthUser {
   email: string;
   name: string;
   avatarUrl: string | null;
+  githubToken: string | null;
 }
 
 export interface SupabaseOAuthProfile {
@@ -50,19 +52,20 @@ export function supabaseAuthConfigured() {
 }
 
 /**
- * Builds a Supabase-managed Google OAuth URL and returns state for CSRF validation.
+ * Builds a Supabase-managed GitHub OAuth URL and returns state for CSRF validation.
  */
-export function getSupabaseGoogleAuthUrl(nextPath = "/vibers") {
+export function getSupabaseGitHubAuthUrl(nextPath = "/vibers") {
   const { supabaseUrl } = requireSupabaseAuthConfig();
   const state = randomBytes(24).toString("hex");
 
-  const callbackUrl = new URL(`${APP_URL}/auth/google/callback`);
+  const callbackUrl = new URL(`${APP_URL}/auth/github/callback`);
   callbackUrl.searchParams.set("next", nextPath);
   callbackUrl.searchParams.set("state", state);
 
   const authUrl = new URL("/auth/v1/authorize", supabaseUrl);
-  authUrl.searchParams.set("provider", "google");
+  authUrl.searchParams.set("provider", "github");
   authUrl.searchParams.set("redirect_to", callbackUrl.toString());
+  authUrl.searchParams.set("scopes", "repo,read:user,user:email");
 
   return { url: authUrl.toString(), state };
 }
@@ -204,8 +207,14 @@ export function clearOAuthStateCookie(cookies: Cookies) {
 
 /**
  * Creates the application session by persisting Supabase session tokens in httpOnly cookies.
+ * Optionally stores the GitHub provider token for API access.
  */
-export async function createSession(accessToken: string, refreshToken: string, cookies: Cookies) {
+export async function createSession(
+  accessToken: string,
+  refreshToken: string,
+  cookies: Cookies,
+  providerToken?: string,
+) {
   const expiresAt = new Date(Date.now() + SESSION_TTL_DAYS * 24 * 60 * 60 * 1000);
   const cookieOptions = {
     path: "/",
@@ -216,19 +225,22 @@ export async function createSession(accessToken: string, refreshToken: string, c
   } as const;
 
   cookies.set(ACCESS_TOKEN_COOKIE, accessToken, cookieOptions);
-  cookies.set(REFRESH_TOKEN_COOKIE, refreshToken, {
-    ...cookieOptions,
-  });
+  cookies.set(REFRESH_TOKEN_COOKIE, refreshToken, cookieOptions);
+  if (providerToken) {
+    cookies.set(GITHUB_TOKEN_COOKIE, providerToken, cookieOptions);
+  }
 }
 
 export async function deleteSession(cookies: Cookies) {
   cookies.delete(ACCESS_TOKEN_COOKIE, { path: "/" });
   cookies.delete(REFRESH_TOKEN_COOKIE, { path: "/" });
+  cookies.delete(GITHUB_TOKEN_COOKIE, { path: "/" });
 }
 
 export async function getAuthUser(cookies: Cookies): Promise<AuthUser | null> {
   const accessToken = cookies.get(ACCESS_TOKEN_COOKIE);
   const refreshToken = cookies.get(REFRESH_TOKEN_COOKIE);
+  const githubToken = cookies.get(GITHUB_TOKEN_COOKIE) || null;
 
   if (!accessToken && !refreshToken) {
     return null;
@@ -242,6 +254,7 @@ export async function getAuthUser(cookies: Cookies): Promise<AuthUser | null> {
         email: profile.email,
         name: profile.name,
         avatarUrl: profile.avatarUrl,
+        githubToken,
       };
     } catch {
       // Access tokens are short-lived; fall back to refresh-token exchange.
@@ -262,6 +275,7 @@ export async function getAuthUser(cookies: Cookies): Promise<AuthUser | null> {
       email: profile.email,
       name: profile.name,
       avatarUrl: profile.avatarUrl,
+      githubToken,
     };
   } catch {
     // Do not clear cookies on refresh failure to avoid clobbering a concurrent successful refresh response.

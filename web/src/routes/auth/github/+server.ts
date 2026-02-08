@@ -1,6 +1,6 @@
 import type { RequestHandler } from "./$types";
 import {
-  getSupabaseGoogleAuthUrl,
+  getSupabaseGitHubAuthUrl,
   setOAuthStateCookie,
   supabaseAuthConfigured,
 } from "$lib/server/auth";
@@ -11,7 +11,7 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
   }
 
   const next = url.searchParams.get("redirect") || "/vibers";
-  const { url: authUrl, state } = getSupabaseGoogleAuthUrl(next);
+  const { url: authUrl, state } = getSupabaseGitHubAuthUrl(next);
   setOAuthStateCookie(state, cookies, url.protocol === "https:");
 
   return new Response(null, {

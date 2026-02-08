@@ -4,6 +4,7 @@ import { hubClient } from "$lib/server/hub-client";
 import {
   listViberEnvironmentAssignmentsForUser,
   listEnvironmentsForUser,
+  getEnvironmentForUser,
   setViberEnvironmentForUser,
 } from "$lib/server/environments";
 import { supabaseRequest, toInFilter } from "$lib/server/supabase-rest";
@@ -22,7 +23,41 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       return json({ error: "Missing goal" }, { status: 400 });
     }
 
-    const result = await hubClient.createViber(goal, nodeId);
+    // Look up environment context if provided
+    let environment: import("$lib/server/hub-client").ViberEnvironmentContext | undefined;
+    if (environmentId && locals.user?.id) {
+      try {
+        const envDetail = await getEnvironmentForUser(locals.user.id, environmentId, {
+          includeSecretValues: true,
+        });
+        if (envDetail) {
+          const vars = envDetail.variables
+            ?.filter((v) => v.value && v.value !== "••••••••")
+            .map((v) => ({ key: v.key, value: v.value })) || [];
+
+          // Auto-inject user's GitHub token for gh CLI if not already set
+          const hasGhToken = vars.some(
+            (v) => v.key === "GH_TOKEN" || v.key === "GITHUB_TOKEN",
+          );
+          if (!hasGhToken && locals.user?.githubToken) {
+            vars.push({ key: "GH_TOKEN", value: locals.user.githubToken });
+          }
+
+          environment = {
+            name: envDetail.name,
+            repoUrl: envDetail.repoUrl ?? undefined,
+            repoOrg: envDetail.repoOrg ?? undefined,
+            repoName: envDetail.repoName ?? undefined,
+            repoBranch: envDetail.repoBranch ?? undefined,
+            variables: vars,
+          };
+        }
+      } catch (e) {
+        console.error("Failed to look up environment:", e);
+      }
+    }
+
+    const result = await hubClient.createViber(goal, nodeId, undefined, environment);
     if (!result) {
       return json({ error: "No node available or hub unreachable" }, { status: 503 });
     }

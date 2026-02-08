@@ -1,7 +1,16 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { Check, Clock, Copy, Plus, RefreshCw, Server, Trash2 } from "@lucide/svelte";
+  import {
+    Check,
+    Clock,
+    Copy,
+    Plus,
+    RefreshCw,
+    Server,
+    Trash2,
+  } from "@lucide/svelte";
   import { Button } from "$lib/components/ui/button";
+  import { Skeleton } from "$lib/components/ui/skeleton";
   import {
     Card,
     CardContent,
@@ -115,7 +124,9 @@
     if (!node.onboard_token) return;
 
     try {
-      await navigator.clipboard.writeText(getOnboardCommand(node.onboard_token));
+      await navigator.clipboard.writeText(
+        getOnboardCommand(node.onboard_token),
+      );
       copiedId = node.id;
       setTimeout(() => {
         if (copiedId === node.id) copiedId = null;
@@ -146,7 +157,11 @@
       </p>
     </div>
     <div class="flex items-center gap-2">
-      <Button variant="default" size="sm" onclick={() => (showCreateDialog = true)}>
+      <Button
+        variant="default"
+        size="sm"
+        onclick={() => (showCreateDialog = true)}
+      >
         <Plus class="size-4 mr-1" />
         Add Node
       </Button>
@@ -157,9 +172,25 @@
   </div>
 
   {#if loading}
-    <div class="text-center py-12 text-muted-foreground">Loading...</div>
+    <div class="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+      {#each Array(3) as _}
+        <div class="rounded-xl border border-border bg-card p-4 space-y-3">
+          <div class="flex items-start justify-between">
+            <div class="space-y-2 flex-1">
+              <Skeleton class="h-4 w-2/3" />
+              <Skeleton class="h-3 w-1/2" />
+            </div>
+            <Skeleton class="size-6 rounded-md shrink-0" />
+          </div>
+          <Skeleton class="h-9 w-full rounded-md" />
+          <Skeleton class="h-3 w-3/4" />
+        </div>
+      {/each}
+    </div>
   {:else if nodes.length === 0}
-    <div class="rounded-xl border border-dashed border-border px-6 py-14 text-center">
+    <div
+      class="rounded-xl border border-dashed border-border px-6 py-14 text-center"
+    >
       <Server class="mx-auto mb-4 size-10 text-muted-foreground/60" />
       <h2 class="text-lg font-medium text-foreground">No nodes yet</h2>
       <p class="mt-1 text-sm text-muted-foreground">
@@ -179,10 +210,14 @@
               <div class="min-w-0">
                 <CardTitle class="flex items-center gap-2 text-base">
                   <span class="truncate">{node.name}</span>
-                  <span class={`size-1.5 rounded-full ${statusDot(node.status)}`}></span>
+                  <span
+                    class={`size-1.5 rounded-full ${statusDot(node.status)}`}
+                  ></span>
                 </CardTitle>
                 <CardDescription class="text-xs mt-0.5">
-                  {statusLabel(node.status)} · created {formatTimeAgo(node.created_at)}
+                  {statusLabel(node.status)} · created {formatTimeAgo(
+                    node.created_at,
+                  )}
                 </CardDescription>
               </div>
               <button
@@ -212,7 +247,9 @@
               </button>
             {/if}
             {#if node.token_expires_at}
-              <p class="text-[11px] text-muted-foreground inline-flex items-center gap-1.5">
+              <p
+                class="text-[11px] text-muted-foreground inline-flex items-center gap-1.5"
+              >
                 <Clock class="size-3" />
                 Token expires {new Date(node.token_expires_at).toLocaleString()}
               </p>
@@ -225,12 +262,20 @@
 </div>
 
 {#if showCreateDialog}
-  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4">
-    <div class="w-full max-w-sm rounded-xl border border-border bg-card p-5 shadow-xl">
+  <div
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4"
+  >
+    <div
+      class="w-full max-w-sm rounded-xl border border-border bg-card p-5 shadow-xl"
+    >
       <h3 class="text-lg font-semibold text-foreground">Create Node</h3>
-      <p class="mt-1 text-sm text-muted-foreground">Register a new machine for OpenViber.</p>
+      <p class="mt-1 text-sm text-muted-foreground">
+        Register a new machine for OpenViber.
+      </p>
       <div class="mt-4 space-y-2">
-        <label for="new-node-name" class="text-xs text-muted-foreground">Node name</label>
+        <label for="new-node-name" class="text-xs text-muted-foreground"
+          >Node name</label
+        >
         <input
           id="new-node-name"
           type="text"

@@ -76,6 +76,14 @@ export type ControllerServerMessage =
     goal: string;
     options?: ViberOptions;
     messages?: { role: string; content: string }[];
+    environment?: {
+      name: string;
+      repoUrl?: string;
+      repoOrg?: string;
+      repoName?: string;
+      repoBranch?: string;
+      variables?: { key: string; value: string }[];
+    };
   }
   | { type: "task:stop"; taskId: string }
   | { type: "viber:stop"; viberId: string }
@@ -132,6 +140,14 @@ interface TaskRuntimeState {
   messageHistory: { role: string; content: string }[];
   queuedFollowups: string[];
   collectBuffer: string[];
+  environment?: {
+    name: string;
+    repoUrl?: string;
+    repoOrg?: string;
+    repoName?: string;
+    repoBranch?: string;
+    variables?: { key: string; value: string }[];
+  };
 }
 
 // ==================== Controller ====================
@@ -299,6 +315,7 @@ export class ViberController extends EventEmitter {
             goal: message.goal,
             options: message.options,
             messages: message.messages,
+            environment: message.environment,
           });
           break;
 
@@ -360,8 +377,16 @@ export class ViberController extends EventEmitter {
     goal: string;
     options?: ViberOptions;
     messages?: { role: string; content: string }[];
+    environment?: {
+      name: string;
+      repoUrl?: string;
+      repoOrg?: string;
+      repoName?: string;
+      repoBranch?: string;
+      variables?: { key: string; value: string }[];
+    };
   }): Promise<void> {
-    const { taskId, goal, options, messages } = message;
+    const { taskId, goal, options, messages, environment } = message;
 
     console.log(`[Viber] Received task: ${taskId}`);
     console.log(`[Viber] Goal: ${goal}`);
@@ -380,6 +405,7 @@ export class ViberController extends EventEmitter {
           : [{ role: "user", content: goal }],
       queuedFollowups: [],
       collectBuffer: [],
+      environment,
     };
     this.runningTasks.set(taskId, runtime);
 
@@ -459,6 +485,7 @@ export class ViberController extends EventEmitter {
         model: runtime.options?.model,
         singleAgentId: runtime.options?.singleAgentId || "default",
         signal: runtime.controller.signal,
+        environment: runtime.environment,
       },
       runtime.messageHistory
     );

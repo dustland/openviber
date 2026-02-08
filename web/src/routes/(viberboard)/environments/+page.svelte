@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { page } from "$app/stores";
+  import { Skeleton } from "$lib/components/ui/skeleton";
   import {
     ArrowRight,
     Check,
@@ -75,7 +76,10 @@
   }
 
   function isSelectedForViber(environmentId: string) {
-    return Boolean(selectedViber?.environmentId && selectedViber.environmentId === environmentId);
+    return Boolean(
+      selectedViber?.environmentId &&
+        selectedViber.environmentId === environmentId,
+    );
   }
 
   async function fetchSelectedViber() {
@@ -94,14 +98,19 @@
       id: String(payload.id || viberId),
       name: String(payload.name || "Viber"),
       environmentId:
-        typeof payload.environmentId === "string" && payload.environmentId.trim()
+        typeof payload.environmentId === "string" &&
+        payload.environmentId.trim()
           ? payload.environmentId
           : null,
     };
   }
 
   async function assignEnvironment(environmentId: string) {
-    if (!viberId || assigningEnvironmentId || isSelectedForViber(environmentId)) {
+    if (
+      !viberId ||
+      assigningEnvironmentId ||
+      isSelectedForViber(environmentId)
+    ) {
       return;
     }
 
@@ -126,7 +135,10 @@
         environmentId: payload.environmentId || null,
       };
     } catch (assignError) {
-      error = assignError instanceof Error ? assignError.message : "Failed to assign environment.";
+      error =
+        assignError instanceof Error
+          ? assignError.message
+          : "Failed to assign environment.";
     } finally {
       assigningEnvironmentId = null;
     }
@@ -153,7 +165,10 @@
 
       await fetchSelectedViber();
     } catch (loadError) {
-      error = loadError instanceof Error ? loadError.message : "Failed to load environments.";
+      error =
+        loadError instanceof Error
+          ? loadError.message
+          : "Failed to load environments.";
     } finally {
       loading = false;
     }
@@ -172,11 +187,15 @@
   <div class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
     <header class="mb-6 flex flex-wrap items-center justify-between gap-3">
       <div>
-        <p class="text-xs uppercase tracking-wide text-muted-foreground">Workspace Execution</p>
+        <p class="text-xs uppercase tracking-wide text-muted-foreground">
+          Workspace Execution
+        </p>
         <h1 class="text-2xl font-semibold text-foreground">Environments</h1>
         <p class="mt-1 text-sm text-muted-foreground">
           Configure reusable runtime settings. {#if selectedViber}
-            Select one environment for <span class="font-medium text-foreground">{selectedViber.name}</span>.
+            Select one environment for <span class="font-medium text-foreground"
+              >{selectedViber.name}</span
+            >.
           {:else}
             Open a viber workspace to bind an environment.
           {/if}
@@ -192,15 +211,38 @@
     </header>
 
     {#if loading}
-      <div class="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
-        Loading environments...
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {#each Array(3) as _}
+          <div class="rounded-xl border border-border bg-card p-4 space-y-3">
+            <div class="flex items-start justify-between">
+              <div class="space-y-2 flex-1">
+                <Skeleton class="h-4 w-1/2" />
+                <Skeleton class="h-3 w-16" />
+              </div>
+              <Skeleton class="h-5 w-16 rounded-full" />
+            </div>
+            <Skeleton class="h-3 w-full" />
+            <div class="space-y-2">
+              <Skeleton class="h-3 w-3/4" />
+              <Skeleton class="h-3 w-2/3" />
+            </div>
+            <div class="flex gap-2 pt-1">
+              <Skeleton class="h-7 w-20 rounded-md" />
+              <Skeleton class="h-7 w-28 rounded-md" />
+            </div>
+          </div>
+        {/each}
       </div>
     {:else if error}
-      <div class="rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+      <div
+        class="rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive"
+      >
         {error}
       </div>
     {:else if environments.length === 0}
-      <div class="rounded-xl border border-dashed border-border px-6 py-14 text-center">
+      <div
+        class="rounded-xl border border-dashed border-border px-6 py-14 text-center"
+      >
         <Sparkles class="mx-auto mb-4 size-10 text-muted-foreground/60" />
         <h2 class="text-lg font-medium text-foreground">No environments yet</h2>
         <p class="mt-1 text-sm text-muted-foreground">
@@ -220,8 +262,12 @@
           <article class="rounded-xl border border-border bg-card p-4">
             <div class="mb-3 flex items-start justify-between gap-3">
               <div class="min-w-0 flex-1">
-                <h2 class="truncate text-base font-semibold text-foreground">{environment.name}</h2>
-                <p class="mt-0.5 text-xs capitalize text-muted-foreground">{environment.type}</p>
+                <h2 class="truncate text-base font-semibold text-foreground">
+                  {environment.name}
+                </h2>
+                <p class="mt-0.5 text-xs capitalize text-muted-foreground">
+                  {environment.type}
+                </p>
               </div>
               {#if isSelectedForViber(environment.id)}
                 <span
@@ -234,7 +280,9 @@
             </div>
 
             {#if environment.description}
-              <p class="mb-3 line-clamp-2 text-sm text-muted-foreground">{environment.description}</p>
+              <p class="mb-3 line-clamp-2 text-sm text-muted-foreground">
+                {environment.description}
+              </p>
             {/if}
 
             <div class="space-y-2 text-xs text-muted-foreground">
@@ -256,7 +304,9 @@
               {#if environment.workingDir}
                 <div class="flex items-center gap-1.5">
                   <HardDrive class="size-3.5" />
-                  <span class="truncate font-mono text-[11px]">{environment.workingDir}</span>
+                  <span class="truncate font-mono text-[11px]"
+                    >{environment.workingDir}</span
+                  >
                 </div>
               {/if}
             </div>
@@ -275,7 +325,8 @@
                   type="button"
                   class="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs text-foreground hover:bg-muted transition-colors disabled:opacity-60"
                   onclick={() => assignEnvironment(environment.id)}
-                  disabled={Boolean(assigningEnvironmentId) || isSelectedForViber(environment.id)}
+                  disabled={Boolean(assigningEnvironmentId) ||
+                    isSelectedForViber(environment.id)}
                 >
                   {#if assigningEnvironmentId === environment.id}
                     Assigning...

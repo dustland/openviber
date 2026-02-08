@@ -34,6 +34,7 @@
       switch (msg.type) {
         case "terminal:output":
           term?.write(msg.data);
+          term?.scrollToBottom(); // Add this line to ensure auto-scrolling
           break;
         case "terminal:attached":
           attached = msg.ok;

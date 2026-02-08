@@ -16,6 +16,7 @@
     const hash = parseHashParams(window.location.hash);
     const accessToken = hash.get("access_token");
     const refreshToken = hash.get("refresh_token");
+    const providerToken = hash.get("provider_token");
 
     if (!accessToken || !refreshToken) {
       error = "Missing Supabase session tokens in callback.";
@@ -26,11 +27,18 @@
       const response = await fetch("/auth/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ accessToken, refreshToken, state }),
+        body: JSON.stringify({
+          accessToken,
+          refreshToken,
+          providerToken,
+          state,
+        }),
       });
 
       if (!response.ok) {
-        const body = (await response.json().catch(() => ({}))) as { error?: string };
+        const body = (await response.json().catch(() => ({}))) as {
+          error?: string;
+        };
         throw new Error(body.error || "Failed to create session.");
       }
 
@@ -46,14 +54,20 @@
 </svelte:head>
 
 <div class="min-h-screen flex items-center justify-center bg-background p-4">
-  <div class="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-sm text-center">
+  <div
+    class="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-sm text-center"
+  >
     {#if error}
       <h1 class="text-lg font-semibold mb-2">Sign in failed</h1>
       <p class="text-sm text-destructive">{error}</p>
-      <a class="mt-4 inline-block text-sm underline" href="/login">Back to login</a>
+      <a class="mt-4 inline-block text-sm underline" href="/login"
+        >Back to login</a
+      >
     {:else}
       <h1 class="text-lg font-semibold mb-2">Completing sign in…</h1>
-      <p class="text-sm text-muted-foreground">Please wait while we verify your Supabase session.</p>
+      <p class="text-sm text-muted-foreground">
+        Please wait while we verify your GitHub session.
+      </p>
     {/if}
   </div>
 </div>

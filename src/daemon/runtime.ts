@@ -15,11 +15,21 @@ import type { AgentConfig } from "../core/config";
 import { Agent } from "../core/agent";
 import type { ViberMessage } from "../core/message";
 
+export interface ViberEnvironmentInfo {
+  name: string;
+  repoUrl?: string;
+  repoOrg?: string;
+  repoName?: string;
+  repoBranch?: string;
+  variables?: { key: string; value: string }[];
+}
+
 export interface DaemonRunTaskOptions {
   model?: string;
   singleAgentId?: string;
   agentConfig?: AgentConfig;
   signal?: AbortSignal;
+  environment?: ViberEnvironmentInfo;
 }
 
 const __filename = fileURLToPath(import.meta.url);
@@ -86,6 +96,67 @@ export async function loadAgentConfig(
 }
 
 /**
+ * Build a system prompt section that gives the agent project/environment awareness.
+ */
+function buildEnvironmentPrompt(env: ViberEnvironmentInfo): string {
+  const lines: string[] = [];
+  lines.push(`## Environment: ${env.name}`);
+  lines.push("");
+
+  if (env.repoUrl && env.repoOrg && env.repoName) {
+    const projectDir = `~/openviber_spaces/${env.repoOrg}/${env.repoName}`;
+    const branch = env.repoBranch || "main";
+
+    lines.push(`You are working on the project **${env.repoOrg}/${env.repoName}**.`);
+    lines.push(`- GitHub repository: ${env.repoUrl}`);
+    lines.push(`- Branch: \`${branch}\``);
+    lines.push(`- Local project path: \`${projectDir}\``);
+    lines.push("");
+    lines.push("### Setup instructions");
+    lines.push(`1. Check if the project directory exists at \`${projectDir}\`.`);
+    lines.push(`2. If it does NOT exist, clone the repository:`);
+    lines.push(`   \`\`\`bash`);
+    lines.push(`   mkdir -p ~/openviber_spaces/${env.repoOrg}`);
+    lines.push(`   cd ~/openviber_spaces/${env.repoOrg}`);
+    lines.push(`   git clone ${env.repoUrl} ${env.repoName}`);
+    lines.push(`   cd ${env.repoName}`);
+    lines.push(`   git checkout ${branch}`);
+    lines.push(`   \`\`\``);
+    lines.push(`3. If it DOES exist, make sure you are on the \`${branch}\` branch and pull latest changes.`);
+    lines.push(`4. Always \`cd\` into \`${projectDir}\` before running any commands.`);
+  }
+
+  if (env.variables && env.variables.length > 0) {
+    lines.push("");
+    lines.push("### Environment variables");
+    lines.push("The following environment variables are configured for this project.");
+    lines.push("If the project has a `.env.example` file, generate a `.env` file using these values:");
+    lines.push("");
+    for (const v of env.variables) {
+      lines.push(`- \`${v.key}\`=\`${v.value}\``);
+    }
+    lines.push("");
+    lines.push("When generating the `.env` file, match the keys from `.env.example` and fill in the corresponding values from above. Leave any keys not listed above with their example/default values.");
+  }
+
+  // Detect GitHub token for gh CLI auth
+  const ghTokenVar = env.variables?.find(
+    (v) => v.key === "GH_TOKEN" || v.key === "GITHUB_TOKEN",
+  );
+  if (ghTokenVar) {
+    lines.push("");
+    lines.push("### GitHub CLI authentication");
+    lines.push("A GitHub token is available. Before using `gh` CLI commands (clone, pr create, etc.), export it:");
+    lines.push("```bash");
+    lines.push(`export GH_TOKEN="${ghTokenVar.value}"`);
+    lines.push("```");
+    lines.push("This enables `gh repo clone`, `gh pr create`, `gh issue list`, etc.");
+  }
+
+  return lines.join("\n");
+}
+
+/**
  * Run a single task: one agent, no Space, no storage.
  * Returns stream result and agent for summary.
  */
@@ -103,6 +174,7 @@ export async function runTask(
     agentConfig: overrideConfig,
     model: modelOverride,
     signal,
+    environment,
   } = options;
 
   let config = overrideConfig ?? (await loadAgentConfig(singleAgentId));
@@ -114,6 +186,16 @@ export async function runTask(
 
   if (modelOverride) {
     config = { ...config, model: modelOverride };
+  }
+
+  // Inject environment context into system prompt
+  if (environment) {
+    const envPrompt = buildEnvironmentPrompt(environment);
+    const basePrompt = config.systemPrompt || "";
+    config = {
+      ...config,
+      systemPrompt: envPrompt + "\n\n" + basePrompt,
+    };
   }
 
   const agent = new Agent(config as AgentConfig);

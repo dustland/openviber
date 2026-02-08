@@ -61,6 +61,16 @@ export interface ConnectedNode {
   runningVibers: string[];
 }
 
+/** Environment context passed to viber for project awareness */
+export interface ViberEnvironmentContext {
+  name: string;
+  repoUrl?: string;
+  repoOrg?: string;
+  repoName?: string;
+  repoBranch?: string;
+  variables?: { key: string; value: string }[];
+}
+
 /** A viber session on the hub */
 export interface HubViber {
   id: string;
@@ -111,12 +121,13 @@ export const hubClient = {
     goal: string,
     nodeId?: string,
     messages?: { role: string; content: string }[],
+    environment?: ViberEnvironmentContext,
   ): Promise<{ viberId: string; nodeId: string } | null> {
     try {
       const response = await hubFetch("/api/vibers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ goal, nodeId, messages }),
+        body: JSON.stringify({ goal, nodeId, messages, environment }),
       });
 
       if (!response.ok) {
@@ -150,12 +161,13 @@ export const hubClient = {
     viberId: string,
     messages: { role: string; content: string }[],
     goal?: string,
+    environment?: ViberEnvironmentContext,
   ): Promise<{ viberId: string; nodeId: string } | null> {
     try {
       const response = await hubFetch(`/api/vibers/${viberId}/message`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages, goal }),
+        body: JSON.stringify({ messages, goal, environment }),
       });
 
       if (!response.ok) {

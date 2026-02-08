@@ -1,44 +1,99 @@
 ---
 name: codex-cli
-version: 1.0.0
-description: Run OpenAI Codex CLI for autonomous software engineering tasks via non-interactive `codex exec`.
+version: 1.1.0
+description: Run OpenAI Codex CLI for autonomous software engineering tasks via non-interactive `codex exec` with chat-friendly outputs.
 ---
 
 # Codex CLI Skill
 
-Run the OpenAI Codex CLI (`codex`) from the viber for autonomous coding tasks. This skill uses `codex exec` (non-interactive), so it works directly from Node/AI SDK tool calls without tmux.
+Run OpenAI Codex CLI (`codex`) from Viber for autonomous coding tasks. This skill uses `codex exec` (non-interactive), which works reliably from Node/AI SDK tool calls and web UI chat workflows.
 
 ## Installation
 
-**Install Codex CLI:**
+Install Codex CLI globally:
 
 ```bash
-npm install -g @openai/codex
+pnpm add -g @openai/codex
 ```
 
-**Verify:** `codex --version`
+Then authenticate:
 
-## Tools
+```bash
+codex login
+codex --version
+```
 
-- **codex_run** — Run Codex CLI with a prompt using `codex exec`. Returns command output, exit status, and errors for follow-up reasoning.
+## Tool
 
-## Usage from viber
+- **`codex_run`** — Runs Codex CLI with a prompt, returns:
+  - `summary` (status, cwd, mode, exit code)
+  - `stdoutTail` and `stderrTail` (chat-friendly tail output)
+  - `output` (truncated combined output for deeper follow-up)
 
-When the user asks to "use codex", "run codex", or assigns a coding task that should be handled by Codex CLI, use **codex_run**. Pass the task as the `prompt` parameter.
+## Why this is web-UI friendly
 
-Example prompts:
-- `codex_run({ prompt: "Fix the failing test in src/utils.test.ts", cwd: "/path/to/repo" })`
-- `codex_run({ prompt: "Add error handling to the API endpoint in server.ts", cwd: "/path/to/repo" })`
+- Produces compact response tails so users can quickly see what happened.
+- Keeps large command output bounded to protect context windows.
+- Returns structured fields (`ok`, `summary`, `error`, `exitCode`, `command`) for robust assistant follow-up.
+- Validates environment early (Codex installed, cwd exists) with clear user-facing errors.
 
-## Approval mode
+## Parameters
 
-`codex_run` exposes `approvalMode`:
-- `full-auto` (default): runs Codex with `--full-auto`
-- `auto-edit`: writable workspace mode (without forcing `--full-auto`)
-- `suggest`: read-only suggestions (no file edits)
+- `prompt` (required): task for Codex
+- `cwd` (optional): target working directory (must exist)
+- `waitSeconds` (optional): timeout in seconds (default `90`, minimum `10`)
+- `approvalMode` (optional):
+  - `full-auto` (default): `--full-auto`
+  - `auto-edit`: writable workspace mode
+  - `suggest`: read-only suggestions
+- `model` (optional): override model (for example `gpt-5-codex`)
 
-## When to use
+## Usage from Viber
 
-- Fixing bugs or implementing features autonomously
-- As part of an automated pipeline: fetch issue → clone repo → run codex → commit → PR
-- When the user specifically asks for Codex CLI
+Use this skill when user intent is:
+
+- “use codex”
+- “run codex on this task”
+- “delegate this coding task to codex”
+
+Examples:
+
+```ts
+codex_run({
+  prompt: "Fix failing tests in src/skills/codex-cli.test.ts",
+  cwd: "/workspace/openviber",
+  approvalMode: "auto-edit",
+})
+```
+
+```ts
+codex_run({
+  prompt: "Review this repo and propose a migration plan",
+  approvalMode: "suggest",
+  waitSeconds: 120,
+})
+```
+
+## Recommended follow-up behavior in chat
+
+After calling `codex_run`:
+
+1. Show `summary` first.
+2. Include important lines from `stdoutTail` / `stderrTail`.
+3. If failed, use `error` + `command` to explain next action.
+4. Ask user whether to re-run with different `approvalMode`, `model`, or `cwd`.
+
+
+## Testing long or complex Codex tasks
+
+For real-world flows (for example multi-step repo analysis or issue-fix planning), use opt-in live tests:
+
+```bash
+OPENVIBER_RUN_LIVE_CLI_TESTS=1 pnpm test src/skills/codex-cli.integration.test.ts
+OPENVIBER_RUN_LIVE_CLI_COMPLEX_TESTS=1 pnpm test src/skills/codex-cli.integration.test.ts
+```
+
+Notes:
+- Complex live tests are `suggest` mode (read-only) by default for safety.
+- They may still fail if `codex login` has not been completed in the environment.
+- Even on failure, return shape remains structured (`summary`, `error`, tails) for UI resilience checks.

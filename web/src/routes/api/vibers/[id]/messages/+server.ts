@@ -21,6 +21,7 @@ export const GET: RequestHandler = async ({ params, url, locals }) => {
       id: row.id,
       role: row.role as "user" | "assistant" | "system",
       content: row.content,
+      parts: row.parts ?? undefined,
       createdAt: row.createdAt,
       taskId: row.taskId ?? undefined,
       threadId: row.threadId ?? undefined,
@@ -54,6 +55,7 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
           {
             role: body.role,
             content: body.content,
+            parts: body.parts,
             taskId: body.taskId ?? null,
             threadId: defaultThreadId,
           },
@@ -66,6 +68,7 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
         : input?.content != null
           ? JSON.stringify(input.content)
           : "",
+      parts: Array.isArray(input?.parts) ? input.parts : null,
       taskId:
         input?.taskId !== undefined
           ? String(input.taskId || "").trim() || null
@@ -92,6 +95,7 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
       id: row.id,
       role: row.role,
       content: row.content,
+      parts: row.parts ?? undefined,
       createdAt: row.createdAt,
       taskId: row.taskId ?? undefined,
       threadId: row.threadId ?? undefined,

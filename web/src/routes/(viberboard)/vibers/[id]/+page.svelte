@@ -11,19 +11,30 @@
     type ActivityStep,
   } from "$lib/components/ai-elements";
   import {
+    AlertCircle,
     Bot,
+    CheckCircle2,
     ChevronDown,
+    ChevronRight,
     CornerDownLeft,
     Cpu,
+    LoaderCircle,
     MessageSquare,
     Send,
     Settings2,
     Sparkles,
+    TerminalSquare,
     User,
     X,
   } from "@lucide/svelte";
   import { marked } from "marked";
   import { Button } from "$lib/components/ui/button";
+  import * as Resizable from "$lib/components/ui/resizable";
+  import {
+    Collapsible,
+    CollapsibleTrigger,
+    CollapsibleContent,
+  } from "$lib/components/ui/collapsible";
 
   // Markdown → HTML for message content (GFM, line breaks)
   marked.setOptions({ gfm: true, breaks: true });
@@ -52,6 +63,111 @@
     return getPartToolName(part) !== null;
   }
 
+  const toolStateLabels: Record<string, string> = {
+    "approval-requested": "Awaiting approval",
+    "approval-responded": "Approved",
+    "input-available": "Running",
+    "input-streaming": "Running",
+    "output-available": "Completed",
+    "output-denied": "Denied",
+    "output-error": "Error",
+  };
+
+  function getToolStateLabel(state: string): string {
+    return toolStateLabels[state] || state || "Unknown";
+  }
+
+  function isToolStateRunning(state: string): boolean {
+    return (
+      state === "approval-requested" ||
+      state === "input-available" ||
+      state === "input-streaming"
+    );
+  }
+
+  function isToolStateError(state: string): boolean {
+    return state === "output-error" || state === "output-denied";
+  }
+
+  function getToolInputSummary(part: any): string | undefined {
+    const input = part?.input;
+    if (!input || typeof input !== "object") return undefined;
+    return (
+      input.command ||
+      input.path ||
+      input.query ||
+      input.url ||
+      input.goal ||
+      input.prompt ||
+      undefined
+    );
+  }
+
+  function formatToolOutputValue(label: string, value: unknown): string | null {
+    if (value === undefined || value === null) {
+      return null;
+    }
+    if (typeof value === "string") {
+      return value.trim().length > 0 ? `${label}\n${value}` : null;
+    }
+    try {
+      return `${label}\n${JSON.stringify(value, null, 2)}`;
+    } catch {
+      return `${label}\n${String(value)}`;
+    }
+  }
+
+  function extractToolOutputText(part: any): string {
+    const sections: string[] = [];
+    const inputSummary = getToolInputSummary(part);
+    if (inputSummary) {
+      sections.push(`Input\n${inputSummary}`);
+    }
+
+    if (part?.errorText) {
+      sections.push(`Error\n${String(part.errorText)}`);
+    }
+
+    const output = part?.output;
+    if (typeof output === "string") {
+      if (output.trim().length > 0) {
+        sections.push(`Output\n${output}`);
+      }
+    } else if (output && typeof output === "object") {
+      const obj = output as Record<string, unknown>;
+      const preferred = [
+        "summary",
+        "stdoutTail",
+        "stderrTail",
+        "output",
+        "stderr",
+        "text",
+        "result",
+      ];
+
+      for (const key of preferred) {
+        const section = formatToolOutputValue(key, obj[key]);
+        if (section) {
+          sections.push(section);
+        }
+      }
+
+      if (sections.length === 0) {
+        const section = formatToolOutputValue("Output", output);
+        if (section) {
+          sections.push(section);
+        }
+      }
+    } else if (output !== undefined) {
+      const section = formatToolOutputValue("Output", output);
+      if (section) {
+        sections.push(section);
+      }
+    }
+
+    return sections.join("\n\n").trim();
+  }
+
   interface ViberSkill {
     id: string;
     name: string;
@@ -78,7 +194,18 @@
     id: string;
     role: "user" | "assistant" | "system";
     content: string;
+    parts?: any[] | null;
     createdAt: Date;
+  }
+
+  interface ToolOutputEntry {
+    id: string;
+    messageId: string;
+    toolName: string;
+    state: string;
+    output: string;
+    summary?: string;
+    createdAt?: Date;
   }
 
   let viber = $state<Viber | null>(null);
@@ -109,6 +236,9 @@
   // Whether auto-scroll is active (disabled when user scrolls up manually)
   let userScrolledUp = $state(false);
   let lastScrollHeight = $state(0);
+  let toolOutputContainer = $state<HTMLDivElement | null>(null);
+  let toolOutputUserScrolledUp = $state(false);
+  let selectedToolOutputId = $state<string | null>(null);
 
   function scrollToBottom(behavior: ScrollBehavior = "smooth") {
     if (!messagesContainer || userScrolledUp) return;
@@ -126,6 +256,23 @@
     const atBottom = scrollHeight - scrollTop - clientHeight < 80;
     userScrolledUp = !atBottom;
   }
+
+  function scrollToolOutputToBottom(behavior: ScrollBehavior = "smooth") {
+    if (!toolOutputContainer || toolOutputUserScrolledUp) return;
+    toolOutputContainer.scrollTo({
+      top: toolOutputContainer.scrollHeight,
+      behavior,
+    });
+  }
+
+  function handleToolOutputScroll() {
+    if (!toolOutputContainer) return;
+    const { scrollTop, scrollHeight, clientHeight } = toolOutputContainer;
+    const atBottom = scrollHeight - scrollTop - clientHeight < 40;
+    toolOutputUserScrolledUp = !atBottom;
+  }
+
+  // no longer needed - accordion toggle is handled inline
 
   // Scroll on new messages (count change) — always re-engage
   $effect(() => {
@@ -147,7 +294,12 @@
     const lastMsg = msgs[msgs.length - 1];
     const _contentLen =
       lastMsg?.parts
-        ?.map((p: any) => (p.text?.length ?? 0) + (p.reasoning?.length ?? 0))
+        ?.map(
+          (p: any) =>
+            (p.text?.length ?? 0) +
+            (p.reasoning?.length ?? 0) +
+            (isToolPart(p) ? extractToolOutputText(p).length : 0),
+        )
         .reduce((a: number, b: number) => a + b, 0) ?? 0;
     // This effect re-runs whenever _contentLen changes during streaming
     tick().then(() => scrollToBottom("instant"));
@@ -183,11 +335,13 @@
           id: string;
           role: string;
           content: string;
+          parts?: unknown[];
           createdAt: string | number;
         }) => ({
           id: m.id,
           role: m.role as "user" | "assistant" | "system",
           content: m.content,
+          parts: Array.isArray(m.parts) ? (m.parts as any[]) : null,
           createdAt:
             typeof m.createdAt === "number"
               ? new Date(m.createdAt)
@@ -312,7 +466,10 @@
         messages: dbMessages.map((m) => ({
           id: m.id,
           role: m.role as "user" | "assistant" | "system",
-          parts: [{ type: "text" as const, text: m.content }],
+          parts:
+            Array.isArray(m.parts) && m.parts.length > 0
+              ? m.parts
+              : [{ type: "text" as const, text: m.content }],
         })) as any[],
         onFinish: async ({ message, isAbort, isDisconnect, isError }: any) => {
           // Don't save if the response was aborted, disconnected, or errored
@@ -327,7 +484,10 @@
               ?.filter((p: any) => p.type === "text")
               .map((p: any) => p.text)
               .join("\n") || "";
-          if (textParts) {
+          const messageParts = Array.isArray(message?.parts)
+            ? message.parts
+            : [];
+          if (textParts || messageParts.length > 0) {
             try {
               await fetch(`/api/vibers/${viber!.id}/messages`, {
                 method: "POST",
@@ -335,6 +495,7 @@
                 body: JSON.stringify({
                   role: "assistant",
                   content: textParts,
+                  parts: messageParts,
                 }),
               });
             } catch (_) {
@@ -412,9 +573,47 @@
     return dbMessages.map((m) => ({
       id: m.id,
       role: m.role,
-      parts: [{ type: "text" as const, text: m.content }],
+      parts:
+        Array.isArray(m.parts) && m.parts.length > 0
+          ? m.parts
+          : [{ type: "text" as const, text: m.content }],
       createdAt: m.createdAt,
     }));
+  });
+
+  let toolOutputEntries = $derived.by((): ToolOutputEntry[] => {
+    const entries: ToolOutputEntry[] = [];
+    for (const message of displayMessages as any[]) {
+      if (message.role !== "assistant") continue;
+      const parts = Array.isArray(message.parts) ? message.parts : [];
+      parts.forEach((part: any, index: number) => {
+        const toolName = getPartToolName(part);
+        if (!toolName) return;
+        entries.push({
+          id: `${message.id}:${index}:${toolName}`,
+          messageId: message.id,
+          toolName,
+          state: part.state || "input-available",
+          output: extractToolOutputText(part),
+          summary: getToolInputSummary(part),
+          createdAt:
+            (message.createdAt && new Date(message.createdAt)) || undefined,
+        });
+      });
+    }
+    return entries;
+  });
+
+  // Auto-open the latest running tool during streaming
+  $effect(() => {
+    if (!sending) return;
+    if (toolOutputEntries.length === 0) return;
+    const running = [...toolOutputEntries]
+      .reverse()
+      .find((entry) => isToolStateRunning(entry.state));
+    if (running) {
+      selectedToolOutputId = running.id;
+    }
   });
 
   $effect(() => {
@@ -462,285 +661,407 @@
 </svelte:head>
 
 <div class="chat-shell flex-1 flex flex-col min-h-0 overflow-hidden">
-  <!-- Messages -->
-  <div
-    bind:this={messagesContainer}
-    class="chat-scroll flex-1 min-h-0 overflow-y-auto"
-    onscroll={handleScroll}
-  >
-    {#if loading}
+  <Resizable.PaneGroup direction="horizontal" class="flex-1 min-h-0">
+    <Resizable.Pane defaultSize={65} minSize={35} class="min-h-0 flex flex-col">
+      <!-- Messages -->
       <div
-        class="h-full flex items-center justify-center text-center text-muted-foreground"
+        bind:this={messagesContainer}
+        class="chat-scroll flex-1 min-h-0 overflow-y-auto"
+        onscroll={handleScroll}
       >
-        Loading...
-      </div>
-    {:else if !viber?.isConnected}
-      <div
-        class="h-full flex items-center justify-center text-center text-muted-foreground p-4"
-      >
-        <div>
-          <Cpu class="size-12 mx-auto mb-4 opacity-50" />
-          <p class="text-lg font-medium">Viber is Offline</p>
-          <p class="text-sm mt-2 max-w-sm">
-            This viber is not currently connected. Start the viber daemon to
-            chat.
-          </p>
-        </div>
-      </div>
-    {:else if displayMessages.length === 0}
-      <div class="h-full flex flex-col items-center justify-center py-12 px-4">
-        <div class="text-center mb-8">
+        {#if loading}
           <div
-            class="inline-flex items-center justify-center size-12 rounded-full bg-primary/10 text-primary mb-4"
+            class="h-full flex items-center justify-center text-center text-muted-foreground"
           >
-            <Sparkles class="size-6" />
+            Loading...
           </div>
-          <h2 class="text-xl font-semibold text-foreground mb-2">
-            What can I help you with?
-          </h2>
-          <p class="text-sm text-muted-foreground max-w-md">
-            Start a conversation with your viber. Try one of the suggestions
-            below or type your own message.
-          </p>
-        </div>
-
-        <div class="grid gap-2 w-full max-w-lg">
-          <button
-            type="button"
-            class="flex items-start gap-3 p-3 rounded-lg border border-border bg-card hover:bg-accent/50 text-left transition-colors group"
-            onclick={() =>
-              sendMessage("What can you do? List your capabilities.")}
+        {:else if !viber?.isConnected}
+          <div
+            class="h-full flex items-center justify-center text-center text-muted-foreground p-4"
           >
-            <MessageSquare
-              class="size-5 text-muted-foreground group-hover:text-foreground shrink-0 mt-0.5"
-            />
             <div>
-              <p class="text-sm font-medium text-foreground">
-                What can you do?
-              </p>
-              <p class="text-xs text-muted-foreground">
-                List your capabilities and available skills
+              <Cpu class="size-12 mx-auto mb-4 opacity-50" />
+              <p class="text-lg font-medium">Viber is Offline</p>
+              <p class="text-sm mt-2 max-w-sm">
+                This viber is not currently connected. Start the viber daemon to
+                chat.
               </p>
             </div>
-          </button>
-
-          <button
-            type="button"
-            class="flex items-start gap-3 p-3 rounded-lg border border-border bg-card hover:bg-accent/50 text-left transition-colors group"
-            onclick={() =>
-              sendMessage("Help me understand the current project structure.")}
+          </div>
+        {:else if displayMessages.length === 0}
+          <div
+            class="h-full flex flex-col items-center justify-center py-12 px-4"
           >
-            <MessageSquare
-              class="size-5 text-muted-foreground group-hover:text-foreground shrink-0 mt-0.5"
-            />
-            <div>
-              <p class="text-sm font-medium text-foreground">
-                Explore the project
-              </p>
-              <p class="text-xs text-muted-foreground">
-                Understand the current project structure
+            <div class="text-center mb-8">
+              <div
+                class="inline-flex items-center justify-center size-12 rounded-full bg-primary/10 text-primary mb-4"
+              >
+                <Sparkles class="size-6" />
+              </div>
+              <h2 class="text-xl font-semibold text-foreground mb-2">
+                What can I help you with?
+              </h2>
+              <p class="text-sm text-muted-foreground max-w-md">
+                Start a conversation with your viber. Try one of the suggestions
+                below or type your own message.
               </p>
             </div>
-          </button>
 
-          <button
-            type="button"
-            class="flex items-start gap-3 p-3 rounded-lg border border-border bg-card hover:bg-accent/50 text-left transition-colors group"
-            onclick={() =>
-              sendMessage("Run the dev server and show me the output.")}
-          >
-            <MessageSquare
-              class="size-5 text-muted-foreground group-hover:text-foreground shrink-0 mt-0.5"
-            />
-            <div>
-              <p class="text-sm font-medium text-foreground">Run dev server</p>
-              <p class="text-xs text-muted-foreground">
-                Start the development server and monitor output
-              </p>
+            <div class="grid gap-2 w-full max-w-lg">
+              <button
+                type="button"
+                class="flex items-start gap-3 p-3 rounded-lg border border-border bg-card hover:bg-accent/50 text-left transition-colors group"
+                onclick={() =>
+                  sendMessage("What can you do? List your capabilities.")}
+              >
+                <MessageSquare
+                  class="size-5 text-muted-foreground group-hover:text-foreground shrink-0 mt-0.5"
+                />
+                <div>
+                  <p class="text-sm font-medium text-foreground">
+                    What can you do?
+                  </p>
+                  <p class="text-xs text-muted-foreground">
+                    List your capabilities and available skills
+                  </p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                class="flex items-start gap-3 p-3 rounded-lg border border-border bg-card hover:bg-accent/50 text-left transition-colors group"
+                onclick={() =>
+                  sendMessage(
+                    "Help me understand the current project structure.",
+                  )}
+              >
+                <MessageSquare
+                  class="size-5 text-muted-foreground group-hover:text-foreground shrink-0 mt-0.5"
+                />
+                <div>
+                  <p class="text-sm font-medium text-foreground">
+                    Explore the project
+                  </p>
+                  <p class="text-xs text-muted-foreground">
+                    Understand the current project structure
+                  </p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                class="flex items-start gap-3 p-3 rounded-lg border border-border bg-card hover:bg-accent/50 text-left transition-colors group"
+                onclick={() =>
+                  sendMessage("Run the dev server and show me the output.")}
+              >
+                <MessageSquare
+                  class="size-5 text-muted-foreground group-hover:text-foreground shrink-0 mt-0.5"
+                />
+                <div>
+                  <p class="text-sm font-medium text-foreground">
+                    Run dev server
+                  </p>
+                  <p class="text-xs text-muted-foreground">
+                    Start the development server and monitor output
+                  </p>
+                </div>
+              </button>
+
+              {#if viber.skills && viber.skills.length > 0}
+                <div class="mt-2 pt-2 border-t border-border/50">
+                  <p class="text-xs text-muted-foreground mb-2 px-1">
+                    Available skills:
+                  </p>
+                  <div class="flex flex-wrap gap-1.5">
+                    {#each viber.skills as skill}
+                      <button
+                        type="button"
+                        class="rounded-full border border-border bg-muted/40 px-2.5 py-1 text-[11px] text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                        onclick={() => insertSkillTemplate(skill)}
+                        title={skill.description}
+                      >
+                        {skill.name}
+                      </button>
+                    {/each}
+                  </div>
+                </div>
+              {/if}
             </div>
-          </button>
+          </div>
+        {:else}
+          <div class="px-3 py-6 sm:px-5">
+            <div class="mx-auto w-full max-w-4xl space-y-5">
+              {#each displayMessages as message (message.id)}
+                <div
+                  class="message-row flex {message.role === 'user'
+                    ? 'justify-end user-row'
+                    : 'justify-start assistant-row'}"
+                >
+                  {#if message.role !== "user"}
+                    <div
+                      class="message-avatar assistant-avatar"
+                      aria-hidden="true"
+                    >
+                      <Bot class="size-4" />
+                    </div>
+                  {/if}
 
-          {#if viber.skills && viber.skills.length > 0}
-            <div class="mt-2 pt-2 border-t border-border/50">
-              <p class="text-xs text-muted-foreground mb-2 px-1">
-                Available skills:
-              </p>
-              <div class="flex flex-wrap gap-1.5">
+                  <div
+                    class="message-bubble max-w-[90%] sm:max-w-[82%] rounded-2xl px-4 py-3 {message.role ===
+                    'user'
+                      ? 'user-bubble bg-primary text-primary-foreground'
+                      : 'assistant-bubble bg-card text-foreground'}"
+                  >
+                    {#each message.parts as part, i}
+                      {#if part.type === "text" && (part as any).text}
+                        <div class="message-markdown">
+                          {@html renderMarkdown((part as any).text)}
+                        </div>
+                      {:else if part.type === "reasoning"}
+                        <Reasoning
+                          content={(part as any).reasoning ||
+                            (part as any).text ||
+                            ""}
+                          isStreaming={false}
+                        />
+                      {:else if isToolPart(part)}
+                        {@const toolName = getPartToolName(part)}
+                        {@const toolPart = part as any}
+                        {#if toolName}
+                          <ToolCall
+                            {toolName}
+                            toolState={toolPart.state || "input-available"}
+                            input={toolPart.input}
+                            output={toolPart.output}
+                            errorText={toolPart.errorText}
+                          />
+                        {/if}
+                      {/if}
+                    {/each}
+                    <p class="text-[11px] mt-2 opacity-60 tracking-wide">
+                      {new Date(
+                        (message as any).createdAt || Date.now(),
+                      ).toLocaleTimeString()}
+                    </p>
+                  </div>
+
+                  {#if message.role === "user"}
+                    <div class="message-avatar user-avatar" aria-hidden="true">
+                      <User class="size-4" />
+                    </div>
+                  {/if}
+                </div>
+              {/each}
+
+              {#if sending && (!chat?.messages || chat.messages.length === 0 || chat.messages[chat.messages.length - 1]?.role === "user")}
+                <div class="message-row flex justify-start assistant-row">
+                  <div
+                    class="message-avatar assistant-avatar"
+                    aria-hidden="true"
+                  >
+                    <Bot class="size-4" />
+                  </div>
+                  <div
+                    class="message-bubble max-w-[90%] sm:max-w-[82%] rounded-2xl px-4 py-3 assistant-bubble bg-card text-foreground"
+                  >
+                    {#if sessionStartedAt}
+                      <SessionIndicator
+                        startedAt={sessionStartedAt}
+                        steps={activitySteps}
+                      />
+                    {:else}
+                      <div
+                        class="flex items-center gap-2 text-sm text-muted-foreground"
+                      >
+                        <Sparkles class="size-4 animate-pulse" />
+                        <span>Starting...</span>
+                      </div>
+                    {/if}
+                  </div>
+                </div>
+              {/if}
+            </div>
+          </div>
+        {/if}
+      </div>
+
+      <div class="chat-composer-wrap p-3 shrink-0 sm:p-4">
+        <div class="mx-auto w-full max-w-4xl space-y-3">
+          <!-- Persistent session activity bar for long-running tasks -->
+          {#if sending && sessionStartedAt}
+            <SessionIndicator
+              startedAt={sessionStartedAt}
+              steps={activitySteps}
+            />
+          {/if}
+
+          {#if viber?.skills && viber.skills.length > 0 && displayMessages.length > 0}
+            <div class="overflow-x-auto pb-0.5">
+              <div class="flex items-center gap-1.5 flex-wrap">
                 {#each viber.skills as skill}
                   <button
                     type="button"
-                    class="rounded-full border border-border bg-muted/40 px-2.5 py-1 text-[11px] text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                    class="rounded-full border border-border bg-muted/40 px-2.5 py-1 text-[11px] text-muted-foreground hover:text-foreground hover:bg-muted transition-colors whitespace-nowrap"
                     onclick={() => insertSkillTemplate(skill)}
                     title={skill.description}
                   >
-                    {skill.name}
+                    Use {skill.name}...
                   </button>
                 {/each}
               </div>
             </div>
           {/if}
-        </div>
-      </div>
-    {:else}
-      <div class="px-3 py-6 sm:px-5">
-        <div class="mx-auto w-full max-w-4xl space-y-5">
-          {#each displayMessages as message (message.id)}
-            <div
-              class="message-row flex {message.role === 'user'
-                ? 'justify-end user-row'
-                : 'justify-start assistant-row'}"
+
+          <div
+            class="composer-card flex gap-2.5 items-end rounded-2xl border border-border bg-background/95 px-3 py-2.5 shadow-sm backdrop-blur"
+          >
+            <button
+              type="button"
+              class="size-10 shrink-0 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors {configError
+                ? 'text-amber-500'
+                : ''}"
+              onclick={() => (showConfigDialog = true)}
+              title="Agent config"
             >
-              {#if message.role !== "user"}
-                <div class="message-avatar assistant-avatar" aria-hidden="true">
-                  <Bot class="size-4" />
-                </div>
-              {/if}
-
-              <div
-                class="message-bubble max-w-[90%] sm:max-w-[82%] rounded-2xl px-4 py-3 {message.role ===
-                'user'
-                  ? 'user-bubble bg-primary text-primary-foreground'
-                  : 'assistant-bubble bg-card text-foreground'}"
-              >
-                {#each message.parts as part, i}
-                  {#if part.type === "text" && (part as any).text}
-                    <div class="message-markdown">
-                      {@html renderMarkdown((part as any).text)}
-                    </div>
-                  {:else if part.type === "reasoning"}
-                    <Reasoning
-                      content={(part as any).reasoning ||
-                        (part as any).text ||
-                        ""}
-                      isStreaming={false}
-                    />
-                  {:else if isToolPart(part)}
-                    {@const toolName = getPartToolName(part)}
-                    {@const toolPart = part as any}
-                    {#if toolName}
-                      <ToolCall
-                        {toolName}
-                        toolState={toolPart.state || "input-available"}
-                        input={toolPart.input}
-                        output={toolPart.output}
-                        errorText={toolPart.errorText}
-                      />
-                    {/if}
-                  {/if}
-                {/each}
-                <p class="text-[11px] mt-2 opacity-60 tracking-wide">
-                  {new Date(
-                    (message as any).createdAt || Date.now(),
-                  ).toLocaleTimeString()}
-                </p>
-              </div>
-
-              {#if message.role === "user"}
-                <div class="message-avatar user-avatar" aria-hidden="true">
-                  <User class="size-4" />
-                </div>
-              {/if}
-            </div>
-          {/each}
-
-          {#if sending && (!chat?.messages || chat.messages.length === 0 || chat.messages[chat.messages.length - 1]?.role === "user")}
-            <div class="message-row flex justify-start assistant-row">
-              <div class="message-avatar assistant-avatar" aria-hidden="true">
-                <Bot class="size-4" />
-              </div>
-              <div
-                class="message-bubble max-w-[90%] sm:max-w-[82%] rounded-2xl px-4 py-3 assistant-bubble bg-card text-foreground"
-              >
-                {#if sessionStartedAt}
-                  <SessionIndicator
-                    startedAt={sessionStartedAt}
-                    steps={activitySteps}
-                  />
-                {:else}
-                  <div
-                    class="flex items-center gap-2 text-sm text-muted-foreground"
-                  >
-                    <Sparkles class="size-4 animate-pulse" />
-                    <span>Starting...</span>
-                  </div>
-                {/if}
-              </div>
-            </div>
-          {/if}
+              <Settings2 class="size-4" />
+            </button>
+            <textarea
+              bind:this={inputEl}
+              bind:value={inputValue}
+              onkeydown={handleKeydown}
+              placeholder={configError
+                ? "Agent config missing — run openviber onboard first"
+                : viber?.isConnected
+                  ? "Send a task or command..."
+                  : "Viber is offline"}
+              class="composer-input flex-1 min-h-[40px] max-h-36 resize-none rounded-xl border border-transparent bg-transparent px-2 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
+              rows="1"
+              disabled={sending || !viber?.isConnected || !!configError}
+            ></textarea>
+            <Button
+              onclick={() => sendMessage()}
+              disabled={sending ||
+                !inputValue.trim() ||
+                !viber?.isConnected ||
+                !!configError}
+              class="size-10 shrink-0 rounded-xl"
+            >
+              <Send class="size-4" />
+            </Button>
+          </div>
+          <p
+            class="flex items-center gap-1.5 px-1 text-[11px] text-muted-foreground"
+          >
+            <CornerDownLeft class="size-3" />
+            Press Enter to send, Shift + Enter for a new line.
+          </p>
         </div>
       </div>
-    {/if}
-  </div>
+    </Resizable.Pane>
 
-  <div class="chat-composer-wrap p-3 shrink-0 sm:p-4">
-    <div class="mx-auto w-full max-w-4xl space-y-3">
-      <!-- Persistent session activity bar for long-running tasks -->
-      {#if sending && sessionStartedAt}
-        <SessionIndicator startedAt={sessionStartedAt} steps={activitySteps} />
-      {/if}
+    <Resizable.Handle withHandle class="hidden lg:flex" />
 
-      {#if viber?.skills && viber.skills.length > 0 && displayMessages.length > 0}
-        <div class="overflow-x-auto pb-0.5">
-          <div class="flex items-center gap-1.5 flex-wrap">
-            {#each viber.skills as skill}
-              <button
-                type="button"
-                class="rounded-full border border-border bg-muted/40 px-2.5 py-1 text-[11px] text-muted-foreground hover:text-foreground hover:bg-muted transition-colors whitespace-nowrap"
-                onclick={() => insertSkillTemplate(skill)}
-                title={skill.description}
+    <Resizable.Pane
+      defaultSize={35}
+      minSize={20}
+      maxSize={55}
+      class="hidden min-h-0 lg:block"
+    >
+      <aside class="tool-pane flex h-full min-h-0 flex-col bg-background/70">
+        <div class="border-b border-border/60 px-3 py-2.5 shrink-0">
+          <div class="flex items-center gap-2">
+            <TerminalSquare class="size-4 text-muted-foreground" />
+            <p class="text-sm font-medium text-foreground">Tool Output</p>
+            {#if sending}
+              <span
+                class="ml-auto rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-500"
               >
-                Use {skill.name}...
-              </button>
-            {/each}
+                Live
+              </span>
+            {/if}
           </div>
         </div>
-      {/if}
 
-      <div
-        class="composer-card flex gap-2.5 items-end rounded-2xl border border-border bg-background/95 px-3 py-2.5 shadow-sm backdrop-blur"
-      >
-        <button
-          type="button"
-          class="size-10 shrink-0 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors {configError
-            ? 'text-amber-500'
-            : ''}"
-          onclick={() => (showConfigDialog = true)}
-          title="Agent config"
-        >
-          <Settings2 class="size-4" />
-        </button>
-        <textarea
-          bind:this={inputEl}
-          bind:value={inputValue}
-          onkeydown={handleKeydown}
-          placeholder={configError
-            ? "Agent config missing — run openviber onboard first"
-            : viber?.isConnected
-              ? "Send a task or command..."
-              : "Viber is offline"}
-          class="composer-input flex-1 min-h-[40px] max-h-36 resize-none rounded-xl border border-transparent bg-transparent px-2 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
-          rows="1"
-          disabled={sending || !viber?.isConnected || !!configError}
-        ></textarea>
-        <Button
-          onclick={() => sendMessage()}
-          disabled={sending ||
-            !inputValue.trim() ||
-            !viber?.isConnected ||
-            !!configError}
-          class="size-10 shrink-0 rounded-xl"
-        >
-          <Send class="size-4" />
-        </Button>
-      </div>
-      <p
-        class="flex items-center gap-1.5 px-1 text-[11px] text-muted-foreground"
-      >
-        <CornerDownLeft class="size-3" />
-        Press Enter to send, Shift + Enter for a new line.
-      </p>
-    </div>
-  </div>
+        {#if toolOutputEntries.length === 0}
+          <div class="flex flex-1 items-center justify-center px-4 text-center">
+            <p class="text-xs text-muted-foreground">
+              No tool output yet. Run a tool call to see live logs here.
+            </p>
+          </div>
+        {:else}
+          <div
+            bind:this={toolOutputContainer}
+            class="flex-1 min-h-0 overflow-y-auto p-1.5"
+            onscroll={handleToolOutputScroll}
+          >
+            <div class="space-y-1">
+              {#each toolOutputEntries as entry (entry.id)}
+                <Collapsible open={selectedToolOutputId === entry.id}>
+                  <CollapsibleTrigger
+                    class="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-muted/60 {selectedToolOutputId ===
+                    entry.id
+                      ? 'bg-muted/50'
+                      : ''}"
+                    onclick={() => {
+                      selectedToolOutputId =
+                        selectedToolOutputId === entry.id ? null : entry.id;
+                    }}
+                  >
+                    <ChevronRight
+                      class="size-3.5 shrink-0 text-muted-foreground transition-transform duration-200 {selectedToolOutputId ===
+                      entry.id
+                        ? 'rotate-90'
+                        : ''}"
+                    />
+                    {#if isToolStateRunning(entry.state)}
+                      <LoaderCircle
+                        class="size-3.5 shrink-0 animate-spin text-amber-500"
+                      />
+                    {:else if isToolStateError(entry.state)}
+                      <AlertCircle class="size-3.5 shrink-0 text-red-500" />
+                    {:else}
+                      <CheckCircle2
+                        class="size-3.5 shrink-0 text-emerald-500"
+                      />
+                    {/if}
+                    <div class="min-w-0 flex-1">
+                      <p
+                        class="truncate text-[12px] font-medium text-foreground"
+                      >
+                        {entry.toolName}
+                      </p>
+                      {#if entry.summary}
+                        <p class="truncate text-[10px] text-muted-foreground">
+                          {entry.summary}
+                        </p>
+                      {/if}
+                    </div>
+                    <span class="shrink-0 text-[10px] text-muted-foreground">
+                      {getToolStateLabel(entry.state)}
+                    </span>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div
+                      class="ml-3 mr-1 mb-1 rounded-md border border-border/50 bg-black/[0.03] dark:bg-white/[0.03]"
+                    >
+                      {#if entry.output}
+                        <pre
+                          class="whitespace-pre-wrap break-words p-3 font-mono text-[11px] leading-relaxed text-foreground/85">{entry.output}</pre>
+                      {:else}
+                        <p class="p-3 text-[11px] text-muted-foreground">
+                          Waiting for output...
+                        </p>
+                      {/if}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              {/each}
+            </div>
+          </div>
+        {/if}
+      </aside>
+    </Resizable.Pane>
+  </Resizable.PaneGroup>
 </div>
 
 <!-- Agent Config Dialog -->

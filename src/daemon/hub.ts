@@ -68,15 +68,19 @@ interface Viber {
   completedAt?: Date;
   events: ViberEvent[];
   partialText?: string;
+  streamChunks: string[];
+  streamBytes: number;
 }
 
 export class HubServer {
+  private static readonly MAX_STREAM_BUFFER_BYTES = 2_000_000;
+
   private server: ReturnType<typeof createServer> | null = null;
   private wss: WebSocketServer | null = null;
   private nodes: Map<string, ConnectedNode> = new Map();
   private vibers: Map<string, Viber> = new Map();
-  // SSE stream subscribers per viber: responses waiting for stream chunks
-  private streamSubscribers: Map<string, { res: ServerResponse; buffer: string[] }[]> = new Map();
+  // Active SSE stream subscribers per viber.
+  private streamSubscribers: Map<string, ServerResponse[]> = new Map();
 
   constructor(private config: HubConfig) { }
 
@@ -295,6 +299,8 @@ export class HubServer {
           createdAt: new Date(),
           events: [],
           partialText: "",
+          streamChunks: [],
+          streamBytes: 0,
         };
         this.vibers.set(viberId, viber);
 
@@ -382,6 +388,8 @@ export class HubServer {
         viber.error = undefined;
         viber.events = [];
         viber.partialText = "";
+        viber.streamChunks = [];
+        viber.streamBytes = 0;
         if (goal) viber.goal = goal;
 
         // Close old stream subscribers so the new request gets a fresh stream
@@ -443,30 +451,6 @@ export class HubServer {
       return;
     }
 
-    // If viber is already completed/error, return immediately with any buffered data
-    if (viber.status === "completed" || viber.status === "error" || viber.status === "stopped") {
-      res.writeHead(200, {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        "Connection": "keep-alive",
-        "x-vercel-ai-ui-message-stream": "v1",
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Expose-Headers": "x-vercel-ai-ui-message-stream",
-      });
-      // Write any buffered stream data
-      const subscribers = this.streamSubscribers.get(viberId);
-      if (subscribers && subscribers.length > 0) {
-        const buffers = subscribers[0]?.buffer;
-        if (buffers) {
-          for (const chunk of buffers) {
-            res.write(chunk);
-          }
-        }
-      }
-      res.end();
-      return;
-    }
-
     // Set SSE headers with AI SDK stream protocol marker
     res.writeHead(200, {
       "Content-Type": "text/event-stream",
@@ -477,26 +461,27 @@ export class HubServer {
       "Access-Control-Expose-Headers": "x-vercel-ai-ui-message-stream",
     });
 
-    // Register as a stream subscriber
+    // Replay stream chunks that were emitted before this SSE subscriber connected.
+    for (const chunk of viber.streamChunks) {
+      res.write(chunk);
+    }
+
+    // If viber is already completed/error/stopped, replay and close immediately.
+    if (viber.status === "completed" || viber.status === "error" || viber.status === "stopped") {
+      res.end();
+      return;
+    }
+
+    // Register as an active subscriber for live chunks.
     if (!this.streamSubscribers.has(viberId)) {
       this.streamSubscribers.set(viberId, []);
     }
     const subs = this.streamSubscribers.get(viberId)!;
-
-    // If there's buffered data from chunks that arrived before this SSE connected, replay it
-    const existing = subs.find(s => s.buffer.length > 0);
-    const buffered = existing ? [...existing.buffer] : [];
-    const subscriber = { res, buffer: buffered };
-    subs.push(subscriber);
-
-    // Write buffered chunks
-    for (const chunk of buffered) {
-      res.write(chunk);
-    }
+    subs.push(res);
 
     // Handle client disconnect
     req.on("close", () => {
-      const idx = subs.indexOf(subscriber);
+      const idx = subs.indexOf(res);
       if (idx >= 0) subs.splice(idx, 1);
       if (subs.length === 0) this.streamSubscribers.delete(viberId);
     });
@@ -683,17 +668,28 @@ export class HubServer {
    * Handle viber:stream-chunk — pipe raw AI SDK SSE bytes to SSE subscribers.
    */
   private handleViberStreamChunk(viberId: string, chunk: string): void {
-    if (!this.streamSubscribers.has(viberId)) {
-      // No subscribers yet; buffer the chunk on first subscriber slot
-      this.streamSubscribers.set(viberId, [{ res: null as any, buffer: [chunk] }]);
+    const viber = this.vibers.get(viberId);
+    if (!viber) {
       return;
     }
 
-    const subs = this.streamSubscribers.get(viberId)!;
+    // Buffer chunks on the viber itself so late subscribers can replay the stream.
+    viber.streamChunks.push(chunk);
+    viber.streamBytes += Buffer.byteLength(chunk);
+    while (
+      viber.streamChunks.length > 0 &&
+      viber.streamBytes > HubServer.MAX_STREAM_BUFFER_BYTES
+    ) {
+      const removed = viber.streamChunks.shift();
+      if (removed) {
+        viber.streamBytes -= Buffer.byteLength(removed);
+      }
+    }
+
+    const subs = this.streamSubscribers.get(viberId) || [];
     for (const sub of subs) {
-      sub.buffer.push(chunk);
-      if (sub.res && !sub.res.writableEnded) {
-        sub.res.write(chunk);
+      if (!sub.writableEnded) {
+        sub.write(chunk);
       }
     }
   }
@@ -705,8 +701,8 @@ export class HubServer {
     const subs = this.streamSubscribers.get(viberId);
     if (subs) {
       for (const sub of subs) {
-        if (sub.res && !sub.res.writableEnded) {
-          sub.res.end();
+        if (!sub.writableEnded) {
+          sub.end();
         }
       }
       this.streamSubscribers.delete(viberId);

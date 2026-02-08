@@ -106,18 +106,71 @@
   let chat = $state<any>(null);
   let chatInitialized = $state(false);
 
+  // Whether auto-scroll is active (disabled when user scrolls up manually)
+  let userScrolledUp = $state(false);
+  let lastScrollHeight = $state(0);
+
+  function scrollToBottom(behavior: ScrollBehavior = "smooth") {
+    if (!messagesContainer || userScrolledUp) return;
+    messagesContainer.scrollTo({
+      top: messagesContainer.scrollHeight,
+      behavior,
+    });
+  }
+
+  // Detect when user manually scrolls away from bottom
+  function handleScroll() {
+    if (!messagesContainer) return;
+    const { scrollTop, scrollHeight, clientHeight } = messagesContainer;
+    // Consider "at bottom" if within 80px of the bottom edge
+    const atBottom = scrollHeight - scrollTop - clientHeight < 80;
+    userScrolledUp = !atBottom;
+  }
+
+  // Scroll on new messages (count change) — always re-engage
   $effect(() => {
-    // Track chat messages length and dbMessages to trigger scroll on new messages
     const _chatLen = chat?.messages?.length ?? 0;
     const _dbLen = dbMessages.length;
+    // New message added → re-engage auto-scroll
+    userScrolledUp = false;
     if (messagesContainer) {
-      tick().then(() => {
-        messagesContainer?.scrollTo({
-          top: messagesContainer.scrollHeight,
-          behavior: "smooth",
-        });
-      });
+      tick().then(() => scrollToBottom("smooth"));
     }
+  });
+
+  // Scroll during streaming — react to content growth within existing messages
+  $effect(() => {
+    if (!sending || !messagesContainer) return;
+    // Track the text length of the last assistant message to detect streaming growth
+    const msgs = chat?.messages;
+    if (!msgs || msgs.length === 0) return;
+    const lastMsg = msgs[msgs.length - 1];
+    const _contentLen =
+      lastMsg?.parts
+        ?.map((p: any) => (p.text?.length ?? 0) + (p.reasoning?.length ?? 0))
+        .reduce((a: number, b: number) => a + b, 0) ?? 0;
+    // This effect re-runs whenever _contentLen changes during streaming
+    tick().then(() => scrollToBottom("instant"));
+  });
+
+  // MutationObserver: catch DOM expansions not covered by reactive state
+  // (e.g., markdown rendering, images loading, tool card expansion)
+  $effect(() => {
+    if (!messagesContainer) return;
+    const observer = new MutationObserver(() => {
+      if (!messagesContainer) return;
+      const newHeight = messagesContainer.scrollHeight;
+      if (newHeight !== lastScrollHeight) {
+        lastScrollHeight = newHeight;
+        scrollToBottom("instant");
+      }
+    });
+    observer.observe(messagesContainer, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
+    return () => observer.disconnect();
   });
 
   async function fetchMessages(viberId: string) {
@@ -413,6 +466,7 @@
   <div
     bind:this={messagesContainer}
     class="chat-scroll flex-1 min-h-0 overflow-y-auto"
+    onscroll={handleScroll}
   >
     {#if loading}
       <div
@@ -885,7 +939,8 @@
   }
 
   :global(.message-markdown) {
-    line-height: 1.6;
+    font-size: 0.875rem;
+    line-height: 1.65;
   }
   :global(.message-markdown p) {
     margin-bottom: 0.5rem;

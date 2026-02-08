@@ -113,21 +113,6 @@
     }
   }
 
-  function getStatusLabel(status: string): string {
-    switch (status as ViberStatus) {
-      case "running":
-        return "Running";
-      case "completed":
-        return "Done";
-      case "error":
-        return "Error";
-      case "stopped":
-        return "Stopped";
-      default:
-        return "Pending";
-    }
-  }
-
   async function archiveViber(viberId: string, event: MouseEvent) {
     event.preventDefault();
     event.stopPropagation();
@@ -349,7 +334,7 @@
                               isActive={pathname.startsWith(
                                 `/vibers/${viber.id}`,
                               )}
-                              class="h-10 -translate-x-0 gap-2.5 rounded-xl px-3 pr-20 text-[13px] font-medium text-sidebar-foreground/85 hover:bg-sidebar-accent/75 data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-foreground data-[active=true]:shadow-[inset_0_0_0_1px_hsl(var(--sidebar-border)/0.65)]"
+                              class="h-10 -translate-x-0 gap-2.5 rounded-xl px-3 pr-10 text-[13px] font-medium text-sidebar-foreground/85 hover:bg-sidebar-accent/75 data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-foreground data-[active=true]:shadow-[inset_0_0_0_1px_hsl(var(--sidebar-border)/0.65)]"
                             >
                               {#snippet child({ props })}
                                 <div class="group/viber relative w-full">
@@ -375,11 +360,6 @@
                                       {viber.goal.length > 42
                                         ? viber.goal.slice(0, 42) + "…"
                                         : viber.goal || viber.id}
-                                    </span>
-                                    <span
-                                      class="ml-auto shrink-0 text-[11px] font-medium text-sidebar-foreground/55 transition-opacity group-data-[collapsible=icon]:hidden group-hover/viber:opacity-0 group-focus-within/viber:opacity-0"
-                                    >
-                                      {getStatusLabel(viber.status)}
                                     </span>
                                   </a>
                                   <button

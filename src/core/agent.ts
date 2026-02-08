@@ -39,6 +39,7 @@ export interface AgentResponse {
  * No subclasses needed - behavior is entirely config-driven
  */
 import { defaultRegistry } from "../skills/registry";
+import "../skills"; // trigger registerDefaultSkills() side-effect
 
 /**
  * Config-driven Agent implementation
@@ -115,7 +116,16 @@ export class Agent {
   }
 
   /**
-   * Ensure skills are loaded from registry
+   * Ensure skills are loaded from registry.
+   *
+   * Skills provide two things:
+   * 1. Instructions (from SKILL.md) — injected into the system prompt for
+   *    progressive discovery: the agent learns WHEN and HOW to use a skill.
+   * 2. Tools — callable functions registered in the skill registry.
+   *
+   * These are decoupled: instructions require SKILL.md on disk, but tools
+   * may already be pre-registered (via preRegisterTools) and should always
+   * be loaded even if the SKILL.md isn't found.
    */
   private async ensureSkillsLoaded(): Promise<void> {
     if (this.skillsLoaded) return;
@@ -124,7 +134,7 @@ export class Agent {
       const instructionParts: string[] = [];
 
       for (const skillId of this.skills) {
-        // Load skill metadata and instructions
+        // 1. Progressive discovery: try to load SKILL.md instructions
         const skill = await defaultRegistry.loadSkill(skillId);
         if (skill) {
           console.log(`[Agent] Loaded skill '${skillId}' with ${skill.instructions ? 'instructions' : 'no instructions'}`);
@@ -133,14 +143,23 @@ export class Agent {
           if (skill.instructions) {
             instructionParts.push(skill.instructions);
           }
+        } else {
+          console.warn(`[Agent] Skill '${skillId}' metadata not found (SKILL.md missing), will still try pre-registered tools`);
+        }
 
-          // Load tools
+        // 2. Tool loading: always try, independent of SKILL.md discovery
+        try {
           const tools = await defaultRegistry.getTools(skillId);
           const toolNames = Object.keys(tools);
-          console.log(`[Agent] Skill '${skillId}' provides ${toolNames.length} tools: ${toolNames.join(', ')}`);
-          Object.assign(this.loadedSkillTools, tools);
-        } else {
-          console.warn(`[Agent] Skill '${skillId}' not found`);
+          if (toolNames.length > 0) {
+            console.log(`[Agent] Skill '${skillId}' provides ${toolNames.length} tools: ${toolNames.join(', ')}`);
+            Object.assign(this.loadedSkillTools, tools);
+          }
+        } catch {
+          // No tools available (neither pre-registered nor dynamically loaded)
+          if (!skill) {
+            console.warn(`[Agent] Skill '${skillId}' has no metadata and no tools — skipping entirely`);
+          }
         }
       }
 

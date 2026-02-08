@@ -83,13 +83,14 @@ export class SkillRegistry {
    * Get tools for a specific skill (lazy load module)
    */
   async getTools(skillId: string, config?: any): Promise<Record<string, CoreTool>> {
+    // Check pre-registered tools first (from preRegisterTools()) before requiring skill metadata
+    if (this.loadedTools.has(skillId)) {
+      return this.loadedTools.get(skillId)!;
+    }
+
     const skill = this.skills.get(skillId);
     if (!skill) {
       throw new Error(`Skill ${skillId} not found`);
-    }
-
-    if (this.loadedTools.has(skillId)) {
-      return this.loadedTools.get(skillId)!;
     }
 
     // Import index.ts

@@ -4,10 +4,14 @@ import { getAuthUser } from "$lib/server/auth";
 // Only these routes require authentication
 const PROTECTED_PATHS = [
   "/vibers",
+  "/skills",
+  "/jobs",
   "/api/vibers",
   "/api/nodes",
   "/api/environments",
   "/api/threads",
+  "/api/skills",
+  "/api/jobs",
 ];
 
 // These paths are excluded from auth even if they match a protected prefix

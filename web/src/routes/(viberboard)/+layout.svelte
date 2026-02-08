@@ -10,6 +10,7 @@
   import * as Sidebar from "$lib/components/ui/sidebar";
   import {
     Archive,
+    CalendarClock,
     ChevronDown,
     ChevronRight,
     Circle,
@@ -17,6 +18,7 @@
     FolderGit2,
     LoaderCircle,
     Plus,
+    Puzzle,
     Server,
   } from "@lucide/svelte";
   import {
@@ -92,6 +94,12 @@
   );
   const isEnvironmentsRoute = $derived(
     pathname === "/environments" || pathname.startsWith("/environments/"),
+  );
+  const isSkillsRoute = $derived(
+    pathname === "/skills" || pathname.startsWith("/skills/"),
+  );
+  const isJobsRoute = $derived(
+    pathname === "/jobs" || pathname.startsWith("/jobs/"),
   );
 
   const user = $derived(($page.data?.user as SessionUser | undefined) || null);
@@ -291,6 +299,34 @@
                   <FolderGit2 class="size-4 shrink-0" />
                   <span class="truncate group-data-[collapsible=icon]:hidden"
                     >Environments</span
+                  >
+                </a>
+              </Sidebar.MenuButton>
+            </Sidebar.MenuItem>
+
+            <Sidebar.MenuItem>
+              <Sidebar.MenuButton
+                isActive={isSkillsRoute}
+                tooltipContent="Skills"
+              >
+                <a href="/skills" class="w-full inline-flex items-center gap-2">
+                  <Puzzle class="size-4 shrink-0" />
+                  <span class="truncate group-data-[collapsible=icon]:hidden"
+                    >Skills</span
+                  >
+                </a>
+              </Sidebar.MenuButton>
+            </Sidebar.MenuItem>
+
+            <Sidebar.MenuItem>
+              <Sidebar.MenuButton
+                isActive={isJobsRoute}
+                tooltipContent="Jobs"
+              >
+                <a href="/jobs" class="w-full inline-flex items-center gap-2">
+                  <CalendarClock class="size-4 shrink-0" />
+                  <span class="truncate group-data-[collapsible=icon]:hidden"
+                    >Jobs</span
                   >
                 </a>
               </Sidebar.MenuButton>

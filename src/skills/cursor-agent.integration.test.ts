@@ -78,7 +78,7 @@ describe("cursor-agent skill integration", () => {
     expect(shape?.goal).toBeDefined();
   });
 
-  it("cursor_agent_run execute returns shape { ok, output?, error?, cwd } (when run)", async () => {
+  it("cursor_agent_run execute returns shape { ok, status, output?, error?, cwd } (when run)", async () => {
     // Run the tool with a minimal goal and short wait to verify it executes.
     // Requires tmux and Cursor CLI; skip if not available or in CI.
     const tools = getCursorAgentTools();
@@ -92,8 +92,11 @@ describe("cursor-agent skill integration", () => {
     expect(result).toHaveProperty("ok");
     expect(typeof result.ok).toBe("boolean");
     expect(result).toHaveProperty("cwd");
+    expect(result).toHaveProperty("status");
+    expect(["completed", "timed_out", "error"]).toContain(result.status);
     if (result.ok) {
       expect(result).toHaveProperty("output");
+      expect(result).toHaveProperty("outputTail");
     } else {
       expect(result).toHaveProperty("error");
     }

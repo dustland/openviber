@@ -66,6 +66,9 @@ export class Agent {
   public skills: string[];
   public personality?: string;
 
+  // Execution limits
+  public maxSteps: number;
+
   // Working mode
   public mode: "always_ask" | "agent_decides" | "always_execute";
   public requireApproval: Set<string>;
@@ -111,6 +114,7 @@ export class Agent {
     this.tools = config.tools || [];
     this.skills = config.skills || [];
     this.personality = config.personality;
+    this.maxSteps = config.maxSteps ?? 10;
     this.mode = resolveWorkingMode(config);
     this.requireApproval = resolveRequireApprovalTools(config);
   }
@@ -482,7 +486,7 @@ export class Agent {
       messages: modelMessages,
       tools,
       toolChoice: "auto", // Explicitly set tool choice mode
-      stopWhen: stepCountIs(10), // Enable multi-step: continue until no more tool calls or 10 steps
+      stopWhen: stepCountIs(this.maxSteps), // Enable multi-step: continue until no more tool calls or maxSteps reached
       temperature: this.temperature,
       maxOutputTokens: this.maxTokens,
       topP: this.topP,

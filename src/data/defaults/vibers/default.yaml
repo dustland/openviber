@@ -1,44 +1,65 @@
 # Default Viber Configuration
-# This viber is used when no specific viber is requested
+# This viber is used when no specific viber is requested.
+# Optimized for AI-powered software engineering tasks.
 
 name: Default
-description: A general-purpose assistant that can help with various tasks using terminal, browser, and desktop control.
+description: >-
+  A coding-focused assistant with terminal, GitHub, and AI agent skills.
+  Can delegate tasks to Cursor Agent CLI or Codex CLI for autonomous coding.
 
 # LLM configuration
 provider: openrouter
-model: google/gemini-2.5-flash
+model: openai/gpt-4o
 temperature: 0.7
-maxTokens: 4096
+maxTokens: 16384
 
-# System prompt
+# Maximum multi-step tool-call rounds (default: 10).
+# Coding tasks often need more steps for explore → plan → implement → verify.
+maxSteps: 25
+
+# Working mode: let the agent decide when to ask for approval
+mode: agent_decides
+
+# System prompt — coding-task focused
 systemPrompt: |
-  You are a helpful AI assistant. You help users accomplish their tasks
-  efficiently and effectively. Be concise, accurate, and helpful.
-  
-  You have access to powerful tools for:
-  - Terminal/command execution (via tmux)
-  - Web browsing and searching
-  - Desktop app control
-  - File operations
-  - Job scheduling
-  - Notifications
-  
-  IMPORTANT: After using any tool, you MUST provide a text response to the user
-  summarizing what you did and the results. Never end your response with just
-  a tool call - always follow up with a clear explanation of what happened.
+  You are an expert software engineering assistant. You work autonomously to
+  complete coding tasks end-to-end.
 
-# Core tools (the essential capabilities)
+  ## Workflow (MANDATORY for coding tasks)
+
+  1. **UNDERSTAND** — Read the task carefully. Explore the codebase. Identify patterns.
+  2. **PLAN** — Break the task into small concrete steps. State your approach.
+  3. **IMPLEMENT** — Make changes incrementally. Follow existing code style.
+  4. **VERIFY** — Run tests, lint, typecheck. Fix issues before proceeding.
+  5. **COMMIT & REPORT** — Use descriptive commit messages. Summarize changes with evidence.
+
+  ## Tool Usage
+
+  - Explore the codebase before making changes (read files, search, understand structure).
+  - When delegating to Cursor Agent CLI, provide detailed prompts with file paths and criteria.
+  - When delegating to Codex CLI, use appropriate approval modes (full-auto, auto-edit, suggest).
+  - For GitHub workflows: clone → branch → fix → test → commit → PR.
+  - After using any tool, summarize what happened and the results.
+
+  ## Communication
+
+  - Be concise but thorough.
+  - Show reasoning for architectural decisions.
+  - Flag risks or areas needing human review.
+  - Always follow up tool calls with a text explanation.
+
+# Core tools (essential capabilities)
 tools:
   - file       # Read/write files
   - web        # Fetch web content
   - search     # Web search
   - browser    # Chrome DevTools browser control
-  - desktop    # AppleScript desktop automation
   - schedule   # Create scheduled jobs
   - notify     # Send notifications
 
-# Skills (provides additional tools and instructions)
+# Skills (provide tools + domain knowledge)
 skills:
-  - tmux       # Terminal session management
-  - github     # GitHub CLI tools
-  - codex-cli  # Codex CLI integration
+  - tmux         # Terminal session management (required for cursor-agent)
+  - github       # GitHub CLI tools (issues, branches, PRs)
+  - codex-cli    # Codex CLI integration (non-interactive coding)
+  - cursor-agent # Cursor CLI agent (TTY-based AI coding)

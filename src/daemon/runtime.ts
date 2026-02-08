@@ -4,13 +4,16 @@
  * No Space, no DataAdapter, no Storage. Loads a single agent config from file
  * and runs streamText. Viber Board owns persistence and context; daemon only
  * orchestrates local skills and the LLM.
+ *
+ * Personalization: Loads the three-file pattern (soul.md, user.md, memory.md)
+ * from ~/.openviber/ and injects them into every request for agent context.
  */
 
 import * as fs from "fs/promises";
 import * as path from "path";
 import { fileURLToPath } from "url";
 import * as yaml from "yaml";
-import { getViberPath } from "../config";
+import { getViberPath, getViberRoot } from "../config";
 import type { AgentConfig } from "../core/config";
 import { Agent } from "../core/agent";
 import type { ViberMessage } from "../core/message";
@@ -41,6 +44,132 @@ const DEFAULTS_VIBERS_DIR = path.join(
   "defaults",
   "vibers"
 );
+
+// ==================== Personalization ====================
+
+/**
+ * Read a file if it exists, returning its content or null.
+ */
+async function readFileIfExists(filePath: string): Promise<string | null> {
+  try {
+    return await fs.readFile(filePath, "utf8");
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Load the three-file personalization context (soul.md, user.md, memory.md).
+ *
+ * - soul.md is per-viber: ~/.openviber/vibers/{viberId}/soul.md
+ * - user.md is shared:    ~/.openviber/user.md
+ * - memory.md is per-viber: ~/.openviber/vibers/{viberId}/memory.md
+ *
+ * Falls back to root-level soul.md/memory.md if per-viber files don't exist.
+ */
+export async function loadPersonalization(viberId: string = "default"): Promise<string> {
+  const root = getViberRoot();
+  const viberDir = path.join(root, "vibers", viberId);
+
+  // soul.md: per-viber first, then root fallback
+  const soul =
+    (await readFileIfExists(path.join(viberDir, "soul.md"))) ??
+    (await readFileIfExists(path.join(root, "soul.md")));
+
+  // user.md: always shared at root level
+  const user = await readFileIfExists(path.join(root, "user.md"));
+
+  // memory.md: per-viber first, then root fallback
+  const memory =
+    (await readFileIfExists(path.join(viberDir, "memory.md"))) ??
+    (await readFileIfExists(path.join(root, "memory.md")));
+
+  const sections: string[] = [];
+
+  if (soul) {
+    sections.push(`<soul>\n${soul.trim()}\n</soul>`);
+  }
+  if (user) {
+    sections.push(`<user>\n${user.trim()}\n</user>`);
+  }
+  if (memory) {
+    sections.push(`<memory>\n${memory.trim()}\n</memory>`);
+  }
+
+  return sections.join("\n\n");
+}
+
+// ==================== Coding Task System Prompt ====================
+
+/**
+ * System prompt for AI coding tasks.
+ *
+ * Follows best practices for agentic coding workflows:
+ * 1. Plan before coding
+ * 2. Implement incrementally
+ * 3. Verify changes (tests, lint, typecheck)
+ * 4. Report with evidence
+ * 5. Git best practices (branch, commit, push)
+ */
+const CODING_TASK_SYSTEM_PROMPT = `You are an expert software engineering assistant. You work autonomously to complete coding tasks end-to-end.
+
+## Workflow (MANDATORY for coding tasks)
+
+Follow this systematic approach for every coding task:
+
+### 1. UNDERSTAND
+- Read the task/issue carefully. Identify acceptance criteria.
+- Explore the codebase: read relevant files, understand the architecture.
+- Check for existing patterns, conventions, and test suites.
+
+### 2. PLAN
+- Break the task into small, concrete steps.
+- Identify which files need changes and why.
+- Consider edge cases and potential regressions.
+- If the task is ambiguous, state your interpretation before proceeding.
+
+### 3. IMPLEMENT
+- Make changes incrementally — one logical change at a time.
+- Follow existing code style and conventions.
+- Add or update tests alongside code changes.
+- Keep changes minimal and focused on the task.
+
+### 4. VERIFY
+- Run the project's test suite after making changes.
+- Run linting and type checking if available.
+- Review your own changes for correctness and completeness.
+- If tests fail, debug and fix before proceeding.
+
+### 5. COMMIT & REPORT
+- Use descriptive commit messages (conventional commits preferred).
+- Summarize what was changed, why, and any caveats.
+- Reference issue numbers when applicable.
+- Report evidence: test results, lint output, before/after behavior.
+
+## Git Best Practices
+
+- Create feature branches for changes (e.g. \`fix/issue-123\`, \`feat/add-widget\`).
+- Make small, focused commits — one logical change per commit.
+- Write clear commit messages: \`type(scope): description\`
+- Push changes and create PRs when appropriate.
+- Never force-push to shared branches without explicit permission.
+
+## Tool Usage
+
+- Use tools proactively to explore the codebase before making changes.
+- When delegating to Cursor Agent CLI, provide clear, specific prompts.
+- When using GitHub tools, follow the clone → branch → fix → commit → PR workflow.
+- Verify tool results before proceeding to the next step.
+
+## Communication
+
+- Be concise but thorough in status updates.
+- Show your reasoning when making architectural decisions.
+- Flag risks, trade-offs, or areas needing human review.
+- If you get stuck, explain what you tried and where you're blocked.
+`;
+
+// ==================== Config Loading ====================
 
 /**
  * Load agent config from file (no DataAdapter).
@@ -75,20 +204,20 @@ export async function loadAgentConfig(
     if (fromUser) return fromUser;
   }
 
-  // Fallback: in-code default so daemon works out of the box (clawdbot-alike)
+  // Fallback: in-code default so daemon works out of the box
   if (agentId === "default") {
     return {
       id: "default",
       name: "Default",
-      description: "General-purpose assistant with local skills.",
+      description: "General-purpose coding assistant with local skills.",
       provider: "openrouter",
-      model: "openai/gpt-4o", // Changed from "google/gemini-2.5-flash"
+      model: "openai/gpt-4o",
       temperature: 0.7,
-      maxTokens: 4096,
-      systemPrompt:
-        "You are a helpful AI assistant. You help users accomplish their tasks efficiently and effectively. Be concise, accurate, and helpful.",
+      maxTokens: 16384,
+      maxSteps: 25,
+      systemPrompt: CODING_TASK_SYSTEM_PROMPT,
       tools: [],
-      skills: ["github", "codex-cli", "tmux"],
+      skills: ["github", "codex-cli", "cursor-agent", "tmux"],
     } as AgentConfig;
   }
 
@@ -157,8 +286,49 @@ function buildEnvironmentPrompt(env: ViberEnvironmentInfo): string {
 }
 
 /**
+ * Build the complete system prompt for a daemon task.
+ *
+ * Layers (in order):
+ * 1. Personalization (soul.md, user.md, memory.md) — if configured
+ * 2. Environment context (repo, branch, variables) — if provided
+ * 3. Agent's own system prompt (from config)
+ */
+async function buildDaemonSystemPrompt(
+  config: AgentConfig,
+  agentId: string,
+  environment?: ViberEnvironmentInfo,
+): Promise<string> {
+  const sections: string[] = [];
+
+  // 1. Personalization
+  try {
+    const personalization = await loadPersonalization(agentId);
+    if (personalization) {
+      sections.push(personalization);
+    }
+  } catch (err) {
+    console.warn("[Runtime] Failed to load personalization:", err);
+  }
+
+  // 2. Environment context
+  if (environment) {
+    sections.push(buildEnvironmentPrompt(environment));
+  }
+
+  // 3. Agent system prompt
+  if (config.systemPrompt) {
+    sections.push(config.systemPrompt);
+  }
+
+  return sections.join("\n\n");
+}
+
+/**
  * Run a single task: one agent, no Space, no storage.
  * Returns stream result and agent for summary.
+ *
+ * Loads personalization context, environment info, and agent config
+ * then streams the response via AI SDK.
  */
 export async function runTask(
   goal: string,
@@ -188,15 +358,13 @@ export async function runTask(
     config = { ...config, model: modelOverride };
   }
 
-  // Inject environment context into system prompt
-  if (environment) {
-    const envPrompt = buildEnvironmentPrompt(environment);
-    const basePrompt = config.systemPrompt || "";
-    config = {
-      ...config,
-      systemPrompt: envPrompt + "\n\n" + basePrompt,
-    };
-  }
+  // Build the full system prompt with personalization + environment + agent prompt
+  const systemPrompt = await buildDaemonSystemPrompt(
+    config,
+    singleAgentId,
+    environment,
+  );
+  config = { ...config, systemPrompt: systemPrompt };
 
   const agent = new Agent(config as AgentConfig);
 

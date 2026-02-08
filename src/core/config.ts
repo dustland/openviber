@@ -29,6 +29,8 @@ export interface AgentConfig {
   personality?: string;
   temperature?: number;
   maxTokens?: number;
+  /** Maximum number of multi-step tool-call rounds (default: 10) */
+  maxSteps?: number;
   topP?: number;
   frequencyPenalty?: number;
   presencePenalty?: number;

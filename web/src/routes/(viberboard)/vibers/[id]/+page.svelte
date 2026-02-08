@@ -261,10 +261,16 @@
           role: m.role as "user" | "assistant" | "system",
           parts: [{ type: "text" as const, text: m.content }],
         })) as any[],
-        onFinish: async (message: any) => {
+        onFinish: async ({ message, isAbort, isDisconnect, isError }: any) => {
+          // Don't save if the response was aborted, disconnected, or errored
+          if (isAbort || isDisconnect || isError) {
+            sending = false;
+            sessionStartedAt = null;
+            return;
+          }
           // Persist assistant's response to DB once streaming completes
           const textParts =
-            message.parts
+            message?.parts
               ?.filter((p: any) => p.type === "text")
               .map((p: any) => p.text)
               .join("\n") || "";
@@ -660,9 +666,7 @@
               : "Viber is offline"}
           class="composer-input flex-1 min-h-[40px] max-h-36 resize-none rounded-xl border border-transparent bg-transparent px-2 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
           rows="1"
-          disabled={sending ||
-            !viber?.isConnected ||
-            !!configError}
+          disabled={sending || !viber?.isConnected || !!configError}
         ></textarea>
         <Button
           onclick={() => sendMessage()}

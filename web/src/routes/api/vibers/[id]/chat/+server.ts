@@ -47,19 +47,28 @@ export const POST: RequestHandler = async ({ params, request }) => {
       }))
       .filter((m: any) => m.content);
 
-    // Look up which node this viber belongs to
+    // Try to send message to existing viber on the hub first
     const existingViber = await hubClient.getViber(params.id);
-    const nodeId = existingViber?.nodeId;
+    let viberId: string;
 
-    // 1. Create viber on the hub (submits to the node)
-    const result = await hubClient.createViber(goal, nodeId, simpleMessages);
-    if (!result) {
-      return json({ error: "Failed to create viber on hub" }, { status: 503 });
+    if (existingViber) {
+      // Viber exists on hub — send message to it
+      const result = await hubClient.sendMessage(params.id, simpleMessages, goal);
+      if (!result) {
+        return json({ error: "Failed to send message to viber" }, { status: 503 });
+      }
+      viberId = result.viberId;
+    } else {
+      // Viber doesn't exist on hub yet — create it
+      // Find a node to run it on (first available)
+      const result = await hubClient.createViber(goal, undefined, simpleMessages);
+      if (!result) {
+        return json({ error: "Failed to create viber on hub" }, { status: 503 });
+      }
+      viberId = result.viberId;
     }
 
-    const { viberId } = result;
-
-    // 2. Connect to hub's SSE stream for this viber
+    // Connect to hub's SSE stream for this viber
     // Small delay to let the daemon start processing
     await new Promise((resolve) => setTimeout(resolve, 100));
 

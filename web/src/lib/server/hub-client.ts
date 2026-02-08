@@ -145,6 +145,31 @@ export const hubClient = {
     }
   },
 
+  /** Send a message to an existing viber */
+  async sendMessage(
+    viberId: string,
+    messages: { role: string; content: string }[],
+    goal?: string,
+  ): Promise<{ viberId: string; nodeId: string } | null> {
+    try {
+      const response = await hubFetch(`/api/vibers/${viberId}/message`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages, goal }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || `Hub returned ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("[HubClient] Failed to send message:", error);
+      return null;
+    }
+  },
+
   /** Stop a viber */
   async stopViber(viberId: string): Promise<boolean> {
     try {

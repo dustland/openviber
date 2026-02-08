@@ -189,6 +189,12 @@ export class HubServer {
       const viberId = url.pathname.split("/").pop()!;
       this.handleGetViber(viberId, res);
     } else if (
+      url.pathname.match(/^\/api\/vibers\/[^/]+\/message$/) &&
+      method === "POST"
+    ) {
+      const viberId = url.pathname.split("/")[3];
+      this.handleSendMessage(viberId, req, res);
+    } else if (
       url.pathname.match(/^\/api\/vibers\/[^/]+\/stop$/) &&
       method === "POST"
     ) {
@@ -341,6 +347,62 @@ export class HubServer {
         isNodeConnected: !!node,
       })
     );
+  }
+
+  /**
+   * POST /api/vibers/:id/message - Send a message to an existing viber.
+   * Reuses the viber ID, resets its status, and sends the messages to the node.
+   */
+  private handleSendMessage(viberId: string, req: IncomingMessage, res: ServerResponse): void {
+    const viber = this.vibers.get(viberId);
+    if (!viber) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Viber not found" }));
+      return;
+    }
+
+    const node = this.nodes.get(viber.nodeId);
+    if (!node) {
+      res.writeHead(503, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Node not connected" }));
+      return;
+    }
+
+    let body = "";
+    req.on("data", (chunk) => (body += chunk));
+    req.on("end", () => {
+      try {
+        const { messages, goal } = JSON.parse(body);
+
+        // Reset viber state for the new message
+        viber.status = "pending";
+        viber.completedAt = undefined;
+        viber.result = undefined;
+        viber.error = undefined;
+        viber.events = [];
+        viber.partialText = "";
+        if (goal) viber.goal = goal;
+
+        // Close old stream subscribers so the new request gets a fresh stream
+        this.closeStreamSubscribers(viberId);
+
+        // Send message to the node daemon
+        node.ws.send(
+          JSON.stringify({
+            type: "viber:create",
+            viberId,
+            goal: goal || viber.goal,
+            messages,
+          })
+        );
+
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ viberId, nodeId: node.id }));
+      } catch (error) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Invalid request body" }));
+      }
+    });
   }
 
   private handleStopViber(viberId: string, res: ServerResponse): void {

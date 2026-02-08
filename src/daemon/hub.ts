@@ -82,7 +82,7 @@ export class HubServer {
   // Active SSE stream subscribers per viber.
   private streamSubscribers: Map<string, ServerResponse[]> = new Map();
 
-  constructor(private config: HubConfig) { }
+  constructor(private config: HubConfig) {}
 
   async start(): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -92,7 +92,7 @@ export class HubServer {
         if (err.code === "EADDRINUSE") {
           console.error(`[Hub] Port ${this.config.port} is already in use.`);
           console.error(
-            `[Hub] Kill the existing process with: lsof -ti :${this.config.port} | xargs kill`
+            `[Hub] Kill the existing process with: lsof -ti :${this.config.port} | xargs kill`,
           );
           reject(err);
         } else {
@@ -168,7 +168,7 @@ export class HubServer {
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     res.setHeader(
       "Access-Control-Allow-Headers",
-      "Content-Type, Authorization"
+      "Content-Type, Authorization",
     );
 
     if (method === "OPTIONS") {
@@ -229,7 +229,7 @@ export class HubServer {
         status: "ok",
         nodes: this.nodes.size,
         vibers: this.vibers.size,
-      })
+      }),
     );
   }
 
@@ -323,7 +323,7 @@ export class HubServer {
             goal,
             messages,
             environment,
-          })
+          }),
         );
 
         res.writeHead(200, { "Content-Type": "application/json" });
@@ -363,7 +363,7 @@ export class HubServer {
         eventCount: viber.events.length,
         partialText: viber.partialText,
         isNodeConnected: !!node,
-      })
+      }),
     );
   }
 
@@ -371,7 +371,11 @@ export class HubServer {
    * POST /api/vibers/:id/message - Send a message to an existing viber.
    * Reuses the viber ID, resets its status, and sends the messages to the node.
    */
-  private handleSendMessage(viberId: string, req: IncomingMessage, res: ServerResponse): void {
+  private handleSendMessage(
+    viberId: string,
+    req: IncomingMessage,
+    res: ServerResponse,
+  ): void {
     const viber = this.vibers.get(viberId);
     if (!viber) {
       res.writeHead(404, { "Content-Type": "application/json" });
@@ -414,7 +418,7 @@ export class HubServer {
             goal: goal || viber.goal,
             messages,
             environment,
-          })
+          }),
         );
 
         res.writeHead(200, { "Content-Type": "application/json" });
@@ -485,9 +489,13 @@ export class HubServer {
           name: String(name).trim(),
           schedule: String(schedule).trim(),
           prompt: String(prompt).trim(),
-          ...(description != null && { description: String(description).trim() }),
+          ...(description != null && {
+            description: String(description).trim(),
+          }),
           ...(model != null && { model: String(model).trim() }),
-          ...(config.nodeId != null && { nodeId: String(config.nodeId).trim() }),
+          ...(config.nodeId != null && {
+            nodeId: String(config.nodeId).trim(),
+          }),
         };
         node.ws.send(JSON.stringify(message));
         res.writeHead(200, { "Content-Type": "application/json" });
@@ -507,7 +515,11 @@ export class HubServer {
    * GET /api/vibers/:id/stream - SSE endpoint for AI SDK data stream.
    * Holds the response open and pipes viber stream chunks from the daemon.
    */
-  private handleStreamViber(viberId: string, req: IncomingMessage, res: ServerResponse): void {
+  private handleStreamViber(
+    viberId: string,
+    req: IncomingMessage,
+    res: ServerResponse,
+  ): void {
     const viber = this.vibers.get(viberId);
     if (!viber) {
       res.writeHead(404, { "Content-Type": "application/json" });
@@ -519,7 +531,7 @@ export class HubServer {
     res.writeHead(200, {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",
-      "Connection": "keep-alive",
+      Connection: "keep-alive",
       "x-vercel-ai-ui-message-stream": "v1",
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Expose-Headers": "x-vercel-ai-ui-message-stream",
@@ -531,7 +543,11 @@ export class HubServer {
     }
 
     // If viber is already completed/error/stopped, replay and close immediately.
-    if (viber.status === "completed" || viber.status === "error" || viber.status === "stopped") {
+    if (
+      viber.status === "completed" ||
+      viber.status === "error" ||
+      viber.status === "stopped"
+    ) {
       res.end();
       return;
     }
@@ -692,7 +708,7 @@ export class HubServer {
 
   private normalizeProgressEvent(
     viberId: string,
-    payload: any
+    payload: any,
   ): ViberProgressEnvelope {
     const now = new Date().toISOString();
     if (

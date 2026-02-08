@@ -45,6 +45,20 @@ The complete record of messages between users and vibers within a Space. History
 
 See [Conversation History](#conversation-history).
 
+## J
+
+### Job
+
+A scheduled task defined as a YAML file that runs automatically on a cron timer. Jobs specify a schedule, a prompt, and optional configuration (model, skills, tools). They are stored per-viber in `~/.openviber/vibers/{id}/jobs/` or globally in `~/.openviber/jobs/`.
+
+When a job fires, the `JobScheduler` creates an `Agent` with the job's configuration and executes the prompt. Jobs can leverage skills for domain knowledge — for example, a health-check job uses the `antigravity` skill.
+
+See [Jobs](/docs/concepts/jobs) for full documentation.
+
+### Job Scheduler
+
+The `JobScheduler` class that manages cron-based job execution. It reads YAML job files from disk, registers cron triggers via Croner, and creates Agent instances to execute job prompts on schedule.
+
 ## M
 
 ### Message
@@ -91,11 +105,19 @@ An LLM service provider. Supported providers:
 
 ### Skill
 
-A reusable bundle of instructions and context that gives a viber domain-specific knowledge. Skills are loaded from `~/.openviber/skills/` and can include:
+A reusable bundle of domain knowledge that teaches a viber how to approach specific tasks. A skill is a directory containing a `SKILL.md` file (frontmatter + instructions) and optionally an `index.ts` that exports specialized tools.
 
-- System prompts with domain expertise
-- Example workflows
-- Best practices and guardrails
+Skills are discovered from:
+- `~/.openviber/skills/` (user-defined)
+- `src/skills/` (built-in: antigravity, cursor-agent, codex-cli, github, tmux)
+
+Unlike tools (which provide actions), skills provide *knowledge and context* that gets injected into the agent's system prompt. Skills can also bundle their own tools — for example, the `github` skill provides `gh_list_issues`, `gh_create_pr`, etc.
+
+See [Skills](/docs/concepts/skills) for full documentation.
+
+### Skill Registry
+
+The `SkillRegistry` class that manages skill discovery, loading, and tool registration. It scans skill directories for `SKILL.md` files, parses metadata, and lazily loads tools from `index.ts`.
 
 ### Space
 
@@ -165,8 +187,9 @@ The core class that orchestrates a viber's task execution. ViberAgent:
 | **Viber** | A role-scoped AI worker with persona, goals, tools, and skills |
 | **Viber Node** | A machine running OpenViber, hosting one or more vibers |
 | **Space** | A persistent workspace container for a viber's work |
-| **Skill** | Reusable domain knowledge loaded from the skills directory |
+| **Skill** | Domain knowledge bundle (`SKILL.md` + optional tools) that teaches agents domain-specific approaches |
 | **Tool** | An action capability (file ops, terminal, browser, search) |
+| **Job** | A YAML-defined scheduled task that runs on a cron timer |
 
 ### Common Patterns
 
@@ -174,4 +197,6 @@ The core class that orchestrates a viber's task execution. ViberAgent:
 |---------|-------------|
 | **Single Viber** | One viber per node for general-purpose use |
 | **Multi-Viber Team** | Multiple role-scoped vibers on one node coordinating via GitHub |
-| **Scheduled Tasks** | Vibers running on cron schedules for automated workflows |
+| **Scheduled Jobs** | Cron-triggered tasks using skills for automated workflows (health checks, daily summaries) |
+| **Skill Chains** | Combining skills (e.g., github + codex-cli) for end-to-end autonomous workflows |
+| **Chat-Created Jobs** | Creating scheduled jobs via natural language in the Viber Board |

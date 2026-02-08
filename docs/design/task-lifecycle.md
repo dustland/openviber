@@ -113,20 +113,46 @@ When the operator clicks "Stop" in the Board:
 
 ---
 
-## 6. Scheduled Tasks
+## 6. Scheduled Tasks (Jobs)
 
-Vibers can have cron-scheduled jobs defined in their config:
+Vibers can have cron-scheduled jobs defined as YAML files in their jobs directory:
 
-```yaml
-# ~/.openviber/vibers/dev.yaml
-jobs:
-  - cron: "0 8 * * *"
-    goal: "Check GitHub notifications and summarize"
-  - cron: "0 */4 * * *"
-    goal: "Monitor CI pipelines for failures"
+```
+~/.openviber/vibers/dev/jobs/
+├── daily-summary.yaml
+└── health-check.yaml
 ```
 
-Scheduled tasks follow the same lifecycle — the scheduler submits them like any other task, and they flow through the hub to the daemon.
+Each job file specifies a cron schedule, a prompt, and optional agent configuration:
+
+```yaml
+# ~/.openviber/vibers/dev/jobs/daily-summary.yaml
+name: Daily Summary
+schedule: "0 9 * * *"
+model: deepseek/deepseek-chat
+skills:
+  - github
+prompt: |
+  Summarize my GitHub notifications from the last 24 hours.
+```
+
+### Job Execution Flow
+
+When a job's cron trigger fires:
+
+1. The `JobScheduler` creates a fresh `Agent` with the job's model, skills, and tools.
+2. The prompt is sent as a user message via `agent.generateText()`.
+3. The agent reasons, calls tools (including skill-provided tools), and generates a response.
+4. Tool results and the agent's text response are logged to the console.
+5. Routine "healthy" results (e.g., `antigravity_check_and_heal` returning `HEALTHY`) are suppressed from logs.
+
+Unlike interactive tasks, scheduled jobs run independently of the hub/Board pipeline. They execute directly in the daemon process without SSE streaming. If you need a job's results in the Board, the job's prompt can use the `notify` tool to send a notification.
+
+Jobs can also be created through chat using the `create_scheduled_job` tool (which supports natural language scheduling like "8am daily") or pushed from the Board via the `job:create` WebSocket message.
+
+Global jobs (in `~/.openviber/jobs/`) are shared across all vibers. Per-viber jobs (in `~/.openviber/vibers/{id}/jobs/`) are scoped to a specific viber.
+
+See [Jobs](/docs/concepts/jobs) for the full reference.
 
 ---
 

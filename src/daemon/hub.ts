@@ -240,12 +240,33 @@ export class HubServer {
   }
 
   private handleHealth(res: ServerResponse): void {
+    // Aggregate node health summary
+    const nodesSummary = Array.from(this.nodes.values()).map((n) => {
+      const heartbeatAgeMs = Date.now() - n.lastHeartbeat.getTime();
+      const isHealthy = heartbeatAgeMs < 90_000; // healthy if heartbeat within 90s
+
+      return {
+        id: n.id,
+        name: n.name,
+        healthy: isHealthy,
+        heartbeatAgeMs,
+        runningVibers: n.runningVibers.length,
+        cpu: n.machineStatus?.cpu.averageUsage,
+        memoryUsagePercent: n.machineStatus?.memory.usagePercent,
+      };
+    });
+
+    const totalRunningVibers = this.vibers.size;
+    const healthyNodes = nodesSummary.filter((n) => n.healthy).length;
+
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(
       JSON.stringify({
         status: "ok",
         nodes: this.nodes.size,
-        vibers: this.vibers.size,
+        healthyNodes,
+        vibers: totalRunningVibers,
+        nodesSummary,
       }),
     );
   }

@@ -17,16 +17,83 @@ import type {
   ExternalSkillInfo,
   SkillImportResult,
 } from "./types";
-import { OpenClawProvider, GitHubProvider, NpmProvider } from "./providers";
+import {
+  OpenClawProvider,
+  GitHubProvider,
+  NpmProvider,
+  HuggingFaceProvider,
+  SmitheryProvider,
+  ComposioProvider,
+  GlamaProvider,
+} from "./providers";
+
+/** Per-provider settings that can be toggled in the settings page */
+export interface SkillSourceSettings {
+  /** Whether this source is enabled */
+  enabled: boolean;
+  /** Custom API/registry URL override (empty = use default) */
+  url?: string;
+  /** API key / token (for providers that need one) */
+  apiKey?: string;
+}
+
+/** Full settings map for all skill sources */
+export type SkillSourcesConfig = Partial<
+  Record<SkillHubProviderType, SkillSourceSettings>
+>;
+
+/** Default source settings — all enabled, no custom URLs */
+export function getDefaultSourcesConfig(): SkillSourcesConfig {
+  return {
+    openclaw: { enabled: true },
+    github: { enabled: true },
+    npm: { enabled: true },
+    huggingface: { enabled: true },
+    smithery: { enabled: true },
+    composio: { enabled: false },
+    glama: { enabled: true },
+  };
+}
 
 export class SkillHubManager {
   private providers = new Map<SkillHubProviderType, SkillHubProvider>();
+  private sourcesConfig: SkillSourcesConfig;
 
-  constructor() {
-    // Register default providers
+  constructor(sourcesConfig?: SkillSourcesConfig) {
+    this.sourcesConfig = sourcesConfig || getDefaultSourcesConfig();
+
+    // Register all providers
     this.registerProvider(new OpenClawProvider());
     this.registerProvider(new GitHubProvider());
     this.registerProvider(new NpmProvider());
+    this.registerProvider(new HuggingFaceProvider());
+    this.registerProvider(new SmitheryProvider());
+    this.registerProvider(new ComposioProvider());
+    this.registerProvider(new GlamaProvider());
+  }
+
+  /** Update source settings at runtime */
+  updateSourcesConfig(config: SkillSourcesConfig): void {
+    this.sourcesConfig = config;
+  }
+
+  /** Get current sources config */
+  getSourcesConfig(): SkillSourcesConfig {
+    return { ...this.sourcesConfig };
+  }
+
+  /** Check if a source is enabled */
+  isSourceEnabled(type: SkillHubProviderType): boolean {
+    const cfg = this.sourcesConfig[type];
+    // Default to enabled for backwards compat if not specified
+    return cfg?.enabled !== false;
+  }
+
+  /** Get all enabled provider types */
+  getEnabledProviderTypes(): SkillHubProviderType[] {
+    return Array.from(this.providers.keys()).filter((t) =>
+      this.isSourceEnabled(t),
+    );
   }
 
   /** Register a custom provider */
@@ -61,8 +128,10 @@ export class SkillHubManager {
       return provider.search(query);
     }
 
-    // Query all providers in parallel
-    const providerArray = Array.from(this.providers.values());
+    // Query all enabled providers in parallel
+    const providerArray = Array.from(this.providers.values()).filter((p) =>
+      this.isSourceEnabled(p.type),
+    );
     const results = await Promise.allSettled(
       providerArray.map((p) => p.search(query)),
     );
@@ -153,7 +222,10 @@ export class SkillHubManager {
     await fs.mkdir(targetDir, { recursive: true });
 
     // Strip source prefix if present
-    const cleanId = skillId.replace(/^(npm:|github:|openclaw:)/, "");
+    const cleanId = skillId.replace(
+      /^(npm:|github:|openclaw:|huggingface:|hf:|smithery:|composio:|glama:)/,
+      "",
+    );
 
     console.log(
       `[SkillHub] Importing '${cleanId}' from ${provider.displayName}...`,
@@ -259,9 +331,16 @@ function detectSource(skillId: string): SkillHubProviderType {
   if (skillId.startsWith("npm:")) return "npm";
   if (skillId.startsWith("github:")) return "github";
   if (skillId.startsWith("openclaw:")) return "openclaw";
+  if (skillId.startsWith("huggingface:") || skillId.startsWith("hf:")) return "huggingface";
+  if (skillId.startsWith("smithery:")) return "smithery";
+  if (skillId.startsWith("composio:")) return "composio";
+  if (skillId.startsWith("glama:")) return "glama";
 
   // npm scoped package (e.g. @openviber-skills/web-search)
   if (skillId.startsWith("@")) return "npm";
+
+  // Hugging Face URL
+  if (skillId.includes("huggingface.co")) return "huggingface";
 
   // GitHub-style owner/repo (exactly 2 segments, no dots)
   const segments = skillId.split("/").filter(Boolean);
@@ -286,6 +365,19 @@ let _manager: SkillHubManager | null = null;
 export function getSkillHubManager(): SkillHubManager {
   if (!_manager) {
     _manager = new SkillHubManager();
+  }
+  return _manager;
+}
+
+/**
+ * Get the shared SkillHubManager instance, loading settings from disk.
+ * Use this async version when you want settings to be applied on first load.
+ */
+export async function getSkillHubManagerWithSettings(): Promise<SkillHubManager> {
+  if (!_manager) {
+    const { loadSkillSourcesConfig } = await import("./settings");
+    const config = await loadSkillSourcesConfig();
+    _manager = new SkillHubManager(config);
   }
   return _manager;
 }

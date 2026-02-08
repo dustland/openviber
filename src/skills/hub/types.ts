@@ -71,7 +71,14 @@ export interface SkillImportResult {
 }
 
 /** Provider type identifier */
-export type SkillHubProviderType = "openclaw" | "github" | "npm";
+export type SkillHubProviderType =
+  | "openclaw"
+  | "github"
+  | "npm"
+  | "huggingface"
+  | "smithery"
+  | "composio"
+  | "glama";
 
 /**
  * Interface for skill hub providers.

@@ -89,14 +89,35 @@ while (queued messages remain):
 Within a single `runTask()` call, the AI SDK manages a multi-step agent loop:
 
 ```
-streamText({ model, messages, tools, maxSteps: 10 })
+streamText({ model, messages, tools, stopWhen: stepCountIs(maxSteps) })
   → Model generates text or tool call
   → If tool call: execute tool, add result to context, continue
   → If text: stream to response
   → Repeat until no more tool calls or maxSteps reached
 ```
 
+`maxSteps` is configurable per agent via `AgentConfig.maxSteps` (default: 10, recommended 25 for coding tasks). Complex coding tasks that involve exploring code, planning, implementing, and verifying need more steps than simple Q&A tasks.
+
 OpenViber doesn't need to manage the planning/executing/verifying loop — the AI SDK's multi-step tool execution handles it. The viber's system prompt instructs the model on how to approach tasks (plan first, verify results, report evidence).
+
+### Coding Task Best Practices
+
+The daemon runtime includes a structured coding-task system prompt that guides the model through:
+
+1. **UNDERSTAND** — Read the task, explore the codebase, identify patterns
+2. **PLAN** — Break into concrete steps, identify affected files
+3. **IMPLEMENT** — Incremental changes following existing code style
+4. **VERIFY** — Run tests, lint, typecheck; fix before proceeding
+5. **COMMIT & REPORT** — Descriptive commits, summarize with evidence
+
+### Personalization
+
+The daemon loads three markdown files before every task (see [personalization.md](./personalization.md)):
+- `soul.md` — How the viber communicates
+- `user.md` — Who the viber serves
+- `memory.md` — What the viber remembers
+
+These are injected as `<soul>`, `<user>`, `<memory>` blocks in the system prompt before the environment context and agent prompt.
 
 ---
 

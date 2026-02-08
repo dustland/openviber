@@ -371,9 +371,9 @@ The underlying control surface is stabilizing even as models and platforms chang
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| SOUL.md loading | ⏳ Planned | Node injection |
-| USER.md loading | ⏳ Planned | Node injection |
-| MEMORY.md loading | 🔶 Partial | See memory.md design |
+| SOUL.md loading | ✅ Implemented | `loadPersonalization()` in `src/daemon/runtime.ts` |
+| USER.md loading | ✅ Implemented | Shared at `~/.openviber/user.md` |
+| MEMORY.md loading | ✅ Implemented | Per-viber at `~/.openviber/vibers/{id}/memory.md` |
 | memory_log tool | ⏳ Planned | Viber-initiated updates |
 | Heartbeat integration | ⏳ Planned | Requires all three files |
 | File templates | ⏳ Planned | `openviber init` command |

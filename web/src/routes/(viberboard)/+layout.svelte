@@ -1,32 +1,44 @@
 <script lang="ts">
   import { page } from "$app/stores";
+  import { goto } from "$app/navigation";
   import { onMount } from "svelte";
   import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
   } from "$lib/components/ui/dropdown-menu";
   import * as Sidebar from "$lib/components/ui/sidebar";
   import {
     Archive,
+    BookOpen,
     CalendarClock,
+    Check,
     ChevronDown,
     ChevronRight,
     Circle,
     Cpu,
     FolderGit2,
     LoaderCircle,
+    Laptop,
+    Moon,
     Plus,
     Puzzle,
     Server,
     Settings2,
+    Sun,
   } from "@lucide/svelte";
   import {
     Collapsible,
     CollapsibleTrigger,
     CollapsibleContent,
   } from "$lib/components/ui/collapsible";
+  import { themeStore, type Theme } from "$lib/stores/theme";
+
+  function setTheme(nextTheme: Theme) {
+    themeStore.set(nextTheme);
+  }
 
   interface SessionUser {
     name: string;
@@ -490,6 +502,42 @@
                   <p class="text-sm font-medium">{user.name}</p>
                   <p class="text-xs text-muted-foreground">{user.email}</p>
                 </div>
+                <DropdownMenuItem
+                  class="w-full rounded px-2.5 py-2 text-left text-sm hover:bg-accent flex items-center gap-2.5 outline-none cursor-pointer"
+                  onSelect={() => goto("/docs")}
+                >
+                  <BookOpen class="size-4" />
+                  Docs
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <div class="px-2.5 py-1.5">
+                  <p class="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Theme</p>
+                </div>
+                <DropdownMenuItem
+                  class="w-full rounded px-2.5 py-2 text-left text-sm hover:bg-accent flex items-center gap-2.5 outline-none cursor-pointer"
+                  onSelect={() => setTheme("system")}
+                >
+                  <Laptop class="size-4" />
+                  System
+                  {#if $themeStore === "system"}<Check class="size-4 ml-auto" />{/if}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  class="w-full rounded px-2.5 py-2 text-left text-sm hover:bg-accent flex items-center gap-2.5 outline-none cursor-pointer"
+                  onSelect={() => setTheme("light")}
+                >
+                  <Sun class="size-4" />
+                  Light
+                  {#if $themeStore === "light"}<Check class="size-4 ml-auto" />{/if}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  class="w-full rounded px-2.5 py-2 text-left text-sm hover:bg-accent flex items-center gap-2.5 outline-none cursor-pointer"
+                  onSelect={() => setTheme("dark")}
+                >
+                  <Moon class="size-4" />
+                  Dark
+                  {#if $themeStore === "dark"}<Check class="size-4 ml-auto" />{/if}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem
                   class="w-full rounded px-2.5 py-2 text-left text-sm hover:bg-accent flex items-center gap-2.5 outline-none cursor-pointer text-destructive"
                   onSelect={() => {

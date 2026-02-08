@@ -8,6 +8,7 @@
     DropdownMenuItem,
     DropdownMenuTrigger,
   } from "$lib/components/ui/dropdown-menu";
+  import { applyTheme, themeStore, type Theme } from "$lib/stores/theme";
   import {
     Moon,
     Check,
@@ -18,10 +19,7 @@
     BookOpen,
   } from "@lucide/svelte";
 
-  type Theme = "light" | "dark" | "system";
-
   let { children, data } = $props();
-  let theme = $state<Theme>("system");
 
   // Route detection
   const isHomepage = $derived($page.url.pathname === "/");
@@ -34,34 +32,16 @@
     removeListener?: (listener: (event: MediaQueryListEvent) => void) => void;
   };
 
-  function applyTheme(selectedTheme: Theme) {
-    const setColorScheme = (isDark: boolean) => {
-      document.documentElement.style.colorScheme = isDark ? "dark" : "light";
-    };
-
-    if (selectedTheme === "system") {
-      localStorage.removeItem("theme");
-      const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      document.documentElement.classList.toggle("dark", isDark);
-      setColorScheme(isDark);
-      return;
-    }
-
-    localStorage.setItem("theme", selectedTheme);
-    const isDark = selectedTheme === "dark";
-    document.documentElement.classList.toggle("dark", isDark);
-    setColorScheme(isDark);
-  }
-
   function setTheme(nextTheme: Theme) {
-    theme = nextTheme;
-    applyTheme(theme);
+    themeStore.set(nextTheme);
   }
 
   onMount(() => {
     const stored = localStorage.getItem("theme");
-    theme = stored === "dark" || stored === "light" ? stored : "system";
-    applyTheme(theme);
+    const initial: Theme =
+      stored === "dark" || stored === "light" ? stored : "system";
+    themeStore.set(initial);
+    const unsub = themeStore.subscribe((t) => applyTheme(t));
 
     const media = window.matchMedia(
       "(prefers-color-scheme: dark)",
@@ -78,11 +58,18 @@
 
     if (typeof media.addEventListener === "function") {
       media.addEventListener("change", onSystemThemeChange);
-      return () => media.removeEventListener("change", onSystemThemeChange);
+    } else {
+      media.addListener?.(onSystemThemeChange);
     }
 
-    media.addListener?.(onSystemThemeChange);
-    return () => media.removeListener?.(onSystemThemeChange);
+    return () => {
+      unsub();
+      if (typeof media.removeEventListener === "function") {
+        media.removeEventListener("change", onSystemThemeChange);
+      } else {
+        media.removeListener?.(onSystemThemeChange);
+      }
+    };
   });
 </script>
 
@@ -171,9 +158,9 @@
               class="size-9 rounded-md hover:bg-accent/50 inline-flex items-center justify-center transition-colors"
               aria-label="Theme menu"
             >
-              {#if theme === "light"}
+              {#if $themeStore === "light"}
                 <Sun class="size-4 text-muted-foreground" />
-              {:else if theme === "dark"}
+              {:else if $themeStore === "dark"}
                 <Moon class="size-4 text-muted-foreground" />
               {:else}
                 <Laptop class="size-4 text-muted-foreground" />
@@ -190,7 +177,7 @@
               >
                 <Laptop class="size-4" />
                 System
-                {#if theme === "system"}<Check class="size-4 ml-auto" />{/if}
+                {#if $themeStore === "system"}<Check class="size-4 ml-auto" />{/if}
               </DropdownMenuItem>
               <DropdownMenuItem
                 class="w-full rounded px-2.5 py-2 text-left text-sm hover:bg-accent flex items-center gap-2.5 outline-none cursor-pointer"
@@ -198,7 +185,7 @@
               >
                 <Sun class="size-4" />
                 Light
-                {#if theme === "light"}<Check class="size-4 ml-auto" />{/if}
+                {#if $themeStore === "light"}<Check class="size-4 ml-auto" />{/if}
               </DropdownMenuItem>
               <DropdownMenuItem
                 class="w-full rounded px-2.5 py-2 text-left text-sm hover:bg-accent flex items-center gap-2.5 outline-none cursor-pointer"
@@ -206,7 +193,7 @@
               >
                 <Moon class="size-4" />
                 Dark
-                {#if theme === "dark"}<Check class="size-4 ml-auto" />{/if}
+                {#if $themeStore === "dark"}<Check class="size-4 ml-auto" />{/if}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -301,14 +288,14 @@
               class="h-8 rounded-md border border-border bg-background px-2.5 text-sm text-foreground inline-flex items-center gap-1.5 hover:bg-accent hover:text-accent-foreground"
               aria-label="Theme menu"
             >
-              {#if theme === "light"}
+              {#if $themeStore === "light"}
                 <Sun class="size-4 shrink-0 text-muted-foreground" />
-              {:else if theme === "dark"}
+              {:else if $themeStore === "dark"}
                 <Moon class="size-4 shrink-0 text-muted-foreground" />
               {:else}
                 <Laptop class="size-4 shrink-0 text-muted-foreground" />
               {/if}
-              <span class="hidden sm:inline capitalize">{theme}</span>
+              <span class="hidden sm:inline capitalize">{$themeStore}</span>
               <ChevronDown class="size-3.5" />
             </DropdownMenuTrigger>
             <DropdownMenuContent
@@ -322,7 +309,7 @@
               >
                 <Laptop class="size-4" />
                 System
-                {#if theme === "system"}<Check class="size-4 ml-auto" />{/if}
+                {#if $themeStore === "system"}<Check class="size-4 ml-auto" />{/if}
               </DropdownMenuItem>
               <DropdownMenuItem
                 class="w-full rounded px-2.5 py-2 text-left text-sm hover:bg-accent flex items-center gap-2.5 outline-none cursor-pointer"
@@ -330,7 +317,7 @@
               >
                 <Sun class="size-4" />
                 Light
-                {#if theme === "light"}<Check class="size-4 ml-auto" />{/if}
+                {#if $themeStore === "light"}<Check class="size-4 ml-auto" />{/if}
               </DropdownMenuItem>
               <DropdownMenuItem
                 class="w-full rounded px-2.5 py-2 text-left text-sm hover:bg-accent flex items-center gap-2.5 outline-none cursor-pointer"
@@ -338,7 +325,7 @@
               >
                 <Moon class="size-4" />
                 Dark
-                {#if theme === "dark"}<Check class="size-4 ml-auto" />{/if}
+                {#if $themeStore === "dark"}<Check class="size-4 ml-auto" />{/if}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

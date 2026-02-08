@@ -14,6 +14,7 @@
     Circle,
     Cpu,
     FolderGit2,
+    LoaderCircle,
     Plus,
     Server,
   } from "@lucide/svelte";
@@ -284,16 +285,20 @@
                                 href="/vibers/{viber.id}"
                                 class="w-full inline-flex items-center gap-2"
                               >
-                                <Circle
-                                  class="size-2 shrink-0 {viber.status ===
-                                  'running'
-                                    ? 'fill-blue-500 text-blue-500'
-                                    : viber.status === 'completed'
+                                {#if viber.status === "running"}
+                                  <LoaderCircle
+                                    class="size-3 shrink-0 text-blue-500 animate-spin"
+                                  />
+                                {:else}
+                                  <Circle
+                                    class="size-2 shrink-0 {viber.status ===
+                                    'completed'
                                       ? 'fill-green-500 text-green-500'
                                       : viber.status === 'error'
                                         ? 'fill-red-500 text-red-500'
                                         : 'fill-amber-500 text-amber-500'}"
-                                />
+                                  />
+                                {/if}
                                 <span
                                   class="truncate text-xs group-data-[collapsible=icon]:hidden"
                                 >

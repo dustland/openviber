@@ -9,6 +9,7 @@
   } from "$lib/components/ui/dropdown-menu";
   import * as Sidebar from "$lib/components/ui/sidebar";
   import {
+    Archive,
     ChevronDown,
     ChevronRight,
     Circle,
@@ -40,6 +41,8 @@
     status: string;
     isConnected: boolean;
   }
+
+  type ViberStatus = "running" | "completed" | "error" | "pending" | "stopped";
 
   interface SidebarEnvironment {
     id: string;
@@ -92,6 +95,71 @@
   );
 
   const user = $derived(($page.data?.user as SessionUser | undefined) || null);
+
+  const archivingViberIds = $state<Set<string>>(new Set());
+
+  function getStatusTone(status: string): string {
+    switch (status as ViberStatus) {
+      case "running":
+        return "text-emerald-500";
+      case "completed":
+        return "text-blue-500";
+      case "error":
+        return "text-red-500";
+      case "stopped":
+        return "text-muted-foreground";
+      default:
+        return "text-amber-500";
+    }
+  }
+
+  function getStatusLabel(status: string): string {
+    switch (status as ViberStatus) {
+      case "running":
+        return "Running";
+      case "completed":
+        return "Done";
+      case "error":
+        return "Error";
+      case "stopped":
+        return "Stopped";
+      default:
+        return "Pending";
+    }
+  }
+
+  async function archiveViber(viberId: string, event: MouseEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (archivingViberIds.has(viberId)) {
+      return;
+    }
+
+    const next = new Set(archivingViberIds);
+    next.add(viberId);
+    archivingViberIds.clear();
+    next.forEach((id) => archivingViberIds.add(id));
+
+    try {
+      const response = await fetch(`/api/vibers/${viberId}/archive`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        return;
+      }
+
+      await fetchVibers();
+    } catch (error) {
+      console.error("Failed to archive viber:", error);
+    } finally {
+      const remaining = new Set(archivingViberIds);
+      remaining.delete(viberId);
+      archivingViberIds.clear();
+      remaining.forEach((id) => archivingViberIds.add(id));
+    }
+  }
 
   async function fetchVibers() {
     try {
@@ -273,47 +341,62 @@
                       </Sidebar.MenuButton>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
-                      <Sidebar.MenuSub>
+                      <Sidebar.MenuSub class="mx-0 translate-x-0 border-0 px-0 py-1">
                         {#each group.vibers as viber (viber.id)}
                           <Sidebar.MenuSubItem>
                             <Sidebar.MenuSubButton
+                              href={`/vibers/${viber.id}`}
                               isActive={pathname.startsWith(
                                 `/vibers/${viber.id}`,
                               )}
+                              class="h-10 -translate-x-0 gap-2.5 rounded-xl px-3 pr-20 text-[13px] font-medium text-sidebar-foreground/85 hover:bg-sidebar-accent/75 data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-foreground data-[active=true]:shadow-[inset_0_0_0_1px_hsl(var(--sidebar-border)/0.65)]"
                             >
-                              <a
-                                href="/vibers/{viber.id}"
-                                class="w-full inline-flex items-center gap-2"
-                              >
-                                {#if viber.status === "running"}
-                                  <LoaderCircle
-                                    class="size-3 shrink-0 text-blue-500 animate-spin"
-                                  />
-                                {:else}
-                                  <Circle
-                                    class="size-2 shrink-0 {viber.status ===
-                                    'completed'
-                                      ? 'fill-green-500 text-green-500'
-                                      : viber.status === 'error'
-                                        ? 'fill-red-500 text-red-500'
-                                        : 'fill-amber-500 text-amber-500'}"
-                                  />
-                                {/if}
-                                <span
-                                  class="truncate text-xs group-data-[collapsible=icon]:hidden"
-                                >
-                                  {viber.goal.length > 40
-                                    ? viber.goal.slice(0, 40) + "…"
-                                    : viber.goal || viber.id}
-                                </span>
-                                {#if viber.nodeName}
-                                  <span
-                                    class="ml-auto shrink-0 text-[10px] text-sidebar-foreground/40 group-data-[collapsible=icon]:hidden"
+                              {#snippet child({ props })}
+                                <div class="group/viber relative w-full">
+                                  <a {...props}>
+                                    <span
+                                      class="flex size-4 shrink-0 items-center justify-center"
+                                    >
+                                      {#if viber.status === "running"}
+                                        <LoaderCircle
+                                          class="size-3.5 animate-spin text-emerald-500"
+                                        />
+                                      {:else}
+                                        <Circle
+                                          class="size-2.5 fill-current {getStatusTone(
+                                            viber.status,
+                                          )}"
+                                        />
+                                      {/if}
+                                    </span>
+                                    <span
+                                      class="truncate leading-none group-data-[collapsible=icon]:hidden"
+                                    >
+                                      {viber.goal.length > 42
+                                        ? viber.goal.slice(0, 42) + "…"
+                                        : viber.goal || viber.id}
+                                    </span>
+                                    <span
+                                      class="ml-auto shrink-0 text-[11px] font-medium text-sidebar-foreground/55 transition-opacity group-data-[collapsible=icon]:hidden group-hover/viber:opacity-0 group-focus-within/viber:opacity-0"
+                                    >
+                                      {getStatusLabel(viber.status)}
+                                    </span>
+                                  </a>
+                                  <button
+                                    type="button"
+                                    aria-label="Archive viber"
+                                    class="absolute right-2 top-1/2 inline-flex -translate-y-1/2 items-center justify-center rounded-md p-1 text-sidebar-foreground/60 opacity-0 transition-opacity hover:bg-sidebar-accent hover:text-sidebar-foreground group-data-[collapsible=icon]:hidden group-hover/viber:opacity-100 group-focus-within/viber:opacity-100"
+                                    onclick={(event: MouseEvent) =>
+                                      archiveViber(viber.id, event)}
                                   >
-                                    {viber.nodeName}
-                                  </span>
-                                {/if}
-                              </a>
+                                    {#if archivingViberIds.has(viber.id)}
+                                      <LoaderCircle class="size-3.5 animate-spin" />
+                                    {:else}
+                                      <Archive class="size-3.5" />
+                                    {/if}
+                                  </button>
+                                </div>
+                              {/snippet}
                             </Sidebar.MenuSubButton>
                           </Sidebar.MenuSubItem>
                         {/each}

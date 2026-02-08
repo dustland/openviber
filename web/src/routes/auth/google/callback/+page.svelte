@@ -15,9 +15,10 @@
     const state = params.get("state") || "";
     const hash = parseHashParams(window.location.hash);
     const accessToken = hash.get("access_token");
+    const refreshToken = hash.get("refresh_token");
 
-    if (!accessToken) {
-      error = "Missing Supabase access token in callback.";
+    if (!accessToken || !refreshToken) {
+      error = "Missing Supabase session tokens in callback.";
       return;
     }
 
@@ -25,7 +26,7 @@
       const response = await fetch("/auth/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ accessToken, state }),
+        body: JSON.stringify({ accessToken, refreshToken, state }),
       });
 
       if (!response.ok) {

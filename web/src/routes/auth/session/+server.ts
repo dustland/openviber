@@ -9,10 +9,14 @@ import {
 
 export const POST: RequestHandler = async ({ request, cookies }) => {
   try {
-    const body = (await request.json()) as { accessToken?: string; state?: string };
+    const body = (await request.json()) as {
+      accessToken?: string;
+      refreshToken?: string;
+      state?: string;
+    };
 
-    if (!body.accessToken || !body.state) {
-      return json({ error: "Missing access token or state." }, { status: 400 });
+    if (!body.accessToken || !body.refreshToken || !body.state) {
+      return json({ error: "Missing access token, refresh token, or state." }, { status: 400 });
     }
 
     const cookieState = readOAuthStateCookie(cookies);
@@ -24,7 +28,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 
     const profile = await fetchSupabaseProfile(body.accessToken);
     await upsertSupabaseUserProfile(profile);
-    await createSession(body.accessToken, cookies);
+    await createSession(body.accessToken, body.refreshToken, cookies);
 
     return json({ ok: true });
   } catch (cause) {

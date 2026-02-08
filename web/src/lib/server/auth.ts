@@ -5,6 +5,7 @@ import { env } from "$env/dynamic/private";
 const SESSION_TTL_DAYS = 30;
 const OAUTH_STATE_COOKIE = "openviber_oauth_state";
 const ACCESS_TOKEN_COOKIE = "openviber_sb_access_token";
+const REFRESH_TOKEN_COOKIE = "openviber_sb_refresh_token";
 
 const APP_URL = env.APP_URL || "http://localhost:5173";
 const SUPABASE_URL = env.SUPABASE_URL;
@@ -23,6 +24,11 @@ export interface SupabaseOAuthProfile {
   email: string;
   name: string;
   avatarUrl: string | null;
+}
+
+interface SupabaseRefreshResponse {
+  access_token?: string;
+  refresh_token?: string;
 }
 
 function requireSupabaseAuthConfig() {
@@ -112,6 +118,38 @@ export async function fetchSupabaseProfile(accessToken: string): Promise<Supabas
 }
 
 /**
+ * Refreshes a Supabase session using a refresh token.
+ */
+export async function refreshSupabaseSession(refreshToken: string) {
+  const { supabaseUrl, supabaseAnonKey } = requireSupabaseAuthConfig();
+  const response = await fetch(new URL("/auth/v1/token?grant_type=refresh_token", supabaseUrl), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: supabaseAnonKey,
+    },
+    body: JSON.stringify({ refresh_token: refreshToken }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to refresh Supabase session.");
+  }
+
+  const payload = (await response.json()) as SupabaseRefreshResponse;
+  const nextAccessToken = payload.access_token?.trim();
+  const nextRefreshToken = payload.refresh_token?.trim() || refreshToken;
+
+  if (!nextAccessToken) {
+    throw new Error("Supabase refresh response is missing access token.");
+  }
+
+  return {
+    accessToken: nextAccessToken,
+    refreshToken: nextRefreshToken,
+  };
+}
+
+/**
  * Upserts user profile data into Supabase table `user_profiles`.
  */
 export async function upsertSupabaseUserProfile(profile: SupabaseOAuthProfile) {
@@ -165,29 +203,60 @@ export function clearOAuthStateCookie(cookies: Cookies) {
 }
 
 /**
- * Creates the application session by persisting a Supabase access token in an httpOnly cookie.
+ * Creates the application session by persisting Supabase session tokens in httpOnly cookies.
  */
-export async function createSession(accessToken: string, cookies: Cookies) {
+export async function createSession(accessToken: string, refreshToken: string, cookies: Cookies) {
   const expiresAt = new Date(Date.now() + SESSION_TTL_DAYS * 24 * 60 * 60 * 1000);
-  cookies.set(ACCESS_TOKEN_COOKIE, accessToken, {
+  const cookieOptions = {
     path: "/",
     httpOnly: true,
     sameSite: "lax",
     secure: APP_URL.startsWith("https://"),
     expires: expiresAt,
+  } as const;
+
+  cookies.set(ACCESS_TOKEN_COOKIE, accessToken, cookieOptions);
+  cookies.set(REFRESH_TOKEN_COOKIE, refreshToken, {
+    ...cookieOptions,
   });
 }
 
 export async function deleteSession(cookies: Cookies) {
   cookies.delete(ACCESS_TOKEN_COOKIE, { path: "/" });
+  cookies.delete(REFRESH_TOKEN_COOKIE, { path: "/" });
 }
 
 export async function getAuthUser(cookies: Cookies): Promise<AuthUser | null> {
   const accessToken = cookies.get(ACCESS_TOKEN_COOKIE);
-  if (!accessToken) return null;
+  const refreshToken = cookies.get(REFRESH_TOKEN_COOKIE);
+
+  if (!accessToken && !refreshToken) {
+    return null;
+  }
+
+  if (accessToken) {
+    try {
+      const profile = await fetchSupabaseProfile(accessToken);
+      return {
+        id: profile.providerId,
+        email: profile.email,
+        name: profile.name,
+        avatarUrl: profile.avatarUrl,
+      };
+    } catch {
+      // Access tokens are short-lived; fall back to refresh-token exchange.
+    }
+  }
+
+  if (!refreshToken) {
+    await deleteSession(cookies);
+    return null;
+  }
 
   try {
-    const profile = await fetchSupabaseProfile(accessToken);
+    const refreshed = await refreshSupabaseSession(refreshToken);
+    await createSession(refreshed.accessToken, refreshed.refreshToken, cookies);
+    const profile = await fetchSupabaseProfile(refreshed.accessToken);
     return {
       id: profile.providerId,
       email: profile.email,
@@ -195,7 +264,7 @@ export async function getAuthUser(cookies: Cookies): Promise<AuthUser | null> {
       avatarUrl: profile.avatarUrl,
     };
   } catch {
-    cookies.delete(ACCESS_TOKEN_COOKIE, { path: "/" });
+    // Do not clear cookies on refresh failure to avoid clobbering a concurrent successful refresh response.
     return null;
   }
 }

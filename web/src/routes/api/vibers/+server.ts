@@ -1,6 +1,11 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { hubClient } from "$lib/server/hub-client";
+import {
+  listViberEnvironmentAssignmentsForUser,
+  listEnvironmentsForUser,
+} from "$lib/server/environments";
+import { supabaseRequest, toInFilter } from "$lib/server/supabase-rest";
 
 // POST /api/vibers - Create a new viber on a node
 export const POST: RequestHandler = async ({ request, locals }) => {
@@ -29,24 +34,61 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 };
 
 // GET /api/vibers - List vibers from hub
-export const GET: RequestHandler = async ({ locals }) => {
+export const GET: RequestHandler = async ({ locals, url }) => {
   if (!locals.user) {
     return json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const includeArchived = url.searchParams.get("include_archived") === "true";
+
   try {
     const { vibers } = await hubClient.getVibers();
 
+    // Look up environment assignments for all vibers
+    const viberIds = vibers.map((v) => v.id);
+    const [assignments, environments, archivedRows] = await Promise.all([
+      listViberEnvironmentAssignmentsForUser(locals.user.id, viberIds),
+      listEnvironmentsForUser(locals.user.id),
+      viberIds.length > 0
+        ? supabaseRequest<Array<{ id: string; archived_at: string | null }>>("vibers", {
+          params: {
+            select: "id,archived_at",
+            id: toInFilter(viberIds),
+          },
+        })
+        : Promise.resolve([]),
+    ]);
+
+    const envAssignMap = new Map(
+      assignments.map((a) => [a.viberId, a.environmentId]),
+    );
+    const envNameMap = new Map(
+      environments.map((e) => [e.id, e.name]),
+    );
+    const archivedMap = new Map(
+      archivedRows.map((r) => [r.id, r.archived_at]),
+    );
+
     // Transform to expected format for the sidebar/frontend
-    const result = vibers.map((v) => ({
-      id: v.id,
-      nodeId: v.nodeId,
-      goal: v.goal,
-      status: v.status,
-      createdAt: v.createdAt,
-      completedAt: v.completedAt,
-      isConnected: v.isNodeConnected !== false,
-    }));
+    const result = vibers
+      .map((v) => {
+        const environmentId = envAssignMap.get(v.id) ?? null;
+        const archivedAt = archivedMap.get(v.id) ?? null;
+        return {
+          id: v.id,
+          nodeId: v.nodeId,
+          nodeName: v.nodeName ?? null,
+          environmentId,
+          environmentName: environmentId ? (envNameMap.get(environmentId) ?? null) : null,
+          goal: v.goal,
+          status: v.status,
+          createdAt: v.createdAt,
+          completedAt: v.completedAt,
+          isConnected: v.isNodeConnected !== false,
+          archivedAt,
+        };
+      })
+      .filter((v) => includeArchived || !v.archivedAt);
 
     return json(result);
   } catch (error) {

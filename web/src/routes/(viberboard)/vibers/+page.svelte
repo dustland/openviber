@@ -1,7 +1,14 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { page } from "$app/stores";
-  import { RefreshCw, Circle, Plus, Server } from "@lucide/svelte";
+  import {
+    RefreshCw,
+    Circle,
+    Plus,
+    Server,
+    Archive,
+    ArchiveRestore,
+  } from "@lucide/svelte";
   import { Button } from "$lib/components/ui/button";
   import {
     Card,
@@ -15,16 +22,19 @@
   interface Viber {
     id: string;
     nodeId: string | null;
+    nodeName: string | null;
     goal: string;
     status: string;
     createdAt: string | null;
     completedAt: string | null;
     isConnected: boolean;
+    archivedAt: string | null;
   }
 
   let vibers = $state<Viber[]>([]);
   let loading = $state(true);
   let hubConnected = $state(false);
+  let showArchived = $state(false);
 
   async function fetchVibers() {
     try {
@@ -33,7 +43,8 @@
       hubConnected = hubStatus.connected;
 
       if (hubConnected) {
-        const response = await fetch("/api/vibers");
+        const params = showArchived ? "?include_archived=true" : "";
+        const response = await fetch(`/api/vibers${params}`);
         const data = await response.json();
         vibers = Array.isArray(data) ? data : [];
       } else {
@@ -43,6 +54,36 @@
       console.error("Failed to fetch vibers:", error);
       hubConnected = false;
       vibers = [];
+    }
+  }
+
+  async function archiveViber(viberId: string, event: MouseEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    try {
+      const response = await fetch(`/api/vibers/${viberId}/archive`, {
+        method: "POST",
+      });
+      if (response.ok) {
+        await fetchVibers();
+      }
+    } catch (error) {
+      console.error("Failed to archive viber:", error);
+    }
+  }
+
+  async function restoreViber(viberId: string, event: MouseEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    try {
+      const response = await fetch(`/api/vibers/${viberId}/archive`, {
+        method: "DELETE",
+      });
+      if (response.ok) {
+        await fetchVibers();
+      }
+    } catch (error) {
+      console.error("Failed to restore viber:", error);
     }
   }
 
@@ -71,6 +112,12 @@
         return "bg-amber-500";
     }
   }
+
+  $effect(() => {
+    // Re-fetch when showArchived changes
+    showArchived;
+    fetchVibers();
+  });
 
   onMount(() => {
     fetchVibers().finally(() => (loading = false));
@@ -107,6 +154,14 @@
       </p>
     </div>
     <div class="flex items-center gap-2">
+      <Button
+        variant={showArchived ? "secondary" : "outline"}
+        size="sm"
+        onclick={() => (showArchived = !showArchived)}
+      >
+        <Archive class="size-4 mr-1" />
+        {showArchived ? "Hide Archived" : "Show Archived"}
+      </Button>
       <Button variant="outline" size="sm" href="/vibers/new">
         <Plus class="size-4 mr-1" />
         New Viber
@@ -129,8 +184,12 @@
   {:else if vibers.length > 0}
     <div class="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
       {#each vibers as viber (viber.id)}
-        <a href="/vibers/{viber.id}" class="block">
-          <Card class="hover:shadow-md transition-shadow cursor-pointer">
+        <a href="/vibers/{viber.id}" class="block group/card">
+          <Card
+            class="hover:shadow-md transition-shadow cursor-pointer {viber.archivedAt
+              ? 'opacity-60'
+              : ''}"
+          >
             <CardHeader class="pb-3">
               <div class="flex items-start gap-3">
                 <div
@@ -145,12 +204,43 @@
                   <CardDescription class="text-xs mt-1">
                     <Badge
                       variant="outline"
-                      class="text-[10px] px-1.5 py-0 mr-1">{viber.status}</Badge
+                      class="text-[10px] px-1.5 py-0 mr-1"
+                      >{viber.archivedAt ? "archived" : viber.status}</Badge
                     >
+                    {#if viber.nodeName}
+                      <span class="text-muted-foreground/60"
+                        >· {viber.nodeName}</span
+                      >
+                    {/if}
                     {#if viber.createdAt}
                       · {formatTimeAgo(viber.createdAt)}
                     {/if}
                   </CardDescription>
+                </div>
+                <div
+                  class="shrink-0 opacity-0 group-hover/card:opacity-100 transition-opacity"
+                >
+                  {#if viber.archivedAt}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      class="size-7"
+                      title="Restore viber"
+                      onclick={(e: MouseEvent) => restoreViber(viber.id, e)}
+                    >
+                      <ArchiveRestore class="size-3.5" />
+                    </Button>
+                  {:else}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      class="size-7"
+                      title="Archive viber"
+                      onclick={(e: MouseEvent) => archiveViber(viber.id, e)}
+                    >
+                      <Archive class="size-3.5" />
+                    </Button>
+                  {/if}
                 </div>
               </div>
             </CardHeader>

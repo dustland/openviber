@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
   import { page } from "$app/stores";
   import { onMount } from "svelte";
   import {
@@ -15,7 +14,6 @@
     Circle,
     Cpu,
     FolderGit2,
-    Package,
     Plus,
     Server,
   } from "@lucide/svelte";
@@ -31,16 +29,13 @@
     avatarUrl?: string | null;
   }
 
-  interface ViberNode {
-    id: string;
-    name: string;
-    status: "pending" | "active" | "offline";
-  }
-
   interface SidebarViber {
     id: string;
     goal: string;
     nodeId: string | null;
+    nodeName: string | null;
+    environmentId: string | null;
+    environmentName: string | null;
     status: string;
     isConnected: boolean;
   }
@@ -52,39 +47,33 @@
 
   interface ViberGroup {
     label: string;
-    nodeId: string | null;
+    environmentId: string | null;
     vibers: SidebarViber[];
   }
 
   let { children } = $props();
 
-  let nodes = $state<ViberNode[]>([]);
   let vibers = $state<SidebarViber[]>([]);
   let environments = $state<SidebarEnvironment[]>([]);
 
   const viberGroups = $derived.by(() => {
-    // Group vibers by their parent node
-    const nodeMap = new Map(nodes.map((n) => [n.id, n.name]));
     const groups = new Map<string, ViberGroup>();
 
     for (const viber of vibers) {
-      const key = viber.nodeId ?? "__unknown__";
+      const key = viber.environmentId ?? "__unassigned__";
       if (!groups.has(key)) {
         groups.set(key, {
-          label: viber.nodeId
-            ? (nodeMap.get(viber.nodeId) ?? viber.nodeId)
-            : "Unknown Node",
-          nodeId: viber.nodeId,
+          label: viber.environmentName ?? "Unassigned",
+          environmentId: viber.environmentId,
           vibers: [],
         });
       }
       groups.get(key)!.vibers.push(viber);
     }
 
-    // Sort: named nodes first, then unknown last
     return Array.from(groups.values()).sort((a, b) => {
-      if (!a.nodeId) return 1;
-      if (!b.nodeId) return -1;
+      if (!a.environmentId) return 1;
+      if (!b.environmentId) return -1;
       return a.label.localeCompare(b.label);
     });
   });
@@ -94,62 +83,14 @@
     pathname === "/vibers" || pathname.startsWith("/vibers/"),
   );
   const isNewViberRoute = $derived(pathname === "/vibers/new");
-  const isEnvironmentsRoute = $derived(
-    pathname === "/environments" || pathname.startsWith("/environments/"),
-  );
   const isNodesRoute = $derived(
     pathname === "/nodes" || pathname.startsWith("/nodes/"),
   );
-
-  const activeNodeFilterId = $derived($page.url.searchParams.get("node") || "");
+  const isEnvironmentsRoute = $derived(
+    pathname === "/environments" || pathname.startsWith("/environments/"),
+  );
 
   const user = $derived(($page.data?.user as SessionUser | undefined) || null);
-
-  function buildCurrentUrl(next: URLSearchParams) {
-    const query = next.toString();
-    return `${pathname}${query ? `?${query}` : ""}`;
-  }
-
-  function getNewViberHref() {
-    const params = new URLSearchParams();
-    if (activeNodeFilterId) {
-      params.set("node", activeNodeFilterId);
-    }
-    const query = params.toString();
-    return `/vibers/new${query ? `?${query}` : ""}`;
-  }
-
-  async function selectNodeFilter(nodeId: string) {
-    const params = new URLSearchParams($page.url.searchParams);
-
-    if (!nodeId) {
-      params.delete("node");
-    } else {
-      params.set("node", nodeId);
-    }
-
-    await goto(buildCurrentUrl(params), {
-      replaceState: true,
-      noScroll: true,
-      keepFocus: true,
-    });
-  }
-
-  async function fetchNodes() {
-    try {
-      const response = await fetch("/api/nodes");
-      if (!response.ok) {
-        nodes = [];
-        return;
-      }
-
-      const payload = await response.json();
-      nodes = Array.isArray(payload.nodes) ? payload.nodes : [];
-    } catch (error) {
-      console.error("Failed to fetch nodes:", error);
-      nodes = [];
-    }
-  }
 
   async function fetchVibers() {
     try {
@@ -164,6 +105,11 @@
             id: String(v.id),
             goal: String(v.goal || ""),
             nodeId: typeof v.nodeId === "string" ? v.nodeId : null,
+            nodeName: typeof v.nodeName === "string" ? v.nodeName : null,
+            environmentId:
+              typeof v.environmentId === "string" ? v.environmentId : null,
+            environmentName:
+              typeof v.environmentName === "string" ? v.environmentName : null,
             status: String(v.status || "unknown"),
             isConnected: Boolean(v.isConnected),
           }))
@@ -195,7 +141,7 @@
   }
 
   async function fetchAll() {
-    await Promise.all([fetchNodes(), fetchVibers(), fetchEnvironments()]);
+    await Promise.all([fetchVibers(), fetchEnvironments()]);
   }
 
   onMount(() => {
@@ -240,7 +186,7 @@
                 tooltipContent="New Viber"
               >
                 <a
-                  href={getNewViberHref()}
+                  href="/vibers/new"
                   class="w-full inline-flex items-center gap-2"
                 >
                   <Plus class="size-4 shrink-0" />
@@ -267,6 +213,20 @@
 
             <Sidebar.MenuItem>
               <Sidebar.MenuButton
+                isActive={isNodesRoute}
+                tooltipContent="Nodes"
+              >
+                <a href="/nodes" class="w-full inline-flex items-center gap-2">
+                  <Server class="size-4 shrink-0" />
+                  <span class="truncate group-data-[collapsible=icon]:hidden"
+                    >Nodes</span
+                  >
+                </a>
+              </Sidebar.MenuButton>
+            </Sidebar.MenuItem>
+
+            <Sidebar.MenuItem>
+              <Sidebar.MenuButton
                 isActive={isEnvironmentsRoute}
                 tooltipContent="Environments"
               >
@@ -281,52 +241,9 @@
                 </a>
               </Sidebar.MenuButton>
             </Sidebar.MenuItem>
-
-            <Sidebar.MenuItem>
-              <Sidebar.MenuButton
-                isActive={isNodesRoute}
-                tooltipContent="Nodes"
-              >
-                <a href="/nodes" class="w-full inline-flex items-center gap-2">
-                  <Server class="size-4 shrink-0" />
-                  <span class="truncate group-data-[collapsible=icon]:hidden"
-                    >Nodes</span
-                  >
-                </a>
-              </Sidebar.MenuButton>
-            </Sidebar.MenuItem>
           </Sidebar.Menu>
         </Sidebar.GroupContent>
       </Sidebar.Group>
-
-      {#if nodes.length > 0}
-        <Sidebar.Group>
-          <Sidebar.GroupContent>
-            <div class="px-2 space-y-1.5 group-data-[collapsible=icon]:hidden">
-              <label
-                for="node-filter"
-                class="text-[10px] uppercase tracking-wider text-sidebar-foreground/55"
-              >
-                Node Filter
-              </label>
-              <select
-                id="node-filter"
-                class="h-8 w-full rounded-md border border-sidebar-border bg-sidebar px-2 text-xs text-sidebar-foreground"
-                value={activeNodeFilterId}
-                onchange={(event) => {
-                  const target = event.currentTarget as HTMLSelectElement;
-                  void selectNodeFilter(target.value);
-                }}
-              >
-                <option value="">All nodes</option>
-                {#each nodes as node (node.id)}
-                  <option value={node.id}>{node.name}</option>
-                {/each}
-              </select>
-            </div>
-          </Sidebar.GroupContent>
-        </Sidebar.Group>
-      {/if}
 
       {#if viberGroups.length > 0}
         <Sidebar.Separator />
@@ -338,12 +255,12 @@
           </Sidebar.GroupLabel>
           <Sidebar.GroupContent>
             <Sidebar.Menu>
-              {#each viberGroups as group (group.nodeId ?? "__unknown__")}
+              {#each viberGroups as group (group.environmentId ?? "__unassigned__")}
                 <Collapsible open={true} class="group/collapsible">
                   <Sidebar.MenuItem>
                     <CollapsibleTrigger class="w-full">
                       <Sidebar.MenuButton class="text-sidebar-foreground/70">
-                        <Server class="size-4 shrink-0" />
+                        <FolderGit2 class="size-4 shrink-0" />
                         <span
                           class="truncate text-xs font-medium group-data-[collapsible=icon]:hidden"
                         >
@@ -384,6 +301,13 @@
                                     ? viber.goal.slice(0, 40) + "…"
                                     : viber.goal || viber.id}
                                 </span>
+                                {#if viber.nodeName}
+                                  <span
+                                    class="ml-auto shrink-0 text-[10px] text-sidebar-foreground/40 group-data-[collapsible=icon]:hidden"
+                                  >
+                                    {viber.nodeName}
+                                  </span>
+                                {/if}
                               </a>
                             </Sidebar.MenuSubButton>
                           </Sidebar.MenuSubItem>

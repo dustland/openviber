@@ -13,7 +13,7 @@ export function registerDefaultSkills() {
   defaultRegistry.preRegisterTools("antigravity", getAntigravityTools());
   // Pre-register cursor-agent tools (run Cursor CLI via tmux)
   defaultRegistry.preRegisterTools("cursor-agent", getCursorAgentTools());
-  // Pre-register codex-cli tools (run Codex CLI via tmux)
+  // Pre-register codex-cli tools (run Codex CLI via non-interactive codex exec)
   defaultRegistry.preRegisterTools("codex-cli", getCodexCliTools());
   // Pre-register github tools (gh CLI for issues, PRs, branches)
   defaultRegistry.preRegisterTools("github", getGithubTools());
@@ -23,4 +23,3 @@ export function registerDefaultSkills() {
 
 // Auto-register on import
 registerDefaultSkills();
-

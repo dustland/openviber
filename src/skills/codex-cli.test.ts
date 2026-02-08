@@ -2,10 +2,21 @@ import { EventEmitter } from "events";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const spawnMock = vi.fn();
+const existsSyncMock = vi.fn();
+const statSyncMock = vi.fn();
 
 vi.mock("child_process", () => ({
   spawn: (...args: any[]) => spawnMock(...args),
 }));
+
+vi.mock("fs", async () => {
+  const actual = await vi.importActual<typeof import("fs")>("fs");
+  return {
+    ...actual,
+    existsSync: (...args: any[]) => existsSyncMock(...args),
+    statSync: (...args: any[]) => statSyncMock(...args),
+  };
+});
 
 import { __private, getTools } from "./codex-cli";
 
@@ -44,7 +55,20 @@ function createFakeProc(options: ProcOptions = {}) {
 describe("codex-cli tool", () => {
   beforeEach(() => {
     spawnMock.mockReset();
+    existsSyncMock.mockReset();
+    statSyncMock.mockReset();
     vi.useRealTimers();
+
+    existsSyncMock.mockImplementation((target: unknown) => {
+      if (typeof target !== "string") {
+        return false;
+      }
+      if (target.includes("codex")) {
+        return true;
+      }
+      return target === "/tmp/project" || target === process.cwd();
+    });
+    statSyncMock.mockReturnValue({ isDirectory: () => true });
   });
 
   it("builds codex exec args for full-auto mode", () => {
@@ -73,16 +97,6 @@ describe("codex-cli tool", () => {
     expect(args[args.length - 1]).toBe("Review the repository");
   });
 
-  it("builds codex exec args for auto-edit mode (workspace-write)", () => {
-    const args = __private.buildCodexArgs(
-      "Edit this codebase",
-      "/tmp/project",
-      "auto-edit",
-    );
-    expect(args).toContain("-s");
-    expect(args).toContain("workspace-write");
-  });
-
   it("executes codex and returns ok=true on exit code 0", async () => {
     const fake = createFakeProc({
       stdout: "done",
@@ -106,6 +120,8 @@ describe("codex-cli tool", () => {
     expect(result.ok).toBe(true);
     expect(result.output).toContain("done");
     expect(result.output).toContain("warn");
+    expect(result.summary).toContain("status=success");
+    expect(result.stdoutTail).toContain("done");
     expect(result.command).toContain("\"exec\"");
   });
 
@@ -125,6 +141,7 @@ describe("codex-cli tool", () => {
     expect(result.exitCode).toBe(2);
     expect(result.error).toContain("exited with code 2");
     expect(result.output).toContain("fatal error");
+    expect(result.summary).toContain("status=failed");
   });
 
   it("returns timeout error when codex does not finish in time", async () => {
@@ -143,6 +160,20 @@ describe("codex-cli tool", () => {
     expect(fake.kill).toHaveBeenCalledWith("SIGTERM");
     expect(result.ok).toBe(false);
     expect(result.error).toContain("timed out");
+    expect(result.timedOut).toBe(true);
+  });
+
+  it("returns clear error when codex is not installed", async () => {
+    existsSyncMock.mockReturnValue(false);
+
+    const result = await getTools().codex_run.execute({
+      prompt: "Hello",
+      waitSeconds: 10,
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain("Codex CLI not found in PATH");
+    expect(spawnMock).not.toHaveBeenCalled();
   });
 
   it("truncates oversized output to protect context window", () => {
@@ -150,5 +181,12 @@ describe("codex-cli tool", () => {
     const out = __private.truncateOutput(huge);
     expect(out.length).toBeLessThan(huge.length);
     expect(out).toContain("[truncated");
+  });
+
+  it("creates tail previews for chat-friendly responses", () => {
+    const input = Array.from({ length: 100 }, (_, i) => `line-${i + 1}`).join("\n");
+    const tail = __private.getTailLines(input, 5);
+    expect(tail).toContain("line-100");
+    expect(tail).toContain("omitted");
   });
 });

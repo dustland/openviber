@@ -86,9 +86,9 @@ program
       console.log("[Viber] Connected mode — using saved config");
     }
 
-    // Initialize Scheduler
-    // For demo purposes, we load from "examples/jobs". In production, this would be ~/.openviber/jobs
-    const jobsDir = path.resolve(process.cwd(), "examples/jobs");
+    // Initialize Scheduler from ~/.openviber/jobs (or OPENVIBER_JOBS_DIR)
+    const jobsDir =
+      process.env.OPENVIBER_JOBS_DIR || path.join(OPENVIBER_DIR, "jobs");
     const scheduler = new JobScheduler(jobsDir);
 
     console.log(`[Viber] Initializing Cron Scheduler (jobs: ${jobsDir})...`);
@@ -173,6 +173,32 @@ Press Ctrl+C to stop.
 
     controller.on("error", (error) => {
       console.error("[Viber] Error:", error.message);
+    });
+
+    controller.on("job:create", async (msg) => {
+      const sanitize = (s: string) =>
+        s
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-|-$/g, "") || "job";
+      const jobName = sanitize(msg.name);
+      const jobPath = path.join(jobsDir, `${jobName}.yaml`);
+      const config: Record<string, unknown> = {
+        name: msg.name,
+        schedule: msg.schedule,
+        prompt: msg.prompt,
+      };
+      if (msg.description) config.description = msg.description;
+      if (msg.model) config.model = msg.model;
+      if (msg.nodeId) config.nodeId = msg.nodeId;
+      try {
+        await fs.mkdir(jobsDir, { recursive: true });
+        await fs.writeFile(jobPath, YAML.stringify(config), "utf8");
+        await scheduler.reload();
+        console.log(`[Viber] Job "${msg.name}" added and scheduler reloaded.`);
+      } catch (err) {
+        console.error("[Viber] Failed to add job:", err);
+      }
     });
 
     await controller.start();

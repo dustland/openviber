@@ -14,6 +14,8 @@ export interface CronJobConfig {
   skills?: string[];
   tools?: string[];
   prompt: string;
+  /** When set, job is intended for this node (daemon id). Hub may push only jobs matching this node. */
+  nodeId?: string;
 }
 
 export class JobScheduler {
@@ -33,6 +35,15 @@ export class JobScheduler {
       job.stop();
     }
     this.jobs.clear();
+  }
+
+  /** Reload jobs from disk (e.g. after receiving a new job from the hub). */
+  async reload(): Promise<void> {
+    for (const job of this.jobs.values()) {
+      job.stop();
+    }
+    this.jobs.clear();
+    await this.loadJobs();
   }
 
   private async loadJobs() {

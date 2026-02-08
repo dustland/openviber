@@ -210,6 +210,12 @@ export class HubServer {
     ) {
       const viberId = url.pathname.split("/")[3];
       this.handleStreamViber(viberId, req, res);
+    } else if (
+      url.pathname.match(/^\/api\/nodes\/[^/]+\/job$/) &&
+      method === "POST"
+    ) {
+      const nodeId = url.pathname.split("/")[3];
+      this.handlePushJobToNode(nodeId, req, res);
     } else {
       res.writeHead(404, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: "Not found" }));
@@ -442,6 +448,59 @@ export class HubServer {
 
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ ok: true }));
+  }
+
+  /**
+   * POST /api/nodes/:nodeId/job - Push a job config to a node. The node writes it to its local jobs dir and reloads the scheduler.
+   */
+  private handlePushJobToNode(
+    nodeId: string,
+    req: IncomingMessage,
+    res: ServerResponse,
+  ): void {
+    const node = this.nodes.get(nodeId);
+    if (!node) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Node not found or not connected" }));
+      return;
+    }
+
+    let body = "";
+    req.on("data", (chunk) => (body += chunk));
+    req.on("end", () => {
+      try {
+        const config = JSON.parse(body || "{}");
+        const { name, schedule, prompt, description, model } = config;
+        if (!name || !schedule || !prompt) {
+          res.writeHead(400, { "Content-Type": "application/json" });
+          res.end(
+            JSON.stringify({
+              error: "Missing required fields: name, schedule, prompt",
+            }),
+          );
+          return;
+        }
+        const message = {
+          type: "job:create",
+          name: String(name).trim(),
+          schedule: String(schedule).trim(),
+          prompt: String(prompt).trim(),
+          ...(description != null && { description: String(description).trim() }),
+          ...(model != null && { model: String(model).trim() }),
+          ...(config.nodeId != null && { nodeId: String(config.nodeId).trim() }),
+        };
+        node.ws.send(JSON.stringify(message));
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: true, message: "Job pushed to node" }));
+      } catch (err) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify({
+            error: err instanceof Error ? err.message : "Invalid JSON body",
+          }),
+        );
+      }
+    });
   }
 
   /**

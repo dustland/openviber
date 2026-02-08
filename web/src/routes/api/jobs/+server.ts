@@ -11,6 +11,7 @@ import {
   sanitizeJobName,
   type JobEntry,
 } from "$lib/server/jobs";
+import { hubClient } from "$lib/server/hub-client";
 
 export interface ViberJobsGroup {
   viberId: string;
@@ -29,7 +30,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
   try {
     const body = await request.json();
-    const { name, schedule, prompt, description, model } = body;
+    const { name, schedule, prompt, description, model, nodeId } = body;
 
     if (!name || typeof name !== "string" || !name.trim()) {
       return json({ error: "Missing or invalid name" }, { status: 400 });
@@ -57,8 +58,30 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     if (model != null && String(model).trim()) {
       config.model = String(model).trim();
     }
+    if (nodeId != null && typeof nodeId === "string" && nodeId.trim()) {
+      config.nodeId = nodeId.trim();
+    }
 
     await fs.writeFile(jobPath, yaml.stringify(config), "utf8");
+
+    // If a node is selected, push the job to that node so it runs there
+    const targetNodeId =
+      nodeId != null && typeof nodeId === "string" && nodeId.trim()
+        ? nodeId.trim()
+        : null;
+    if (targetNodeId) {
+      const pushed = await hubClient.pushJobToNode(targetNodeId, {
+        name: name.trim(),
+        schedule: schedule.trim(),
+        prompt: prompt.trim(),
+        ...(description != null && String(description).trim() && { description: String(description).trim() }),
+        ...(model != null && String(model).trim() && { model: String(model).trim() }),
+        nodeId: targetNodeId,
+      });
+      if (!pushed) {
+        console.warn("[Jobs API] Job saved locally but push to node failed (hub or node may be unavailable)");
+      }
+    }
 
     return json(
       { ok: true, message: `Created job "${name}"`, filename: `${jobName}.yaml` },

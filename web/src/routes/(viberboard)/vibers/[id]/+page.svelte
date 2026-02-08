@@ -1054,7 +1054,7 @@
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <div
-                      class="ml-3 mr-1 mb-1 rounded-md border border-border/50 bg-black/[0.03] dark:bg-white/[0.03]"
+                      class="ml-3 mr-1 mb-1 max-h-48 overflow-y-auto rounded-md border border-border/50 bg-black/[0.03] dark:bg-white/[0.03]"
                     >
                       {#if entry.output}
                         <pre

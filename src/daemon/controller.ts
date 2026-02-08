@@ -100,7 +100,16 @@ export type ControllerServerMessage =
   | { type: "terminal:attach"; target: string; appId?: string }
   | { type: "terminal:detach"; target: string; appId?: string }
   | { type: "terminal:input"; target: string; keys: string; appId?: string }
-  | { type: "terminal:resize"; target: string; cols: number; rows: number; appId?: string };
+  | { type: "terminal:resize"; target: string; cols: number; rows: number; appId?: string }
+  | {
+      type: "job:create";
+      name: string;
+      schedule: string;
+      prompt: string;
+      description?: string;
+      model?: string;
+      nodeId?: string;
+    };
 
 // Viber -> Server messages
 export type ControllerClientMessage =
@@ -363,6 +372,10 @@ export class ViberController extends EventEmitter {
 
         case "terminal:resize":
           this.handleTerminalResize(message.target, message.cols, message.rows, message.appId);
+          break;
+
+        case "job:create":
+          this.emit("job:create", message);
           break;
       }
     } catch (error) {

@@ -195,6 +195,31 @@ export const hubClient = {
     }
   },
 
+  /** Push a job config to a node. The node writes it locally and reloads its scheduler. */
+  async pushJobToNode(
+    nodeId: string,
+    job: {
+      name: string;
+      schedule: string;
+      prompt: string;
+      description?: string;
+      model?: string;
+      nodeId?: string;
+    },
+  ): Promise<boolean> {
+    try {
+      const response = await hubFetch(`/api/nodes/${encodeURIComponent(nodeId)}/job`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(job),
+      });
+      return response.ok;
+    } catch (error) {
+      console.error("[HubClient] Failed to push job to node:", error);
+      return false;
+    }
+  },
+
   async checkHealth(): Promise<{ status: string; nodes: number; vibers: number } | null> {
     try {
       const response = await hubFetch("/health");

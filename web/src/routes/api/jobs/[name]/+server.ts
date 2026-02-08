@@ -27,7 +27,7 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
         await fs.unlink(filePath);
         return json({ ok: true, message: `Deleted job "${params.name}"` });
       } catch (e: unknown) {
-        if ((e as NodeJS.ErrnoError)?.code !== "ENOENT") throw e;
+        if ((e as NodeJS.ErrnoException)?.code !== "ENOENT") throw e;
       }
     }
     return json({ error: "Job not found" }, { status: 404 });

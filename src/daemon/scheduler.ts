@@ -1,5 +1,6 @@
 import { Cron } from "croner";
 import * as fs from "fs/promises";
+import { watch as fsWatch, type FSWatcher } from "fs";
 import * as path from "path";
 import * as yaml from "yaml";
 
@@ -21,16 +22,20 @@ export interface CronJobConfig {
 export class JobScheduler {
   private jobs: Map<string, Cron> = new Map();
   private active: boolean = false;
+  private watcher: FSWatcher | null = null;
+  private reloadTimer: NodeJS.Timeout | null = null;
 
   constructor(private jobsDir: string) { }
 
   async start() {
     this.active = true;
     await this.loadJobs();
+    this.startWatcher();
   }
 
   async stop() {
     this.active = false;
+    this.stopWatcher();
     for (const job of this.jobs.values()) {
       job.stop();
     }
@@ -44,6 +49,53 @@ export class JobScheduler {
     }
     this.jobs.clear();
     await this.loadJobs();
+  }
+
+  /**
+   * Watch the jobs directory for file changes and auto-reload.
+   * This ensures jobs created by tools (e.g. create_scheduled_job from chat)
+   * are picked up without requiring a daemon restart.
+   */
+  private startWatcher(): void {
+    try {
+      this.watcher = fsWatch(this.jobsDir, (_eventType, filename) => {
+        if (!filename) return;
+        if (!filename.endsWith(".yaml") && !filename.endsWith(".yml")) return;
+        this.debouncedReload();
+      });
+      this.watcher.on("error", () => {
+        // Directory may have been removed; stop watching silently
+        this.stopWatcher();
+      });
+    } catch {
+      // Directory might not exist yet — that's fine, watcher is optional
+    }
+  }
+
+  private stopWatcher(): void {
+    if (this.watcher) {
+      this.watcher.close();
+      this.watcher = null;
+    }
+    if (this.reloadTimer) {
+      clearTimeout(this.reloadTimer);
+      this.reloadTimer = null;
+    }
+  }
+
+  /** Debounced reload to avoid rapid-fire reloads when multiple files change. */
+  private debouncedReload(): void {
+    if (this.reloadTimer) clearTimeout(this.reloadTimer);
+    this.reloadTimer = setTimeout(async () => {
+      this.reloadTimer = null;
+      if (!this.active) return;
+      console.log("[Scheduler] Detected jobs directory change, reloading...");
+      try {
+        await this.reload();
+      } catch (err) {
+        console.error("[Scheduler] Reload after file change failed:", err);
+      }
+    }, 500);
   }
 
   private async loadJobs() {

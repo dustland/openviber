@@ -190,31 +190,31 @@ export class HubServer {
       url.pathname.match(/^\/api\/vibers\/[^/]+$/) &&
       method === "GET"
     ) {
-      const viberId = url.pathname.split("/").pop()!;
+      const viberId = decodeURIComponent(url.pathname.split("/").pop()!);
       this.handleGetViber(viberId, res);
     } else if (
       url.pathname.match(/^\/api\/vibers\/[^/]+\/message$/) &&
       method === "POST"
     ) {
-      const viberId = url.pathname.split("/")[3];
+      const viberId = decodeURIComponent(url.pathname.split("/")[3]);
       this.handleSendMessage(viberId, req, res);
     } else if (
       url.pathname.match(/^\/api\/vibers\/[^/]+\/stop$/) &&
       method === "POST"
     ) {
-      const viberId = url.pathname.split("/")[3];
+      const viberId = decodeURIComponent(url.pathname.split("/")[3]);
       this.handleStopViber(viberId, res);
     } else if (
       url.pathname.match(/^\/api\/vibers\/[^/]+\/stream$/) &&
       method === "GET"
     ) {
-      const viberId = url.pathname.split("/")[3];
+      const viberId = decodeURIComponent(url.pathname.split("/")[3]);
       this.handleStreamViber(viberId, req, res);
     } else if (
       url.pathname.match(/^\/api\/nodes\/[^/]+\/job$/) &&
       method === "POST"
     ) {
-      const nodeId = url.pathname.split("/")[3];
+      const nodeId = decodeURIComponent(url.pathname.split("/")[3]);
       this.handlePushJobToNode(nodeId, req, res);
     } else {
       res.writeHead(404, { "Content-Type": "application/json" });

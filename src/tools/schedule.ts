@@ -147,7 +147,7 @@ export const createJobTool = {
             message: `Created job "${name}" - will run at schedule: ${cronExpression}`,
             jobPath,
             cronExpression,
-            nextSteps: "Restart OpenViber to load the new job, or it will be picked up on next restart."
+            nextSteps: "The scheduler will automatically pick up the new job within a few seconds."
         };
     }
 };

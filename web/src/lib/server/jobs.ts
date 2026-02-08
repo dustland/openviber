@@ -41,6 +41,29 @@ export function describeCron(cron: string): string {
 
   const [minute, hour, dayOfMonth, month, dayOfWeek] = parts;
 
+  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+  /** Format a day-of-week field (single number, comma list, or range) into readable text. */
+  function formatDOW(dow: string): string {
+    if (dow === "*") return "";
+    const nums = dow.split(",").map((d) => parseInt(d, 10)).filter((n) => !isNaN(n));
+    if (nums.length === 0) return dow;
+
+    // Check for common patterns
+    const weekdays = [1, 2, 3, 4, 5];
+    const weekends = [0, 6];
+    const sorted = [...nums].sort((a, b) => a - b);
+
+    if (sorted.length === 5 && sorted.every((v, i) => v === weekdays[i])) return "Mon-Fri";
+    if (sorted.length === 2 && sorted.every((v, i) => v === weekends[i])) return "Sat-Sun";
+    if (sorted.length === 7) return ""; // every day = no qualifier
+
+    return sorted.map((n) => dayNames[n] ?? String(n)).join(", ");
+  }
+
+  const timeStr = `${hour}:${minute.padStart(2, "0")}`;
+  const dowLabel = dayOfWeek !== "*" ? formatDOW(dayOfWeek) : "";
+
   if (minute === "0" && hour !== "*" && dayOfMonth === "*" && month === "*" && dayOfWeek === "*") {
     return `Daily at ${hour}:00`;
   }
@@ -48,15 +71,15 @@ export function describeCron(cron: string): string {
     return "Every hour";
   }
   if (minute.startsWith("*/") && hour === "*") {
-    return `Every ${minute.slice(2)} minutes`;
+    const suffix = dowLabel ? ` (${dowLabel})` : "";
+    return `Every ${minute.slice(2)} minutes${suffix}`;
   }
   if (minute === "0" && hour.startsWith("*/")) {
-    return `Every ${hour.slice(2)} hours`;
+    const suffix = dowLabel ? ` (${dowLabel})` : "";
+    return `Every ${hour.slice(2)} hours${suffix}`;
   }
-  if (dayOfWeek !== "*" && dayOfMonth === "*") {
-    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    const day = days[parseInt(dayOfWeek)] ?? dayOfWeek;
-    return `${day} at ${hour}:${minute.padStart(2, "0")}`;
+  if (dayOfWeek !== "*" && dayOfMonth === "*" && month === "*") {
+    return `${dowLabel || dayOfWeek} at ${timeStr}`;
   }
 
   return cron;

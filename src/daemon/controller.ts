@@ -17,6 +17,15 @@ import type { ViberOptions } from "../core/viber-agent";
 import { runTask } from "./runtime";
 import { TerminalManager } from "./terminal";
 import { getOpenViberVersion } from "../utils/version";
+import {
+  collectMachineResourceStatus,
+  collectViberRunningStatus,
+  collectNodeStatus,
+  type MachineResourceStatus,
+  type ViberRunningStatus as ViberNodeRunningStatus,
+  type RunningTaskInfo,
+  type NodeObservabilityStatus,
+} from "./node-status";
 
 // ==================== Types ====================
 
@@ -59,6 +68,10 @@ export interface ViberStatus {
   uptime: number;
   memory: NodeJS.MemoryUsage;
   runningTasks: number;
+  /** Machine resource status snapshot (CPU, memory, disk, network) */
+  machine?: MachineResourceStatus;
+  /** Viber daemon running status (tasks, skills, process info) */
+  viberStatus?: ViberNodeRunningStatus;
 }
 
 // Server -> Viber messages (messages = full chat history from Viber Board for context)
@@ -109,7 +122,8 @@ export type ControllerServerMessage =
       description?: string;
       model?: string;
       nodeId?: string;
-    };
+    }
+  | { type: "status:request" };
 
 // Viber -> Server messages
 export type ControllerClientMessage =
@@ -126,7 +140,8 @@ export type ControllerClientMessage =
   | { type: "terminal:attached"; target: string; appId?: string; ok: boolean; error?: string }
   | { type: "terminal:detached"; target: string; appId?: string }
   | { type: "terminal:output"; target: string; appId?: string; data: string }
-  | { type: "terminal:resized"; target: string; appId?: string; ok: boolean };
+  | { type: "terminal:resized"; target: string; appId?: string; ok: boolean }
+  | { type: "status:report"; status: NodeObservabilityStatus };
 
 interface TaskProgressEnvelope {
   eventId: string;
@@ -171,6 +186,16 @@ export class ViberController extends EventEmitter {
   private shouldReconnect = true;
   /** Terminal manager for streaming tmux panes */
   private terminalManager = new TerminalManager();
+  /** Timestamp when the daemon started */
+  private daemonStartTime: number = Date.now();
+  /** Total tasks executed since daemon start */
+  private totalTasksExecuted: number = 0;
+  /** Skills loaded on this viber */
+  private loadedSkills: string[] = [];
+  /** Capabilities available */
+  private loadedCapabilities: string[] = [];
+  /** Timestamp of last heartbeat sent */
+  private lastHeartbeatAt?: string;
 
   constructor(private config: ViberControllerConfig) {
     super();
@@ -228,6 +253,37 @@ export class ViberController extends EventEmitter {
     };
   }
 
+  /**
+   * Get full node observability status including machine resources and viber running status.
+   */
+  getNodeObservabilityStatus(): NodeObservabilityStatus {
+    return collectNodeStatus({
+      viberId: this.config.viberId,
+      viberName: this.config.viberName || this.config.viberId,
+      version: getOpenViberVersion(),
+      connected: this.isConnected,
+      daemonStartTime: this.daemonStartTime,
+      runningTasks: this.getRunningTaskInfos(),
+      skills: this.loadedSkills,
+      capabilities: this.loadedCapabilities,
+      totalTasksExecuted: this.totalTasksExecuted,
+      lastHeartbeatAt: this.lastHeartbeatAt,
+    });
+  }
+
+  /**
+   * Get running task info for observability
+   */
+  private getRunningTaskInfos(): RunningTaskInfo[] {
+    return Array.from(this.runningTasks.values()).map((rt) => ({
+      taskId: rt.taskId,
+      goal: rt.goal,
+      model: rt.options?.model,
+      isRunning: rt.running,
+      messageCount: rt.messageHistory.length,
+    }));
+  }
+
   // ==================== Connection Management ====================
 
   private async connect(): Promise<void> {
@@ -274,6 +330,10 @@ export class ViberController extends EventEmitter {
     } catch (err) {
       console.warn("[Viber] Could not load skills for capabilities:", err);
     }
+
+    // Store loaded capabilities and skills for status reporting
+    this.loadedCapabilities = capabilities;
+    this.loadedSkills = skills.map((s) => s.id);
 
     this.send({
       type: "connected",
@@ -376,6 +436,10 @@ export class ViberController extends EventEmitter {
 
         case "job:create":
           this.emit("job:create", message);
+          break;
+
+        case "status:request":
+          this.handleStatusRequest();
           break;
       }
     } catch (error) {
@@ -482,6 +546,7 @@ export class ViberController extends EventEmitter {
       }
     } finally {
       this.runningTasks.delete(taskId);
+      this.totalTasksExecuted++;
     }
   }
 
@@ -617,6 +682,13 @@ export class ViberController extends EventEmitter {
     });
   }
 
+  // ==================== Status Reporting ====================
+
+  private handleStatusRequest(): void {
+    const status = this.getNodeObservabilityStatus();
+    this.send({ type: "status:report", status });
+  }
+
   // ==================== Terminal Streaming ====================
 
   private handleTerminalList(): void {
@@ -672,13 +744,30 @@ export class ViberController extends EventEmitter {
   private startHeartbeat(): void {
     const interval = this.config.heartbeatInterval || 30000;
     this.heartbeatTimer = setInterval(() => {
+      const machineStatus = collectMachineResourceStatus();
+      const viberStatus = collectViberRunningStatus({
+        viberId: this.config.viberId,
+        viberName: this.config.viberName || this.config.viberId,
+        version: getOpenViberVersion(),
+        connected: this.isConnected,
+        daemonStartTime: this.daemonStartTime,
+        runningTasks: this.getRunningTaskInfos(),
+        skills: this.loadedSkills,
+        capabilities: this.loadedCapabilities,
+        totalTasksExecuted: this.totalTasksExecuted,
+        lastHeartbeatAt: this.lastHeartbeatAt,
+      });
+
       const status: ViberStatus = {
         platform: process.platform,
         uptime: process.uptime(),
         memory: process.memoryUsage(),
         runningTasks: this.runningTasks.size,
+        machine: machineStatus,
+        viberStatus,
       };
 
+      this.lastHeartbeatAt = new Date().toISOString();
       this.send({ type: "heartbeat", status });
     }, interval);
   }

@@ -702,21 +702,154 @@ program
 
 program
   .command("status")
-  .description("Check viber status and configuration")
-  .action(async () => {
+  .description("Check viber status, machine resources, and configuration")
+  .option("--hub <url>", "Hub URL to query for node status")
+  .option("--node <id>", "Node ID to query (defaults to local viber-id)")
+  .option("--json", "Output in JSON format")
+  .option("--local", "Show local machine resources only (no hub connection)")
+  .action(async (options) => {
     const viberId = await getViberId();
     const hasToken = !!process.env.VIBER_TOKEN;
     const hasOpenRouter = !!process.env.OPENROUTER_API_KEY;
 
-    console.log(`
+    const {
+      collectMachineResourceStatus,
+      formatBytes,
+      formatUptime,
+    } = await import("../daemon/node-status");
+
+    // Always show config status
+    if (!options.json) {
+      console.log(`
 Viber Status
 ────────────────────────────────────
   Viber ID:      ${viberId}
   Token:         ${hasToken ? "✓ Set (VIBER_TOKEN)" : "✗ Not set"}
   OpenRouter:    ${hasOpenRouter ? "✓ Set (OPENROUTER_API_KEY)" : "✗ Not set"}
   Config Dir:    ${path.join(os.homedir(), ".openviber")}
+────────────────────────────────────`);
+    }
+
+    // Collect local machine status
+    const machineStatus = collectMachineResourceStatus();
+
+    if (options.json) {
+      // Try to get hub status if available
+      const hubUrl =
+        options.hub ||
+        process.env.VIBER_HUB_URL ||
+        "http://localhost:6007";
+
+      let hubNodeStatus = null;
+      if (!options.local) {
+        try {
+          const nodeId = options.node || viberId;
+          const res = await fetch(`${hubUrl}/api/nodes/${nodeId}/status`);
+          if (res.ok) {
+            hubNodeStatus = await res.json();
+          }
+        } catch {
+          // Hub not reachable, proceed with local only
+        }
+      }
+
+      console.log(
+        JSON.stringify(
+          {
+            viberId,
+            config: {
+              token: hasToken,
+              openRouter: hasOpenRouter,
+              configDir: path.join(os.homedir(), ".openviber"),
+            },
+            machine: machineStatus,
+            hub: hubNodeStatus,
+          },
+          null,
+          2,
+        ),
+      );
+      return;
+    }
+
+    // Display machine resources
+    const m = machineStatus;
+    console.log(`
+Machine Resources
 ────────────────────────────────────
-    `);
+  Hostname:      ${m.hostname}
+  Platform:      ${m.platform}
+  Arch:          ${m.arch}
+  System Uptime: ${formatUptime(m.systemUptimeSeconds)}
+
+  CPU:           ${m.cpu.cores} cores (${m.cpu.model.trim()})
+  CPU Usage:     ${m.cpu.averageUsage.toFixed(1)}% average
+  Load Average:  ${m.loadAverage.map((l) => l.toFixed(2)).join(", ")}
+
+  Memory Total:  ${formatBytes(m.memory.totalBytes)}
+  Memory Used:   ${formatBytes(m.memory.usedBytes)} (${m.memory.usagePercent.toFixed(1)}%)
+  Memory Free:   ${formatBytes(m.memory.freeBytes)}`);
+
+    if (m.disks.length > 0) {
+      console.log("");
+      console.log("  Disks:");
+      for (const d of m.disks) {
+        console.log(
+          `    ${d.mount.padEnd(12)} ${formatBytes(d.usedBytes)} / ${formatBytes(d.totalBytes)} (${d.usagePercent.toFixed(1)}%)`,
+        );
+      }
+    }
+
+    if (m.network.length > 0) {
+      const nonInternal = m.network.filter((n) => !n.internal);
+      if (nonInternal.length > 0) {
+        console.log("");
+        console.log("  Network:");
+        for (const iface of nonInternal) {
+          console.log(
+            `    ${iface.name.padEnd(12)} ${iface.ipv4 || ""}${iface.ipv6 ? "  " + iface.ipv6 : ""}`,
+          );
+        }
+      }
+    }
+
+    console.log("────────────────────────────────────");
+
+    // Try to get hub-based viber running status
+    if (!options.local) {
+      const hubUrl =
+        options.hub ||
+        process.env.VIBER_HUB_URL ||
+        "http://localhost:6007";
+
+      try {
+        const nodeId = options.node || viberId;
+        const res = await fetch(`${hubUrl}/api/nodes/${nodeId}/status`);
+        if (res.ok) {
+          const data = await res.json() as any;
+          if (data.status?.viber) {
+            const v = data.status.viber;
+            console.log(`
+Viber Running Status (from hub)
+────────────────────────────────────
+  Connected:     ● Yes
+  Daemon Uptime: ${formatUptime(v.daemonUptimeSeconds)}
+  Running Tasks: ${v.runningTaskCount}
+  Total Tasks:   ${v.totalTasksExecuted}
+  Process RSS:   ${formatBytes(v.processMemory?.rss || 0)}
+  Heap Used:     ${formatBytes(v.processMemory?.heapUsed || 0)}
+  Skills:        ${(v.skills || []).join(", ") || "none"}
+  Capabilities:  ${(v.capabilities || []).join(", ") || "none"}
+────────────────────────────────────`);
+          }
+        }
+      } catch {
+        console.log(`
+  (Hub not reachable at default URL — use --hub to specify)`);
+      }
+    }
+
+    console.log("");
   });
 
 // ==================== viber monitor ====================

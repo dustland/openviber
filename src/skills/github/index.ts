@@ -28,11 +28,22 @@ function gitExec(args: string, cwd: string): string {
 }
 
 /**
- * Get or create the workspace directory for codex operations.
+ * Base directory for cloned repos — must match runtime environment prompt (~/openviber_spaces).
  */
-function getWorkspaceDir(): string {
-  const dir = path.join(os.homedir(), ".openviber", "workspaces");
-  execSync(`mkdir -p "${dir}"`, { encoding: "utf8" });
+const OPENVIBER_SPACES = "openviber_spaces";
+
+/**
+ * Get the local path for a repo and ensure parent dir exists. Uses ~/openviber_spaces/owner/repo
+ * so clones match the path the daemon runtime tells the agent to use.
+ */
+function getCloneTargetDir(repo: string): string {
+  const parts = repo.split("/").filter(Boolean);
+  const org = parts[0] ?? "unknown";
+  const repoName = parts[1] ?? repo;
+  const dir = path.join(os.homedir(), OPENVIBER_SPACES, org, repoName);
+  execSync(`mkdir -p "${path.join(os.homedir(), OPENVIBER_SPACES, org)}"`, {
+    encoding: "utf8",
+  });
   return dir;
 }
 
@@ -128,7 +139,7 @@ export function getTools(): Record<string, import("../../core/tool").CoreTool> {
 
     gh_clone_repo: {
       description:
-        "Clone a GitHub repository into the OpenViber workspace directory (~/.openviber/workspaces/). Use to get a local copy of a repo before fixing issues. Returns the local path.",
+        "Clone a GitHub repository into ~/openviber_spaces/owner/repo (OpenViber working directory). Use to get a local copy of a repo before fixing issues. Path matches the environment project path the viber is given. Returns the local path.",
       inputSchema: z.object({
         repo: z
           .string()
@@ -140,9 +151,7 @@ export function getTools(): Record<string, import("../../core/tool").CoreTool> {
       }),
       execute: async (args: { repo: string; branch?: string }) => {
         try {
-          const wsDir = getWorkspaceDir();
-          const repoName = args.repo.split("/").pop() || args.repo;
-          const localPath = path.join(wsDir, repoName);
+          const localPath = getCloneTargetDir(args.repo);
 
           // Check if already cloned
           try {

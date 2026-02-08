@@ -245,16 +245,21 @@ export class HubServer {
   }
 
   private handleListVibers(res: ServerResponse): void {
-    const vibers = Array.from(this.vibers.values()).map((v) => ({
-      id: v.id,
-      nodeId: v.nodeId,
-      goal: v.goal,
-      status: v.status,
-      createdAt: v.createdAt.toISOString(),
-      completedAt: v.completedAt?.toISOString(),
-      eventCount: v.events.length,
-      partialText: v.partialText,
-    }));
+    const vibers = Array.from(this.vibers.values()).map((v) => {
+      const node = this.nodes.get(v.nodeId);
+      return {
+        id: v.id,
+        nodeId: v.nodeId,
+        nodeName: node?.name ?? v.nodeId,
+        goal: v.goal,
+        status: v.status,
+        createdAt: v.createdAt.toISOString(),
+        completedAt: v.completedAt?.toISOString(),
+        eventCount: v.events.length,
+        partialText: v.partialText,
+        isNodeConnected: !!node,
+      };
+    });
 
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ vibers }));

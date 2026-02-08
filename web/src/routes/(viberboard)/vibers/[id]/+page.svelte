@@ -225,6 +225,13 @@
   let skillsInput = $state("");
   let showConfigDialog = $state(false);
 
+  // Open config panel when navigating with ?config=1 (e.g. from sidebar "Configure")
+  $effect(() => {
+    if ($page.url.searchParams.get("config") === "1" && $page.params.id) {
+      showConfigDialog = true;
+    }
+  });
+
   // Session activity tracking for long-running AI tasks
   let sessionStartedAt = $state<number | null>(null);
   let bootstrapTaskHandledViberId = $state<string | null>(null);
@@ -274,13 +281,18 @@
 
   // no longer needed - accordion toggle is handled inline
 
-  // Scroll on new messages (count change) — always re-engage
+  // Track message count so we only auto-scroll when there is a new message, not on every reactive tick
+  let prevMessageCount = $state(0);
+
+  // Scroll only when message count actually increased (new message), not when user has scrolled up and conversation is done
   $effect(() => {
-    const _chatLen = chat?.messages?.length ?? 0;
-    const _dbLen = dbMessages.length;
-    // New message added → re-engage auto-scroll
-    userScrolledUp = false;
-    if (messagesContainer) {
+    const chatLen = chat?.messages?.length ?? 0;
+    const dbLen = dbMessages.length;
+    const total = Math.max(chatLen, dbLen);
+    const hasNewMessage = total > prevMessageCount;
+    prevMessageCount = total;
+    if (hasNewMessage && messagesContainer) {
+      userScrolledUp = false;
       tick().then(() => scrollToBottom("smooth"));
     }
   });

@@ -20,6 +20,7 @@
     Plus,
     Puzzle,
     Server,
+    Settings2,
   } from "@lucide/svelte";
   import {
     Collapsible,
@@ -370,11 +371,11 @@
                               isActive={pathname.startsWith(
                                 `/vibers/${viber.id}`,
                               )}
-                              class="h-10 -translate-x-0 gap-2.5 rounded-xl px-3 pr-10 text-[13px] font-medium text-sidebar-foreground/85 hover:bg-sidebar-accent/75 data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-foreground data-[active=true]:shadow-[inset_0_0_0_1px_hsl(var(--sidebar-border)/0.65)]"
+                              class="min-h-10 -translate-x-0 gap-2.5 rounded-xl px-3 pr-10 py-2 text-[13px] font-medium text-sidebar-foreground/85 hover:bg-sidebar-accent/75 data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-foreground data-[active=true]:shadow-[inset_0_0_0_1px_hsl(var(--sidebar-border)/0.65)]"
                             >
                               {#snippet child({ props })}
-                                <div class="group/viber relative w-full">
-                                  <a {...props}>
+                                <div class="group/viber relative w-full space-y-1">
+                                  <a {...props} class="flex items-center gap-2.5">
                                     <span
                                       class="flex size-4 shrink-0 items-center justify-center"
                                     >
@@ -398,6 +399,28 @@
                                         : viber.goal || viber.id}
                                     </span>
                                   </a>
+                                  <div
+                                    class="flex flex-wrap items-center gap-x-2 gap-y-0.5 pl-6 text-[11px] text-sidebar-foreground/60 group-data-[collapsible=icon]:hidden"
+                                  >
+                                    <span class="truncate" title={viber.nodeName ?? undefined}>
+                                      {viber.nodeName ?? "No node"}
+                                    </span>
+                                    <span class="shrink-0 text-sidebar-foreground/40">·</span>
+                                    <a
+                                      href={`/vibers/${viber.id}/jobs`}
+                                      class="hover:text-sidebar-foreground/80 focus:outline-none focus:underline"
+                                      onclick={(e: MouseEvent) => e.stopPropagation()}
+                                    >Jobs</a>
+                                    <span class="shrink-0 text-sidebar-foreground/40">·</span>
+                                    <a
+                                      href={`/vibers/${viber.id}?config=1`}
+                                      class="inline-flex items-center gap-0.5 hover:text-sidebar-foreground/80 focus:outline-none focus:underline"
+                                      onclick={(e: MouseEvent) => e.stopPropagation()}
+                                    >
+                                      <Settings2 class="size-3" />
+                                      Configure
+                                    </a>
+                                  </div>
                                   <button
                                     type="button"
                                     aria-label="Archive viber"

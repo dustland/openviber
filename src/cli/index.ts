@@ -951,21 +951,27 @@ Get an API key at: https://openrouter.ai/keys
 
 const skillCommand = program
   .command("skill")
-  .description("Explore, import, and manage skills from external sources (OpenClaw, GitHub, npm)")
+  .description("Explore, import, and manage skills from external sources")
   .addHelpText(
     "after",
     `
 Sources:
-  openclaw    OpenClaw Skill Hub (community registry)
-  github      GitHub repositories (tagged with openviber-skill topic)
-  npm         npm packages (with openviber-skill keyword)
+  openclaw      OpenClaw Skill Hub (community registry)
+  github        GitHub repositories (tagged with openviber-skill topic)
+  npm           npm packages (with openviber-skill keyword)
+  huggingface   Hugging Face models/spaces
+  smithery      Smithery MCP server registry
+  composio      Composio tool integrations (250+ SaaS)
+  glama         Glama MCP server directory
 
 Examples:
   openviber skill search "web scraping"
   openviber skill search --source github "browser automation"
+  openviber skill search --source smithery "filesystem"
   openviber skill info github dustland/openviber-skill-web
   openviber skill import dustland/openviber-skill-web
   openviber skill import npm:@openviber-skills/web-search
+  openviber skill import smithery:@anthropic/mcp-server-filesystem
   openviber skill list
   openviber skill remove my-skill
 `,
@@ -974,15 +980,15 @@ Examples:
 skillCommand
   .command("search [query]")
   .description("Search for skills across external hubs")
-  .option("-s, --source <source>", "Source to search (openclaw, github, npm)")
+  .option("-s, --source <source>", "Source to search (openclaw, github, npm, huggingface, smithery, composio, glama)")
   .option("--tags <tags>", "Filter by tags (comma-separated)")
   .option("--author <author>", "Filter by author")
   .option("--sort <sort>", "Sort order: relevance, popularity, recent, name", "relevance")
   .option("-n, --limit <limit>", "Results per page", "20")
   .option("-p, --page <page>", "Page number", "1")
   .action(async (query, options) => {
-    const { getSkillHubManager } = await import("../skills/hub");
-    const manager = getSkillHubManager();
+    const { getSkillHubManagerWithSettings } = await import("../skills/hub/manager");
+    const manager = await getSkillHubManagerWithSettings();
 
     const source = options.source as any;
     const searchQuery = {

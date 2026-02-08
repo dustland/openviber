@@ -26,6 +26,7 @@
     Plus,
     Puzzle,
     Server,
+    Settings,
     Settings2,
     Sun,
   } from "@lucide/svelte";
@@ -113,6 +114,9 @@
   );
   const isJobsRoute = $derived(
     pathname === "/jobs" || pathname.startsWith("/jobs/"),
+  );
+  const isSettingsRoute = $derived(
+    pathname === "/settings" || pathname.startsWith("/settings/"),
   );
 
   const user = $derived(($page.data?.user as SessionUser | undefined) || null);
@@ -340,6 +344,20 @@
                   <CalendarClock class="size-4 shrink-0" />
                   <span class="truncate group-data-[collapsible=icon]:hidden"
                     >Jobs</span
+                  >
+                </a>
+              </Sidebar.MenuButton>
+            </Sidebar.MenuItem>
+
+            <Sidebar.MenuItem>
+              <Sidebar.MenuButton
+                isActive={isSettingsRoute}
+                tooltipContent="Settings"
+              >
+                <a href="/settings" class="w-full inline-flex items-center gap-2">
+                  <Settings class="size-4 shrink-0" />
+                  <span class="truncate group-data-[collapsible=icon]:hidden"
+                    >Settings</span
                   >
                 </a>
               </Sidebar.MenuButton>

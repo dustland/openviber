@@ -8,6 +8,7 @@
     AlertCircle,
     Mail,
     Plus,
+    Server,
     Trash2,
     Info,
     X,
@@ -35,6 +36,12 @@
 
   interface ViberJobsGroup {
     viberId: string;
+    jobs: JobEntry[];
+  }
+
+  interface NodeJobsGroup {
+    nodeId: string;
+    nodeName: string;
     jobs: JobEntry[];
   }
 
@@ -73,6 +80,7 @@
 
   let globalJobs = $state<JobEntry[]>([]);
   let perViberJobs = $state<ViberJobsGroup[]>([]);
+  let nodeJobs = $state<NodeJobsGroup[]>([]);
   let totalJobs = $state(0);
   let loading = $state(true);
   let error = $state<string | null>(null);
@@ -119,11 +127,13 @@
       const data = await res.json();
       globalJobs = data.globalJobs ?? [];
       perViberJobs = data.perViberJobs ?? [];
+      nodeJobs = data.nodeJobs ?? [];
       totalJobs = data.totalJobs ?? 0;
     } catch (e) {
       error = e instanceof Error ? e.message : "Failed to load jobs";
       globalJobs = [];
       perViberJobs = [];
+      nodeJobs = [];
       totalJobs = 0;
     } finally {
       loading = false;
@@ -407,6 +417,63 @@
                             </span>
                           {/if}
                         </div>
+                      </div>
+                    </div>
+                  {/each}
+                </div>
+              </section>
+            {/if}
+          {/each}
+
+          <!-- Node-reported jobs (created from chat or locally on daemons) -->
+          {#each nodeJobs as group}
+            {#if group.jobs.length > 0}
+              <section>
+                <h2 class="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
+                  <Server class="size-3.5" />
+                  Node: {group.nodeName || group.nodeId}
+                </h2>
+                <div class="grid gap-4">
+                  {#each group.jobs as job}
+                    <div
+                      class="rounded-xl border border-border bg-card p-5 transition-all hover:border-primary/30 hover:shadow-sm flex items-start justify-between gap-4"
+                    >
+                      <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1">
+                          <h3 class="text-lg font-semibold text-card-foreground truncate">
+                            {job.name}
+                          </h3>
+                          <span
+                            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                          >
+                            <span class="size-1.5 rounded-full bg-current"></span>
+                            On node
+                          </span>
+                        </div>
+                        {#if job.description}
+                          <p class="text-sm text-muted-foreground mb-3">
+                            {job.description}
+                          </p>
+                        {/if}
+                        <div class="flex flex-wrap items-center gap-3 text-sm">
+                          <div class="flex items-center gap-1.5 text-muted-foreground">
+                            <Clock class="size-4" />
+                            <span>{job.scheduleDescription || job.schedule}</span>
+                          </div>
+                          {#if job.model}
+                            <div class="flex items-center gap-1.5 text-muted-foreground">
+                              <Zap class="size-4" />
+                              <span class="font-mono text-xs">{job.model}</span>
+                            </div>
+                          {/if}
+                        </div>
+                        {#if job.prompt}
+                          <div class="mt-3 p-3 rounded-lg bg-muted/50 border border-border/50">
+                            <p class="text-sm text-muted-foreground line-clamp-2">
+                              {job.prompt}
+                            </p>
+                          </div>
+                        {/if}
                       </div>
                     </div>
                   {/each}

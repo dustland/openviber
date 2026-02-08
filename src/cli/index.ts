@@ -143,6 +143,12 @@ program
       heartbeatInterval: parseInt(options.heartbeatInterval, 10),
     });
 
+    // When the scheduler loads/reloads jobs, report them to the hub
+    // so the web can observe all jobs across all nodes.
+    scheduler.on("jobs:loaded", (jobs) => {
+      controller.reportJobs(jobs);
+    });
+
     controller.on("connected", () => {
       console.log(`
 ╔═══════════════════════════════════════════════════════════╗
@@ -159,6 +165,9 @@ program
 Waiting for tasks...
 Press Ctrl+C to stop.
       `);
+
+      // Report current job list to hub on connect
+      controller.reportJobs(scheduler.getLoadedJobs());
     });
 
     controller.on("disconnected", () => {

@@ -1,4 +1,5 @@
 import { Cron } from "croner";
+import { EventEmitter } from "events";
 import * as fs from "fs/promises";
 import { watch as fsWatch, type FSWatcher } from "fs";
 import * as path from "path";
@@ -19,13 +20,41 @@ export interface CronJobConfig {
   nodeId?: string;
 }
 
-export class JobScheduler {
+/**
+ * Subset of CronJobConfig safe for reporting over the network.
+ * Excludes internal fields like agent, provider, skills, tools.
+ */
+export interface JobSummary {
+  name: string;
+  description?: string;
+  schedule: string;
+  prompt: string;
+  model?: string;
+  nodeId?: string;
+}
+
+export class JobScheduler extends EventEmitter {
   private jobs: Map<string, Cron> = new Map();
   private active: boolean = false;
   private watcher: FSWatcher | null = null;
   private reloadTimer: NodeJS.Timeout | null = null;
+  private loadedConfigs: CronJobConfig[] = [];
 
-  constructor(private jobsDir: string) { }
+  constructor(private jobsDir: string) {
+    super();
+  }
+
+  /** Get the list of currently loaded job configs (safe for reporting). */
+  getLoadedJobs(): JobSummary[] {
+    return this.loadedConfigs.map((c) => ({
+      name: c.name,
+      description: c.description,
+      schedule: c.schedule,
+      prompt: c.prompt,
+      model: c.model,
+      nodeId: c.nodeId,
+    }));
+  }
 
   async start() {
     this.active = true;
@@ -99,12 +128,14 @@ export class JobScheduler {
   }
 
   private async loadJobs() {
+    this.loadedConfigs = [];
     try {
       // Check if directory exists
       try {
         await fs.access(this.jobsDir);
       } catch {
         console.warn(`[Scheduler] Jobs directory not found: ${this.jobsDir}`);
+        this.emit("jobs:loaded", this.getLoadedJobs());
         return;
       }
 
@@ -114,6 +145,7 @@ export class JobScheduler {
           const content = await fs.readFile(path.join(this.jobsDir, file), "utf8");
           try {
             const config = yaml.parse(content) as CronJobConfig;
+            this.loadedConfigs.push(config);
             this.scheduleJob(config);
           } catch (err) {
             console.error(`[Scheduler] Failed to parse job ${file}:`, err);
@@ -123,6 +155,9 @@ export class JobScheduler {
     } catch (err) {
       console.error("[Scheduler] Error loading jobs:", err);
     }
+
+    // Notify listeners (e.g. the controller) so they can report to the hub
+    this.emit("jobs:loaded", this.getLoadedJobs());
   }
 
   private scheduleJob(config: CronJobConfig) {

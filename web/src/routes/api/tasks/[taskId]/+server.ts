@@ -2,16 +2,16 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { hubClient } from "$lib/server/hub-client";
 
-// GET /api/tasks/[taskId] - Get task status and result from hub
+// GET /api/tasks/[taskId] - Legacy: Get viber by ID from hub
 export const GET: RequestHandler = async ({ params }) => {
   try {
-    const task = await hubClient.getTask(params.taskId);
-    if (!task) {
-      return json({ error: "Task not found" }, { status: 404 });
+    const viber = await hubClient.getViber(params.taskId);
+    if (!viber) {
+      return json({ error: "Viber not found" }, { status: 404 });
     }
-    return json(task);
+    return json(viber);
   } catch (error) {
-    console.error("Failed to fetch task:", error);
-    return json({ error: "Failed to fetch task" }, { status: 500 });
+    console.error("Failed to fetch viber:", error);
+    return json({ error: "Failed to fetch viber" }, { status: 500 });
   }
 };

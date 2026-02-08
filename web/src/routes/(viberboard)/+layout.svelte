@@ -39,9 +39,10 @@
 
   interface SidebarViber {
     id: string;
-    name: string;
+    goal: string;
+    nodeId: string | null;
+    status: string;
     isConnected: boolean;
-    environmentId: string | null;
   }
 
   interface SidebarEnvironment {
@@ -51,7 +52,7 @@
 
   interface ViberGroup {
     label: string;
-    environmentId: string | null;
+    nodeId: string | null;
     vibers: SidebarViber[];
   }
 
@@ -62,27 +63,28 @@
   let environments = $state<SidebarEnvironment[]>([]);
 
   const viberGroups = $derived.by(() => {
-    const envMap = new Map(environments.map((e) => [e.id, e.name]));
+    // Group vibers by their parent node
+    const nodeMap = new Map(nodes.map((n) => [n.id, n.name]));
     const groups = new Map<string, ViberGroup>();
 
     for (const viber of vibers) {
-      const key = viber.environmentId ?? "__unassigned__";
+      const key = viber.nodeId ?? "__unknown__";
       if (!groups.has(key)) {
         groups.set(key, {
-          label: viber.environmentId
-            ? (envMap.get(viber.environmentId) ?? "Unknown")
-            : "Unassigned",
-          environmentId: viber.environmentId,
+          label: viber.nodeId
+            ? (nodeMap.get(viber.nodeId) ?? viber.nodeId)
+            : "Unknown Node",
+          nodeId: viber.nodeId,
           vibers: [],
         });
       }
       groups.get(key)!.vibers.push(viber);
     }
 
-    // Sort: named environments first (alphabetical), then unassigned last
+    // Sort: named nodes first, then unknown last
     return Array.from(groups.values()).sort((a, b) => {
-      if (!a.environmentId) return 1;
-      if (!b.environmentId) return -1;
+      if (!a.nodeId) return 1;
+      if (!b.nodeId) return -1;
       return a.label.localeCompare(b.label);
     });
   });
@@ -160,10 +162,10 @@
       vibers = Array.isArray(data)
         ? data.map((v: Record<string, unknown>) => ({
             id: String(v.id),
-            name: String(v.name || v.id),
+            goal: String(v.goal || ""),
+            nodeId: typeof v.nodeId === "string" ? v.nodeId : null,
+            status: String(v.status || "unknown"),
             isConnected: Boolean(v.isConnected),
-            environmentId:
-              typeof v.environmentId === "string" ? v.environmentId : null,
           }))
         : [];
     } catch (error) {
@@ -336,16 +338,12 @@
           </Sidebar.GroupLabel>
           <Sidebar.GroupContent>
             <Sidebar.Menu>
-              {#each viberGroups as group (group.environmentId ?? "__unassigned__")}
+              {#each viberGroups as group (group.nodeId ?? "__unknown__")}
                 <Collapsible open={true} class="group/collapsible">
                   <Sidebar.MenuItem>
                     <CollapsibleTrigger class="w-full">
                       <Sidebar.MenuButton class="text-sidebar-foreground/70">
-                        {#if group.environmentId}
-                          <FolderGit2 class="size-4 shrink-0" />
-                        {:else}
-                          <Package class="size-4 shrink-0" />
-                        {/if}
+                        <Server class="size-4 shrink-0" />
                         <span
                           class="truncate text-xs font-medium group-data-[collapsible=icon]:hidden"
                         >
@@ -370,14 +368,21 @@
                                 class="w-full inline-flex items-center gap-2"
                               >
                                 <Circle
-                                  class="size-2 shrink-0 {viber.isConnected
-                                    ? 'fill-green-500 text-green-500'
-                                    : 'fill-gray-400 text-gray-400'}"
+                                  class="size-2 shrink-0 {viber.status ===
+                                  'running'
+                                    ? 'fill-blue-500 text-blue-500'
+                                    : viber.status === 'completed'
+                                      ? 'fill-green-500 text-green-500'
+                                      : viber.status === 'error'
+                                        ? 'fill-red-500 text-red-500'
+                                        : 'fill-amber-500 text-amber-500'}"
                                 />
                                 <span
                                   class="truncate text-xs group-data-[collapsible=icon]:hidden"
                                 >
-                                  {viber.name}
+                                  {viber.goal.length > 40
+                                    ? viber.goal.slice(0, 40) + "…"
+                                    : viber.goal || viber.id}
                                 </span>
                               </a>
                             </Sidebar.MenuSubButton>

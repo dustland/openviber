@@ -70,7 +70,15 @@ export type ControllerServerMessage =
     options?: ViberOptions;
     messages?: { role: string; content: string }[];
   }
+  | {
+    type: "viber:create";
+    viberId: string;
+    goal: string;
+    options?: ViberOptions;
+    messages?: { role: string; content: string }[];
+  }
   | { type: "task:stop"; taskId: string }
+  | { type: "viber:stop"; viberId: string }
   | {
     type: "task:message";
     taskId: string;
@@ -285,8 +293,21 @@ export class ViberController extends EventEmitter {
           await this.handleTaskSubmit(message);
           break;
 
+        case "viber:create":
+          await this.handleTaskSubmit({
+            taskId: message.viberId,
+            goal: message.goal,
+            options: message.options,
+            messages: message.messages,
+          });
+          break;
+
         case "task:stop":
           await this.handleTaskStop(message.taskId);
+          break;
+
+        case "viber:stop":
+          await this.handleTaskStop(message.viberId);
           break;
 
         case "task:message":

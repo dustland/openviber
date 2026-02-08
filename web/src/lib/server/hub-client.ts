@@ -1,8 +1,12 @@
 /**
- * Hub Client - Connects to the Viber Playground/Hub server
+ * Hub Client - Connects to the Viber Hub server
  *
- * The OpenViber web app delegates viber management to the hub server,
- * which handles WebSocket connections from viber daemons.
+ * The OpenViber web app delegates node/viber management to the hub server,
+ * which handles WebSocket connections from node daemons.
+ *
+ * Terminology:
+ *   - Node: a machine running the daemon process (connected via WebSocket)
+ *   - Viber: a task/conversation session running on a node
  */
 
 import { env } from "$env/dynamic/private";
@@ -39,42 +43,57 @@ async function hubFetch(path: string, init: RequestInit = {}) {
   return response;
 }
 
-export interface ViberSkillInfo {
+export interface NodeSkillInfo {
   id: string;
   name: string;
   description: string;
 }
 
-export interface ConnectedViber {
+/** A connected node (daemon) on the hub */
+export interface ConnectedNode {
   id: string;
   name: string;
   version: string;
   platform: string;
   capabilities: string[];
   connectedAt: string;
-  skills?: ViberSkillInfo[];
+  skills?: NodeSkillInfo[];
+  runningVibers: string[];
 }
 
-export interface HubTaskEvent {
-  at: string;
-  event: unknown;
-}
-
-export interface HubTask {
+/** A viber session on the hub */
+export interface HubViber {
   id: string;
-  viberId: string;
+  nodeId: string;
   goal: string;
   status: "pending" | "running" | "completed" | "error" | "stopped";
   createdAt: string;
+  completedAt?: string;
   result?: unknown;
   error?: string;
   eventCount?: number;
-  events?: HubTaskEvent[];
   partialText?: string;
+  nodeName?: string;
+  isNodeConnected?: boolean;
 }
 
 export const hubClient = {
-  async getVibers(): Promise<{ connected: boolean; vibers: ConnectedViber[] }> {
+  /** List connected nodes (daemons) from the hub */
+  async getNodes(): Promise<{ connected: boolean; nodes: ConnectedNode[] }> {
+    try {
+      const response = await hubFetch("/api/nodes");
+      if (!response.ok) {
+        throw new Error(`Hub returned ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("[HubClient] Failed to get nodes:", error);
+      return { connected: false, nodes: [] };
+    }
+  },
+
+  /** List viber sessions from the hub */
+  async getVibers(): Promise<{ vibers: HubViber[] }> {
     try {
       const response = await hubFetch("/api/vibers");
       if (!response.ok) {
@@ -83,20 +102,21 @@ export const hubClient = {
       return await response.json();
     } catch (error) {
       console.error("[HubClient] Failed to get vibers:", error);
-      return { connected: false, vibers: [] };
+      return { vibers: [] };
     }
   },
 
-  async submitTask(
+  /** Create a new viber on a node */
+  async createViber(
     goal: string,
-    viberId?: string,
+    nodeId?: string,
     messages?: { role: string; content: string }[],
-  ): Promise<{ taskId: string } | null> {
+  ): Promise<{ viberId: string; nodeId: string } | null> {
     try {
       const response = await hubFetch("/api/vibers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ goal, viberId, messages }),
+        body: JSON.stringify({ goal, nodeId, messages }),
       });
 
       if (!response.ok) {
@@ -106,50 +126,39 @@ export const hubClient = {
 
       return await response.json();
     } catch (error) {
-      console.error("[HubClient] Failed to submit task:", error);
+      console.error("[HubClient] Failed to create viber:", error);
       return null;
     }
   },
 
-  async getTasks(): Promise<{ tasks: HubTask[] }> {
+  /** Get a specific viber by ID */
+  async getViber(viberId: string): Promise<HubViber | null> {
     try {
-      const response = await hubFetch("/api/tasks");
-      if (!response.ok) {
-        throw new Error(`Hub returned ${response.status}`);
-      }
-      return await response.json();
-    } catch (error) {
-      console.error("[HubClient] Failed to get tasks:", error);
-      return { tasks: [] };
-    }
-  },
-
-  async getTask(taskId: string): Promise<HubTask | null> {
-    try {
-      const response = await hubFetch(`/api/tasks/${taskId}`);
+      const response = await hubFetch(`/api/vibers/${viberId}`);
       if (!response.ok) {
         return null;
       }
       return await response.json();
     } catch (error) {
-      console.error("[HubClient] Failed to get task:", error);
+      console.error("[HubClient] Failed to get viber:", error);
       return null;
     }
   },
 
-  async stopTask(taskId: string): Promise<boolean> {
+  /** Stop a viber */
+  async stopViber(viberId: string): Promise<boolean> {
     try {
-      const response = await hubFetch(`/api/tasks/${taskId}/stop`, {
+      const response = await hubFetch(`/api/vibers/${viberId}/stop`, {
         method: "POST",
       });
       return response.ok;
     } catch (error) {
-      console.error("[HubClient] Failed to stop task:", error);
+      console.error("[HubClient] Failed to stop viber:", error);
       return false;
     }
   },
 
-  async checkHealth(): Promise<{ status: string; vibers: number } | null> {
+  async checkHealth(): Promise<{ status: string; nodes: number; vibers: number } | null> {
     try {
       const response = await hubFetch("/health");
       if (!response.ok) {

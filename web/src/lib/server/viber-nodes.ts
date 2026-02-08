@@ -47,10 +47,10 @@ export interface ViberNode {
   hub_url: string | null;
   auth_token: string | null;
   config: Record<string, unknown>;
-  status: "pending" | "active" | "offline";
   last_seen_at: string | null;
   created_at: string;
   updated_at: string;
+  status: string;
 }
 
 /**
@@ -79,7 +79,7 @@ export async function createViberNode(userId: string, name: string): Promise<Vib
     },
     body: JSON.stringify([{
       user_id: userId,
-      name: name || "My Viber",
+      name: name || "My Node",
       onboard_token: onboardToken,
       token_expires_at: tokenExpiresAt,
       auth_token: authToken,
@@ -89,7 +89,6 @@ export async function createViberNode(userId: string, name: string): Promise<Vib
         tools: ["file", "terminal", "browser"],
         skills: [],
       },
-      status: "pending",
     }]),
   });
 
@@ -181,7 +180,6 @@ export async function claimNodeByToken(onboardToken: string): Promise<ViberNode 
     body: JSON.stringify({
       onboard_token: null,
       token_expires_at: null,
-      status: "active",
       last_seen_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     }),
@@ -235,8 +233,29 @@ export async function getNodeByAuthToken(authToken: string): Promise<ViberNode |
   const response = await fetch(url, { headers: serviceHeaders() });
   if (!response.ok) return null;
 
-  const rows = (await response.json()) as ViberNode[];
-  return rows[0] ?? null;
+  const json = (await response.json()) as ViberNode[];
+
+  // Update last_seen_at for this node
+  if (json.length > 0) {
+    const node = json[0];
+    const updateUrl = restUrl("viber_nodes", {
+      id: `eq.${node.id}`,
+      select: "*",
+    });
+    await fetch(updateUrl, {
+      method: "PATCH",
+      headers: {
+        ...serviceHeaders(),
+        Prefer: "return=representation",
+      },
+      body: JSON.stringify({
+        last_seen_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }),
+    });
+  }
+
+  return json[0] ?? null;
 }
 
 /**

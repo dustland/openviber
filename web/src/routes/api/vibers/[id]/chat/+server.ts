@@ -8,9 +8,10 @@ const HUB_URL = process.env.VIBER_HUB_URL || "http://localhost:6007";
  * POST /api/vibers/[id]/chat
  *
  * AI SDK streaming endpoint for @ai-sdk/svelte Chat class.
- * 1. Submits the task to the hub
- * 2. Connects to the hub's SSE stream endpoint for that task
- * 3. Pipes the AI SDK data stream back to the frontend
+ * 1. Looks up the viber to find its parent node
+ * 2. Creates a new viber on that node with the full chat history
+ * 3. Connects to the hub's SSE stream endpoint for that viber
+ * 4. Pipes the AI SDK data stream back to the frontend
  */
 export const POST: RequestHandler = async ({ params, request }) => {
   try {
@@ -46,19 +47,23 @@ export const POST: RequestHandler = async ({ params, request }) => {
       }))
       .filter((m: any) => m.content);
 
-    // 1. Submit task to hub
-    const result = await hubClient.submitTask(goal, params.id, simpleMessages);
+    // Look up which node this viber belongs to
+    const existingViber = await hubClient.getViber(params.id);
+    const nodeId = existingViber?.nodeId;
+
+    // 1. Create viber on the hub (submits to the node)
+    const result = await hubClient.createViber(goal, nodeId, simpleMessages);
     if (!result) {
-      return json({ error: "Failed to submit task to hub" }, { status: 503 });
+      return json({ error: "Failed to create viber on hub" }, { status: 503 });
     }
 
-    const { taskId } = result;
+    const { viberId } = result;
 
-    // 2. Connect to hub's SSE stream for this task
+    // 2. Connect to hub's SSE stream for this viber
     // Small delay to let the daemon start processing
     await new Promise((resolve) => setTimeout(resolve, 100));
 
-    const streamUrl = `${HUB_URL}/api/tasks/${taskId}/stream`;
+    const streamUrl = `${HUB_URL}/api/vibers/${viberId}/stream`;
     const streamResponse = await fetch(streamUrl, {
       headers: { Accept: "text/event-stream" },
     });

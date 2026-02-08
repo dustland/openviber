@@ -1,19 +1,20 @@
 /**
- * Hub Server - Central coordinator for viber daemons
+ * Hub Server - Central coordinator for viber nodes
  *
- * The hub accepts WebSocket connections from viber daemons and provides
+ * The hub accepts WebSocket connections from node daemons and provides
  * a REST API for the Viber Board to manage them.
  *
  * REST API (for Viber Board):
- *   GET  /health           - Health check
- *   GET  /api/vibers       - List connected vibers
- *   POST /api/vibers       - Submit task to a viber
- *   GET  /api/tasks        - List all tasks
- *   GET  /api/tasks/:id    - Get task status
- *   POST /api/tasks/:id/stop - Stop a task
+ *   GET  /health              - Health check
+ *   GET  /api/nodes           - List connected nodes
+ *   GET  /api/vibers          - List all vibers (sessions)
+ *   POST /api/vibers          - Create a new viber on a node
+ *   GET  /api/vibers/:id      - Get viber details
+ *   POST /api/vibers/:id/stop - Stop a viber
+ *   GET  /api/vibers/:id/stream - SSE stream for viber output
  *
- * WebSocket (for viber daemons):
- *   ws://localhost:6007/ws - Viber daemon connection endpoint
+ * WebSocket (for node daemons):
+ *   ws://localhost:6007/ws - Node daemon connection endpoint
  */
 
 import { createServer, IncomingMessage, ServerResponse } from "http";
@@ -24,7 +25,7 @@ export interface HubConfig {
   port: number;
 }
 
-interface ConnectedViber {
+interface ConnectedNode {
   id: string;
   name: string;
   version: string;
@@ -34,15 +35,15 @@ interface ConnectedViber {
   ws: WebSocket;
   connectedAt: Date;
   lastHeartbeat: Date;
-  runningTasks: string[];
+  runningVibers: string[];
 }
 
-interface TaskEvent {
+interface ViberEvent {
   at: string;
   event: any;
 }
 
-interface TaskProgressEnvelope {
+interface ViberProgressEnvelope {
   eventId: string;
   sequence: number;
   taskId: string;
@@ -56,25 +57,25 @@ interface TaskProgressEnvelope {
   };
 }
 
-interface Task {
+interface Viber {
   id: string;
-  viberId: string;
+  nodeId: string;
   goal: string;
   status: "pending" | "running" | "completed" | "error" | "stopped";
   result?: any;
   error?: string;
   createdAt: Date;
   completedAt?: Date;
-  events: TaskEvent[];
+  events: ViberEvent[];
   partialText?: string;
 }
 
 export class HubServer {
   private server: ReturnType<typeof createServer> | null = null;
   private wss: WebSocketServer | null = null;
-  private vibers: Map<string, ConnectedViber> = new Map();
-  private tasks: Map<string, Task> = new Map();
-  // SSE stream subscribers per task: responses waiting for stream chunks
+  private nodes: Map<string, ConnectedNode> = new Map();
+  private vibers: Map<string, Viber> = new Map();
+  // SSE stream subscribers per viber: responses waiting for stream chunks
   private streamSubscribers: Map<string, { res: ServerResponse; buffer: string[] }[]> = new Map();
 
   constructor(private config: HubConfig) { }
@@ -108,7 +109,7 @@ export class HubServer {
       });
 
       this.wss.on("connection", (ws, req) => {
-        this.handleViberConnection(ws, req);
+        this.handleNodeConnection(ws, req);
       });
 
       this.server.listen(this.config.port, () => {
@@ -121,11 +122,11 @@ export class HubServer {
   }
 
   async stop(): Promise<void> {
-    // Close all viber connections
-    for (const viber of this.vibers.values()) {
-      viber.ws.close();
+    // Close all node connections
+    for (const node of this.nodes.values()) {
+      node.ws.close();
     }
-    this.vibers.clear();
+    this.nodes.clear();
 
     return new Promise((resolve) => {
       // Close WebSocket server first
@@ -175,30 +176,30 @@ export class HubServer {
     // Route handling
     if (url.pathname === "/health" && method === "GET") {
       this.handleHealth(res);
+    } else if (url.pathname === "/api/nodes" && method === "GET") {
+      this.handleListNodes(res);
     } else if (url.pathname === "/api/vibers" && method === "GET") {
       this.handleListVibers(res);
     } else if (url.pathname === "/api/vibers" && method === "POST") {
-      this.handleSubmitTask(req, res);
-    } else if (url.pathname === "/api/tasks" && method === "GET") {
-      this.handleListTasks(res);
+      this.handleCreateViber(req, res);
     } else if (
-      url.pathname.match(/^\/api\/tasks\/[^/]+$/) &&
+      url.pathname.match(/^\/api\/vibers\/[^/]+$/) &&
       method === "GET"
     ) {
-      const taskId = url.pathname.split("/").pop()!;
-      this.handleGetTask(taskId, res);
+      const viberId = url.pathname.split("/").pop()!;
+      this.handleGetViber(viberId, res);
     } else if (
-      url.pathname.match(/^\/api\/tasks\/[^/]+\/stop$/) &&
+      url.pathname.match(/^\/api\/vibers\/[^/]+\/stop$/) &&
       method === "POST"
     ) {
-      const taskId = url.pathname.split("/")[3];
-      this.handleStopTask(taskId, res);
+      const viberId = url.pathname.split("/")[3];
+      this.handleStopViber(viberId, res);
     } else if (
-      url.pathname.match(/^\/api\/tasks\/[^/]+\/stream$/) &&
+      url.pathname.match(/^\/api\/vibers\/[^/]+\/stream$/) &&
       method === "GET"
     ) {
-      const taskId = url.pathname.split("/")[3];
-      this.handleStreamTask(taskId, req, res);
+      const viberId = url.pathname.split("/")[3];
+      this.handleStreamViber(viberId, req, res);
     } else {
       res.writeHead(404, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: "Not found" }));
@@ -210,35 +211,51 @@ export class HubServer {
     res.end(
       JSON.stringify({
         status: "ok",
+        nodes: this.nodes.size,
         vibers: this.vibers.size,
-        tasks: this.tasks.size,
       })
     );
+  }
+
+  private handleListNodes(res: ServerResponse): void {
+    const nodes = Array.from(this.nodes.values()).map((n) => ({
+      id: n.id,
+      name: n.name,
+      version: n.version,
+      platform: n.platform,
+      capabilities: n.capabilities,
+      skills: n.skills,
+      connectedAt: n.connectedAt.toISOString(),
+      lastHeartbeat: n.lastHeartbeat.toISOString(),
+      runningVibers: n.runningVibers,
+    }));
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ connected: true, nodes }));
   }
 
   private handleListVibers(res: ServerResponse): void {
     const vibers = Array.from(this.vibers.values()).map((v) => ({
       id: v.id,
-      name: v.name,
-      version: v.version,
-      platform: v.platform,
-      capabilities: v.capabilities,
-      skills: v.skills,
-      connectedAt: v.connectedAt.toISOString(),
-      lastHeartbeat: v.lastHeartbeat.toISOString(),
-      runningTasks: v.runningTasks,
+      nodeId: v.nodeId,
+      goal: v.goal,
+      status: v.status,
+      createdAt: v.createdAt.toISOString(),
+      completedAt: v.completedAt?.toISOString(),
+      eventCount: v.events.length,
+      partialText: v.partialText,
     }));
 
     res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ connected: true, vibers }));
+    res.end(JSON.stringify({ vibers }));
   }
 
-  private handleSubmitTask(req: IncomingMessage, res: ServerResponse): void {
+  private handleCreateViber(req: IncomingMessage, res: ServerResponse): void {
     let body = "";
     req.on("data", (chunk) => (body += chunk));
     req.on("end", () => {
       try {
-        const { goal, viberId, messages } = JSON.parse(body);
+        const { goal, nodeId, messages } = JSON.parse(body);
 
         if (!goal) {
           res.writeHead(400, { "Content-Type": "application/json" });
@@ -246,47 +263,47 @@ export class HubServer {
           return;
         }
 
-        // Find viber (use specified or first available)
-        let viber: ConnectedViber | undefined;
-        if (viberId) {
-          viber = this.vibers.get(viberId);
+        // Find node (use specified or first available)
+        let node: ConnectedNode | undefined;
+        if (nodeId) {
+          node = this.nodes.get(nodeId);
         } else {
-          viber = this.vibers.values().next().value;
+          node = this.nodes.values().next().value;
         }
 
-        if (!viber) {
+        if (!node) {
           res.writeHead(503, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ error: "No viber available" }));
+          res.end(JSON.stringify({ error: "No node available" }));
           return;
         }
 
-        // Create task
-        const taskId = `task-${Date.now()}-${Math.random()
+        // Create viber
+        const viberId = `viber-${Date.now()}-${Math.random()
           .toString(36)
           .slice(2, 8)}`;
-        const task: Task = {
-          id: taskId,
-          viberId: viber.id,
+        const viber: Viber = {
+          id: viberId,
+          nodeId: node.id,
           goal,
           status: "pending",
           createdAt: new Date(),
           events: [],
           partialText: "",
         };
-        this.tasks.set(taskId, task);
+        this.vibers.set(viberId, viber);
 
-        // Send to viber
-        viber.ws.send(
+        // Tell the node daemon to prepare and run this viber
+        node.ws.send(
           JSON.stringify({
-            type: "task:submit",
-            taskId,
+            type: "viber:create",
+            viberId,
             goal,
             messages,
           })
         );
 
         res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ taskId, viberId: viber.id }));
+        res.end(JSON.stringify({ viberId, nodeId: node.id }));
       } catch (error) {
         res.writeHead(400, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ error: "Invalid request body" }));
@@ -294,87 +311,76 @@ export class HubServer {
     });
   }
 
-  private handleListTasks(res: ServerResponse): void {
-    const tasks = Array.from(this.tasks.values()).map((t) => ({
-      id: t.id,
-      viberId: t.viberId,
-      goal: t.goal,
-      status: t.status,
-      createdAt: t.createdAt.toISOString(),
-      completedAt: t.completedAt?.toISOString(),
-      eventCount: t.events.length,
-      partialText: t.partialText,
-    }));
+  private handleGetViber(viberId: string, res: ServerResponse): void {
+    const viber = this.vibers.get(viberId);
 
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ tasks }));
-  }
-
-  private handleGetTask(taskId: string, res: ServerResponse): void {
-    const task = this.tasks.get(taskId);
-
-    if (!task) {
+    if (!viber) {
       res.writeHead(404, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: "Task not found" }));
+      res.end(JSON.stringify({ error: "Viber not found" }));
       return;
     }
+
+    // Include node info for connectivity
+    const node = this.nodes.get(viber.nodeId);
 
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(
       JSON.stringify({
-        id: task.id,
-        viberId: task.viberId,
-        goal: task.goal,
-        status: task.status,
-        result: task.result,
-        error: task.error,
-        createdAt: task.createdAt.toISOString(),
-        completedAt: task.completedAt?.toISOString(),
-        events: task.events,
-        eventCount: task.events.length,
-        partialText: task.partialText,
+        id: viber.id,
+        nodeId: viber.nodeId,
+        nodeName: node?.name ?? viber.nodeId,
+        goal: viber.goal,
+        status: viber.status,
+        result: viber.result,
+        error: viber.error,
+        createdAt: viber.createdAt.toISOString(),
+        completedAt: viber.completedAt?.toISOString(),
+        events: viber.events,
+        eventCount: viber.events.length,
+        partialText: viber.partialText,
+        isNodeConnected: !!node,
       })
     );
   }
 
-  private handleStopTask(taskId: string, res: ServerResponse): void {
-    const task = this.tasks.get(taskId);
+  private handleStopViber(viberId: string, res: ServerResponse): void {
+    const viber = this.vibers.get(viberId);
 
-    if (!task) {
+    if (!viber) {
       res.writeHead(404, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: "Task not found" }));
+      res.end(JSON.stringify({ error: "Viber not found" }));
       return;
     }
 
-    const viber = this.vibers.get(task.viberId);
-    if (viber) {
-      viber.ws.send(JSON.stringify({ type: "task:stop", taskId }));
+    const node = this.nodes.get(viber.nodeId);
+    if (node) {
+      node.ws.send(JSON.stringify({ type: "viber:stop", viberId }));
     }
 
-    task.status = "stopped";
-    task.completedAt = new Date();
+    viber.status = "stopped";
+    viber.completedAt = new Date();
 
-    // Close any SSE stream subscribers for this task
-    this.closeStreamSubscribers(taskId);
+    // Close any SSE stream subscribers for this viber
+    this.closeStreamSubscribers(viberId);
 
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ ok: true }));
   }
 
   /**
-   * GET /api/tasks/:id/stream - SSE endpoint for AI SDK data stream.
-   * Holds the response open and pipes task:stream-chunk data from the daemon.
+   * GET /api/vibers/:id/stream - SSE endpoint for AI SDK data stream.
+   * Holds the response open and pipes viber stream chunks from the daemon.
    */
-  private handleStreamTask(taskId: string, req: IncomingMessage, res: ServerResponse): void {
-    const task = this.tasks.get(taskId);
-    if (!task) {
+  private handleStreamViber(viberId: string, req: IncomingMessage, res: ServerResponse): void {
+    const viber = this.vibers.get(viberId);
+    if (!viber) {
       res.writeHead(404, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: "Task not found" }));
+      res.end(JSON.stringify({ error: "Viber not found" }));
       return;
     }
 
-    // If task is already completed/error, return immediately with any buffered data
-    if (task.status === "completed" || task.status === "error" || task.status === "stopped") {
+    // If viber is already completed/error, return immediately with any buffered data
+    if (viber.status === "completed" || viber.status === "error" || viber.status === "stopped") {
       res.writeHead(200, {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",
@@ -384,7 +390,7 @@ export class HubServer {
         "Access-Control-Expose-Headers": "x-vercel-ai-ui-message-stream",
       });
       // Write any buffered stream data
-      const subscribers = this.streamSubscribers.get(taskId);
+      const subscribers = this.streamSubscribers.get(viberId);
       if (subscribers && subscribers.length > 0) {
         const buffers = subscribers[0]?.buffer;
         if (buffers) {
@@ -408,10 +414,10 @@ export class HubServer {
     });
 
     // Register as a stream subscriber
-    if (!this.streamSubscribers.has(taskId)) {
-      this.streamSubscribers.set(taskId, []);
+    if (!this.streamSubscribers.has(viberId)) {
+      this.streamSubscribers.set(viberId, []);
     }
-    const subs = this.streamSubscribers.get(taskId)!;
+    const subs = this.streamSubscribers.get(viberId)!;
 
     // If there's buffered data from chunks that arrived before this SSE connected, replay it
     const existing = subs.find(s => s.buffer.length > 0);
@@ -428,65 +434,70 @@ export class HubServer {
     req.on("close", () => {
       const idx = subs.indexOf(subscriber);
       if (idx >= 0) subs.splice(idx, 1);
-      if (subs.length === 0) this.streamSubscribers.delete(taskId);
+      if (subs.length === 0) this.streamSubscribers.delete(viberId);
     });
   }
 
   // ==================== WebSocket Handler ====================
 
-  private handleViberConnection(ws: WebSocket, req: IncomingMessage): void {
-    const viberId = req.headers["x-viber-id"] as string;
-    console.log(`[Hub] Viber connecting: ${viberId || "unknown"}`);
+  private handleNodeConnection(ws: WebSocket, req: IncomingMessage): void {
+    const nodeId = req.headers["x-viber-id"] as string;
+    console.log(`[Hub] Node connecting: ${nodeId || "unknown"}`);
 
     ws.on("message", (data) => {
       try {
         const msg = JSON.parse(data.toString());
-        this.handleViberMessage(ws, msg);
+        this.handleNodeMessage(ws, msg);
       } catch (error) {
-        console.error("[Hub] Failed to parse viber message:", error);
+        console.error("[Hub] Failed to parse node message:", error);
       }
     });
 
     ws.on("close", () => {
-      // Find and remove viber
-      for (const [id, viber] of this.vibers) {
-        if (viber.ws === ws) {
-          console.log(`[Hub] Viber disconnected: ${id}`);
-          this.vibers.delete(id);
+      // Find and remove node
+      for (const [id, node] of this.nodes) {
+        if (node.ws === ws) {
+          console.log(`[Hub] Node disconnected: ${id}`);
+          this.nodes.delete(id);
           break;
         }
       }
     });
 
     ws.on("error", (error) => {
-      console.error("[Hub] Viber WebSocket error:", error);
+      console.error("[Hub] Node WebSocket error:", error);
     });
   }
 
-  private handleViberMessage(ws: WebSocket, msg: any): void {
+  private handleNodeMessage(ws: WebSocket, msg: any): void {
     switch (msg.type) {
       case "connected":
-        this.handleViberConnected(ws, msg.viber);
+        this.handleNodeConnected(ws, msg.viber);
         break;
 
+      case "viber:started":
       case "task:started":
-        this.handleTaskStarted(msg.taskId);
+        this.handleViberStarted(msg.viberId || msg.taskId);
         break;
 
+      case "viber:progress":
       case "task:progress":
-        this.handleTaskProgress(msg.taskId, msg.event);
+        this.handleViberProgress(msg.viberId || msg.taskId, msg.event);
         break;
 
+      case "viber:stream-chunk":
       case "task:stream-chunk":
-        this.handleTaskStreamChunk(msg.taskId, msg.chunk);
+        this.handleViberStreamChunk(msg.viberId || msg.taskId, msg.chunk);
         break;
 
+      case "viber:completed":
       case "task:completed":
-        this.handleTaskCompleted(msg.taskId, msg.result);
+        this.handleViberCompleted(msg.viberId || msg.taskId, msg.result);
         break;
 
+      case "viber:error":
       case "task:error":
-        this.handleTaskError(msg.taskId, msg.error);
+        this.handleViberError(msg.viberId || msg.taskId, msg.error);
         break;
 
       case "heartbeat":
@@ -503,73 +514,73 @@ export class HubServer {
     }
   }
 
-  private handleViberConnected(ws: WebSocket, viber: any): void {
-    console.log(`[Hub] Viber registered: ${viber.id} (${viber.name})`);
+  private handleNodeConnected(ws: WebSocket, nodeInfo: any): void {
+    console.log(`[Hub] Node registered: ${nodeInfo.id} (${nodeInfo.name})`);
 
-    this.vibers.set(viber.id, {
-      id: viber.id,
-      name: viber.name,
-      version: viber.version,
-      platform: viber.platform,
-      capabilities: viber.capabilities || [],
-      skills: viber.skills,
+    this.nodes.set(nodeInfo.id, {
+      id: nodeInfo.id,
+      name: nodeInfo.name,
+      version: nodeInfo.version,
+      platform: nodeInfo.platform,
+      capabilities: nodeInfo.capabilities || [],
+      skills: nodeInfo.skills,
       ws,
       connectedAt: new Date(),
       lastHeartbeat: new Date(),
-      runningTasks: viber.runningTasks || [],
+      runningVibers: nodeInfo.runningTasks || [],
     });
   }
 
-  private handleTaskStarted(taskId: string): void {
-    const task = this.tasks.get(taskId);
-    if (task) {
-      task.status = "running";
-      console.log(`[Hub] Task started: ${taskId}`);
+  private handleViberStarted(viberId: string): void {
+    const viber = this.vibers.get(viberId);
+    if (viber) {
+      viber.status = "running";
+      console.log(`[Hub] Viber started: ${viberId}`);
     }
   }
 
-  private handleTaskCompleted(taskId: string, result: any): void {
-    const task = this.tasks.get(taskId);
-    if (task) {
-      task.status = "completed";
-      task.result = result;
-      task.completedAt = new Date();
+  private handleViberCompleted(viberId: string, result: any): void {
+    const viber = this.vibers.get(viberId);
+    if (viber) {
+      viber.status = "completed";
+      viber.result = result;
+      viber.completedAt = new Date();
       if (typeof result?.text === "string") {
-        task.partialText = result.text;
+        viber.partialText = result.text;
       }
-      console.log(`[Hub] Task completed: ${taskId}`);
+      console.log(`[Hub] Viber completed: ${viberId}`);
 
       // Close SSE stream subscribers
-      this.closeStreamSubscribers(taskId);
+      this.closeStreamSubscribers(viberId);
     }
   }
 
-  private handleTaskProgress(taskId: string, event: any): void {
-    const task = this.tasks.get(taskId);
-    if (!task) return;
+  private handleViberProgress(viberId: string, event: any): void {
+    const viber = this.vibers.get(viberId);
+    if (!viber) return;
 
-    const envelope = this.normalizeTaskProgressEvent(taskId, event);
+    const envelope = this.normalizeProgressEvent(viberId, event);
 
-    task.events.push({ at: envelope.createdAt, event: envelope });
-    if (task.events.length > 500) {
-      task.events.shift();
+    viber.events.push({ at: envelope.createdAt, event: envelope });
+    if (viber.events.length > 500) {
+      viber.events.shift();
     }
 
     if (
       envelope.event?.kind === "text-delta" &&
       typeof envelope.event?.delta === "string"
     ) {
-      task.partialText = (task.partialText || "") + envelope.event.delta;
-      if (task.partialText.length > 20000) {
-        task.partialText = task.partialText.slice(-20000);
+      viber.partialText = (viber.partialText || "") + envelope.event.delta;
+      if (viber.partialText.length > 20000) {
+        viber.partialText = viber.partialText.slice(-20000);
       }
     }
   }
 
-  private normalizeTaskProgressEvent(
-    taskId: string,
+  private normalizeProgressEvent(
+    viberId: string,
     payload: any
-  ): TaskProgressEnvelope {
+  ): ViberProgressEnvelope {
     const now = new Date().toISOString();
     if (
       payload &&
@@ -578,43 +589,43 @@ export class HubServer {
       "sequence" in payload &&
       "event" in payload
     ) {
-      return payload as TaskProgressEnvelope;
+      return payload as ViberProgressEnvelope;
     }
 
     return {
-      eventId: `${taskId}-legacy-${Date.now()}`,
+      eventId: `${viberId}-legacy-${Date.now()}`,
       sequence: 0,
-      taskId,
-      conversationId: taskId,
+      taskId: viberId,
+      conversationId: viberId,
       createdAt: now,
       event: payload || {},
     };
   }
 
-  private handleTaskError(taskId: string, error: string): void {
-    const task = this.tasks.get(taskId);
-    if (task) {
-      task.status = "error";
-      task.error = error;
-      task.completedAt = new Date();
-      console.log(`[Hub] Task error: ${taskId} - ${error}`);
+  private handleViberError(viberId: string, error: string): void {
+    const viber = this.vibers.get(viberId);
+    if (viber) {
+      viber.status = "error";
+      viber.error = error;
+      viber.completedAt = new Date();
+      console.log(`[Hub] Viber error: ${viberId} - ${error}`);
 
       // Close SSE stream subscribers
-      this.closeStreamSubscribers(taskId);
+      this.closeStreamSubscribers(viberId);
     }
   }
 
   /**
-   * Handle task:stream-chunk — pipe raw AI SDK SSE bytes to SSE subscribers.
+   * Handle viber:stream-chunk — pipe raw AI SDK SSE bytes to SSE subscribers.
    */
-  private handleTaskStreamChunk(taskId: string, chunk: string): void {
-    if (!this.streamSubscribers.has(taskId)) {
+  private handleViberStreamChunk(viberId: string, chunk: string): void {
+    if (!this.streamSubscribers.has(viberId)) {
       // No subscribers yet; buffer the chunk on first subscriber slot
-      this.streamSubscribers.set(taskId, [{ res: null as any, buffer: [chunk] }]);
+      this.streamSubscribers.set(viberId, [{ res: null as any, buffer: [chunk] }]);
       return;
     }
 
-    const subs = this.streamSubscribers.get(taskId)!;
+    const subs = this.streamSubscribers.get(viberId)!;
     for (const sub of subs) {
       sub.buffer.push(chunk);
       if (sub.res && !sub.res.writableEnded) {
@@ -624,24 +635,24 @@ export class HubServer {
   }
 
   /**
-   * Close all SSE stream subscribers for a task.
+   * Close all SSE stream subscribers for a viber.
    */
-  private closeStreamSubscribers(taskId: string): void {
-    const subs = this.streamSubscribers.get(taskId);
+  private closeStreamSubscribers(viberId: string): void {
+    const subs = this.streamSubscribers.get(viberId);
     if (subs) {
       for (const sub of subs) {
         if (sub.res && !sub.res.writableEnded) {
           sub.res.end();
         }
       }
-      this.streamSubscribers.delete(taskId);
+      this.streamSubscribers.delete(viberId);
     }
   }
 
   private handleHeartbeat(ws: WebSocket): void {
-    for (const viber of this.vibers.values()) {
-      if (viber.ws === ws) {
-        viber.lastHeartbeat = new Date();
+    for (const node of this.nodes.values()) {
+      if (node.ws === ws) {
+        node.lastHeartbeat = new Date();
         break;
       }
     }

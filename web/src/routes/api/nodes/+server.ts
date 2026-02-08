@@ -1,16 +1,64 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { createViberNode, listViberNodes, deleteViberNode } from "$lib/server/viber-nodes";
+import { hubClient } from "$lib/server/hub-client";
 
-// GET /api/nodes - List user's viber nodes
+// GET /api/nodes - List user's viber nodes (with live hub status)
 export const GET: RequestHandler = async ({ locals }) => {
   if (!locals.user) {
     return json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    const nodes = await listViberNodes(locals.user.id);
-    return json({ nodes });
+    const [nodes, hubData] = await Promise.all([
+      listViberNodes(locals.user.id),
+      hubClient.getNodes(),
+    ]);
+
+    // Build a map of connected node IDs from the hub
+    const connectedDaemons = new Map(
+      hubData.nodes.map((n) => [n.id, n]),
+    );
+
+    // Track which daemon IDs are claimed by DB nodes
+    const claimedDaemonIds = new Set<string>();
+
+    // Compute status at runtime: if node's daemon is connected, it's active
+    const enrichedNodes = nodes.map((node) => {
+      const isConnected = node.node_id && connectedDaemons.has(node.node_id);
+      if (isConnected) claimedDaemonIds.add(node.node_id!);
+      return {
+        ...node,
+        status: isConnected
+          ? "active" as const
+          : node.node_id
+            ? "offline" as const
+            : "pending" as const,
+      };
+    });
+
+    // Add hub-connected daemons that aren't linked to any DB node as virtual nodes
+    for (const [daemonId, daemon] of connectedDaemons) {
+      if (!claimedDaemonIds.has(daemonId)) {
+        enrichedNodes.push({
+          id: daemonId,
+          user_id: locals.user.id,
+          name: daemon.name || daemonId,
+          node_id: daemonId,
+          onboard_token: null,
+          token_expires_at: null,
+          hub_url: null,
+          auth_token: null,
+          config: {},
+          status: "active" as const,
+          last_seen_at: daemon.connectedAt,
+          created_at: daemon.connectedAt,
+          updated_at: daemon.connectedAt,
+        });
+      }
+    }
+
+    return json({ nodes: enrichedNodes });
   } catch (error) {
     console.error("Failed to list viber nodes:", error);
     return json({ error: "Failed to list nodes" }, { status: 500 });
@@ -25,7 +73,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
   try {
     const body = await request.json();
-    const name = body.name?.trim() || "My Viber";
+    const name = body.name?.trim() || "My Node";
     const node = await createViberNode(locals.user.id, name);
     return json({ node }, { status: 201 });
   } catch (error) {

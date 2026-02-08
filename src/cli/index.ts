@@ -137,7 +137,7 @@ program
       serverUrl,
       token: authToken,
       viberId,
-      viberName: options.name || savedConfig?.name || `${os.hostname()}-viber`,
+      viberName: options.name || savedConfig?.name || os.hostname(),
       enableDesktop: options.desktop,
       reconnectInterval: parseInt(options.reconnectInterval, 10),
       heartbeatInterval: parseInt(options.heartbeatInterval, 10),

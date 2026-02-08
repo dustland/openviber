@@ -1,13 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { page } from "$app/stores";
-  import {
-    RefreshCw,
-    Circle,
-    SendHorizontal,
-    AlertTriangle,
-    Server,
-  } from "@lucide/svelte";
+  import { RefreshCw, Circle, Plus, Server } from "@lucide/svelte";
   import { Button } from "$lib/components/ui/button";
   import {
     Card,
@@ -17,23 +11,20 @@
     CardContent,
   } from "$lib/components/ui/card";
   import { Badge } from "$lib/components/ui/badge";
-  import ViberAvatar from "$lib/components/icons/ViberAvatar.svelte";
 
   interface Viber {
     id: string;
-    name: string;
-    platform: string | null;
-    version: string | null;
-    capabilities: string[] | null;
+    nodeId: string | null;
+    goal: string;
+    status: string;
+    createdAt: string | null;
+    completedAt: string | null;
     isConnected: boolean;
-    connectedAt: string | null;
-    runningTasks: number;
   }
 
   let vibers = $state<Viber[]>([]);
   let loading = $state(true);
   let hubConnected = $state(false);
-  let viberConfigErrors = $state<Record<string, string>>({});
 
   async function fetchVibers() {
     try {
@@ -55,37 +46,6 @@
     }
   }
 
-  async function checkViberConfigs(viberList: Viber[]) {
-    const errors: Record<string, string> = {};
-    await Promise.all(
-      viberList.map(async (v) => {
-        try {
-          const res = await fetch(`/api/vibers/${v.id}/config`);
-          const data = await res.json();
-          if (data.error) {
-            errors[v.id] = data.error;
-          }
-        } catch {
-          // Ignore fetch errors for config check
-        }
-      }),
-    );
-    viberConfigErrors = errors;
-  }
-
-  function formatPlatform(platform: string | null): string {
-    switch (platform) {
-      case "darwin":
-        return "macOS";
-      case "linux":
-        return "Linux";
-      case "win32":
-        return "Windows";
-      default:
-        return platform || "Unknown";
-    }
-  }
-
   function formatTimeAgo(dateStr: string): string {
     const diff = Date.now() - new Date(dateStr).getTime();
     const mins = Math.floor(diff / 60000);
@@ -97,13 +57,26 @@
     return `${days}d ago`;
   }
 
+  function statusColor(status: string): string {
+    switch (status) {
+      case "running":
+        return "bg-blue-500";
+      case "completed":
+        return "bg-green-500";
+      case "error":
+        return "bg-red-500";
+      case "stopped":
+        return "bg-zinc-400";
+      default:
+        return "bg-amber-500";
+    }
+  }
+
   onMount(() => {
-    fetchVibers()
-      .then(() => checkViberConfigs(vibers))
-      .finally(() => (loading = false));
+    fetchVibers().finally(() => (loading = false));
 
     const interval = setInterval(() => {
-      fetchVibers().then(() => checkViberConfigs(vibers));
+      fetchVibers();
     }, 10000);
 
     return () => clearInterval(interval);
@@ -124,7 +97,7 @@
             <Circle class="size-2 fill-green-500 text-green-500" />
             Hub connected
           </span>
-          · {vibers.length} viber{vibers.length !== 1 ? "s" : ""} online
+          · {vibers.length} viber{vibers.length !== 1 ? "s" : ""}
         {:else}
           <span class="flex items-center gap-1">
             <Circle class="size-2 fill-red-500 text-red-500" />
@@ -134,11 +107,15 @@
       </p>
     </div>
     <div class="flex items-center gap-2">
+      <Button variant="outline" size="sm" href="/vibers/new">
+        <Plus class="size-4 mr-1" />
+        New Viber
+      </Button>
       <Button
         variant="outline"
         size="icon"
         onclick={() => {
-          fetchVibers().then(() => checkViberConfigs(vibers));
+          fetchVibers();
         }}
       >
         <RefreshCw class="size-4" />
@@ -150,93 +127,36 @@
   {#if loading}
     <div class="text-center py-12 text-muted-foreground">Loading...</div>
   {:else if vibers.length > 0}
-    <!-- Connected Vibers (live from hub) -->
-    <div>
-      <h2
-        class="text-sm font-medium text-muted-foreground uppercase tracking-wide mb-3"
-      >
-        Connected Vibers
-      </h2>
-      <div class="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-        {#each vibers as viber (viber.id)}
-          {@const hasConfigError = !!viberConfigErrors[viber.id]}
-          <a href="/vibers/{viber.id}" class="block">
-            <Card
-              class="hover:shadow-md transition-shadow cursor-pointer {hasConfigError
-                ? 'border-amber-500/40'
-                : ''}"
-            >
-              <CardHeader class="pb-3">
-                <div class="flex items-start gap-3">
-                  <div
-                    class="size-10 rounded-lg flex items-center justify-center shrink-0 {hasConfigError
-                      ? 'bg-amber-500/10'
-                      : 'bg-primary/10'}"
-                  >
-                    {#if hasConfigError}
-                      <AlertTriangle class="size-5 text-amber-500" />
-                    {:else}
-                      <ViberAvatar class="size-6 text-primary" />
+    <div class="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+      {#each vibers as viber (viber.id)}
+        <a href="/vibers/{viber.id}" class="block">
+          <Card class="hover:shadow-md transition-shadow cursor-pointer">
+            <CardHeader class="pb-3">
+              <div class="flex items-start gap-3">
+                <div
+                  class="size-2.5 mt-1.5 shrink-0 rounded-full {statusColor(
+                    viber.status,
+                  )}"
+                ></div>
+                <div class="min-w-0 flex-1">
+                  <CardTitle class="text-sm font-medium leading-snug">
+                    {viber.goal || viber.id}
+                  </CardTitle>
+                  <CardDescription class="text-xs mt-1">
+                    <Badge
+                      variant="outline"
+                      class="text-[10px] px-1.5 py-0 mr-1">{viber.status}</Badge
+                    >
+                    {#if viber.createdAt}
+                      · {formatTimeAgo(viber.createdAt)}
                     {/if}
-                  </div>
-                  <div class="min-w-0 flex-1">
-                    <CardTitle class="flex items-center gap-2 text-base">
-                      <span class="truncate">{viber.name}</span>
-                      {#if hasConfigError}
-                        <span
-                          class="w-1.5 h-1.5 rounded-full shrink-0 bg-amber-500"
-                        ></span>
-                      {:else}
-                        <span
-                          class="w-1.5 h-1.5 rounded-full shrink-0 bg-green-500"
-                        ></span>
-                      {/if}
-                    </CardTitle>
-                    <CardDescription class="text-xs mt-0.5">
-                      {#if hasConfigError}
-                        <span class="text-amber-600 dark:text-amber-400"
-                          >Needs setup</span
-                        > ·
-                      {/if}
-                      {formatPlatform(viber.platform)}{#if viber.version}
-                        · v{viber.version}{/if}
-                      {#if viber.connectedAt}
-                        · connected {formatTimeAgo(viber.connectedAt)}
-                      {/if}
-                    </CardDescription>
-                  </div>
-                  <SendHorizontal
-                    class="size-4 text-muted-foreground/50 shrink-0 mt-1"
-                  />
+                  </CardDescription>
                 </div>
-              </CardHeader>
-              {#if (viber.capabilities && viber.capabilities.length > 0) || viber.runningTasks > 0}
-                <CardContent class="pt-0 pb-3">
-                  <div class="flex items-center gap-1.5 flex-wrap">
-                    {#if viber.capabilities}
-                      {#each viber.capabilities as cap}
-                        <Badge variant="outline" class="text-[11px] px-1.5 py-0"
-                          >{cap}</Badge
-                        >
-                      {/each}
-                    {/if}
-                    {#if viber.runningTasks > 0}
-                      <Badge
-                        variant="default"
-                        class="text-[11px] bg-blue-500/20 text-blue-700 dark:text-blue-400 border-0 px-1.5 py-0"
-                      >
-                        {viber.runningTasks} task{viber.runningTasks > 1
-                          ? "s"
-                          : ""}
-                      </Badge>
-                    {/if}
-                  </div>
-                </CardContent>
-              {/if}
-            </Card>
-          </a>
-        {/each}
-      </div>
+              </div>
+            </CardHeader>
+          </Card>
+        </a>
+      {/each}
     </div>
   {:else if !hubConnected}
     <Card class="text-center py-12">
@@ -261,11 +181,13 @@
       <CardContent>
         <div class="mb-4 text-muted-foreground">
           <Server class="size-12 mx-auto mb-4 opacity-50" />
-          <p class="text-lg font-medium">No Vibers Connected</p>
+          <p class="text-lg font-medium">No Vibers Yet</p>
           <p class="text-sm mt-2 max-w-md mx-auto">
-            No vibers are currently connected to the hub. Register a node from
-            the <a href="/nodes" class="text-primary hover:underline">Nodes</a> page
-            and start a viber daemon.
+            Create a new viber from the
+            <a href="/vibers/new" class="text-primary hover:underline"
+              >New Viber</a
+            >
+            page to get started.
           </p>
         </div>
       </CardContent>

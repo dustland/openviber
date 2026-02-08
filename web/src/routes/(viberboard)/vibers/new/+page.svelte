@@ -7,10 +7,10 @@
     ChevronDown,
     Check,
     Code2,
+    Cpu,
     FolderGit2,
     Package,
     Search,
-    Server,
     Sparkles,
   } from "@lucide/svelte";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
@@ -18,6 +18,7 @@
   interface ViberNode {
     id: string;
     name: string;
+    node_id: string | null;
     status: "pending" | "active" | "offline";
   }
 
@@ -41,8 +42,17 @@
   const selectedNode = $derived(
     nodes.find((n) => n.id === selectedNodeId) ?? null,
   );
-  // Derived: can we send?
-  const canSend = $derived(!!selectedNodeId && !!taskInput.trim() && !creating);
+
+  // Only active nodes (with a daemon connected) can receive tasks
+  const activeNodes = $derived(nodes.filter((n) => n.status === "active"));
+
+  // Can we send?
+  const canSend = $derived(
+    !!selectedNode &&
+      selectedNode.status === "active" &&
+      !!taskInput.trim() &&
+      !creating,
+  );
 
   async function fetchData() {
     try {
@@ -65,9 +75,9 @@
         selectedEnvironmentId = environments[0].id;
       }
 
-      // Auto-select if only one node
-      if (nodes.length === 1 && !selectedNodeId) {
-        selectedNodeId = nodes[0].id;
+      // Auto-select if only one active node
+      if (activeNodes.length === 1 && !selectedNodeId) {
+        selectedNodeId = activeNodes[0].id;
       }
     } catch (err) {
       console.error("Failed to fetch data:", err);
@@ -84,36 +94,45 @@
 
   async function submitTask(overrideContent?: string) {
     const content = (overrideContent ?? taskInput).trim();
-    if (!content || !selectedNodeId || creating) return;
+    if (
+      !content ||
+      !selectedNode ||
+      selectedNode.status !== "active" ||
+      creating
+    )
+      return;
 
     creating = true;
     error = null;
 
     try {
-      // Create a new viber on the selected node, in the selected environment
-      const response = await fetch("/api/nodes", {
+      // The node's node_id is the daemon's ID on the hub
+      const nodeId = selectedNode.node_id;
+
+      // Create a new viber via POST /api/vibers
+      const response = await fetch("/api/vibers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: content.slice(0, 60),
-          nodeId: selectedNodeId,
-          environmentId: selectedEnvironmentId,
+          goal: content,
+          nodeId: nodeId ?? undefined,
         }),
       });
 
       const payload = await response.json();
-      if (!response.ok || !payload?.node) {
+      if (!response.ok) {
         throw new Error(payload?.error || "Failed to create viber.");
       }
 
-      // Store the task in sessionStorage for the viber chat to pick up
-      const viberId = payload.node.id;
+      const viberId = payload.viberId;
+
+      // Store the goal in sessionStorage for the viber chat page to pick up
       window.sessionStorage.setItem(
         `openviber:new-viber-task:${viberId}`,
         content,
       );
 
-      // Navigate to the viber's chat page
+      // Navigate to the new viber's chat page
       await goto(`/vibers/${viberId}`);
     } catch (e) {
       error = e instanceof Error ? e.message : "Failed to create viber.";
@@ -129,7 +148,7 @@
   }
 
   function useSuggestion(text: string) {
-    if (!selectedNodeId) {
+    if (!selectedNode || selectedNode.status !== "active") {
       taskInput = text;
       return;
     }
@@ -210,7 +229,7 @@
         </div>
       </div>
 
-      <!-- Node selector -->
+      <!-- Node selector (pick which node to run the new viber on) -->
       <div class="mb-8">
         <DropdownMenu.Root>
           <DropdownMenu.Trigger
@@ -218,42 +237,54 @@
           >
             {#if selectedNode}
               <span
-                class="size-2 shrink-0 rounded-full {selectedNode.status ===
-                'active'
-                  ? 'bg-emerald-500'
-                  : 'bg-muted-foreground/40'}"
+                class="size-2 shrink-0 rounded-full"
+                class:bg-emerald-500={selectedNode.status === "active"}
+                class:bg-amber-500={selectedNode.status === "pending"}
+                class:bg-zinc-400={selectedNode.status === "offline"}
               ></span>
-              <Server class="size-3.5 opacity-60" />
+              <Cpu class="size-3.5 opacity-60" />
               <span class="font-medium text-foreground"
                 >{selectedNode.name}</span
               >
+              {#if selectedNode.status !== "active"}
+                <span class="text-xs text-muted-foreground"
+                  >({selectedNode.status})</span
+                >
+              {/if}
             {:else}
-              <Server class="size-3.5 opacity-40" />
-              <span class="text-muted-foreground">Choose target node</span>
+              <Cpu class="size-3.5 opacity-40" />
+              <span class="text-muted-foreground">Choose node</span>
             {/if}
             <ChevronDown class="size-3.5 opacity-50" />
           </DropdownMenu.Trigger>
           <DropdownMenu.Content align="center" class="w-64">
-            <DropdownMenu.Label>Target node</DropdownMenu.Label>
+            <DropdownMenu.Label>Select node</DropdownMenu.Label>
             <DropdownMenu.Separator />
             {#if nodes.length === 0}
               <div class="px-2 py-3 text-center text-xs text-muted-foreground">
-                No nodes registered
+                No nodes registered. Go to
+                <a href="/nodes" class="underline">Nodes</a> to add one.
               </div>
             {:else}
               {#each nodes as node (node.id)}
                 <DropdownMenu.Item
                   onclick={() => selectNode(node.id)}
                   class="flex items-center justify-between"
+                  disabled={node.status !== "active"}
                 >
                   <span class="flex items-center gap-2">
                     <span
-                      class="size-2 shrink-0 rounded-full {node.status ===
-                      'active'
-                        ? 'bg-emerald-500'
-                        : 'bg-muted-foreground/40'}"
+                      class="size-2 shrink-0 rounded-full"
+                      class:bg-emerald-500={node.status === "active"}
+                      class:bg-amber-500={node.status === "pending"}
+                      class:bg-zinc-400={node.status === "offline"}
                     ></span>
                     {node.name}
+                    {#if node.status !== "active"}
+                      <span class="text-xs text-muted-foreground"
+                        >({node.status})</span
+                      >
+                    {/if}
                   </span>
                   {#if selectedNodeId === node.id}
                     <Check class="size-3.5 text-primary" />
@@ -336,17 +367,19 @@
       <!-- Input bar -->
       <div
         class="flex items-end gap-2 rounded-2xl border border-border bg-background/95 px-3 py-2.5 shadow-sm backdrop-blur transition-colors"
-        class:opacity-60={!selectedNodeId}
+        class:opacity-60={!canSend && !taskInput.trim()}
       >
         <textarea
           bind:value={taskInput}
           onkeydown={handleKeydown}
           rows="1"
-          placeholder={selectedNodeId
+          placeholder={selectedNode?.status === "active"
             ? "Describe what you want to build..."
-            : "Select environment and node first..."}
+            : "Select an active node first..."}
           class="min-h-[40px] max-h-36 flex-1 resize-none rounded-xl border border-transparent bg-transparent px-2 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
-          disabled={!selectedNodeId || creating}
+          disabled={!selectedNode ||
+            selectedNode.status !== "active" ||
+            creating}
         ></textarea>
 
         <button
@@ -354,7 +387,7 @@
           class="inline-flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-opacity disabled:opacity-30"
           onclick={() => void submitTask()}
           disabled={!canSend}
-          title="Create viber and start task"
+          title="Create viber and send task"
         >
           <ArrowUp class="size-4" />
         </button>
@@ -377,16 +410,19 @@
             class="inline-flex items-center gap-1 rounded-full border border-border bg-muted/40 px-2 py-0.5"
           >
             <span
-              class="size-1.5 rounded-full {selectedNode.status === 'active'
-                ? 'bg-emerald-500'
-                : 'bg-muted-foreground/40'}"
+              class="size-1.5 rounded-full"
+              class:bg-emerald-500={selectedNode.status === "active"}
+              class:bg-amber-500={selectedNode.status === "pending"}
+              class:bg-zinc-400={selectedNode.status === "offline"}
             ></span>
             {selectedNode.name}
           </span>
         {/if}
-        {#if !selectedNodeId}
-          <span class="italic"
-            >Choose environment & target node above to start</span
+        {#if !selectedNode}
+          <span class="italic">Choose a node to run the viber on</span>
+        {:else if selectedNode.status !== "active"}
+          <span class="italic text-amber-500"
+            >Node is {selectedNode.status} — start the daemon to continue</span
           >
         {/if}
       </div>

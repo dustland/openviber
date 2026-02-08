@@ -4,6 +4,7 @@ import { hubClient } from "$lib/server/hub-client";
 import {
   listViberEnvironmentAssignmentsForUser,
   listEnvironmentsForUser,
+  setViberEnvironmentForUser,
 } from "$lib/server/environments";
 import { supabaseRequest, toInFilter } from "$lib/server/supabase-rest";
 
@@ -15,7 +16,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
   try {
     const body = await request.json();
-    const { goal, nodeId } = body;
+    const { goal, nodeId, environmentId } = body;
 
     if (!goal) {
       return json({ error: "Missing goal" }, { status: 400 });
@@ -24,6 +25,15 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     const result = await hubClient.createViber(goal, nodeId);
     if (!result) {
       return json({ error: "No node available or hub unreachable" }, { status: 503 });
+    }
+
+    // Assign environment if provided
+    if (environmentId && locals.user?.id) {
+      try {
+        await setViberEnvironmentForUser(locals.user.id, result.viberId, environmentId);
+      } catch (e) {
+        console.error("Failed to assign environment:", e);
+      }
     }
 
     return json(result, { status: 201 });

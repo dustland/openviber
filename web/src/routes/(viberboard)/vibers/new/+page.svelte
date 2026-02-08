@@ -116,6 +116,7 @@
         body: JSON.stringify({
           goal: content,
           nodeId: nodeId ?? undefined,
+          environmentId: selectedEnvironmentId ?? undefined,
         }),
       });
 

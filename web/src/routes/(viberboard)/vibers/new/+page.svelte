@@ -7,7 +7,7 @@
     ChevronDown,
     Check,
     Code2,
-    Cpu,
+    Server,
     FolderGit2,
     Package,
     Search,
@@ -242,7 +242,7 @@
                 class:bg-amber-500={selectedNode.status === "pending"}
                 class:bg-zinc-400={selectedNode.status === "offline"}
               ></span>
-              <Cpu class="size-3.5 opacity-60" />
+              <Server class="size-3.5 opacity-60" />
               <span class="font-medium text-foreground"
                 >{selectedNode.name}</span
               >
@@ -252,7 +252,7 @@
                 >
               {/if}
             {:else}
-              <Cpu class="size-3.5 opacity-40" />
+              <Server class="size-3.5 opacity-40" />
               <span class="text-muted-foreground">Choose node</span>
             {/if}
             <ChevronDown class="size-3.5 opacity-50" />

@@ -1,5 +1,5 @@
 /**
- * Job Templates — pre-built configurations users can pick when creating a job.
+ * Job Stories — pre-built configurations users can pick when creating a job.
  * Derived from examples/jobs/*.yaml
  */
 

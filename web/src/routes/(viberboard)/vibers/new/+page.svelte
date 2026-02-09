@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { page } from "$app/stores";
   import { goto } from "$app/navigation";
   import { getVibersStore } from "$lib/stores/vibers";
   import {
@@ -47,6 +48,7 @@
   let selectedTemplateId = $state<string | null>(null);
   let templateParams = $state<Record<string, string>>({});
   let templateParamDefs = $state<TemplateParam[]>([]);
+  let storyPresetApplied = $state(false);
 
   // Derived: selected objects
   const selectedEnvironment = $derived(
@@ -84,6 +86,18 @@
       selectedTemplate.promptTemplate,
       templateParams,
     ).trim();
+  });
+
+  $effect(() => {
+    if (storyPresetApplied) return;
+    const storyId = $page.url.searchParams.get("story");
+    if (!storyId) return;
+    const match = TASK_TEMPLATES.find((tpl) => tpl.id === storyId);
+    if (!match) return;
+    const paramValues = buildDefaultParams(match.params);
+    selectTemplate(match, paramValues);
+    taskInput = applyTemplateString(match.promptTemplate, paramValues).trim();
+    storyPresetApplied = true;
   });
 
   async function fetchData() {
@@ -191,10 +205,13 @@
     void submitTask(text);
   }
 
-  function selectTemplate(tpl: TaskTemplate) {
+  function selectTemplate(
+    tpl: TaskTemplate,
+    presetValues?: Record<string, string>,
+  ) {
     selectedTemplateId = tpl.id;
     templateParamDefs = tpl.params ?? [];
-    templateParams = buildDefaultParams(tpl.params);
+    templateParams = presetValues ?? buildDefaultParams(tpl.params);
   }
 
   function updateTemplateParam(id: string, value: string) {
@@ -402,17 +419,17 @@
         </button>
       </div>
 
-      <!-- Workflow templates -->
+      <!-- Viber stories -->
       <div class="mt-10 w-full max-w-2xl">
         <div class="flex items-center justify-between mb-3">
           <h2
             class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
           >
-            Workflow templates
+            Viber stories
           </h2>
           {#if selectedTemplate}
             <span class="text-[11px] text-muted-foreground">
-              Selected: {selectedTemplate.label}
+              Selected story: {selectedTemplate.label}
             </span>
           {/if}
         </div>
@@ -455,20 +472,20 @@
               params={templateParamDefs}
               values={templateParams}
               onChange={updateTemplateParam}
-              title="Template parameters"
+              title="Story inputs"
             />
 
             <div class="mt-4 space-y-2">
               <div class="flex items-center justify-between">
                 <p class="text-[11px] uppercase tracking-wide text-muted-foreground">
-                  Generated task
+                  Story prompt
                 </p>
                 <button
                   type="button"
                   class="text-[11px] font-medium text-primary hover:underline"
                   onclick={useTemplatePrompt}
                 >
-                  Insert into input
+                  Insert prompt
                 </button>
               </div>
               <Textarea

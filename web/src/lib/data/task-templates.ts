@@ -1,3 +1,6 @@
+/**
+ * Viber Stories — pre-built one-time workflows for new vibers.
+ */
 import type { TemplateParam } from "$lib/data/template-utils";
 
 export interface TaskTemplate {

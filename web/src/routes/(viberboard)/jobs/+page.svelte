@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
+  import { page } from "$app/stores";
   import {
     CalendarClock,
     Clock,
@@ -113,6 +114,7 @@
   let selectedTemplateId = $state<string | null>(null);
   let templateParams = $state<Record<string, string>>({});
   let templateParamDefs = $state<TemplateParam[]>([]);
+  let storyPresetApplied = $state(false);
 
   let nodes = $state<NodeOption[]>([]);
 
@@ -212,6 +214,17 @@
       selectedTemplate.defaults.skills,
       templateParams,
     ).join(", ");
+  });
+
+  $effect(() => {
+    if (storyPresetApplied) return;
+    const storyId = $page.url.searchParams.get("story");
+    if (!storyId) return;
+    const match = JOB_TEMPLATES.find((tpl) => tpl.id === storyId);
+    if (!match) return;
+    showCreateForm = true;
+    applyTemplate(match);
+    storyPresetApplied = true;
   });
 
   async function fetchJobs() {
@@ -754,17 +767,17 @@
             createJob();
           }}
         >
-          <!-- Templates -->
+          <!-- Viber stories -->
           <div class="space-y-3">
             <div class="flex items-center justify-between">
               <h3
                 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
               >
-                Templates
+                Viber stories
               </h3>
               {#if selectedTemplate}
                 <span class="text-[11px] text-muted-foreground">
-                  Selected: {selectedTemplate.label}
+                  Selected story: {selectedTemplate.label}
                 </span>
               {/if}
             </div>
@@ -810,7 +823,7 @@
                 params={templateParamDefs}
                 values={templateParams}
                 onChange={updateTemplateParam}
-                title="Template parameters"
+                title="Story inputs"
               />
             </div>
           {/if}

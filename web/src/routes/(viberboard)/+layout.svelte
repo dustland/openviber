@@ -14,6 +14,7 @@
     Plus,
     Server,
     Settings2,
+    Sparkles,
     Wifi,
     WifiOff,
   } from "@lucide/svelte";
@@ -92,6 +93,9 @@
   );
   const isJobsRoute = $derived(
     pathname === "/jobs" || pathname.startsWith("/jobs/"),
+  );
+  const isStoriesRoute = $derived(
+    pathname === "/stories" || pathname.startsWith("/stories/"),
   );
 
   const archivingViberIds = $state<Set<string>>(new Set());
@@ -247,6 +251,20 @@
                 <CalendarClock class="size-4 shrink-0" />
                 <span class="truncate group-data-[collapsible=icon]:hidden"
                   >Jobs</span
+                >
+              </a>
+            </Sidebar.MenuButton>
+          </Sidebar.MenuItem>
+
+          <Sidebar.MenuItem>
+            <Sidebar.MenuButton
+              isActive={isStoriesRoute}
+              tooltipContent="Viber Stories"
+            >
+              <a href="/stories" class="w-full inline-flex items-center gap-2">
+                <Sparkles class="size-4 shrink-0" />
+                <span class="truncate group-data-[collapsible=icon]:hidden"
+                  >Viber Stories</span
                 >
               </a>
             </Sidebar.MenuButton>

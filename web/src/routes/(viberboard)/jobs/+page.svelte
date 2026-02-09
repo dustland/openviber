@@ -19,6 +19,12 @@
   } from "@lucide/svelte";
   import { Button } from "$lib/components/ui/button";
   import { JOB_TEMPLATES, type JobTemplate } from "$lib/data/job-templates";
+  import TemplateParams from "$lib/components/template-params.svelte";
+  import {
+    applyTemplate as applyTemplateString,
+    buildDefaultParams,
+    type TemplateParam,
+  } from "$lib/data/template-utils";
   import { Input } from "$lib/components/ui/input";
   import { Label } from "$lib/components/ui/label";
   import { Textarea } from "$lib/components/ui/textarea";
@@ -105,6 +111,8 @@
   let formSkills = $state("");
   let formTools = $state("");
   let selectedTemplateId = $state<string | null>(null);
+  let templateParams = $state<Record<string, string>>({});
+  let templateParamDefs = $state<TemplateParam[]>([]);
 
   let nodes = $state<NodeOption[]>([]);
 
@@ -127,30 +135,83 @@
   let deletingName = $state<string | null>(null);
   let createDialogEl = $state<HTMLDivElement | null>(null);
 
+  const TEMPLATE_ICONS = {
+    "file-plus": FilePlus,
+    "heart-pulse": HeartPulse,
+    users: Users,
+    sparkles: Sparkles,
+  } as const;
+
   const formSchedule = $derived(buildCron());
+
+  function getTemplatePrompt(
+    tpl: JobTemplate,
+    params: Record<string, string>,
+  ): string {
+    const raw = tpl.promptTemplate ?? tpl.defaults.prompt ?? "";
+    return applyTemplateString(raw, params).trim();
+  }
+
+  function getTemplateList(
+    items: string[] | undefined,
+    params: Record<string, string>,
+  ): string[] {
+    if (!items || items.length === 0) return [];
+    return items
+      .map((item) => applyTemplateString(item, params).trim())
+      .filter(Boolean);
+  }
+
+  function applyTemplateDefaults(
+    tpl: JobTemplate,
+    params: Record<string, string>,
+  ) {
+    const d = tpl.defaults;
+    formName = d.name ?? "";
+    formDescription = d.description ?? "";
+    formPrompt = getTemplatePrompt(tpl, params);
+    formModel = d.model ?? "";
+    formSkills = getTemplateList(d.skills, params).join(", ");
+    formTools = getTemplateList(d.tools, params).join(", ");
+    scheduleMode = d.scheduleMode ?? "daily";
+    dailyHour = d.dailyHour ?? 8;
+    dailyMinute = d.dailyMinute ?? 0;
+    intervalHours = d.intervalHours ?? 24;
+    intervalDailyHour = d.intervalDailyHour ?? 8;
+    selectedDays =
+      d.selectedDays ?? [true, true, true, true, true, true, true];
+  }
 
   function applyTemplate(tpl: JobTemplate) {
     selectedTemplateId = tpl.id;
-    const d = tpl.defaults;
-    formName = d.name ?? "";
-    formPrompt = d.prompt ?? "";
-    formDescription = d.description ?? "";
-    formModel = d.model ?? "";
-    formSkills = d.skills?.join(", ") ?? "";
-    formTools = d.tools?.join(", ") ?? "";
-    if (d.scheduleMode) scheduleMode = d.scheduleMode;
-    // Reset schedule inputs to defaults
-    dailyHour = 8;
-    dailyMinute = 0;
-    intervalHours = 24;
-    intervalDailyHour = 8;
-    selectedDays = [true, true, true, true, true, true, true];
+    templateParamDefs = tpl.params ?? [];
+    templateParams = buildDefaultParams(tpl.params);
+    applyTemplateDefaults(tpl, templateParams);
+  }
+
+  function updateTemplateParam(id: string, value: string) {
+    templateParams = { ...templateParams, [id]: value };
   }
 
   $effect(() => {
     if (showCreateForm && createDialogEl) {
       tick().then(() => createDialogEl?.focus());
     }
+  });
+
+  const selectedTemplate = $derived(
+    selectedTemplateId
+      ? JOB_TEMPLATES.find((tpl) => tpl.id === selectedTemplateId) ?? null
+      : null,
+  );
+
+  $effect(() => {
+    if (!selectedTemplate || !selectedTemplate.params?.length) return;
+    formPrompt = getTemplatePrompt(selectedTemplate, templateParams);
+    formSkills = getTemplateList(
+      selectedTemplate.defaults.skills,
+      templateParams,
+    ).join(", ");
   });
 
   async function fetchJobs() {
@@ -219,6 +280,8 @@
       formSkills = "";
       formTools = "";
       selectedTemplateId = null;
+      templateParams = {};
+      templateParamDefs = [];
       scheduleMode = "daily";
       dailyHour = 8;
       dailyMinute = 0;
@@ -691,6 +754,67 @@
             createJob();
           }}
         >
+          <!-- Templates -->
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <h3
+                class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+              >
+                Templates
+              </h3>
+              {#if selectedTemplate}
+                <span class="text-[11px] text-muted-foreground">
+                  Selected: {selectedTemplate.label}
+                </span>
+              {/if}
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {#each JOB_TEMPLATES as tpl}
+                <button
+                  type="button"
+                  class={`rounded-lg border p-3 text-left transition-colors ${
+                    selectedTemplateId === tpl.id
+                      ? "border-primary/40 bg-primary/5"
+                      : "border-border bg-card hover:bg-accent/40"
+                  }`}
+                  onclick={() => applyTemplate(tpl)}
+                >
+                  <div class="flex items-start gap-3">
+                    <div
+                      class="size-8 rounded-md bg-muted/60 flex items-center justify-center text-muted-foreground"
+                    >
+                      <svelte:component
+                        this={TEMPLATE_ICONS[tpl.icon]}
+                        class="size-4"
+                      />
+                    </div>
+                    <div>
+                      <p class="text-sm font-medium text-foreground">
+                        {tpl.label}
+                      </p>
+                      <p class="text-xs text-muted-foreground">
+                        {tpl.description}
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              {/each}
+            </div>
+          </div>
+
+          {#if selectedTemplate && templateParamDefs.length > 0}
+            <div
+              class="rounded-lg border border-border bg-muted/20 p-4 space-y-3"
+            >
+              <TemplateParams
+                params={templateParamDefs}
+                values={templateParams}
+                onChange={updateTemplateParam}
+                title="Template parameters"
+              />
+            </div>
+          {/if}
+
           <!-- Core Details -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="space-y-2">

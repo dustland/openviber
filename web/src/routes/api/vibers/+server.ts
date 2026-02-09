@@ -66,7 +66,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       return json({ error: "No node available or hub unreachable" }, { status: 503 });
     }
 
-    // Persist viber to Supabase so it survives hub restarts; set environment if provided
+    // Persist viber to Supabase so it survives hub restarts; set environment and node
     if (locals.user?.id) {
       try {
         await setViberEnvironmentForUser(
@@ -74,6 +74,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
           result.viberId,
           environmentId ?? null,
           goal,
+          result.nodeId ?? null,
         );
       } catch (e) {
         console.error("Failed to persist viber or assign environment:", e);
@@ -94,6 +95,7 @@ interface PersistedViberRow {
   created_at: string | null;
   archived_at: string | null;
   environment_id: string | null;
+  node_id: string | null;
 }
 
 // GET /api/vibers - List vibers: Supabase as source of truth, hub for live state
@@ -108,7 +110,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
     const [persistedRows, { vibers: hubVibers }, environments] = await Promise.all([
       supabaseRequest<PersistedViberRow[]>("vibers", {
         params: {
-          select: "id,name,created_at,archived_at,environment_id",
+          select: "id,name,created_at,archived_at,environment_id,node_id",
           ...(includeArchived ? {} : { archived_at: "is.null" }),
           order: "created_at.desc",
         },
@@ -127,7 +129,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
         const environmentId = row.environment_id ?? null;
         return {
           id: row.id,
-          nodeId: hub?.nodeId ?? null,
+          nodeId: hub?.nodeId ?? row.node_id ?? null,
           nodeName: hub?.nodeName ?? null,
           environmentId,
           environmentName: environmentId ? (envNameMap.get(environmentId) ?? null) : null,

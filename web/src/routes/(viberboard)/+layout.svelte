@@ -23,6 +23,7 @@
     CollapsibleContent,
   } from "$lib/components/ui/collapsible";
   import AppSidebar from "$lib/components/layout/app-sidebar.svelte";
+  import { getVibersStore } from "$lib/stores/vibers";
 
   interface SidebarViber {
     id: string;
@@ -51,7 +52,9 @@
 
   let { children } = $props();
 
-  let vibers = $state<SidebarViber[]>([]);
+  const vibersStore = getVibersStore();
+  const vibersState = $derived($vibersStore);
+  const vibers = $derived(vibersState.vibers as SidebarViber[]);
   let environments = $state<SidebarEnvironment[]>([]);
 
   const viberGroups = $derived.by(() => {
@@ -130,7 +133,7 @@
         return;
       }
 
-      await fetchVibers();
+      await vibersStore.invalidate();
     } catch (error) {
       console.error("Failed to archive viber:", error);
     } finally {
@@ -138,39 +141,6 @@
       remaining.delete(viberId);
       archivingViberIds.clear();
       remaining.forEach((id) => archivingViberIds.add(id));
-    }
-  }
-
-  async function fetchVibers() {
-    try {
-      const response = await fetch("/api/vibers");
-      if (!response.ok) {
-        vibers = [];
-        return;
-      }
-      const data = await response.json();
-      vibers = Array.isArray(data)
-        ? data.map((v: Record<string, unknown>) => ({
-            id: String(v.id),
-            goal: String(v.goal || ""),
-            nodeId: typeof v.nodeId === "string" ? v.nodeId : null,
-            nodeName: typeof v.nodeName === "string" ? v.nodeName : null,
-            environmentId:
-              typeof v.environmentId === "string" ? v.environmentId : null,
-            environmentName:
-              typeof v.environmentName === "string" ? v.environmentName : null,
-            status: String(v.status || "unknown"),
-            nodeConnected:
-              v.nodeConnected === true
-                ? true
-                : v.nodeConnected === false
-                  ? false
-                  : null,
-          }))
-        : [];
-    } catch (error) {
-      console.error("Failed to fetch vibers:", error);
-      vibers = [];
     }
   }
 
@@ -194,15 +164,13 @@
     }
   }
 
-  async function fetchAll() {
-    await Promise.all([fetchVibers(), fetchEnvironments()]);
-  }
-
   onMount(() => {
-    void fetchAll();
+    void vibersStore.getVibers();
+    void fetchEnvironments();
 
     const interval = setInterval(() => {
-      void fetchAll();
+      void vibersStore.getVibers();
+      void fetchEnvironments();
     }, 5000);
 
     return () => clearInterval(interval);

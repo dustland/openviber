@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
+  import { getVibersStore } from "$lib/stores/vibers";
   import {
     ArrowUp,
     Bug,
@@ -126,6 +127,9 @@
       }
 
       const viberId = payload.viberId;
+
+      // Update cached viber list so sidebar/list show the new viber
+      void getVibersStore().invalidate();
 
       // Store the goal in sessionStorage for the viber chat page to pick up
       window.sessionStorage.setItem(

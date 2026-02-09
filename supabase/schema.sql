@@ -121,6 +121,7 @@ CREATE TABLE IF NOT EXISTS public.vibers (
   total_tasks integer NOT NULL DEFAULT 0,
   created_at timestamptz NOT NULL DEFAULT now(),
   environment_id text REFERENCES public.environments(id),
+  node_id text,
   updated_at timestamptz NOT NULL DEFAULT now(),
   archived_at timestamptz
 );

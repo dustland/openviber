@@ -19,43 +19,32 @@
     CardContent,
   } from "$lib/components/ui/card";
   import { Badge } from "$lib/components/ui/badge";
+  import {
+    getVibersStore,
+    type ViberListItem,
+  } from "$lib/stores/vibers";
 
-  interface Viber {
-    id: string;
-    nodeId: string | null;
-    nodeName: string | null;
-    goal: string;
-    status: string;
-    createdAt: string | null;
-    completedAt: string | null;
-    /** Connection status of the node hosting this viber; null if no node */
-    nodeConnected: boolean | null;
-    archivedAt: string | null;
-  }
-
-  let vibers = $state<Viber[]>([]);
-  let loading = $state(true);
+  const vibersStore = getVibersStore();
   let hubConnected = $state(false);
   let showArchived = $state(false);
+  const vibersState = $derived($vibersStore);
+  const listMatchesFilter = $derived(
+    vibersState.includeArchived === showArchived,
+  );
+  const vibers = $derived(
+    listMatchesFilter ? (vibersState.vibers as ViberListItem[]) : [],
+  );
+  const loading = $derived(
+    vibersState.loading || !listMatchesFilter,
+  );
 
-  async function fetchVibers() {
+  async function fetchHubStatus() {
     try {
       const hubResponse = await fetch("/api/hub");
       const hubStatus = await hubResponse.json();
       hubConnected = hubStatus.connected;
-
-      if (hubConnected) {
-        const params = showArchived ? "?include_archived=true" : "";
-        const response = await fetch(`/api/vibers${params}`);
-        const data = await response.json();
-        vibers = Array.isArray(data) ? data : [];
-      } else {
-        vibers = [];
-      }
-    } catch (error) {
-      console.error("Failed to fetch vibers:", error);
+    } catch {
       hubConnected = false;
-      vibers = [];
     }
   }
 
@@ -67,7 +56,7 @@
         method: "POST",
       });
       if (response.ok) {
-        await fetchVibers();
+        await vibersStore.invalidate();
       }
     } catch (error) {
       console.error("Failed to archive viber:", error);
@@ -82,7 +71,7 @@
         method: "DELETE",
       });
       if (response.ok) {
-        await fetchVibers();
+        await vibersStore.invalidate();
       }
     } catch (error) {
       console.error("Failed to restore viber:", error);
@@ -116,16 +105,17 @@
   }
 
   $effect(() => {
-    // Re-fetch when showArchived changes
     showArchived;
-    fetchVibers();
+    void vibersStore.getVibers(showArchived);
   });
 
   onMount(() => {
-    fetchVibers().finally(() => (loading = false));
+    void vibersStore.getVibers(showArchived);
+    void fetchHubStatus();
 
     const interval = setInterval(() => {
-      fetchVibers();
+      void vibersStore.getVibers(showArchived);
+      void fetchHubStatus();
     }, 10000);
 
     return () => clearInterval(interval);
@@ -172,7 +162,7 @@
         variant="outline"
         size="icon"
         onclick={() => {
-          fetchVibers();
+          void vibersStore.refresh(showArchived);
         }}
       >
         <RefreshCw class="size-4" />

@@ -123,6 +123,78 @@ export async function listViberNodes(userId: string): Promise<ViberNode[]> {
 }
 
 /**
+ * Get a viber node by user and hub node_id (daemon id).
+ */
+export async function getViberNodeByNodeId(
+  userId: string,
+  nodeId: string,
+): Promise<ViberNode | null> {
+  const url = restUrl("viber_nodes", {
+    user_id: `eq.${userId}`,
+    node_id: `eq.${nodeId}`,
+    select: "*",
+  });
+
+  const response = await fetch(url, { headers: serviceHeaders() });
+  if (!response.ok) return null;
+
+  const rows = (await response.json()) as ViberNode[];
+  return rows[0] ?? null;
+}
+
+const DEFAULT_DEV_NODE_CONFIG = {
+  provider: "openrouter",
+  model: "anthropic/claude-sonnet-4-20250514",
+  tools: ["file", "terminal", "browser"],
+  skills: [],
+};
+
+/**
+ * Ensure the current user has a viber_nodes row for the dev pseudo node.
+ * When OPENVIBER_DEV_NODE_ID is set (e.g. in .env), the local daemon that
+ * connects with that id (X-Viber-Id header) will be matched to this row
+ * and shown as a normal node. Call from GET /api/nodes when env is set.
+ */
+export async function ensureDevNode(
+  userId: string,
+  devNodeId: string,
+  name = "Local Dev",
+): Promise<ViberNode> {
+  const existing = await getViberNodeByNodeId(userId, devNodeId);
+  if (existing) return existing;
+
+  const url = restUrl("viber_nodes");
+  url.searchParams.set("select", "*");
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      ...serviceHeaders(),
+      Prefer: "return=representation",
+    },
+    body: JSON.stringify([
+      {
+        user_id: userId,
+        name: name.trim() || "Local Dev",
+        node_id: devNodeId,
+        onboard_token: null,
+        token_expires_at: null,
+        auth_token: null,
+        config: DEFAULT_DEV_NODE_CONFIG,
+      },
+    ]),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Failed to create dev pseudo node: ${text}`);
+  }
+
+  const rows = (await response.json()) as ViberNode[];
+  return rows[0] as ViberNode;
+}
+
+/**
  * Get a viber node by ID (for the given user).
  */
 export async function getViberNode(userId: string, nodeId: string): Promise<ViberNode | null> {

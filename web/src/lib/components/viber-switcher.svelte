@@ -9,6 +9,7 @@
     DropdownMenuSeparator,
   } from "$lib/components/ui/dropdown-menu";
   import { ChevronDown, Check, Circle } from "@lucide/svelte";
+  import { getVibersStore } from "$lib/stores/vibers";
 
   interface Viber {
     id: string;
@@ -24,26 +25,21 @@
 
   let { currentViber = null, collapsed = false }: Props = $props();
 
-  let vibers = $state<Viber[]>([]);
-  let loading = $state(true);
+  const vibersStore = getVibersStore();
+  const vibersState = $derived($vibersStore);
+  const vibers = $derived(
+    vibersState.vibers.map((v) => ({
+      id: v.id,
+      name: v.goal,
+      nodeConnected: v.nodeConnected,
+    })),
+  );
+  const loading = $derived(vibersState.loading);
 
   const currentViberId = $derived($page.params.id);
 
-  async function fetchVibers() {
-    try {
-      const res = await fetch("/api/vibers");
-      if (res.ok) {
-        vibers = await res.json();
-      }
-    } catch (err) {
-      console.error("Failed to fetch vibers:", err);
-    } finally {
-      loading = false;
-    }
-  }
-
   onMount(() => {
-    fetchVibers();
+    void vibersStore.getVibers();
   });
 
   function navigateToViber(viberId: string) {

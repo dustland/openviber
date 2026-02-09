@@ -1,6 +1,12 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { createViberNode, listViberNodes, deleteViberNode } from "$lib/server/viber-nodes";
+import { env } from "$env/dynamic/private";
+import {
+  createViberNode,
+  listViberNodes,
+  deleteViberNode,
+  ensureDevNode,
+} from "$lib/server/viber-nodes";
 import { hubClient } from "$lib/server/hub-client";
 
 // GET /api/nodes - List user's viber nodes (with live hub status)
@@ -10,6 +16,16 @@ export const GET: RequestHandler = async ({ locals }) => {
   }
 
   try {
+    // In dev: ensure a pseudo node exists for the local daemon (no onboarding)
+    const devNodeId = env.OPENVIBER_DEV_NODE_ID?.trim();
+    if (devNodeId) {
+      await ensureDevNode(
+        locals.user.id,
+        devNodeId,
+        env.OPENVIBER_DEV_NODE_NAME?.trim() || "Local Dev",
+      );
+    }
+
     const [nodes, hubData] = await Promise.all([
       listViberNodes(locals.user.id),
       hubClient.getNodes(),

@@ -75,6 +75,7 @@ interface EnvironmentRow {
 interface ViberEnvironmentRow {
   id: string;
   environment_id: string | null;
+  node_id?: string | null;
 }
 
 export interface ViberEnvironmentAssignment {
@@ -359,6 +360,7 @@ export async function setViberEnvironmentForUser(
   viberId: string,
   environmentId: string | null,
   goal?: string,
+  nodeId?: string | null,
 ): Promise<ViberEnvironmentAssignment | null> {
   const normalizedEnvironmentId = environmentId?.trim() || null;
 
@@ -370,25 +372,32 @@ export async function setViberEnvironmentForUser(
   }
 
   const now = new Date().toISOString();
+  const body: Record<string, unknown> = {
+    id: viberId,
+    name: goal?.trim() || viberId,
+    environment_id: normalizedEnvironmentId,
+    created_at: now,
+    updated_at: now,
+  };
+  if (nodeId != null && nodeId !== "") {
+    body.node_id = nodeId;
+  }
+
   const rows = await supabaseRequest<ViberEnvironmentRow[]>("vibers", {
     method: "POST",
     params: {
-      select: "id,environment_id",
+      select: "id,environment_id,node_id",
       on_conflict: "id",
     },
     prefer: "resolution=merge-duplicates,return=representation",
-    body: [
-      {
-        id: viberId,
-        name: goal?.trim() || viberId,
-        environment_id: normalizedEnvironmentId,
-        created_at: now,
-        updated_at: now,
-      },
-    ],
+    body: [body],
   });
 
-  const row = rows[0] ?? { id: viberId, environment_id: normalizedEnvironmentId };
+  const row = rows[0] ?? {
+    id: viberId,
+    environment_id: normalizedEnvironmentId,
+    node_id: nodeId ?? null,
+  };
   return {
     viberId: row.id,
     environmentId: row.environment_id,

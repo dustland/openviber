@@ -329,6 +329,33 @@ export const hubClient = {
     }
   },
 
+  /** Fetch jobs reported by all connected nodes from the hub. */
+  async getNodeJobs(): Promise<{
+    nodeJobs: Array<{
+      nodeId: string;
+      nodeName: string;
+      jobs: Array<{
+        name: string;
+        description?: string;
+        schedule: string;
+        prompt: string;
+        model?: string;
+        nodeId?: string;
+      }>;
+    }>;
+  }> {
+    try {
+      const response = await hubFetch("/api/jobs");
+      if (!response.ok) {
+        return { nodeJobs: [] };
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("[HubClient] Failed to get node jobs:", error);
+      return { nodeJobs: [] };
+    }
+  },
+
   /** Get detailed observability status for a specific node */
   async getNodeStatus(nodeId: string): Promise<{
     nodeId: string;

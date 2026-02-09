@@ -143,7 +143,9 @@ export type ControllerClientMessage =
   | { type: "terminal:detached"; target: string; appId?: string }
   | { type: "terminal:output"; target: string; appId?: string; data: string }
   | { type: "terminal:resized"; target: string; appId?: string; ok: boolean }
-  | { type: "status:report"; status: NodeObservabilityStatus };
+  | { type: "status:report"; status: NodeObservabilityStatus }
+  // Job reporting
+  | { type: "jobs:list"; jobs: Array<{ name: string; schedule: string; prompt: string; description?: string; model?: string; nodeId?: string }> };
 
 interface TaskProgressEnvelope {
   eventId: string;
@@ -747,6 +749,16 @@ export class ViberController extends EventEmitter {
   ): void {
     const ok = this.terminalManager.resize(target, cols, rows, appId);
     this.send({ type: "terminal:resized", target, appId, ok });
+  }
+
+  // ==================== Job Reporting ====================
+
+  /**
+   * Report the daemon's loaded job list to the hub so the web can observe all jobs.
+   * Called after the scheduler loads/reloads jobs.
+   */
+  reportJobs(jobs: Array<{ name: string; schedule: string; prompt: string; description?: string; model?: string; nodeId?: string }>): void {
+    this.send({ type: "jobs:list", jobs });
   }
 
   // ==================== Communication ====================

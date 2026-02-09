@@ -1,5 +1,7 @@
 import { Cron } from "croner";
+import { EventEmitter } from "events";
 import * as fs from "fs/promises";
+import { watch as fsWatch, type FSWatcher } from "fs";
 import * as path from "path";
 import * as yaml from "yaml";
 
@@ -18,19 +20,51 @@ export interface CronJobConfig {
   nodeId?: string;
 }
 
-export class JobScheduler {
+/**
+ * Subset of CronJobConfig safe for reporting over the network.
+ * Excludes internal fields like agent, provider, skills, tools.
+ */
+export interface JobSummary {
+  name: string;
+  description?: string;
+  schedule: string;
+  prompt: string;
+  model?: string;
+  nodeId?: string;
+}
+
+export class JobScheduler extends EventEmitter {
   private jobs: Map<string, Cron> = new Map();
   private active: boolean = false;
+  private watcher: FSWatcher | null = null;
+  private reloadTimer: NodeJS.Timeout | null = null;
+  private loadedConfigs: CronJobConfig[] = [];
 
-  constructor(private jobsDir: string) { }
+  constructor(private jobsDir: string) {
+    super();
+  }
+
+  /** Get the list of currently loaded job configs (safe for reporting). */
+  getLoadedJobs(): JobSummary[] {
+    return this.loadedConfigs.map((c) => ({
+      name: c.name,
+      description: c.description,
+      schedule: c.schedule,
+      prompt: c.prompt,
+      model: c.model,
+      nodeId: c.nodeId,
+    }));
+  }
 
   async start() {
     this.active = true;
     await this.loadJobs();
+    this.startWatcher();
   }
 
   async stop() {
     this.active = false;
+    this.stopWatcher();
     for (const job of this.jobs.values()) {
       job.stop();
     }
@@ -46,13 +80,62 @@ export class JobScheduler {
     await this.loadJobs();
   }
 
+  /**
+   * Watch the jobs directory for file changes and auto-reload.
+   * This ensures jobs created by tools (e.g. create_scheduled_job from chat)
+   * are picked up without requiring a daemon restart.
+   */
+  private startWatcher(): void {
+    try {
+      this.watcher = fsWatch(this.jobsDir, (_eventType, filename) => {
+        if (!filename) return;
+        if (!filename.endsWith(".yaml") && !filename.endsWith(".yml")) return;
+        this.debouncedReload();
+      });
+      this.watcher.on("error", () => {
+        // Directory may have been removed; stop watching silently
+        this.stopWatcher();
+      });
+    } catch {
+      // Directory might not exist yet — that's fine, watcher is optional
+    }
+  }
+
+  private stopWatcher(): void {
+    if (this.watcher) {
+      this.watcher.close();
+      this.watcher = null;
+    }
+    if (this.reloadTimer) {
+      clearTimeout(this.reloadTimer);
+      this.reloadTimer = null;
+    }
+  }
+
+  /** Debounced reload to avoid rapid-fire reloads when multiple files change. */
+  private debouncedReload(): void {
+    if (this.reloadTimer) clearTimeout(this.reloadTimer);
+    this.reloadTimer = setTimeout(async () => {
+      this.reloadTimer = null;
+      if (!this.active) return;
+      console.log("[Scheduler] Detected jobs directory change, reloading...");
+      try {
+        await this.reload();
+      } catch (err) {
+        console.error("[Scheduler] Reload after file change failed:", err);
+      }
+    }, 500);
+  }
+
   private async loadJobs() {
+    this.loadedConfigs = [];
     try {
       // Check if directory exists
       try {
         await fs.access(this.jobsDir);
       } catch {
         console.warn(`[Scheduler] Jobs directory not found: ${this.jobsDir}`);
+        this.emit("jobs:loaded", this.getLoadedJobs());
         return;
       }
 
@@ -62,6 +145,7 @@ export class JobScheduler {
           const content = await fs.readFile(path.join(this.jobsDir, file), "utf8");
           try {
             const config = yaml.parse(content) as CronJobConfig;
+            this.loadedConfigs.push(config);
             this.scheduleJob(config);
           } catch (err) {
             console.error(`[Scheduler] Failed to parse job ${file}:`, err);
@@ -71,6 +155,9 @@ export class JobScheduler {
     } catch (err) {
       console.error("[Scheduler] Error loading jobs:", err);
     }
+
+    // Notify listeners (e.g. the controller) so they can report to the hub
+    this.emit("jobs:loaded", this.getLoadedJobs());
   }
 
   private scheduleJob(config: CronJobConfig) {

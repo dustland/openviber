@@ -49,6 +49,36 @@ export interface NodeSkillInfo {
   description: string;
 }
 
+/** Summary machine resource metrics (from heartbeat) */
+export interface NodeMachineMetrics {
+  hostname: string;
+  arch: string;
+  systemUptimeSeconds: number;
+  cpu: {
+    cores: number;
+    averageUsage: number;
+  };
+  memory: {
+    totalBytes: number;
+    usedBytes: number;
+    usagePercent: number;
+  };
+  loadAverage: [number, number, number];
+}
+
+/** Summary viber metrics (from heartbeat) */
+export interface NodeViberMetrics {
+  daemonUptimeSeconds: number;
+  runningTaskCount: number;
+  totalTasksExecuted: number;
+  processMemory: {
+    rss: number;
+    heapTotal: number;
+    heapUsed: number;
+    external: number;
+  };
+}
+
 /** A connected node (daemon) on the hub */
 export interface ConnectedNode {
   id: string;
@@ -57,8 +87,85 @@ export interface ConnectedNode {
   platform: string;
   capabilities: string[];
   connectedAt: string;
+  lastHeartbeat: string;
   skills?: NodeSkillInfo[];
   runningVibers: string[];
+  /** Machine resource metrics (from heartbeat) */
+  machine?: NodeMachineMetrics;
+  /** Viber daemon metrics (from heartbeat) */
+  viber?: NodeViberMetrics;
+}
+
+/** Full machine resource status snapshot (from node status request) */
+export interface MachineResourceStatus {
+  hostname: string;
+  platform: string;
+  osRelease: string;
+  arch: string;
+  systemUptimeSeconds: number;
+  cpu: {
+    cores: number;
+    model: string;
+    speedMHz: number;
+    coreUsages: number[];
+    averageUsage: number;
+  };
+  memory: {
+    totalBytes: number;
+    freeBytes: number;
+    usedBytes: number;
+    usagePercent: number;
+  };
+  disks: {
+    mount: string;
+    totalBytes: number;
+    usedBytes: number;
+    availableBytes: number;
+    usagePercent: number;
+  }[];
+  loadAverage: [number, number, number];
+  network: {
+    name: string;
+    ipv4?: string;
+    ipv6?: string;
+    mac?: string;
+    internal: boolean;
+  }[];
+  collectedAt: string;
+}
+
+/** Full viber running status (from node status request) */
+export interface ViberRunningStatus {
+  viberId: string;
+  viberName: string;
+  version: string;
+  connected: boolean;
+  daemonUptimeSeconds: number;
+  processMemory: {
+    rss: number;
+    heapTotal: number;
+    heapUsed: number;
+    external: number;
+  };
+  runningTaskCount: number;
+  runningTasks: {
+    taskId: string;
+    goal: string;
+    model?: string;
+    isRunning: boolean;
+    messageCount: number;
+  }[];
+  skills: string[];
+  capabilities: string[];
+  totalTasksExecuted: number;
+  lastHeartbeatAt?: string;
+  collectedAt: string;
+}
+
+/** Full node observability status (from node status request) */
+export interface NodeObservabilityStatus {
+  machine: MachineResourceStatus;
+  viber: ViberRunningStatus;
 }
 
 /** Environment context passed to viber for project awareness */
@@ -220,7 +327,39 @@ export const hubClient = {
     }
   },
 
-  async checkHealth(): Promise<{ status: string; nodes: number; vibers: number } | null> {
+  /** Get detailed observability status for a specific node */
+  async getNodeStatus(nodeId: string): Promise<{
+    nodeId: string;
+    status: NodeObservabilityStatus | null;
+    source: string;
+  } | null> {
+    try {
+      const response = await hubFetch(`/api/nodes/${encodeURIComponent(nodeId)}/status`);
+      if (!response.ok) {
+        return null;
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("[HubClient] Failed to get node status:", error);
+      return null;
+    }
+  },
+
+  async checkHealth(): Promise<{
+    status: string;
+    nodes: number;
+    healthyNodes: number;
+    vibers: number;
+    nodesSummary?: {
+      id: string;
+      name: string;
+      healthy: boolean;
+      heartbeatAgeMs: number;
+      runningVibers: number;
+      cpu?: number;
+      memoryUsagePercent?: number;
+    }[];
+  } | null> {
     try {
       const response = await hubFetch("/health");
       if (!response.ok) {

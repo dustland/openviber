@@ -24,9 +24,11 @@ export const GET: RequestHandler = async ({ locals }) => {
     const claimedDaemonIds = new Set<string>();
 
     // Compute status at runtime: if node's daemon is connected, it's active
+    // Also attach hub metrics for visualization
     const enrichedNodes = nodes.map((node) => {
-      const isConnected = node.node_id && connectedDaemons.has(node.node_id);
-      if (isConnected) claimedDaemonIds.add(node.node_id!);
+      const daemon = node.node_id ? connectedDaemons.get(node.node_id) : undefined;
+      const isConnected = !!daemon;
+      if (isConnected && node.node_id) claimedDaemonIds.add(node.node_id);
       return {
         ...node,
         status: isConnected
@@ -34,6 +36,15 @@ export const GET: RequestHandler = async ({ locals }) => {
           : node.node_id
             ? "offline" as const
             : "pending" as const,
+        // Attach hub observability metrics
+        version: daemon?.version,
+        platform: daemon?.platform,
+        capabilities: daemon?.capabilities,
+        skills: daemon?.skills,
+        lastHeartbeat: daemon?.lastHeartbeat,
+        runningVibers: daemon?.runningVibers,
+        machine: daemon?.machine,
+        viber: daemon?.viber,
       };
     });
 
@@ -54,6 +65,15 @@ export const GET: RequestHandler = async ({ locals }) => {
           last_seen_at: daemon.connectedAt,
           created_at: daemon.connectedAt,
           updated_at: daemon.connectedAt,
+          // Attach hub observability metrics
+          version: daemon.version,
+          platform: daemon.platform,
+          capabilities: daemon.capabilities,
+          skills: daemon.skills,
+          lastHeartbeat: daemon.lastHeartbeat,
+          runningVibers: daemon.runningVibers,
+          machine: daemon.machine,
+          viber: daemon.viber,
         });
       }
     }

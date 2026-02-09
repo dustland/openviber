@@ -4,10 +4,14 @@
     Check,
     Clock,
     Copy,
+    Cpu,
+    Eye,
+    MemoryStick,
     Plus,
     RefreshCw,
     Server,
     Trash2,
+    Zap,
   } from "@lucide/svelte";
   import { Button } from "$lib/components/ui/button";
   import { Skeleton } from "$lib/components/ui/skeleton";
@@ -18,14 +22,54 @@
     CardHeader,
     CardTitle,
   } from "$lib/components/ui/card";
+  import NodeStatusPanel from "$lib/components/node-status-panel.svelte";
+  import NodeDetailPanel from "$lib/components/node-detail-panel.svelte";
+
+  interface MachineMetrics {
+    hostname?: string;
+    arch?: string;
+    systemUptimeSeconds?: number;
+    cpu: {
+      cores: number;
+      averageUsage: number;
+    };
+    memory: {
+      totalBytes: number;
+      usedBytes: number;
+      usagePercent: number;
+    };
+    loadAverage?: [number, number, number];
+  }
+
+  interface ViberMetrics {
+    daemonUptimeSeconds: number;
+    runningTaskCount: number;
+    totalTasksExecuted: number;
+    processMemory: {
+      rss: number;
+      heapTotal: number;
+      heapUsed: number;
+      external: number;
+    };
+  }
 
   interface ViberNode {
     id: string;
     name: string;
+    node_id: string | null;
     status: "pending" | "active" | "offline";
     onboard_token: string | null;
     token_expires_at: string | null;
     created_at: string;
+    // Enriched hub data
+    version?: string;
+    platform?: string;
+    capabilities?: string[];
+    skills?: { id: string; name: string; description: string }[];
+    lastHeartbeat?: string;
+    runningVibers?: string[];
+    machine?: MachineMetrics;
+    viber?: ViberMetrics;
   }
 
   let nodes = $state<ViberNode[]>([]);
@@ -34,6 +78,11 @@
   let copiedId = $state<string | null>(null);
   let showCreateDialog = $state(false);
   let newNodeName = $state("My Viber");
+  let selectedNodeId = $state<string | null>(null);
+  let selectedNodeName = $state<string>("");
+
+  const activeNodes = $derived(nodes.filter((n) => n.status === "active"));
+  const inactiveNodes = $derived(nodes.filter((n) => n.status !== "active"));
 
   function getOnboardCommand(token: string) {
     return `npx openviber onboard --token ${token}`;
@@ -48,6 +97,15 @@
     if (hours < 24) return `${hours}h ago`;
     const days = Math.floor(hours / 24);
     return `${days}d ago`;
+  }
+
+  function formatBytes(bytes: number): string {
+    if (bytes === 0) return "0 B";
+    const units = ["B", "KB", "MB", "GB", "TB"];
+    const k = 1024;
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    const value = bytes / Math.pow(k, i);
+    return `${value.toFixed(1)} ${units[i]}`;
   }
 
   function statusLabel(status: ViberNode["status"]) {
@@ -136,11 +194,24 @@
     }
   }
 
+  function openNodeDetail(node: ViberNode) {
+    const effectiveId = node.node_id || node.id;
+    selectedNodeId = effectiveId;
+    selectedNodeName = node.name;
+  }
+
   onMount(() => {
     loading = true;
     fetchNodes().finally(() => {
       loading = false;
     });
+
+    // Auto-refresh every 30s
+    const interval = setInterval(() => {
+      fetchNodes();
+    }, 30000);
+
+    return () => clearInterval(interval);
   });
 </script>
 
@@ -153,7 +224,7 @@
     <div>
       <h1 class="text-2xl font-semibold text-foreground">Nodes</h1>
       <p class="text-sm mt-0.5 text-muted-foreground">
-        Manage machine registrations and onboarding tokens.
+        Manage machine registrations and monitor resource usage.
       </p>
     </div>
     <div class="flex items-center gap-2">
@@ -172,7 +243,7 @@
   </div>
 
   {#if loading}
-    <div class="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
       {#each Array(3) as _}
         <div class="rounded-xl border border-border bg-card p-4 space-y-3">
           <div class="flex items-start justify-between">
@@ -182,7 +253,10 @@
             </div>
             <Skeleton class="size-6 rounded-md shrink-0" />
           </div>
-          <Skeleton class="h-9 w-full rounded-md" />
+          <div class="space-y-2">
+            <Skeleton class="h-1.5 w-full rounded-full" />
+            <Skeleton class="h-1.5 w-full rounded-full" />
+          </div>
           <Skeleton class="h-3 w-3/4" />
         </div>
       {/each}
@@ -202,65 +276,174 @@
       </Button>
     </div>
   {:else}
-    <div class="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-      {#each nodes as node (node.id)}
-        <Card>
-          <CardHeader class="pb-3">
-            <div class="flex items-start justify-between gap-2">
-              <div class="min-w-0">
-                <CardTitle class="flex items-center gap-2 text-base">
-                  <span class="truncate">{node.name}</span>
-                  <span
-                    class={`size-1.5 rounded-full ${statusDot(node.status)}`}
-                  ></span>
-                </CardTitle>
-                <CardDescription class="text-xs mt-0.5">
-                  {statusLabel(node.status)} · created {formatTimeAgo(
-                    node.created_at,
-                  )}
-                </CardDescription>
-              </div>
-              <button
-                type="button"
-                class="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted"
-                onclick={() => deleteNode(node.id)}
-                title="Delete node"
-              >
-                <Trash2 class="size-4" />
-              </button>
-            </div>
-          </CardHeader>
-          <CardContent class="pt-0 space-y-2">
-            {#if node.onboard_token}
-              <button
-                type="button"
-                class="w-full inline-flex items-center justify-center gap-1.5 rounded-md border border-border px-2.5 py-2 text-xs hover:bg-muted transition-colors"
-                onclick={() => copyCommand(node)}
-              >
-                {#if copiedId === node.id}
-                  <Check class="size-3.5" />
-                  Copied
-                {:else}
-                  <Copy class="size-3.5" />
-                  Copy Onboard Command
+    <!-- Active Nodes -->
+    {#if activeNodes.length > 0}
+      <div class="mb-6">
+        <h2 class="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
+          <span class="size-2 rounded-full bg-green-500"></span>
+          Active ({activeNodes.length})
+        </h2>
+        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {#each activeNodes as node (node.id)}
+            <Card class="group relative overflow-hidden transition-all hover:border-primary/30 hover:shadow-sm">
+              <CardHeader class="pb-2">
+                <div class="flex items-start justify-between gap-2">
+                  <div class="min-w-0">
+                    <CardTitle class="flex items-center gap-2 text-base">
+                      <span class="truncate">{node.name}</span>
+                      <span
+                        class={`size-2 rounded-full ${statusDot(node.status)} shrink-0`}
+                      ></span>
+                    </CardTitle>
+                    <CardDescription class="text-xs mt-0.5 space-x-1">
+                      {#if node.version}
+                        <span>v{node.version}</span>
+                        <span class="text-muted-foreground/40">·</span>
+                      {/if}
+                      {#if node.platform}
+                        <span>{node.platform}</span>
+                        <span class="text-muted-foreground/40">·</span>
+                      {/if}
+                      <span>created {formatTimeAgo(node.created_at)}</span>
+                    </CardDescription>
+                  </div>
+                  <div class="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      class="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted opacity-0 group-hover:opacity-100 transition-all"
+                      onclick={() => openNodeDetail(node)}
+                      title="View detailed status"
+                    >
+                      <Eye class="size-4" />
+                    </button>
+                    <button
+                      type="button"
+                      class="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted opacity-0 group-hover:opacity-100 transition-all"
+                      onclick={() => deleteNode(node.id)}
+                      title="Delete node"
+                    >
+                      <Trash2 class="size-4" />
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Quick stats row -->
+                {#if node.machine || node.viber}
+                  <div class="flex items-center gap-3 mt-2 flex-wrap">
+                    {#if node.machine}
+                      <span class="inline-flex items-center gap-1 text-[11px] text-muted-foreground" title="CPU Usage">
+                        <Cpu class="size-3" />
+                        <span class="tabular-nums font-medium {node.machine.cpu.averageUsage >= 80 ? 'text-amber-500' : 'text-foreground'}">
+                          {node.machine.cpu.averageUsage.toFixed(0)}%
+                        </span>
+                      </span>
+                      <span class="inline-flex items-center gap-1 text-[11px] text-muted-foreground" title="Memory Usage">
+                        <MemoryStick class="size-3" />
+                        <span class="tabular-nums font-medium {node.machine.memory.usagePercent >= 80 ? 'text-amber-500' : 'text-foreground'}">
+                          {node.machine.memory.usagePercent.toFixed(0)}%
+                        </span>
+                      </span>
+                    {/if}
+                    {#if node.viber}
+                      <span class="inline-flex items-center gap-1 text-[11px] text-muted-foreground" title="Running Tasks">
+                        <Zap class="size-3" />
+                        <span class="tabular-nums font-medium {node.viber.runningTaskCount > 0 ? 'text-emerald-500' : 'text-foreground'}">
+                          {node.viber.runningTaskCount} tasks
+                        </span>
+                      </span>
+                    {/if}
+                    {#if node.lastHeartbeat}
+                      <span class="text-[11px] text-muted-foreground/50 ml-auto" title="Last heartbeat">
+                        {formatTimeAgo(node.lastHeartbeat)}
+                      </span>
+                    {/if}
+                  </div>
                 {/if}
-              </button>
-            {/if}
-            {#if node.token_expires_at}
-              <p
-                class="text-[11px] text-muted-foreground inline-flex items-center gap-1.5"
-              >
-                <Clock class="size-3" />
-                Token expires {new Date(node.token_expires_at).toLocaleString()}
-              </p>
-            {/if}
-          </CardContent>
-        </Card>
-      {/each}
-    </div>
+              </CardHeader>
+              <CardContent class="pt-0">
+                <NodeStatusPanel
+                  machine={node.machine}
+                  viber={node.viber}
+                  skills={node.skills}
+                  capabilities={node.capabilities}
+                  compact={true}
+                />
+              </CardContent>
+            </Card>
+          {/each}
+        </div>
+      </div>
+    {/if}
+
+    <!-- Inactive / Pending Nodes -->
+    {#if inactiveNodes.length > 0}
+      <div>
+        <h2 class="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
+          <span class="size-2 rounded-full bg-gray-400"></span>
+          Inactive ({inactiveNodes.length})
+        </h2>
+        <div class="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+          {#each inactiveNodes as node (node.id)}
+            <Card class="group">
+              <CardHeader class="pb-3">
+                <div class="flex items-start justify-between gap-2">
+                  <div class="min-w-0">
+                    <CardTitle class="flex items-center gap-2 text-base">
+                      <span class="truncate">{node.name}</span>
+                      <span
+                        class={`size-1.5 rounded-full ${statusDot(node.status)}`}
+                      ></span>
+                    </CardTitle>
+                    <CardDescription class="text-xs mt-0.5">
+                      {statusLabel(node.status)} · created {formatTimeAgo(
+                        node.created_at,
+                      )}
+                    </CardDescription>
+                  </div>
+                  <button
+                    type="button"
+                    class="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted"
+                    onclick={() => deleteNode(node.id)}
+                    title="Delete node"
+                  >
+                    <Trash2 class="size-4" />
+                  </button>
+                </div>
+              </CardHeader>
+              <CardContent class="pt-0 space-y-2">
+                {#if node.onboard_token}
+                  <button
+                    type="button"
+                    class="w-full inline-flex items-center justify-center gap-1.5 rounded-md border border-border px-2.5 py-2 text-xs hover:bg-muted transition-colors"
+                    onclick={() => copyCommand(node)}
+                  >
+                    {#if copiedId === node.id}
+                      <Check class="size-3.5" />
+                      Copied
+                    {:else}
+                      <Copy class="size-3.5" />
+                      Copy Onboard Command
+                    {/if}
+                  </button>
+                {/if}
+                {#if node.token_expires_at}
+                  <p
+                    class="text-[11px] text-muted-foreground inline-flex items-center gap-1.5"
+                  >
+                    <Clock class="size-3" />
+                    Token expires {new Date(node.token_expires_at).toLocaleString()}
+                  </p>
+                {/if}
+              </CardContent>
+            </Card>
+          {/each}
+        </div>
+      </div>
+    {/if}
   {/if}
 </div>
 
+<!-- Create Node Dialog -->
 {#if showCreateDialog}
   <div
     class="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4"
@@ -299,4 +482,13 @@
       </div>
     </div>
   </div>
+{/if}
+
+<!-- Node Detail Panel -->
+{#if selectedNodeId}
+  <NodeDetailPanel
+    nodeId={selectedNodeId}
+    nodeName={selectedNodeName}
+    onClose={() => { selectedNodeId = null; }}
+  />
 {/if}

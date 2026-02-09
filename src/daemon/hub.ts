@@ -20,6 +20,11 @@
 import { createServer, IncomingMessage, ServerResponse } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { URL } from "url";
+import type {
+  MachineResourceStatus,
+  ViberRunningStatus,
+  NodeObservabilityStatus,
+} from "./node-status";
 
 export interface HubConfig {
   port: number;
@@ -36,6 +41,12 @@ interface ConnectedNode {
   connectedAt: Date;
   lastHeartbeat: Date;
   runningVibers: string[];
+  /** Latest machine resource status from heartbeat */
+  machineStatus?: MachineResourceStatus;
+  /** Latest viber running status from heartbeat */
+  viberStatus?: ViberRunningStatus;
+  /** Pending status:request resolver (for on-demand status requests) */
+  pendingStatusResolvers?: Array<(status: NodeObservabilityStatus) => void>;
 }
 
 interface ViberEvent {
@@ -211,6 +222,12 @@ export class HubServer {
       const viberId = url.pathname.split("/")[3];
       this.handleStreamViber(viberId, req, res);
     } else if (
+      url.pathname.match(/^\/api\/nodes\/[^/]+\/status$/) &&
+      method === "GET"
+    ) {
+      const nodeId = url.pathname.split("/")[3];
+      this.handleGetNodeStatus(nodeId, req, res);
+    } else if (
       url.pathname.match(/^\/api\/nodes\/[^/]+\/job$/) &&
       method === "POST"
     ) {
@@ -223,12 +240,33 @@ export class HubServer {
   }
 
   private handleHealth(res: ServerResponse): void {
+    // Aggregate node health summary
+    const nodesSummary = Array.from(this.nodes.values()).map((n) => {
+      const heartbeatAgeMs = Date.now() - n.lastHeartbeat.getTime();
+      const isHealthy = heartbeatAgeMs < 90_000; // healthy if heartbeat within 90s
+
+      return {
+        id: n.id,
+        name: n.name,
+        healthy: isHealthy,
+        heartbeatAgeMs,
+        runningVibers: n.runningVibers.length,
+        cpu: n.machineStatus?.cpu.averageUsage,
+        memoryUsagePercent: n.machineStatus?.memory.usagePercent,
+      };
+    });
+
+    const totalRunningVibers = this.vibers.size;
+    const healthyNodes = nodesSummary.filter((n) => n.healthy).length;
+
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(
       JSON.stringify({
         status: "ok",
         nodes: this.nodes.size,
-        vibers: this.vibers.size,
+        healthyNodes,
+        vibers: totalRunningVibers,
+        nodesSummary,
       }),
     );
   }
@@ -244,6 +282,32 @@ export class HubServer {
       connectedAt: n.connectedAt.toISOString(),
       lastHeartbeat: n.lastHeartbeat.toISOString(),
       runningVibers: n.runningVibers,
+      // Enriched observability data from heartbeats
+      machine: n.machineStatus
+        ? {
+            hostname: n.machineStatus.hostname,
+            arch: n.machineStatus.arch,
+            systemUptimeSeconds: n.machineStatus.systemUptimeSeconds,
+            cpu: {
+              cores: n.machineStatus.cpu.cores,
+              averageUsage: n.machineStatus.cpu.averageUsage,
+            },
+            memory: {
+              totalBytes: n.machineStatus.memory.totalBytes,
+              usedBytes: n.machineStatus.memory.usedBytes,
+              usagePercent: n.machineStatus.memory.usagePercent,
+            },
+            loadAverage: n.machineStatus.loadAverage,
+          }
+        : undefined,
+      viber: n.viberStatus
+        ? {
+            daemonUptimeSeconds: n.viberStatus.daemonUptimeSeconds,
+            runningTaskCount: n.viberStatus.runningTaskCount,
+            totalTasksExecuted: n.viberStatus.totalTasksExecuted,
+            processMemory: n.viberStatus.processMemory,
+          }
+        : undefined,
     }));
 
     res.writeHead(200, { "Content-Type": "application/json" });
@@ -512,6 +576,80 @@ export class HubServer {
   }
 
   /**
+   * GET /api/nodes/:id/status - Get detailed node observability status.
+   *
+   * If the node has recent heartbeat data, returns it immediately.
+   * Also sends a status:request to the node for fresh data with a short timeout.
+   */
+  private handleGetNodeStatus(
+    nodeId: string,
+    _req: IncomingMessage,
+    res: ServerResponse,
+  ): void {
+    const node = this.nodes.get(nodeId);
+    if (!node) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Node not found or not connected" }));
+      return;
+    }
+
+    // If we have recent heartbeat data (within 60s), combine and return it
+    const heartbeatAge =
+      Date.now() - node.lastHeartbeat.getTime();
+
+    if (node.machineStatus && node.viberStatus && heartbeatAge < 60_000) {
+      // Return cached status from last heartbeat
+      const status: NodeObservabilityStatus = {
+        machine: node.machineStatus,
+        viber: node.viberStatus,
+      };
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ nodeId, status, source: "heartbeat-cache" }));
+      return;
+    }
+
+    // Request fresh status from the node with a timeout
+    if (!node.pendingStatusResolvers) {
+      node.pendingStatusResolvers = [];
+    }
+
+    const timeout = setTimeout(() => {
+      // Timeout: return whatever we have
+      const idx = node.pendingStatusResolvers?.indexOf(resolver);
+      if (idx !== undefined && idx >= 0) {
+        node.pendingStatusResolvers?.splice(idx, 1);
+      }
+
+      if (node.machineStatus || node.viberStatus) {
+        const status: Partial<NodeObservabilityStatus> = {};
+        if (node.machineStatus) status.machine = node.machineStatus;
+        if (node.viberStatus) status.viber = node.viberStatus;
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ nodeId, status, source: "heartbeat-stale" }));
+      } else {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify({
+            nodeId,
+            status: null,
+            source: "unavailable",
+            message: "Node has not reported status yet",
+          }),
+        );
+      }
+    }, 5_000);
+
+    const resolver = (status: NodeObservabilityStatus) => {
+      clearTimeout(timeout);
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ nodeId, status, source: "live" }));
+    };
+
+    node.pendingStatusResolvers.push(resolver);
+    node.ws.send(JSON.stringify({ type: "status:request" }));
+  }
+
+  /**
    * GET /api/vibers/:id/stream - SSE endpoint for AI SDK data stream.
    * Holds the response open and pipes viber stream chunks from the daemon.
    */
@@ -630,12 +768,16 @@ export class HubServer {
         break;
 
       case "heartbeat":
-        this.handleHeartbeat(ws);
+        this.handleHeartbeat(ws, msg.status);
         break;
 
       case "pong":
         // Response to ping, update lastHeartbeat
         this.handleHeartbeat(ws);
+        break;
+
+      case "status:report":
+        this.handleStatusReport(ws, msg.status);
         break;
 
       default:
@@ -789,10 +931,50 @@ export class HubServer {
     }
   }
 
-  private handleHeartbeat(ws: WebSocket): void {
+  private handleHeartbeat(ws: WebSocket, heartbeatStatus?: any): void {
     for (const node of this.nodes.values()) {
       if (node.ws === ws) {
         node.lastHeartbeat = new Date();
+
+        // Store enriched observability data from heartbeat
+        if (heartbeatStatus) {
+          if (heartbeatStatus.machine) {
+            node.machineStatus = heartbeatStatus.machine;
+          }
+          if (heartbeatStatus.viberStatus) {
+            node.viberStatus = heartbeatStatus.viberStatus;
+          }
+        }
+
+        break;
+      }
+    }
+  }
+
+  /**
+   * Handle a status:report message from a node (response to status:request).
+   */
+  private handleStatusReport(ws: WebSocket, status: NodeObservabilityStatus): void {
+    for (const node of this.nodes.values()) {
+      if (node.ws === ws) {
+        node.lastHeartbeat = new Date();
+
+        // Update cached status
+        if (status.machine) {
+          node.machineStatus = status.machine;
+        }
+        if (status.viber) {
+          node.viberStatus = status.viber;
+        }
+
+        // Resolve any pending status request
+        if (node.pendingStatusResolvers && node.pendingStatusResolvers.length > 0) {
+          for (const resolver of node.pendingStatusResolvers) {
+            resolver(status);
+          }
+          node.pendingStatusResolvers = [];
+        }
+
         break;
       }
     }

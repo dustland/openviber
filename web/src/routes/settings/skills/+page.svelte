@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { Puzzle, Server, FileText, AlertCircle } from "@lucide/svelte";
+  import { Puzzle, Server, FileText, AlertCircle, Sparkles } from "@lucide/svelte";
 
   interface SkillInfo {
     id: string;
@@ -49,6 +49,27 @@
         Skills extend vibers with domain knowledge and tools. Listed below are
         all skills available on connected nodes and where they are installed.
       </p>
+      <div class="mt-4 rounded-lg border border-primary/20 bg-primary/5 p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex items-start gap-3">
+          <div class="flex items-center justify-center size-9 rounded-lg bg-primary/10">
+            <Sparkles class="size-4 text-primary" />
+          </div>
+          <div>
+            <h2 class="text-sm font-medium text-foreground">
+              Discover more skills
+            </h2>
+            <p class="text-xs text-muted-foreground">
+              Explore the Skill Hub to import from OpenClaw, GitHub, npm, and more.
+            </p>
+          </div>
+        </div>
+        <a
+          href="/settings/skills/hub"
+          class="inline-flex items-center justify-center gap-2 text-sm font-medium text-primary hover:underline"
+        >
+          Open Skill Hub
+        </a>
+      </div>
     </header>
 
     {#if error}

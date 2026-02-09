@@ -20,23 +20,12 @@ import type {
   SkillSearchResult,
   ExternalSkillInfo,
   SkillImportResult,
+  SkillHubProviderConfig,
 } from "../types";
 import * as fs from "fs/promises";
 import * as path from "path";
 
-const GITHUB_API = "https://api.github.com";
-
-function getGitHubHeaders(): Record<string, string> {
-  const headers: Record<string, string> = {
-    Accept: "application/vnd.github.v3+json",
-    "User-Agent": "OpenViber-SkillHub/1.0",
-  };
-  const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-  return headers;
-}
+const DEFAULT_GITHUB_API = "https://api.github.com";
 
 /**
  * Parse a GitHub skill reference like "owner/repo", "owner/repo#branch", or
@@ -74,9 +63,40 @@ function parseGitHubRef(ref: string): {
 export class GitHubProvider implements SkillHubProvider {
   readonly type = "github" as const;
   readonly displayName = "GitHub";
+  private config: SkillHubProviderConfig;
+
+  constructor(config?: SkillHubProviderConfig) {
+    this.config = config ?? {};
+  }
+
+  setConfig(config?: SkillHubProviderConfig): void {
+    this.config = config ?? {};
+  }
+
+  private getApiUrl(): string {
+    return (
+      this.config.url ||
+      process.env.GITHUB_API_URL ||
+      DEFAULT_GITHUB_API
+    ).replace(/\/$/, "");
+  }
+
+  private getGitHubHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+      Accept: "application/vnd.github.v3+json",
+      "User-Agent": "OpenViber-SkillHub/1.0",
+    };
+    const token =
+      this.config.apiKey || process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    return headers;
+  }
 
   async search(query: SkillSearchQuery): Promise<SkillSearchResult> {
-    const headers = getGitHubHeaders();
+    const headers = this.getGitHubHeaders();
+    const apiBase = this.getApiUrl();
     const page = query.page ?? 1;
     const perPage = Math.min(query.limit ?? 20, 100);
 
@@ -116,7 +136,7 @@ export class GitHubProvider implements SkillHubProvider {
       });
 
       const res = await fetch(
-        `${GITHUB_API}/search/repositories?${params.toString()}`,
+        `${apiBase}/search/repositories?${params.toString()}`,
         {
           headers,
           signal: AbortSignal.timeout(15000),
@@ -159,10 +179,11 @@ export class GitHubProvider implements SkillHubProvider {
     const { owner, repo } = parseGitHubRef(skillId);
     if (!owner || !repo) return null;
 
-    const headers = getGitHubHeaders();
+    const headers = this.getGitHubHeaders();
+    const apiBase = this.getApiUrl();
 
     try {
-      const res = await fetch(`${GITHUB_API}/repos/${owner}/${repo}`, {
+      const res = await fetch(`${apiBase}/repos/${owner}/${repo}`, {
         headers,
         signal: AbortSignal.timeout(15000),
       });
@@ -189,7 +210,7 @@ export class GitHubProvider implements SkillHubProvider {
       if (!readme) {
         try {
           const readmeRes = await fetch(
-            `${GITHUB_API}/repos/${owner}/${repo}/readme`,
+            `${apiBase}/repos/${owner}/${repo}/readme`,
             {
               headers: { ...headers, Accept: "application/vnd.github.raw" },
               signal: AbortSignal.timeout(10000),

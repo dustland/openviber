@@ -15,22 +15,36 @@ import type {
   SkillSearchResult,
   ExternalSkillInfo,
   SkillImportResult,
+  SkillHubProviderConfig,
 } from "../types";
 import * as fs from "fs/promises";
 import * as path from "path";
 
 const DEFAULT_API_URL = "https://glama.ai/api/mcp";
 
-function getApiUrl(): string {
-  return (process.env.GLAMA_API_URL || DEFAULT_API_URL).replace(/\/$/, "");
-}
-
 export class GlamaProvider implements SkillHubProvider {
   readonly type = "glama" as const;
   readonly displayName = "Glama (MCP)";
+  private config: SkillHubProviderConfig;
+
+  constructor(config?: SkillHubProviderConfig) {
+    this.config = config ?? {};
+  }
+
+  setConfig(config?: SkillHubProviderConfig): void {
+    this.config = config ?? {};
+  }
+
+  private getApiUrl(): string {
+    return (
+      this.config.url ||
+      process.env.GLAMA_API_URL ||
+      DEFAULT_API_URL
+    ).replace(/\/$/, "");
+  }
 
   async search(query: SkillSearchQuery): Promise<SkillSearchResult> {
-    const apiUrl = getApiUrl();
+    const apiUrl = this.getApiUrl();
     const page = query.page ?? 1;
     const limit = Math.min(query.limit ?? 20, 100);
 
@@ -89,7 +103,7 @@ export class GlamaProvider implements SkillHubProvider {
   }
 
   async getSkillInfo(skillId: string): Promise<ExternalSkillInfo | null> {
-    const apiUrl = getApiUrl();
+    const apiUrl = this.getApiUrl();
 
     try {
       const res = await fetch(
@@ -125,7 +139,7 @@ export class GlamaProvider implements SkillHubProvider {
   }
 
   async importSkill(skillId: string, targetDir: string): Promise<SkillImportResult> {
-    const apiUrl = getApiUrl();
+    const apiUrl = this.getApiUrl();
     const safeName = `glama-${skillId}`.replace(/[^a-zA-Z0-9_-]/g, "-");
     const installPath = path.join(targetDir, safeName);
 

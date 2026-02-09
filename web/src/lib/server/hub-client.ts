@@ -229,12 +229,13 @@ export const hubClient = {
     nodeId?: string,
     messages?: { role: string; content: string }[],
     environment?: ViberEnvironmentContext,
+    settings?: { primaryCodingCli?: string },
   ): Promise<{ viberId: string; nodeId: string } | null> {
     try {
       const response = await hubFetch("/api/vibers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ goal, nodeId, messages, environment }),
+        body: JSON.stringify({ goal, nodeId, messages, environment, settings }),
       });
 
       if (!response.ok) {
@@ -269,12 +270,13 @@ export const hubClient = {
     messages: { role: string; content: string }[],
     goal?: string,
     environment?: ViberEnvironmentContext,
+    settings?: { primaryCodingCli?: string },
   ): Promise<{ viberId: string; nodeId: string } | null> {
     try {
       const response = await hubFetch(`/api/vibers/${viberId}/message`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages, goal, environment }),
+        body: JSON.stringify({ messages, goal, environment, settings }),
       });
 
       if (!response.ok) {

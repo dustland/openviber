@@ -340,7 +340,7 @@ export class HubServer {
     req.on("data", (chunk) => (body += chunk));
     req.on("end", () => {
       try {
-        const { goal, nodeId, messages, environment } = JSON.parse(body);
+        const { goal, nodeId, messages, environment, settings } = JSON.parse(body);
 
         if (!goal) {
           res.writeHead(400, { "Content-Type": "application/json" });
@@ -387,6 +387,7 @@ export class HubServer {
             goal,
             messages,
             environment,
+            settings,
           }),
         );
 
@@ -458,7 +459,7 @@ export class HubServer {
     req.on("data", (chunk) => (body += chunk));
     req.on("end", () => {
       try {
-        const { messages, goal, environment } = JSON.parse(body);
+        const { messages, goal, environment, settings } = JSON.parse(body);
 
         // Reset viber state for the new message
         viber.status = "pending";
@@ -482,6 +483,7 @@ export class HubServer {
             goal: goal || viber.goal,
             messages,
             environment,
+            settings,
           }),
         );
 

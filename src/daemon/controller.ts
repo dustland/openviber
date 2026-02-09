@@ -98,6 +98,7 @@ export type ControllerServerMessage =
       repoBranch?: string;
       variables?: { key: string; value: string }[];
     };
+    settings?: { primaryCodingCli?: string };
   }
   | { type: "task:stop"; taskId: string }
   | { type: "viber:stop"; viberId: string }
@@ -384,7 +385,7 @@ export class ViberController extends EventEmitter {
           await this.handleTaskSubmit({
             taskId: message.viberId,
             goal: message.goal,
-            options: message.options,
+            options: { ...message.options, settings: message.settings },
             messages: message.messages,
             environment: message.environment,
           });
@@ -580,6 +581,7 @@ export class ViberController extends EventEmitter {
         singleAgentId: runtime.options?.singleAgentId || "default",
         signal: runtime.controller.signal,
         environment: runtime.environment,
+        settingsOverride: runtime.options?.settings,
       },
       runtime.messageHistory
     );

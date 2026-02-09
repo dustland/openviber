@@ -77,16 +77,10 @@ interface EnvironmentRow {
   metadata: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
-}
-
-interface EnvironmentVarRow {
-  key: string;
-  value: string;
-}
-
-interface EnvironmentSecretRow {
-  key: string;
-  encrypted_value: string;
+  /** Plain vars: [{ key, value }] (single table merge) */
+  variables?: { key: string; value: string }[];
+  /** Encrypted secrets: { [key]: encryptedValue } (single table merge) */
+  secrets_encrypted?: Record<string, string>;
 }
 
 interface ThreadRow {
@@ -211,23 +205,26 @@ async function hydratePlaceholderSecrets(
     return variables;
   }
 
-  const existingSecrets = await supabaseRequest<EnvironmentSecretRow[]>(
-    "environment_secrets",
+  const envRows = await supabaseRequest<Pick<EnvironmentRow, "secrets_encrypted">[]>(
+    "environments",
     {
       params: {
-        select: "key,encrypted_value",
-        environment_id: `eq.${environmentId}`,
-        key: toInFilter(placeholderKeys),
+        select: "secrets_encrypted",
+        id: `eq.${environmentId}`,
+        limit: "1",
       },
     },
   );
-
+  const secretsEnc = envRows[0]?.secrets_encrypted ?? {};
   const existingValues = new Map<string, string>();
-  for (const secret of existingSecrets) {
-    try {
-      existingValues.set(secret.key, decryptSecretValue(secret.encrypted_value));
-    } catch {
-      throw new Error(`Failed to decrypt existing secret: ${secret.key}`);
+  for (const key of placeholderKeys) {
+    const enc = secretsEnc[key];
+    if (enc) {
+      try {
+        existingValues.set(key, decryptSecretValue(enc));
+      } catch {
+        throw new Error(`Failed to decrypt existing secret: ${key}`);
+      }
     }
   }
 
@@ -508,50 +505,34 @@ export async function getEnvironmentForUser(
   const environment = environmentRows[0];
   if (!environment) return null;
 
-  const [varsRows, secretRows, threadRows] = await Promise.all([
-    supabaseRequest<EnvironmentVarRow[]>("environment_vars", {
-      params: {
-        select: "key,value",
-        environment_id: `eq.${environmentId}`,
-      },
-    }),
-    supabaseRequest<EnvironmentSecretRow[]>("environment_secrets", {
-      params: {
-        select: "key,encrypted_value",
-        environment_id: `eq.${environmentId}`,
-      },
-    }),
-    supabaseRequest<Array<{ id: string }>>("threads", {
-      params: {
-        select: "id",
-        user_id: `eq.${userId}`,
-        environment_id: `eq.${environmentId}`,
-      },
-    }),
-  ]);
+  const threadRows = await supabaseRequest<Array<{ id: string }>>("threads", {
+    params: {
+      select: "id",
+      user_id: `eq.${userId}`,
+      environment_id: `eq.${environmentId}`,
+    },
+  });
 
   const summary = mapEnvironmentSummary(environment, threadRows.length);
 
+  const varsList = Array.isArray(environment.variables) ? environment.variables : [];
+  const secretsEnc = environment.secrets_encrypted && typeof environment.secrets_encrypted === "object" ? environment.secrets_encrypted : {};
   const variables: EnvironmentVariable[] = [
-    ...varsRows.map((row) => ({
-      key: row.key,
-      value: row.value,
+    ...varsList.map((item) => ({
+      key: item.key,
+      value: item.value,
       isSecret: false,
     })),
-    ...secretRows.map((row) => {
+    ...Object.entries(secretsEnc).map(([key, encrypted]) => {
       let value = SECRET_PLACEHOLDER;
-      if (options.includeSecretValues) {
+      if (options.includeSecretValues && encrypted) {
         try {
-          value = decryptSecretValue(row.encrypted_value);
+          value = decryptSecretValue(encrypted);
         } catch {
           value = "";
         }
       }
-      return {
-        key: row.key,
-        value,
-        isSecret: true,
-      };
+      return { key, value, isSecret: true };
     }),
   ];
 
@@ -714,57 +695,26 @@ export async function replaceEnvironmentVariables(
   variables: EnvironmentVariableInput[],
 ): Promise<void> {
   const normalized = sanitizeVariables(variables);
-  const now = new Date().toISOString();
-
-  await supabaseRequest<unknown>("environment_vars", {
-    method: "DELETE",
-    params: {
-      environment_id: `eq.${environmentId}`,
-    },
-  });
-
-  await supabaseRequest<unknown>("environment_secrets", {
-    method: "DELETE",
-    params: {
-      environment_id: `eq.${environmentId}`,
-    },
-  });
-
-  if (normalized.length === 0) return;
-
-  const regular = normalized.filter((item) => !item.isSecret);
-  const secrets = normalized.filter((item) => item.isSecret);
-
-  if (regular.length > 0) {
-    await supabaseRequest<unknown>("environment_vars", {
-      method: "POST",
-      prefer: "return=minimal",
-      body: regular.map((item) => ({
-        id: `envvar_${nanoid(12)}`,
-        environment_id: environmentId,
-        key: item.key,
-        value: item.value,
-        is_secret: false,
-        created_at: now,
-        updated_at: now,
-      })),
-    });
+  const variablesArray = normalized
+    .filter((item) => !item.isSecret)
+    .map((item) => ({ key: item.key, value: item.value }));
+  const secretsEncrypted: Record<string, string> = {};
+  for (const item of normalized.filter((item) => item.isSecret)) {
+    secretsEncrypted[item.key] = encryptSecretValue(item.value);
   }
 
-  if (secrets.length > 0) {
-    await supabaseRequest<unknown>("environment_secrets", {
-      method: "POST",
-      prefer: "return=minimal",
-      body: secrets.map((item) => ({
-        id: `envsec_${nanoid(12)}`,
-        environment_id: environmentId,
-        key: item.key,
-        encrypted_value: encryptSecretValue(item.value),
-        created_at: now,
-        updated_at: now,
-      })),
-    });
-  }
+  await supabaseRequest<unknown>("environments", {
+    method: "PATCH",
+    params: {
+      id: `eq.${environmentId}`,
+      select: "id",
+    },
+    body: {
+      variables: variablesArray,
+      secrets_encrypted: secretsEncrypted,
+      updated_at: new Date().toISOString(),
+    },
+  });
 }
 
 export async function deleteEnvironmentForUser(
@@ -796,20 +746,6 @@ export async function deleteEnvironmentForUser(
   }
 
   await supabaseRequest<unknown>("threads", {
-    method: "DELETE",
-    params: {
-      environment_id: `eq.${environmentId}`,
-    },
-  });
-
-  await supabaseRequest<unknown>("environment_vars", {
-    method: "DELETE",
-    params: {
-      environment_id: `eq.${environmentId}`,
-    },
-  });
-
-  await supabaseRequest<unknown>("environment_secrets", {
     method: "DELETE",
     params: {
       environment_id: `eq.${environmentId}`,
@@ -854,69 +790,47 @@ export async function listEnvironmentConfigForNode(
     return [];
   }
 
-  const [environments, vars, secrets] = await Promise.all([
-    supabaseRequest<EnvironmentRow[]>("environments", {
-      params: {
-        select: "*",
-        id: toInFilter(environmentIds),
-      },
-    }),
-    supabaseRequest<Array<{ environment_id: string; key: string; value: string }>>(
-      "environment_vars",
-      {
-        params: {
-          select: "environment_id,key,value",
-          environment_id: toInFilter(environmentIds),
-        },
-      },
-    ),
-    supabaseRequest<Array<{ environment_id: string; key: string; encrypted_value: string }>>(
-      "environment_secrets",
-      {
-        params: {
-          select: "environment_id,key,encrypted_value",
-          environment_id: toInFilter(environmentIds),
-        },
-      },
-    ),
-  ]);
+  const environments = await supabaseRequest<EnvironmentRow[]>("environments", {
+    params: {
+      select: "*",
+      id: toInFilter(environmentIds),
+    },
+  });
 
-  const varsByEnvironment = new Map<string, Record<string, string>>();
-  for (const item of vars) {
-    const current = varsByEnvironment.get(item.environment_id) || {};
-    current[item.key] = item.value;
-    varsByEnvironment.set(item.environment_id, current);
-  }
-
-  const secretsByEnvironment = new Map<string, Record<string, string>>();
-  for (const item of secrets) {
-    const current = secretsByEnvironment.get(item.environment_id) || {};
-    if (options.includeSecrets) {
-      try {
-        current[item.key] = decryptSecretValue(item.encrypted_value);
-      } catch {
-        current[item.key] = "";
-      }
-    } else {
-      current[item.key] = SECRET_PLACEHOLDER;
+  return environments.map((environment) => {
+    const varsList = Array.isArray(environment.variables) ? environment.variables : [];
+    const environmentVariables: Record<string, string> = {};
+    for (const item of varsList) {
+      environmentVariables[item.key] = item.value;
     }
-    secretsByEnvironment.set(item.environment_id, current);
-  }
-
-  return environments.map((environment) => ({
-    id: environment.id,
-    name: environment.name,
-    type: normalizeEnvironmentType(environment.type),
-    repoUrl: environment.repo_url,
-    repoBranch: environment.repo_branch,
-    workingDir: environment.working_dir,
-    setupScript: environment.setup_script,
-    networkAccess: toBoolean(environment.network_access, true),
-    persistVolume: toBoolean(environment.persist_volume, true),
-    environmentVariables: varsByEnvironment.get(environment.id) || {},
-    secrets: secretsByEnvironment.get(environment.id) || {},
-    metadata: environment.metadata ?? null,
-  }));
+    const secretsEnc = environment.secrets_encrypted && typeof environment.secrets_encrypted === "object" ? environment.secrets_encrypted : {};
+    const secrets: Record<string, string> = {};
+    for (const [key, encrypted] of Object.entries(secretsEnc)) {
+      if (options.includeSecrets && encrypted) {
+        try {
+          secrets[key] = decryptSecretValue(encrypted);
+        } catch {
+          secrets[key] = "";
+        }
+      } else {
+        secrets[key] = SECRET_PLACEHOLDER;
+      }
+    }
+    return {
+      id: environment.id,
+      name: environment.name,
+      type: normalizeEnvironmentType(environment.type),
+      repoUrl: environment.repo_url,
+      repoBranch: environment.repo_branch,
+      workingDir: environment.working_dir,
+      setupScript: environment.setup_script,
+      networkAccess: toBoolean(environment.network_access, true),
+      persistVolume: toBoolean(environment.persist_volume, true),
+      environmentVariables,
+      secrets,
+      metadata: environment.metadata ?? null,
+    };
+  });
 }
 
 export async function listThreadsForUser(

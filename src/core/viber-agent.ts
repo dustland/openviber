@@ -23,6 +23,8 @@ export interface ViberOptions {
   defaultGoal?: string; // Default goal for new spaces
   spaceId?: string; // Explicit space ID
   singleAgentId?: string; // If set, route directly to this agent ID
+  /** User settings from Supabase (primary coding CLI etc.); node uses and caches locally */
+  settings?: { primaryCodingCli?: string };
 }
 
 export interface ViberStreamOptions {

@@ -1,11 +1,11 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import * as fs from "fs/promises";
-import * as path from "path";
-import * as os from "os";
-import YAML from "yaml";
-
-const SETTINGS_PATH = path.join(os.homedir(), ".openviber", "settings.yaml");
+import {
+  getSettingsForUser,
+  type UserSettings,
+  type SkillSourceSetting as ServerSkillSourceSetting,
+} from "$lib/server/user-settings";
+import { supabaseRequest } from "$lib/server/supabase-rest";
 
 /** Canonical coding CLI skill IDs (must match src/skills/hub/settings.ts). */
 const CODING_CLI_SKILL_IDS = ["codex-cli", "cursor-agent", "gemini-cli"] as const;
@@ -118,40 +118,6 @@ interface SkillSourceSetting {
   apiKey?: string;
 }
 
-interface SettingsFile {
-  skillSources?: Record<string, SkillSourceSetting>;
-  /** Primary coding CLI skill id (null = let agent choose). */
-  primaryCodingCli?: string | null;
-}
-
-async function readSettings(): Promise<SettingsFile> {
-  try {
-    const raw = await fs.readFile(SETTINGS_PATH, "utf8");
-    const parsed = YAML.parse(raw);
-    if (!parsed || typeof parsed !== "object") return {};
-    const out: SettingsFile = { ...parsed };
-    // Normalize primaryCodingCli: only allow known ids
-    if (
-      out.primaryCodingCli != null &&
-      typeof out.primaryCodingCli === "string" &&
-      CODING_CLI_SKILL_IDS.includes(out.primaryCodingCli as (typeof CODING_CLI_SKILL_IDS)[number])
-    ) {
-      // keep as-is
-    } else {
-      out.primaryCodingCli = undefined;
-    }
-    return out;
-  } catch {
-    return {};
-  }
-}
-
-async function writeSettings(settings: SettingsFile): Promise<void> {
-  await fs.mkdir(path.dirname(SETTINGS_PATH), { recursive: true });
-  const header = `# OpenViber Settings\n# Manage these from the OpenViber web UI at /settings\n\n`;
-  await fs.writeFile(SETTINGS_PATH, header + YAML.stringify(settings, { indent: 2 }), "utf8");
-}
-
 function getDefaultSources(): Record<string, SkillSourceSetting> {
   return {
     openclaw: { enabled: true },
@@ -166,14 +132,14 @@ function getDefaultSources(): Record<string, SkillSourceSetting> {
 
 /**
  * GET /api/settings
- * Returns the current settings + provider metadata for the UI.
+ * Returns the current settings from Supabase (single source of truth) + provider metadata for the UI.
  */
 export const GET: RequestHandler = async ({ locals }) => {
   if (!locals.user) {
     return json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const settings = await readSettings();
+  const settings: UserSettings = await getSettingsForUser(locals.user.id);
   const defaults = getDefaultSources();
 
   // Merge saved settings with defaults
@@ -191,7 +157,7 @@ export const GET: RequestHandler = async ({ locals }) => {
   > = {};
 
   for (const key of ALL_PROVIDERS) {
-    const saved = settings.skillSources?.[key];
+    const saved = settings.skillSources[key] as ServerSkillSourceSetting | undefined;
     const def = defaults[key] || { enabled: false };
     const meta = PROVIDER_META[key] || {
       displayName: key,
@@ -218,9 +184,16 @@ export const GET: RequestHandler = async ({ locals }) => {
   });
 };
 
+interface UserSettingsRow {
+  id: string;
+  user_id: string;
+  skill_sources: Record<string, SkillSourceSetting>;
+  primary_coding_cli: string | null;
+}
+
 /**
  * PUT /api/settings
- * Update skill source settings.
+ * Update skill source settings in Supabase (single source of truth).
  */
 export const PUT: RequestHandler = async ({ request, locals }) => {
   if (!locals.user) {
@@ -235,30 +208,33 @@ export const PUT: RequestHandler = async ({ request, locals }) => {
     };
     const { sources, primaryCodingCli: primaryCodingCliPayload } = payload;
 
-    // Load current settings
-    const settings = await readSettings();
+    const userId = locals.user.id;
+
+    // Load current from Supabase
+    const current = await getSettingsForUser(userId);
+    let skillSources = { ...current.skillSources };
+    let primaryCodingCli: string | null = current.primaryCodingCli;
 
     if (sources && typeof sources === "object") {
-      const current = settings.skillSources || getDefaultSources();
+      const defaults = getDefaultSources();
       for (const key of ALL_PROVIDERS) {
         const update = sources[key];
         if (!update) continue;
 
-        if (!current[key]) {
-          current[key] = { enabled: false };
+        if (!skillSources[key]) {
+          skillSources[key] = { enabled: false };
         }
 
         if (typeof update.enabled === "boolean") {
-          current[key].enabled = update.enabled;
+          skillSources[key] = { ...skillSources[key], enabled: update.enabled };
         }
         if (typeof update.url === "string") {
-          current[key].url = update.url || undefined;
+          skillSources[key] = { ...skillSources[key], url: update.url || undefined };
         }
         if (typeof update.apiKey === "string" && update.apiKey !== "••••••") {
-          current[key].apiKey = update.apiKey || undefined;
+          skillSources[key] = { ...skillSources[key], apiKey: update.apiKey || undefined };
         }
       }
-      settings.skillSources = current;
     }
 
     if (primaryCodingCliPayload !== undefined) {
@@ -268,12 +244,41 @@ export const PUT: RequestHandler = async ({ request, locals }) => {
         (typeof primaryCodingCliPayload === "string" &&
           CODING_CLI_SKILL_IDS.includes(primaryCodingCliPayload as (typeof CODING_CLI_SKILL_IDS)[number]))
       ) {
-        settings.primaryCodingCli =
-          primaryCodingCliPayload === "" ? undefined : primaryCodingCliPayload ?? undefined;
+        primaryCodingCli =
+          primaryCodingCliPayload === "" || primaryCodingCliPayload === null
+            ? null
+            : primaryCodingCliPayload;
       }
     }
 
-    await writeSettings(settings);
+    const existing = await supabaseRequest<UserSettingsRow[]>("user_settings", {
+      params: { select: "id", user_id: `eq.${userId}` },
+    });
+    const row = Array.isArray(existing) ? existing[0] : null;
+    const now = new Date().toISOString();
+
+    if (row) {
+      await supabaseRequest("user_settings", {
+        method: "PATCH",
+        params: { user_id: `eq.${userId}` },
+        body: {
+          skill_sources: skillSources,
+          primary_coding_cli: primaryCodingCli,
+          updated_at: now,
+        },
+      });
+    } else {
+      await supabaseRequest("user_settings", {
+        method: "POST",
+        prefer: "return=minimal",
+        body: {
+          user_id: userId,
+          skill_sources: skillSources,
+          primary_coding_cli: primaryCodingCli,
+          updated_at: now,
+        },
+      });
+    }
 
     return json({ ok: true, message: "Settings saved" });
   } catch (err: any) {

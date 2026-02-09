@@ -7,6 +7,7 @@ import {
   getEnvironmentForUser,
   setViberEnvironmentForUser,
 } from "$lib/server/environments";
+import { getSettingsForUser } from "$lib/server/user-settings";
 import { supabaseRequest, toInFilter } from "$lib/server/supabase-rest";
 
 // POST /api/vibers - Create a new viber on a node
@@ -57,7 +58,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       }
     }
 
-    const result = await hubClient.createViber(goal, nodeId, undefined, environment);
+    const settings = await getSettingsForUser(locals.user.id);
+    const result = await hubClient.createViber(goal, nodeId, undefined, environment, {
+      primaryCodingCli: settings.primaryCodingCli ?? undefined,
+    });
     if (!result) {
       return json({ error: "No node available or hub unreachable" }, { status: 503 });
     }

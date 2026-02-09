@@ -1,6 +1,7 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { hubClient } from "$lib/server/hub-client";
+import { getSettingsForUser } from "$lib/server/user-settings";
 
 // GET /api/vibers/[id] - Get viber details
 export const GET: RequestHandler = async ({ params, locals }) => {
@@ -38,7 +39,10 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 };
 
 // POST /api/vibers/[id] - Send a follow-up message to this viber's node
-export const POST: RequestHandler = async ({ params, request }) => {
+export const POST: RequestHandler = async ({ params, request, locals }) => {
+  if (!locals.user) {
+    return json({ error: "Unauthorized" }, { status: 401 });
+  }
   try {
     const body = await request.json();
     const { goal, messages } = body;
@@ -47,11 +51,13 @@ export const POST: RequestHandler = async ({ params, request }) => {
       return json({ error: "Goal is required" }, { status: 400 });
     }
 
-    // Look up the viber to find which node it belongs to
+    const settings = await getSettingsForUser(locals.user.id);
     const viber = await hubClient.getViber(params.id);
     const nodeId = viber?.nodeId;
 
-    const result = await hubClient.createViber(goal, nodeId, messages);
+    const result = await hubClient.createViber(goal, nodeId, messages, undefined, {
+      primaryCodingCli: settings.primaryCodingCli ?? undefined,
+    });
 
     if (!result) {
       return json({ error: "Failed to create viber" }, { status: 500 });

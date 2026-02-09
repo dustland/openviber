@@ -6,6 +6,7 @@ import {
   getViberEnvironmentForUser,
   getEnvironmentForUser,
 } from "$lib/server/environments";
+import { getSettingsForUser } from "$lib/server/user-settings";
 
 const HUB_URL = process.env.VIBER_HUB_URL || "http://localhost:6007";
 
@@ -89,21 +90,37 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
       }
     }
 
-    // Try to send message to existing viber on the hub first
+    const settings =
+      locals.user?.id != null
+        ? await getSettingsForUser(locals.user.id)
+        : { primaryCodingCli: null as string | null };
+    const settingsPayload = {
+      primaryCodingCli: settings.primaryCodingCli ?? undefined,
+    };
+
     const existingViber = await hubClient.getViber(params.id);
     let viberId: string;
 
     if (existingViber) {
-      // Viber exists on hub — send message to it
-      const result = await hubClient.sendMessage(params.id, simpleMessages, goal, environment);
+      const result = await hubClient.sendMessage(
+        params.id,
+        simpleMessages,
+        goal,
+        environment,
+        settingsPayload,
+      );
       if (!result) {
         return json({ error: "Failed to send message to viber" }, { status: 503 });
       }
       viberId = result.viberId;
     } else {
-      // Viber doesn't exist on hub yet — create it
-      // Find a node to run it on (first available)
-      const result = await hubClient.createViber(goal, undefined, simpleMessages, environment);
+      const result = await hubClient.createViber(
+        goal,
+        undefined,
+        simpleMessages,
+        environment,
+        settingsPayload,
+      );
       if (!result) {
         return json({ error: "Failed to create viber on hub" }, { status: 503 });
       }

@@ -16,7 +16,7 @@ import * as yaml from "yaml";
 import { getViberPath, getViberRoot } from "../config";
 import type { AgentConfig } from "../core/config";
 import { Agent } from "../core/agent";
-import { loadSettings } from "../skills/hub/settings";
+import { loadSettings, saveSettings } from "../skills/hub/settings";
 import type { ViberMessage } from "../core/message";
 
 export interface ViberEnvironmentInfo {
@@ -34,6 +34,8 @@ export interface DaemonRunTaskOptions {
   agentConfig?: AgentConfig;
   signal?: AbortSignal;
   environment?: ViberEnvironmentInfo;
+  /** Settings from hub (Supabase); overrides local file and updates cache */
+  settingsOverride?: { primaryCodingCli?: string };
 }
 
 const __filename = fileURLToPath(import.meta.url);
@@ -461,11 +463,19 @@ export async function runTask(
     config = { ...config, model: modelOverride };
   }
 
-  // Merge primary coding CLI preference from settings (so agent can prefer one when multiple are enabled)
+  // Primary coding CLI: prefer override from hub (Supabase), else local cache file; update cache when override provided
   try {
-    const settings = await loadSettings();
-    if (settings.primaryCodingCli != null) {
-      config = { ...config, primaryCodingCli: settings.primaryCodingCli };
+    const override = options.settingsOverride?.primaryCodingCli;
+    if (override != null && override !== "") {
+      config = { ...config, primaryCodingCli: override };
+      const cache = await loadSettings();
+      cache.primaryCodingCli = override;
+      await saveSettings(cache);
+    } else {
+      const settings = await loadSettings();
+      if (settings.primaryCodingCli != null) {
+        config = { ...config, primaryCodingCli: settings.primaryCodingCli };
+      }
     }
   } catch (err) {
     console.warn("[Runtime] Failed to load settings for primaryCodingCli:", err);

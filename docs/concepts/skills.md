@@ -100,6 +100,31 @@ export function getTools() {
 
 Tools exported this way are automatically registered when the skill is loaded. They follow the same `CoreTool` interface as all OpenViber tools (Zod schema + execute function).
 
+## Skill Playgrounds (Verification)
+
+Skills can optionally define a **playground** scenario for quick verification. The
+`skill-playground` skill exposes `skill_playground_verify` to run these checks.
+
+Add a playground block to your `SKILL.md` frontmatter:
+
+```yaml
+playground:
+  repo: dustland/openviber
+  file: src/skills/cursor-agent/index.ts
+```
+
+Run it from the CLI:
+
+```
+openviber skill verify cursor-agent
+```
+
+Or call the tool directly:
+
+```
+skill_playground_verify({ skillId: "cursor-agent" })
+```
+
 ## Skill Registry
 
 The `SkillRegistry` class manages skill discovery and loading:
@@ -123,7 +148,7 @@ In bundled builds where dynamic import of `.ts` files isn't possible, skills pre
 
 ## Built-in Skills
 
-OpenViber ships with five built-in skills:
+OpenViber ships with six built-in skills:
 
 ### antigravity
 
@@ -212,6 +237,19 @@ The tmux skill supports two modes:
 - **Multi-terminal layout** — Use `tmux_new_session`, `tmux_new_window`, `tmux_split_pane`, `tmux_send_keys`, and `tmux_list` to build complex terminal layouts (e.g., 3 Cursor agents + 2 dev servers)
 
 **Target format:** `session` → `session:window` → `session:window.pane`
+
+### skill-playground
+
+**Purpose:** Verify skills end-to-end using predefined playground scenarios.
+
+| | |
+|---|---|
+| **Tools** | `skill_playground_verify` |
+| **Use case** | Smoke-test skills (e.g., cursor-agent) with a known repo/file |
+| **Depends on** | Git installed; skill-specific dependencies |
+
+The skill-playground tool reads the target skill's playground definition from
+`SKILL.md` and runs a safe, read-only verification flow.
 
 ## Using Skills
 

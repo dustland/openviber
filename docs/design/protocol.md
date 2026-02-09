@@ -1,15 +1,19 @@
 ---
 title: "Protocol"
-description: "Communication protocol between OpenViber components: hub, daemon, and web app"
+description: "Communication protocol between OpenViber components: hub, node runtime (daemon), and web app"
 ---
 
 # Protocol
 
 OpenViber's runtime has three components that communicate:
 
-1. **Daemon** (viber controller) — runs on the user's machine, executes AI tasks.
-2. **Hub** — central coordinator that routes messages between daemons and the web app.
+1. **Node runtime (daemon)** — runs on the user's machine, executes AI tasks.
+2. **Hub (gateway control plane)** — central coordinator that routes messages between node runtimes and the web app.
 3. **Web App** — SvelteKit frontend that operators use to interact with vibers.
+
+Terminology note: in this doc, "daemon" refers to the node runtime process. "Gateway" refers
+to the control plane role implemented by the Hub; it is distinct from the enterprise channel
+gateway (`viber gateway`).
 
 The protocol is intentionally simple. The AI SDK handles the complex parts (streaming, tool calls, message formatting). OpenViber's protocol is just the plumbing that connects them.
 
@@ -65,9 +69,9 @@ The stream closes when the task completes, errors, or is stopped.
 
 ---
 
-## 3. Hub ↔ Daemon WebSocket Protocol
+## 3. Hub ↔ Node Runtime (Daemon) WebSocket Protocol
 
-Daemons connect outbound to the hub at `ws://{hub}/ws` with auth headers:
+Node runtimes (daemons) connect outbound to the hub at `ws://{hub}/ws` with auth headers:
 
 ```
 Authorization: Bearer {token}
@@ -75,7 +79,7 @@ X-Viber-Id: {viberId}
 X-Viber-Version: {version}
 ```
 
-### Daemon → Hub Messages
+### Node Runtime → Hub Messages
 
 | Type | Payload | When |
 |------|---------|------|
@@ -89,7 +93,7 @@ X-Viber-Version: {version}
 | `pong` | `{}` | Response to ping |
 | `terminal:*` | Various | Terminal streaming responses |
 
-### Hub → Daemon Messages
+### Hub → Node Runtime Messages
 
 | Type | Payload | When |
 |------|---------|------|
@@ -132,8 +136,8 @@ pending → running → completed
 
 | State | Meaning |
 |-------|---------|
-| `pending` | Task created, waiting for daemon to start |
-| `running` | Daemon is executing (streaming in progress) |
+| `pending` | Task created, waiting for node runtime (daemon) to start |
+| `running` | Node runtime (daemon) is executing (streaming in progress) |
 | `completed` | Task finished successfully |
 | `error` | Task failed (provider error, tool error, etc.) |
 | `stopped` | Operator explicitly stopped the task |
@@ -154,13 +158,13 @@ When an operator sends a follow-up message during a running task, the `injection
 
 ## 6. Terminal Streaming
 
-Terminal I/O uses the same WebSocket connection between daemon and hub, with a dedicated message namespace (`terminal:*`). The hub relays terminal data to the web app via a separate WebSocket connection on port 6008 (not through the SSE stream).
+Terminal I/O uses the same WebSocket connection between node runtime (daemon) and hub, with a dedicated message namespace (`terminal:*`). The hub relays terminal data to the web app via a separate WebSocket connection on port 6008 (not through the SSE stream).
 
 ---
 
 ## 7. Security
 
-- **Outbound-only**: Daemons connect outbound to the hub. No inbound ports needed.
+- **Outbound-only**: Node runtimes (daemons) connect outbound to the hub. No inbound ports needed.
 - **Auth headers**: WebSocket connections include `Authorization` and `X-Viber-Id` headers.
 - **CORS**: Hub sets `Access-Control-Allow-Origin: *` for development (should be restricted in production).
 - **No secrets in stream**: The SSE stream contains only AI response content, never API keys or credentials.
@@ -172,7 +176,7 @@ Terminal I/O uses the same WebSocket connection between daemon and hub, with a d
 | Decision | Rationale |
 |----------|-----------|
 | Passthrough SSE relay | Avoids re-encoding; the AI SDK format is the source of truth |
-| Hub as stateless coordinator | Hub can restart without losing daemon connections (daemons auto-reconnect) |
-| WebSocket for daemon, SSE for browser | WebSocket is bidirectional (needed for task control); SSE is simpler for browser consumption |
+| Hub as stateless coordinator | Hub can restart without losing node runtime (daemon) connections (daemons auto-reconnect) |
+| WebSocket for node runtime, SSE for browser | WebSocket is bidirectional (needed for task control); SSE is simpler for browser consumption |
 | Simple task states | The AI SDK manages the complex agent loop; OpenViber just tracks the outer lifecycle |
 | Chunk buffering in hub | Late-connecting SSE subscribers need to catch up without data loss |

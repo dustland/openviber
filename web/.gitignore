@@ -11,7 +11,7 @@ build/
 !.env.example
 
 # Database
-data/
+/data/
 *.db
 *.db-journal
 *.db-wal

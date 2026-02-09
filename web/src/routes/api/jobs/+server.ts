@@ -9,6 +9,7 @@ import {
   listViberConfigIds,
   getGlobalJobsDir,
   sanitizeJobName,
+  describeCron,
   type JobEntry,
 } from "$lib/server/jobs";
 import { hubClient } from "$lib/server/hub-client";
@@ -93,9 +94,16 @@ export const POST: RequestHandler = async ({ request, locals }) => {
   }
 };
 
+export interface NodeJobsGroup {
+  nodeId: string;
+  nodeName: string;
+  jobs: JobEntry[];
+}
+
 /**
  * GET /api/jobs
- * Returns all scheduled jobs: global (~/.openviber/jobs) plus per-viber (vibers/<id>/jobs).
+ * Returns all scheduled jobs: global (~/.openviber/jobs), per-viber (vibers/<id>/jobs),
+ * and jobs reported by connected nodes (including those created from chat).
  */
 export const GET: RequestHandler = async ({ locals }) => {
   if (!locals.user) {
@@ -103,9 +111,10 @@ export const GET: RequestHandler = async ({ locals }) => {
   }
 
   try {
-    const [globalJobs, viberIds] = await Promise.all([
+    const [globalJobs, viberIds, hubJobsResult] = await Promise.all([
       listGlobalJobs(),
       listViberConfigIds(),
+      hubClient.getNodeJobs(),
     ]);
 
     const perViber: ViberJobsGroup[] = [];
@@ -117,11 +126,39 @@ export const GET: RequestHandler = async ({ locals }) => {
       }
     }
 
-    const totalJobs = globalJobs.length + perViber.reduce((s, v) => s + v.jobs.length, 0);
+    // Build set of global job names so we can flag which node jobs are already known
+    const globalJobNames = new Set(globalJobs.map((j) => j.name));
+
+    // Convert hub node jobs to JobEntry format
+    const nodeJobGroups: NodeJobsGroup[] = (hubJobsResult.nodeJobs ?? []).map(
+      (group) => ({
+        nodeId: group.nodeId,
+        nodeName: group.nodeName,
+        jobs: group.jobs
+          .filter((j) => !globalJobNames.has(j.name)) // exclude duplicates already in global
+          .map((j) => ({
+            name: j.name,
+            description: j.description,
+            schedule: j.schedule,
+            scheduleDescription: describeCron(j.schedule),
+            model: j.model,
+            prompt: j.prompt,
+            enabled: true,
+            filename: "",
+            nodeId: j.nodeId ?? group.nodeId,
+          })),
+      }),
+    ).filter((g) => g.jobs.length > 0);
+
+    const totalJobs =
+      globalJobs.length +
+      perViber.reduce((s, v) => s + v.jobs.length, 0) +
+      nodeJobGroups.reduce((s, g) => s + g.jobs.length, 0);
 
     return json({
       globalJobs,
       perViberJobs: perViber,
+      nodeJobs: nodeJobGroups,
       totalJobs,
     });
   } catch (error) {

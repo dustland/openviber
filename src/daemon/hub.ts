@@ -30,6 +30,15 @@ export interface HubConfig {
   port: number;
 }
 
+interface NodeJobEntry {
+  name: string;
+  schedule: string;
+  prompt: string;
+  description?: string;
+  model?: string;
+  nodeId?: string;
+}
+
 interface ConnectedNode {
   id: string;
   name: string;
@@ -41,6 +50,8 @@ interface ConnectedNode {
   connectedAt: Date;
   lastHeartbeat: Date;
   runningVibers: string[];
+  /** Jobs currently loaded on this node's scheduler. */
+  jobs: NodeJobEntry[];
   /** Latest machine resource status from heartbeat */
   machineStatus?: MachineResourceStatus;
   /** Latest viber running status from heartbeat */
@@ -193,6 +204,8 @@ export class HubServer {
       this.handleHealth(res);
     } else if (url.pathname === "/api/nodes" && method === "GET") {
       this.handleListNodes(res);
+    } else if (url.pathname === "/api/jobs" && method === "GET") {
+      this.handleListAllJobs(res);
     } else if (url.pathname === "/api/vibers" && method === "GET") {
       this.handleListVibers(res);
     } else if (url.pathname === "/api/vibers" && method === "POST") {
@@ -201,37 +214,37 @@ export class HubServer {
       url.pathname.match(/^\/api\/vibers\/[^/]+$/) &&
       method === "GET"
     ) {
-      const viberId = url.pathname.split("/").pop()!;
+      const viberId = decodeURIComponent(url.pathname.split("/").pop()!);
       this.handleGetViber(viberId, res);
     } else if (
       url.pathname.match(/^\/api\/vibers\/[^/]+\/message$/) &&
       method === "POST"
     ) {
-      const viberId = url.pathname.split("/")[3];
+      const viberId = decodeURIComponent(url.pathname.split("/")[3]);
       this.handleSendMessage(viberId, req, res);
     } else if (
       url.pathname.match(/^\/api\/vibers\/[^/]+\/stop$/) &&
       method === "POST"
     ) {
-      const viberId = url.pathname.split("/")[3];
+      const viberId = decodeURIComponent(url.pathname.split("/")[3]);
       this.handleStopViber(viberId, res);
     } else if (
       url.pathname.match(/^\/api\/vibers\/[^/]+\/stream$/) &&
       method === "GET"
     ) {
-      const viberId = url.pathname.split("/")[3];
+      const viberId = decodeURIComponent(url.pathname.split("/")[3]);
       this.handleStreamViber(viberId, req, res);
     } else if (
       url.pathname.match(/^\/api\/nodes\/[^/]+\/status$/) &&
       method === "GET"
     ) {
-      const nodeId = url.pathname.split("/")[3];
+      const nodeId = decodeURIComponent(url.pathname.split("/")[3]);
       this.handleGetNodeStatus(nodeId, req, res);
     } else if (
       url.pathname.match(/^\/api\/nodes\/[^/]+\/job$/) &&
       method === "POST"
     ) {
-      const nodeId = url.pathname.split("/")[3];
+      const nodeId = decodeURIComponent(url.pathname.split("/")[3]);
       this.handlePushJobToNode(nodeId, req, res);
     } else {
       res.writeHead(404, { "Content-Type": "application/json" });
@@ -776,6 +789,10 @@ export class HubServer {
         this.handleHeartbeat(ws);
         break;
 
+      case "jobs:list":
+        this.handleNodeJobsList(ws, msg.jobs);
+        break;
+
       case "status:report":
         this.handleStatusReport(ws, msg.status);
         break;
@@ -799,6 +816,7 @@ export class HubServer {
       connectedAt: new Date(),
       lastHeartbeat: new Date(),
       runningVibers: nodeInfo.runningTasks || [],
+      jobs: [],
     });
   }
 
@@ -929,6 +947,42 @@ export class HubServer {
       }
       this.streamSubscribers.delete(viberId);
     }
+  }
+
+  /**
+   * Handle jobs:list message from a node — store the node's loaded job list.
+   */
+  private handleNodeJobsList(ws: WebSocket, jobs: NodeJobEntry[]): void {
+    for (const node of this.nodes.values()) {
+      if (node.ws === ws) {
+        node.jobs = Array.isArray(jobs) ? jobs : [];
+        console.log(`[Hub] Node ${node.id} reported ${node.jobs.length} job(s)`);
+        break;
+      }
+    }
+  }
+
+  /**
+   * GET /api/jobs — Return jobs from all connected nodes.
+   * The web frontend queries this to observe jobs created from chat or
+   * pushed to nodes, giving full visibility across the fleet.
+   */
+  private handleListAllJobs(res: ServerResponse): void {
+    const nodeJobs = Array.from(this.nodes.values()).map((n) => ({
+      nodeId: n.id,
+      nodeName: n.name,
+      jobs: n.jobs.map((j) => ({
+        name: j.name,
+        description: j.description,
+        schedule: j.schedule,
+        prompt: j.prompt,
+        model: j.model,
+        nodeId: j.nodeId,
+      })),
+    }));
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ nodeJobs }));
   }
 
   private handleHeartbeat(ws: WebSocket, heartbeatStatus?: any): void {

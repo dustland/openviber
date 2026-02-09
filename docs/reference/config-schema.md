@@ -86,6 +86,12 @@ channels:
     agent_id: "${WECOM_AGENT_ID}"
     secret: "${WECOM_SECRET}"
 
+# Gateway settings (webhook server for channel integrations)
+gateway:
+  host: "0.0.0.0"
+  port: 6009
+  basePath: ""                 # Optional base path for webhook routes
+
 # Security settings
 security:
   require_auth: true             # Require authentication for connections
@@ -237,6 +243,36 @@ wecom:
   # Rate limiting
   rate_limit:
     messages_per_second: 5
+```
+
+### Discord
+
+```yaml
+discord:
+  enabled: true
+  botToken: "${DISCORD_BOT_TOKEN}"
+  appId: "${DISCORD_APP_ID}"          # Optional
+  requireMention: true                # Require @mention in guild channels
+  replyMode: "reply"                  # reply | channel
+  allowGuildIds: ["123", "456"]       # Optional allowlists
+  allowChannelIds: ["123", "456"]
+  allowUserIds: ["123", "456"]
+```
+
+### Feishu / Lark
+
+```yaml
+feishu:
+  enabled: true
+  appId: "${FEISHU_APP_ID}"
+  appSecret: "${FEISHU_APP_SECRET}"
+  domain: "feishu"                    # feishu | lark | custom URL
+  connectionMode: "websocket"         # websocket | webhook
+  webhookPath: "/webhook/feishu"      # Used in webhook mode
+  verificationToken: "${FEISHU_VERIFICATION_TOKEN}"
+  encryptKey: "${FEISHU_ENCRYPT_KEY}"
+  allowGroupMessages: false
+  requireMention: true
 ```
 
 ### Web Channel

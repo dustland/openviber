@@ -16,6 +16,7 @@
     RefreshCw,
     Loader2,
   } from "@lucide/svelte";
+  import ChannelConfigPanel from "$lib/components/channel-config-panel.svelte";
 
   interface DetailedStatus {
     machine?: {
@@ -538,6 +539,8 @@
               </div>
             </section>
           {/if}
+
+          <ChannelConfigPanel nodeId={nodeId} />
         </div>
       {/if}
     </div>

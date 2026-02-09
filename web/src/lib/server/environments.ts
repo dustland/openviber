@@ -7,7 +7,7 @@ const ENVIRONMENT_TYPES = new Set(["github", "local", "manual"]);
 const SECRET_PLACEHOLDER = "••••••••";
 
 export type EnvironmentType = "github" | "local" | "manual";
-export type ThreadStatus = "active" | "paused" | "archived";
+
 
 export interface EnvironmentVariableInput {
   key: string;
@@ -33,7 +33,7 @@ export interface EnvironmentSummary {
   metadata: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
-  threadCount: number;
+  viberCount: number;
 }
 
 export interface EnvironmentVariable {
@@ -44,19 +44,6 @@ export interface EnvironmentVariable {
 
 export interface EnvironmentDetail extends EnvironmentSummary {
   variables: EnvironmentVariable[];
-}
-
-export interface ThreadSummary {
-  id: string;
-  userId: string;
-  viberId: string;
-  environmentId: string;
-  activeNodeId: string | null;
-  title: string;
-  status: ThreadStatus;
-  lastMessageAt: string | null;
-  createdAt: string | null;
-  updatedAt: string | null;
 }
 
 interface EnvironmentRow {
@@ -83,18 +70,7 @@ interface EnvironmentRow {
   secrets_encrypted?: Record<string, string>;
 }
 
-interface ThreadRow {
-  id: string;
-  user_id: string;
-  viber_id: string;
-  environment_id: string;
-  active_node_id: string | null;
-  title: string;
-  status: string;
-  last_message_at: string | null;
-  created_at: string | null;
-  updated_at: string | null;
-}
+
 
 interface ViberEnvironmentRow {
   id: string;
@@ -138,16 +114,7 @@ function normalizeEnvironmentType(value: unknown): EnvironmentType {
   return ENVIRONMENT_TYPES.has(raw) ? (raw as EnvironmentType) : "github";
 }
 
-function normalizeThreadStatus(value: unknown): ThreadStatus {
-  const raw = String(value || "active").trim().toLowerCase();
-  switch (raw) {
-    case "paused":
-    case "archived":
-      return raw;
-    default:
-      return "active";
-  }
-}
+
 
 function sanitizeVariables(inputs: EnvironmentVariableInput[]): EnvironmentVariableInput[] {
   const out: EnvironmentVariableInput[] = [];
@@ -293,7 +260,7 @@ function parseGitHubRepo(input?: string | null): {
 
 function mapEnvironmentSummary(
   row: EnvironmentRow,
-  threadCount: number,
+  viberCount: number,
 ): EnvironmentSummary {
   return {
     id: row.id,
@@ -313,22 +280,7 @@ function mapEnvironmentSummary(
     metadata: row.metadata ?? null,
     createdAt: toIso(row.created_at) || new Date(0).toISOString(),
     updatedAt: toIso(row.updated_at) || new Date(0).toISOString(),
-    threadCount,
-  };
-}
-
-function mapThreadRow(row: ThreadRow): ThreadSummary {
-  return {
-    id: row.id,
-    userId: row.user_id,
-    viberId: row.viber_id,
-    environmentId: row.environment_id,
-    activeNodeId: row.active_node_id,
-    title: row.title,
-    status: normalizeThreadStatus(row.status),
-    lastMessageAt: toIso(row.last_message_at),
-    createdAt: toIso(row.created_at),
-    updatedAt: toIso(row.updated_at),
+    viberCount,
   };
 }
 
@@ -459,33 +411,31 @@ export async function listEnvironmentsForUser(
 
   const environmentIds = environments.map((row) => row.id);
 
-  const threadParams: Record<string, string> = {
-    select: "id,environment_id,viber_id",
-    user_id: `eq.${userId}`,
+  // Count vibers per environment (vibers table has environment_id)
+  const viberParams: Record<string, string> = {
+    select: "id,environment_id",
     environment_id: toInFilter(environmentIds),
   };
   if (viberId) {
-    threadParams.viber_id = `eq.${viberId}`;
+    viberParams.id = `eq.${viberId}`;
   }
 
-  const threadsPromise = supabaseRequest<Array<{ id: string; environment_id: string }>>(
-    "threads",
-    {
-      params: threadParams,
-    },
+  const viberRows = await supabaseRequest<Array<{ id: string; environment_id: string }>>(
+    "vibers",
+    { params: viberParams },
   );
 
-  const threadRows = await threadsPromise;
-
-  const threadCounts = new Map<string, number>();
-  for (const thread of threadRows) {
-    threadCounts.set(
-      thread.environment_id,
-      (threadCounts.get(thread.environment_id) || 0) + 1,
-    );
+  const viberCounts = new Map<string, number>();
+  for (const v of viberRows) {
+    if (v.environment_id) {
+      viberCounts.set(
+        v.environment_id,
+        (viberCounts.get(v.environment_id) || 0) + 1,
+      );
+    }
   }
 
-  return environments.map((row) => mapEnvironmentSummary(row, threadCounts.get(row.id) || 0));
+  return environments.map((row) => mapEnvironmentSummary(row, viberCounts.get(row.id) || 0));
 }
 
 export async function getEnvironmentForUser(
@@ -505,15 +455,15 @@ export async function getEnvironmentForUser(
   const environment = environmentRows[0];
   if (!environment) return null;
 
-  const threadRows = await supabaseRequest<Array<{ id: string }>>("threads", {
+  // Count vibers linked to this environment
+  const viberRows = await supabaseRequest<Array<{ id: string }>>("vibers", {
     params: {
       select: "id",
-      user_id: `eq.${userId}`,
       environment_id: `eq.${environmentId}`,
     },
   });
 
-  const summary = mapEnvironmentSummary(environment, threadRows.length);
+  const summary = mapEnvironmentSummary(environment, viberRows.length);
 
   const varsList = Array.isArray(environment.variables) ? environment.variables : [];
   const secretsEnc = environment.secrets_encrypted && typeof environment.secrets_encrypted === "object" ? environment.secrets_encrypted : {};
@@ -724,33 +674,21 @@ export async function deleteEnvironmentForUser(
   const existing = await getEnvironmentForUser(userId, environmentId);
   if (!existing) return false;
 
-  const threadRows = await supabaseRequest<Array<{ id: string }>>("threads", {
-    params: {
-      select: "id",
-      environment_id: `eq.${environmentId}`,
-    },
-  });
-
-  const threadIds = threadRows.map((row) => row.id);
-  if (threadIds.length > 0) {
-    try {
-      await supabaseRequest<unknown>("messages", {
-        method: "DELETE",
-        params: {
-          thread_id: toInFilter(threadIds),
-        },
-      });
-    } catch (error) {
-      console.warn("Failed to delete environment messages:", error);
-    }
+  // Unlink vibers from this environment (don't delete vibers themselves)
+  try {
+    await supabaseRequest<unknown>("vibers", {
+      method: "PATCH",
+      params: {
+        environment_id: `eq.${environmentId}`,
+      },
+      body: {
+        environment_id: null,
+        updated_at: new Date().toISOString(),
+      },
+    });
+  } catch (error) {
+    console.warn("Failed to unlink vibers from environment:", error);
   }
-
-  await supabaseRequest<unknown>("threads", {
-    method: "DELETE",
-    params: {
-      environment_id: `eq.${environmentId}`,
-    },
-  });
 
   await supabaseRequest<unknown>("environments", {
     method: "DELETE",
@@ -767,20 +705,20 @@ export async function listEnvironmentConfigForNode(
   nodeId: string,
   options: { includeSecrets?: boolean } = {},
 ): Promise<Array<Record<string, unknown>>> {
-  const threadRows = await supabaseRequest<Array<{ environment_id: string | null }>>(
-    "threads",
+  // Find vibers linked to this node, then get their environments
+  const viberRows = await supabaseRequest<Array<{ environment_id: string | null }>>(
+    "vibers",
     {
       params: {
         select: "environment_id",
-        active_node_id: `eq.${nodeId}`,
-        status: "neq.archived",
+        environment_id: "not.is.null",
       },
     },
   );
 
   const environmentIds = Array.from(
     new Set(
-      threadRows
+      viberRows
         .map((row) => row.environment_id)
         .filter((value): value is string => Boolean(value)),
     ),
@@ -833,162 +771,21 @@ export async function listEnvironmentConfigForNode(
   });
 }
 
-export async function listThreadsForUser(
-  userId: string,
-  options: {
-    environmentId?: string;
-    viberId?: string;
-    nodeId?: string;
-    status?: ThreadStatus;
-  } = {},
-): Promise<ThreadSummary[]> {
-  const params: Record<string, string> = {
-    select: "*",
-    user_id: `eq.${userId}`,
-    order: "updated_at.desc",
-  };
-
-  if (options.environmentId) {
-    params.environment_id = `eq.${options.environmentId}`;
-  }
-  if (options.viberId) {
-    params.viber_id = `eq.${options.viberId}`;
-  }
-  if (options.nodeId) {
-    params.active_node_id = `eq.${options.nodeId}`;
-  }
-  if (options.status) {
-    params.status = `eq.${options.status}`;
-  }
-
-  const rows = await supabaseRequest<ThreadRow[]>("threads", {
-    params,
-  });
-
-  return rows.map(mapThreadRow);
-}
-
-export async function createThreadForUser(
-  userId: string,
-  payload: {
-    environmentId?: string | null;
-    viberId: string;
-    activeNodeId?: string | null;
-    title?: string;
-  },
-): Promise<ThreadSummary | null> {
-  let resolvedEnvironmentId = payload.environmentId?.trim() || null;
-  if (resolvedEnvironmentId) {
-    const exists = await environmentExistsForUser(userId, resolvedEnvironmentId);
-    if (!exists) return null;
-
-    const assignment = await setViberEnvironmentForUser(
-      userId,
-      payload.viberId,
-      resolvedEnvironmentId,
-    );
-    if (!assignment) return null;
-  } else {
-    resolvedEnvironmentId = await getViberEnvironmentForUser(userId, payload.viberId);
-    if (!resolvedEnvironmentId) return null;
-  }
-
-  const now = new Date().toISOString();
-  const insertedRows = await supabaseRequest<ThreadRow[]>("threads", {
-    method: "POST",
-    params: {
-      select: "*",
-    },
-    prefer: "return=representation",
-    body: [
-      {
-        id: `thr_${nanoid(12)}`,
-        user_id: userId,
-        viber_id: payload.viberId,
-        environment_id: resolvedEnvironmentId,
-        active_node_id: (payload.activeNodeId && payload.activeNodeId.trim()) || null,
-        title: (payload.title || "").trim() || "New thread",
-        status: "active",
-        last_message_at: null,
-        created_at: now,
-        updated_at: now,
-      },
-    ],
-  });
-
-  return insertedRows[0] ? mapThreadRow(insertedRows[0]) : null;
-}
-
-export async function getThreadForUser(
-  userId: string,
-  threadId: string,
-): Promise<ThreadSummary | null> {
-  const rows = await supabaseRequest<ThreadRow[]>("threads", {
-    params: {
-      select: "*",
-      id: `eq.${threadId}`,
-      user_id: `eq.${userId}`,
-      limit: "1",
-    },
-  });
-
-  return rows[0] ? mapThreadRow(rows[0]) : null;
-}
-
-export async function updateThreadForUser(
-  userId: string,
-  threadId: string,
-  patch: {
-    title?: string;
-    status?: string;
-    activeNodeId?: string | null;
-  },
-): Promise<ThreadSummary | null> {
-  const existing = await getThreadForUser(userId, threadId);
-  if (!existing) return null;
-
-  const updatedRows = await supabaseRequest<ThreadRow[]>("threads", {
-    method: "PATCH",
-    params: {
-      id: `eq.${threadId}`,
-      user_id: `eq.${userId}`,
-      select: "*",
-    },
-    prefer: "return=representation",
-    body: {
-      title:
-        patch.title !== undefined
-          ? (patch.title.trim() || existing.title)
-          : existing.title,
-      status:
-        patch.status !== undefined
-          ? normalizeThreadStatus(patch.status)
-          : existing.status,
-      active_node_id:
-        patch.activeNodeId !== undefined
-          ? (patch.activeNodeId?.trim() || null)
-          : existing.activeNodeId,
-      updated_at: new Date().toISOString(),
-    },
-  });
-
-  return updatedRows[0] ? mapThreadRow(updatedRows[0]) : null;
-}
-
-export async function touchThreadActivity(
-  threadId: string,
+/**
+ * Touch a viber's updated_at timestamp when new messages arrive.
+ * Replaces the old touchThreadActivity that targeted the threads table.
+ */
+export async function touchViberActivity(
   viberId: string,
 ): Promise<void> {
   const now = new Date().toISOString();
 
-  await supabaseRequest<unknown>("threads", {
+  await supabaseRequest<unknown>("vibers", {
     method: "PATCH",
     params: {
-      id: `eq.${threadId}`,
-      viber_id: `eq.${viberId}`,
+      id: `eq.${viberId}`,
     },
     body: {
-      last_message_at: now,
       updated_at: now,
     },
   });

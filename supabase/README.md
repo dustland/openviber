@@ -1,32 +1,35 @@
-# OpenViber Supabase migrations
+# OpenViber Supabase schema
 
-These migrations create and update tables used by the OpenViber web app. Run them against your OpenViber Supabase project.
+This folder holds the **full database schema** for the OpenViber web app in a single file. Use it as the source of truth to create or reconcile your project’s database.
 
-## Option 1: Supabase CLI (recommended)
+## Schema file
 
-1. Install the [Supabase CLI](https://supabase.com/docs/guides/cli).
-2. Link your project:
+| File | Description |
+|------|-------------|
+| **`schema.sql`** | Full DDL for `public`: all tables, indexes, RLS, and policies. Safe to run on a fresh project (uses `CREATE TABLE IF NOT EXISTS` and `DROP POLICY IF EXISTS` where appropriate). |
+
+Tables (in dependency order): `user_profiles`, `user_settings`, `environments`, `vibers`, `viber_nodes`, `messages`. All require Supabase Auth (`auth.users`).
+
+## Applying the schema
+
+### Option 1: Supabase Dashboard
+
+1. Open your project → [SQL Editor](https://supabase.com/dashboard).
+2. Paste the contents of `schema.sql` and run it.
+
+### Option 2: Supabase CLI + psql
+
+1. [Install the Supabase CLI](https://supabase.com/docs/guides/cli) and `psql`.
+2. Get your database URL: Dashboard → Project Settings → Database (connection string).
+3. From the repo root:
    ```bash
-   cd /path/to/openviber
-   supabase link --project-ref YOUR_PROJECT_REF
-   ```
-3. Push migrations:
-   ```bash
-   supabase db push
+   psql "YOUR_DATABASE_URL" -f supabase/schema.sql
    ```
 
-## Option 2: SQL in Dashboard
+### Option 3: Local development
 
-1. Open your project in [Supabase Dashboard](https://supabase.com/dashboard) → SQL Editor.
-2. Run the contents of each migration file in order (oldest timestamp first):
-   - `20260209043856_create_openviber_user_settings.sql`
-   - `20260209044443_merge_environment_tables_into_one.sql`
+With `supabase start`, connect to the local DB and run `schema.sql` the same way (e.g. `psql` with the local connection string).
 
-## Migrations
+## Migrations folder
 
-| Migration | Description |
-|-----------|-------------|
-| `20260209043856_create_openviber_user_settings` | Creates `user_settings` (skill sources, primary coding CLI). RLS for own row. |
-| `20260209044443_merge_environment_tables_into_one` | Adds `variables` and `secrets_encrypted` to `environments`, migrates from `environment_vars` / `environment_secrets`, drops those tables. Safe if `environments` or child tables don’t exist. |
-
-Other OpenViber tables (`environments`, `vibers`, `threads`, `messages`, `viber_nodes`) are not created by these migrations. Create them in your project if you need a fresh schema, or ensure they already exist with the columns the app expects.
+The `migrations/` folder is no longer used. The canonical schema is `schema.sql`. When you change the database (e.g. via Dashboard or MCP), update `schema.sql` so the repo stays in sync with the full schema.

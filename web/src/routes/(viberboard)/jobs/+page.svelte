@@ -14,6 +14,10 @@
     X,
   } from "@lucide/svelte";
   import { Button } from "$lib/components/ui/button";
+  import { Input } from "$lib/components/ui/input";
+  import { Label } from "$lib/components/ui/label";
+  import { Textarea } from "$lib/components/ui/textarea";
+  import { Select } from "$lib/components/ui/select";
 
   interface JobEntry {
     name: string;
@@ -503,7 +507,7 @@
     aria-modal="true"
     aria-labelledby="create-job-title"
     tabindex="-1"
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 outline-none"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 outline-none animate-in fade-in duration-200"
     onclick={(e) => {
       if (e.target === e.currentTarget) {
         showCreateForm = false;
@@ -518,7 +522,7 @@
     }}
   >
     <div
-      class="bg-background rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto border border-border"
+      class="bg-background rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-border animate-in zoom-in-95 duration-200"
       onclick={(e) => e.stopPropagation()}
       onkeydown={(e) => {
         if (e.key === "Escape") {
@@ -527,11 +531,19 @@
         }
       }}
     >
-      <div class="flex items-center justify-between px-5 py-4 border-b border-border">
-        <h2 id="create-job-title" class="text-lg font-semibold text-foreground">New job</h2>
+      <div class="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/20">
+        <div class="flex items-center gap-2">
+          <div class="p-2 bg-primary/10 rounded-md">
+            <CalendarClock class="size-5 text-primary" />
+          </div>
+          <div>
+            <h2 id="create-job-title" class="text-lg font-semibold text-foreground">New Job</h2>
+            <p class="text-xs text-muted-foreground">Schedule an automated task</p>
+          </div>
+        </div>
         <button
           type="button"
-          class="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+          class="p-2 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
           onclick={() => {
             showCreateForm = false;
             createError = null;
@@ -541,208 +553,160 @@
         </button>
       </div>
 
-      <div class="px-5 py-4 space-y-5">
-        <p class="text-sm text-muted-foreground -mt-1">
-          Schedule a recurring task. The viber runs it on the chosen node and reports back.
-        </p>
-
+      <div class="px-6 py-6">
         {#if createError}
-          <p class="text-sm text-destructive">{createError}</p>
+          <div class="mb-6 rounded-lg border border-destructive/50 bg-destructive/10 p-3 flex items-center gap-3 text-sm text-destructive">
+            <AlertCircle class="size-4 shrink-0" />
+            <p>{createError}</p>
+          </div>
         {/if}
 
         <form
-          class="space-y-5"
+          class="space-y-6"
           onsubmit={(e) => {
             e.preventDefault();
             createJob();
           }}
         >
-          <section class="space-y-3">
-            <h3 class="text-xs font-medium uppercase tracking-wider text-muted-foreground">Task</h3>
-            <div>
-              <label for="job-name" class="block text-sm font-medium text-foreground mb-1.5">Name</label>
-              <input
+          <!-- Core Details -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="space-y-2">
+              <Label for="job-name">Name</Label>
+              <Input
                 id="job-name"
-                type="text"
-                class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                placeholder="e.g. Daily bug scan"
+                placeholder="e.g. Daily Bug Report"
                 bind:value={formName}
+                autofocus
               />
             </div>
-            <div>
-              <label for="job-prompt" class="block text-sm font-medium text-foreground mb-1.5">Prompt</label>
-              <textarea
-                id="job-prompt"
-                rows="3"
-                class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-y min-h-[72px]"
-                placeholder="What should the viber do each run?"
-                bind:value={formPrompt}
-              ></textarea>
-              <p class="mt-1 text-xs text-muted-foreground">
-                You can add constraints in the prompt (e.g. use only repo evidence, prefer minimal fixes).
-              </p>
+            <div class="space-y-2">
+              <Label for="job-description">Description <span class="text-muted-foreground font-normal">(Optional)</span></Label>
+              <Input
+                id="job-description"
+                placeholder="Brief description of the task"
+                bind:value={formDescription}
+              />
             </div>
-          </section>
+          </div>
 
-          <section class="space-y-3">
-            <h3 class="text-xs font-medium uppercase tracking-wider text-muted-foreground">Run on</h3>
-            <div>
-              <label for="job-node" class="block text-sm font-medium text-foreground mb-1.5">Node</label>
-              <select
-                id="job-node"
-                class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                bind:value={formNodeId}
-              >
-                <option value="">Any available node</option>
-                {#each nodes as node}
-                  <option value={node.id}>
-                    {node.name}
-                    {node.status === "active" ? " (connected)" : ""}
-                  </option>
-                {/each}
-              </select>
-              <p class="mt-1 text-xs text-muted-foreground">
-                The job is pushed to this node so it runs on that machine. Leave “Any available node” to only store the job (e.g. for manual sync).
-              </p>
+          <!-- Prompt -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <Label for="job-prompt">Prompt</Label>
+              <span class="text-xs text-muted-foreground">Instructions for the viber</span>
             </div>
-          </section>
+            <Textarea
+              id="job-prompt"
+              rows={4}
+              class="resize-y min-h-[100px] font-mono text-sm"
+              placeholder="Describe what the agent should do..."
+              bind:value={formPrompt}
+            />
+          </div>
 
-          <section class="space-y-3">
-            <h3 class="text-xs font-medium uppercase tracking-wider text-muted-foreground">Schedule</h3>
-            <div class="flex gap-2">
-              <button
-                type="button"
-                class="rounded-md px-3 py-1.5 text-sm font-medium transition-colors {scheduleMode === 'daily'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80'}"
-                onclick={() => (scheduleMode = "daily")}
-              >
-                Daily
-              </button>
-              <button
-                type="button"
-                class="rounded-md px-3 py-1.5 text-sm font-medium transition-colors {scheduleMode === 'interval'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80'}"
-                onclick={() => (scheduleMode = "interval")}
-              >
-                Interval
-              </button>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Execution Config -->
+            <div class="space-y-4">
+               <h3 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground border-b pb-1">Execution</h3>
+               <div class="space-y-3">
+                  <div class="space-y-2">
+                    <Label for="job-node">Target Node</Label>
+                    <Select id="job-node" bind:value={formNodeId}>
+                      <option value="">Any available node</option>
+                      {#each nodes as node}
+                        <option value={node.id}>
+                          {node.name}
+                          {node.status === "active" ? " (connected)" : ""}
+                        </option>
+                      {/each}
+                    </Select>
+                    <p class="text-[10px] text-muted-foreground">Select a specific node or let any available one pick it up.</p>
+                  </div>
+                  <div class="space-y-2">
+                    <Label for="job-model">Model Override</Label>
+                    <Input
+                      id="job-model"
+                      class="font-mono text-xs"
+                      placeholder="e.g. deepseek/deepseek-chat"
+                      bind:value={formModel}
+                    />
+                  </div>
+               </div>
             </div>
-            {#if scheduleMode === "daily"}
-              <div class="flex items-center gap-2 flex-wrap">
-                <span class="text-sm text-muted-foreground">At</span>
-                <input
-                  type="number"
-                  min="0"
-                  max="23"
-                  class="w-14 rounded-md border border-input bg-background px-2 py-1.5 text-sm"
-                  bind:value={dailyHour}
-                />
-                <span class="text-muted-foreground">:</span>
-                <input
-                  type="number"
-                  min="0"
-                  max="59"
-                  class="w-14 rounded-md border border-input bg-background px-2 py-1.5 text-sm"
-                  bind:value={dailyMinute}
-                />
-                <span class="text-xs text-muted-foreground">(24h)</span>
-              </div>
-              <div class="flex items-center gap-1.5">
-                <span class="text-sm text-muted-foreground">On</span>
-                {#each DAY_LABELS as label, i}
-                  <button
-                    type="button"
-                    class="w-9 h-9 rounded-md text-xs font-medium transition-colors {selectedDays[i]
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-muted-foreground hover:bg-muted/80'}"
-                    title={label}
-                    onclick={() => {
-                      const next = [...selectedDays];
-                      next[i] = !next[i];
-                      selectedDays = next;
-                    }}
-                  >
-                    {label}
-                  </button>
-                {/each}
-              </div>
-            {:else}
-              <div class="flex flex-wrap items-center gap-2">
-                <span class="text-sm text-muted-foreground">Every</span>
-                <input
-                  type="number"
-                  min="1"
-                  max="24"
-                  class="w-16 rounded-md border border-input bg-background px-2 py-1.5 text-sm"
-                  bind:value={intervalHours}
-                />
-                <span class="text-sm text-muted-foreground">hours</span>
-                {#if intervalHours >= 24}
-                  <span class="text-sm text-muted-foreground">at</span>
-                  <input
-                    type="number"
-                    min="0"
-                    max="23"
-                    class="w-14 rounded-md border border-input bg-background px-2 py-1.5 text-sm"
-                    bind:value={intervalDailyHour}
-                  />
-                  <span class="text-sm text-muted-foreground">:00</span>
-                {/if}
-              </div>
-              <div class="flex items-center gap-1.5">
-                <span class="text-sm text-muted-foreground">On</span>
-                {#each DAY_LABELS as label, i}
-                  <button
-                    type="button"
-                    class="w-9 h-9 rounded-md text-xs font-medium transition-colors {selectedDays[i]
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-muted-foreground hover:bg-muted/80'}"
-                    title={label}
-                    onclick={() => {
-                      const next = [...selectedDays];
-                      next[i] = !next[i];
-                      selectedDays = next;
-                    }}
-                  >
-                    {label}
-                  </button>
-                {/each}
-              </div>
-            {/if}
-          </section>
 
-          <section class="space-y-3">
-            <h3 class="text-xs font-medium uppercase tracking-wider text-muted-foreground">Optional</h3>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label for="job-description" class="block text-sm font-medium text-foreground mb-1.5">Description</label>
-                <input
-                  id="job-description"
-                  type="text"
-                  class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  placeholder="Short note"
-                  bind:value={formDescription}
-                />
-              </div>
-              <div>
-                <label for="job-model" class="block text-sm font-medium text-foreground mb-1.5">Model</label>
-                <input
-                  id="job-model"
-                  type="text"
-                  class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono"
-                  placeholder="e.g. deepseek/deepseek-chat"
-                  bind:value={formModel}
-                />
-              </div>
+            <!-- Schedule Config -->
+            <div class="space-y-4">
+               <div class="flex items-center justify-between border-b pb-1">
+                 <h3 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Schedule</h3>
+                 <div class="flex bg-muted rounded-md p-0.5">
+                    <button
+                      type="button"
+                      class="px-2 py-0.5 text-xs font-medium rounded-sm transition-all {scheduleMode === 'daily' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}"
+                      onclick={() => scheduleMode = 'daily'}
+                    >Daily</button>
+                    <button
+                      type="button"
+                      class="px-2 py-0.5 text-xs font-medium rounded-sm transition-all {scheduleMode === 'interval' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}"
+                      onclick={() => scheduleMode = 'interval'}
+                    >Interval</button>
+                 </div>
+               </div>
+
+               <div class="bg-muted/30 rounded-lg p-4 space-y-4 border border-border/50">
+                  {#if scheduleMode === "daily"}
+                    <div class="flex items-center gap-3">
+                       <Label class="shrink-0 w-12">Time</Label>
+                       <div class="flex items-center gap-1">
+                          <Input type="number" min="0" max="23" class="w-14 text-center" bind:value={dailyHour} />
+                          <span class="text-muted-foreground font-bold">:</span>
+                          <Input type="number" min="0" max="59" class="w-14 text-center" bind:value={dailyMinute} />
+                       </div>
+                    </div>
+                  {:else}
+                    <div class="space-y-3">
+                      <div class="flex items-center gap-3">
+                         <Label class="shrink-0 w-12">Every</Label>
+                         <div class="flex items-center gap-2">
+                            <Input type="number" min="1" max="24" class="w-16 text-center" bind:value={intervalHours} />
+                            <span class="text-sm text-muted-foreground">hours</span>
+                         </div>
+                      </div>
+                      {#if intervalHours >= 24}
+                        <div class="flex items-center gap-3 animate-in fade-in slide-in-from-top-1">
+                           <Label class="shrink-0 w-12">At</Label>
+                           <div class="flex items-center gap-1">
+                              <Input type="number" min="0" max="23" class="w-14 text-center" bind:value={intervalDailyHour} />
+                              <span class="text-sm text-muted-foreground">: 00</span>
+                           </div>
+                        </div>
+                      {/if}
+                    </div>
+                  {/if}
+
+                  <div class="space-y-2 pt-2 border-t border-border/50">
+                     <Label>Active Days</Label>
+                     <div class="flex justify-between gap-1">
+                        {#each DAY_LABELS as label, i}
+                          <button
+                            type="button"
+                            class="size-7 rounded-full text-[10px] font-bold transition-all flex items-center justify-center border {selectedDays[i] ? 'bg-primary border-primary text-primary-foreground shadow-sm' : 'bg-background border-border text-muted-foreground hover:border-primary/50'}"
+                            title={label}
+                            onclick={() => {
+                              const next = [...selectedDays];
+                              next[i] = !next[i];
+                              selectedDays = next;
+                            }}
+                          >
+                            {label}
+                          </button>
+                        {/each}
+                     </div>
+                  </div>
+               </div>
             </div>
-          </section>
+          </div>
 
-          <div class="flex gap-2 pt-2 border-t border-border">
-            <Button type="submit" disabled={createSubmitting}>
-              {createSubmitting ? "Creating…" : "Create"}
-            </Button>
+          <div class="flex justify-end gap-3 pt-4 border-t border-border">
             <Button
               type="button"
               variant="outline"
@@ -752,6 +716,9 @@
               }}
             >
               Cancel
+            </Button>
+            <Button type="submit" disabled={createSubmitting} class="min-w-[100px]">
+              {createSubmitting ? "Creating…" : "Create Job"}
             </Button>
           </div>
         </form>

@@ -6,8 +6,6 @@
 
 ### You Imagine It. Vibers Build It.
 
-<!-- SHIELD GROUP -->
-
 [![Download][download-shield]][viber-npm]
 [![GitHub Stars][github-star]][viber-github]
 [![npm version][npm-shield]][viber-npm]
@@ -32,137 +30,121 @@
 
 ## 🚀 Quick Start
 
+The fastest way to get started is using `npx`:
+
 ```bash
+# 1. Set your API key (OpenRouter recommended)
+export OPENROUTER_API_KEY="your_api_key_here"
+
+# 2. Start OpenViber
 npx openviber start
 ```
 
-If you install the package (global or in-project), the CLI is available as both `openviber` and the shorter alias `viber`.
+If you prefer to install it globally:
+```bash
+npm install -g openviber
+viber start
+```
 
-## 🧵 Terminal Chat (tmux-friendly)
+---
 
-Use OpenViber from any terminal (including inside tmux) via the local hub.
+## 🛠️ Development Setup
+
+If you want to contribute or run from source:
+
+### 1. Prerequisites
+- **Node.js** v18+ and **pnpm** (recommended)
+- **tmux** installed (`brew install tmux` on macOS)
+
+### 2. Installation
+```bash
+git clone https://github.com/dustland/openviber.git
+cd openviber
+pnpm install
+
+# Configure environment
+cp .env.example .env
+# Add your OPENROUTER_API_KEY to .env
+```
+
+### 3. Launch full stack
+```bash
+# Starts Hub, Viber Node, and Web UI
+pnpm dev
+```
+- **Viber Board (Web UI)**: [http://localhost:6006](http://localhost:6006)
+- **Viber Hub**: [http://localhost:6007](http://localhost:6007)
+
+- **Viber Board (Web UI)**: [http://localhost:6006](http://localhost:6006)
+- **Viber Hub**: [http://localhost:6007](http://localhost:6007)
+
+---
+
+## 🧵 Interactive Experience
+
+OpenViber provides multiple ways to interact with your vibers, designed for both developers and teams.
+
+### 💻 Terminal Chat (tmux-friendly)
+Use OpenViber from any terminal. It integrates deeply with tmux for streaming output and managing long-running tasks.
 
 ```bash
-# 1) Start the hub
-openviber hub
-
-# 2) Start the viber node (connects to the hub)
-openviber start
-
-# 3) Chat from your terminal
-openviber chat
-
-# Optional: list/attach to tmux panes via the local WS server (:6008)
-openviber term list
-openviber term attach <session:window.pane>
+# Start an interactive chat
+viber chat
 ```
+
+### 🌐 Viber Board (Web UI)
+A modern, visual interface to manage your viber nodes, monitor jobs, and chat in real-time. Accessible at `http://localhost:6006` when running `pnpm dev`.
+
+### 🏢 Enterprise Channels
+Deploy your vibers to where your team works. Support for **DingTalk** and **WeCom** is built-in.
+
+```bash
+# Start the enterprise gateway
+viber gateway
+```
+
+---
 
 ## 🧠 Personalization (The Three-File Pattern)
 
-OpenViber follows the same configuration pattern that has emerged across serious AI platforms (Claude Projects, Custom GPTs, Cursor Rules). Three markdown files define your viber's complete behavior:
-
-```
-~/.openviber/
-├── user.md                    # Who you are (shared across vibers)
-└── vibers/default/
-    ├── soul.md                # How this viber thinks and communicates
-    └── memory.md              # What this viber remembers over time
-```
+OpenViber follows a standardized configuration pattern for AI personality. Three markdown files define your viber's complete behavior:
 
 | File | Scope | Purpose | Update Frequency |
 |------|-------|---------|------------------|
-| **user.md** | Shared | Current projects, priorities, preferences | Daily/Weekly |
-| **soul.md** | Per-viber | Communication style, boundaries, operational rules | Monthly |
-| **memory.md** | Per-viber | Decisions, learned patterns, corrections | Grows organically |
+| **`user.md`** | Shared | Who you are, current projects, priorities | Daily/Weekly |
+| **`soul.md`** | Per-viber | Communication style, boundaries, rules | Monthly |
+| **`memory.md`** | Per-viber | Decisions, learned patterns, corrections | Grows organically |
 
-These files work as a system — a detailed personality is useless without user context, and memory without personality produces generic responses. The power comes from alignment between all three.
+Location: `~/.openviber/vibers/default/`
 
-**The skill transfers**: Time invested in configuring these files isn't locked into OpenViber. The pattern is identical across agent platforms, so your configuration travels with you.
+---
 
-See [Personalization Architecture](./docs/design/personalization.md) for setup instructions.
+## ✨ Key Features
 
-## ✨ Features
-
-### 🤖 Viber Workforce
-
-Deploy role-scoped vibers that work in parallel via simple YAML configuration:
-
+### 🤖 Viber Workforce (Jobs)
+Deploy autonomous workers via simple YAML cron jobs.
 ```yaml
 # examples/jobs/morning-standup.yaml
 name: morning-standup
-schedule: "0 9 * * 1-5"
-prompt: "Check my GitHub notifications and Slack mentions, summarize what needs my attention"
-model: anthropic/claude-sonnet-4-20250514
+schedule: "0 9 * * 1-5" # Every weekday at 9 AM
+prompt: "Check GitHub notifications, summarize what needs my attention."
 ```
 
 ### 🔧 Zero Configuration Skills
-
-Capabilities defined in `SKILL.md` files — no code required:
-
+Capabilities are defined in `SKILL.md` files. No complex code required to extend your viber.
 ```markdown
 ---
 name: git-commit
 description: Stage and commit changes
 ---
-
 git add . && git commit -m "$message"
 ```
 
-### 🌐 MCP Integration
-
-Connect to any Model Context Protocol server for extended capabilities:
-
-```yaml
-mcp_servers:
-  - name: github
-    command: npx -y @modelcontextprotocol/server-github
-```
+### 🌐 Model Context Protocol (MCP)
+Seamlessly connect to any MCP server to give your vibers access to external tools like Google Maps, Slack, or custom internal APIs.
 
 ### 👤 Human-in-the-Loop
-
-Critical for long-running vibe-working tasks like vibe-coding:
-
-- **Approval Gates** — Pause for human review before critical actions
-- **Interactive Channels** — Real-time collaboration via DingTalk/WeCom
-- **Progressive Autonomy** — Start supervised, gradually increase viber freedom
-- **Context Handoff** — Seamlessly transfer context between human and viber
-
-```yaml
-# Example: Require approval for deployments
-approval_required:
-  - deploy
-  - delete
-  - billing
-```
-
-### 💬 Enterprise Channels
-
-Native integrations for DingTalk (钉钉) and WeCom (企业微信):
-
-```bash
-openviber start --channel dingtalk --token YOUR_TOKEN
-openviber start --channel wecom --corpid YOUR_CORP
-```
-
----
-
-## 📚 Examples
-
-### 🩹 Antigravity — Self-Healing for AI Coding Tools
-
-A built-in skill example that monitors and recovers AI coding tools:
-
-```yaml
-# examples/jobs/antigravity-healer.yaml
-name: antigravity-healer
-schedule: "*/3 * * * * *" # every 3 seconds
-skill: antigravity
-prompt: "Check Antigravity IDE status and auto-recover if errors found"
-```
-
-- **Monitors** all IDE windows for agent crashes
-- **Auto-recovers** by clicking Retry across multiple windows
-- **Keeps** your flow uninterrupted
+Maintain control with approval gates. Vibers can be configured to pause and ask for permission before executing sensitive actions (e.g., deleting files, making payments).
 
 ---
 
@@ -195,52 +177,25 @@ prompt: "Check Antigravity IDE status and auto-recover if errors found"
     Outbound Only      Local Execution
 ```
 
-## 📦 Three Pillars
-
-| Component  | What                        | Where            |
-| ---------- | --------------------------- | ---------------- |
-| **Jobs**   | Scheduled tasks (YAML cron) | `examples/jobs/` |
-| **Skills** | Capabilities (SKILL.md)     | `skills/`        |
-| **Tools**  | Low-level primitives        | `src/tools/`     |
-
 ## 📊 Comparison
 
-|            |     Viber      |   Cloud Agents    | IDE Plugins |
-| ---------- | :------------: | :---------------: | :---------: |
-| Deployment |   Local app    |   Cloud server    | Editor only |
-| Connection |    Outbound    |      Inbound      |    None     |
-| Jobs       |   YAML cron    |   Complex code    |   Manual    |
-| Privacy    |   100% local   |    Data leaves    |   Varies    |
-| Channels   | DingTalk/WeCom | WhatsApp/Telegram |    None     |
+| Feature | OpenViber | Cloud Agents | IDE Plugins |
+| :--- | :---: | :---: | :---: |
+| **Deployment** | Local Node | Cloud Server | Editor Only |
+| **Connectivity** | Outbound | Inbound/Cloud | None |
+| **Autonomy** | Full (Jobs/Cron) | Managed | Manual Trigger |
+| **Privacy** | 100% Local | Data Leaves | Limited |
+| **Channels** | Multi-channel | Web only | Chat only |
 
 ---
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
+We welcome contributions! See [CONTRIBUTING.md](./CONTRIBUTING.md) for details.
 
 ## 📄 License
 
-This project is licensed under the [Apache License 2.0](./LICENSE).
-
-```
-Copyright 2024-2026 Dustland
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-```
-
-### 🙏 Acknowledgments
-
-Viber is built on the shoulders of amazing open-source projects:
-
-- [Vercel AI SDK](https://sdk.vercel.ai) — Unified LLM interface
-- [Model Context Protocol](https://modelcontextprotocol.io) — Standardized tool integration
-- [Croner](https://github.com/hexagon/croner) — Lightweight cron scheduling
-- [Zod](https://zod.dev) — TypeScript-first schema validation
+Licensed under the [Apache License 2.0](./LICENSE).
 
 ---
 
@@ -255,7 +210,6 @@ If you find Viber helpful, please ⭐ star us on GitHub!
 </div>
 
 <!-- LINKS -->
-
 [viber-site]: https://viber.dustland.ai
 [viber-github]: https://github.com/dustland/openviber
 [viber-npm]: https://www.npmjs.com/package/openviber
@@ -264,7 +218,6 @@ If you find Viber helpful, please ⭐ star us on GitHub!
 [license-link]: https://github.com/dustland/openviber/blob/main/LICENSE
 
 <!-- SHIELDS -->
-
 [download-shield]: https://img.shields.io/badge/Download-Viber-blue?style=flat-square
 [github-star]: https://img.shields.io/github/stars/dustland/openviber?style=flat-square&logo=github
 [npm-shield]: https://img.shields.io/npm/v/openviber?style=flat-square&logo=npm

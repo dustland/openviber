@@ -6,8 +6,6 @@
 
 ### 你负责想象，Viber 负责实现
 
-<!-- SHIELD GROUP -->
-
 [![Download][download-shield]][viber-npm]
 [![GitHub Stars][github-star]][viber-github]
 [![npm version][npm-shield]][viber-npm]
@@ -19,7 +17,7 @@
 
 ---
 
-**OpenViber** 是一个开源平台，将您的机器变为 **Viber 节点** — 托管角色化 AI 工作者（称为 **viber**），自主完成真实任务。与云端框架不同，OpenViber 在本地运行，保障完全隐私，通过出站连接对接企业通讯渠道，让您的工作在睡眠时也能自动化进行。
+**OpenViber** 是一个开源平台，将您的机器变为 **Viber 节点** — 托管角色化 AI 工作者（称为 **viber**），自主完成真实任务。与云端智能体框架不同，OpenViber 在本地运行，保障完全隐私，通过出站连接对接您的企业通讯渠道，并在您休息时自主工作。
 
 ### ⭐ 100% 开源 · 🥇 本地部署 · 🏆 MCP 集成
 
@@ -32,116 +30,119 @@
 
 ## 🚀 快速开始
 
+最快的使用方式是通过 `npx`：
+
 ```bash
+# 1. 设置您的 API 密钥（推荐使用 OpenRouter）
+export OPENROUTER_API_KEY="您的密钥"
+
+# 2. 启动 OpenViber
 npx openviber start
 ```
 
+如果您希望全局安装：
+```bash
+npm install -g openviber
+viber start
+```
+
+---
+
+## 🛠️ 开发设置
+
+如果您想贡献代码或从源码运行：
+
+### 1. 前置条件
+- **Node.js** v18+ 和 **pnpm** (推荐)
+- 已安装 **tmux** (macOS: `brew install tmux`)
+
+### 2. 安装
+```bash
+git clone https://github.com/dustland/openviber.git
+cd openviber
+pnpm install
+
+# 配置环境
+cp .env.example .env
+# 在 .env 中添加您的 OPENROUTER_API_KEY
+```
+
+### 3. 启动完整堆栈
+```bash
+# 同时启动 Hub、Viber 节点和 Web UI
+pnpm dev
+```
+- **Viber Board (Web UI)**: [http://localhost:6006](http://localhost:6006)
+- **Viber Hub**: [http://localhost:6007](http://localhost:6007)
+
+
+---
+
+## 🧵 交互体验
+
+OpenViber 提供多种与 Viber 交互的方式，专为开发者和团队设计。
+
+### 💻 终端对话 (支持 tmux)
+在任何终端中使用 OpenViber。它与 tmux 深度集成，支持流式输出和管理长时间运行的任务。
+
+```bash
+# 启动交互式对话
+viber chat
+```
+
+### 🌐 Viber Board (Web UI)
+一个现代化的视觉界面，用于管理 Viber 节点、监控任务并进行实时对话。运行 `pnpm dev` 后可通过 `http://localhost:6006` 访问。
+
+### 🏢 企业渠道
+将您的 Viber 部署到团队工作的地方。原生支持 **钉钉** 和 **企业微信**。
+
+```bash
+# 启动企业网关
+viber gateway
+```
+
+---
+
 ## 🧠 个性化配置（三文件模式）
 
-OpenViber 采用了主流 AI 平台（Claude Projects、Custom GPTs、Cursor Rules）所共同使用的配置模式。三个 Markdown 文件定义了 Viber 的完整行为：
+OpenViber 采用了 AI 个性化的标准化配置模式。三个 Markdown 文件定义了 Viber 的完整行为：
 
-```
-~/.openviber/
-├── user.md                    # 你是谁（所有 Viber 共享）
-└── vibers/default/
-    ├── soul.md                # 此 Viber 的思维和沟通方式
-    └── memory.md              # 此 Viber 长期记忆的内容
-```
+| 文件 | 作用域 | 用途 | 更新频率 |
+|------|-------|---------|------------------|
+| **`user.md`** | 共享 | 你是谁、当前项目、优先级 | 每天/每周 |
+| **`soul.md`** | 每个 Viber | 沟通风格、边界、规则 | 每月 |
+| **`memory.md`** | 每个 Viber | 决策、学习到的模式、纠正 | 自然增长 |
 
-| 文件          | 作用域  | 用途                         | 更新频率  |
-| ------------- | ------- | ---------------------------- | --------- |
-| **user.md**   | 共享    | 当前项目、优先级、偏好设置   | 每天/每周 |
-| **soul.md**   | 每个 Viber | 沟通风格、边界规则、操作约束 | 每月      |
-| **memory.md** | 每个 Viber | 决策记录、学习到的模式、纠正 | 自然积累  |
+文件位置: `~/.openviber/vibers/default/`
 
-这三个文件作为一个系统协同工作 — 详细的个性设置如果没有用户上下文是没用的，记忆如果没有个性会产生通用的回复。三者的对齐才能发挥真正的力量。
-
-**技能可迁移**：投入在配置这些文件上的时间不会被锁定在 OpenViber 中。这个模式在各个智能体平台上都是相同的，所以你的配置可以随你迁移。
-
-详见 [个性化架构](./docs/design/personalization.md) 获取设置说明。
+---
 
 ## ✨ 核心功能
 
-### 🤖 Viber 工作团队
-
-通过简单的 YAML 配置部署角色化 Viber 并行工作：
-
+### 🤖 Viber 工作团队 (Jobs)
+通过简单的 YAML 定时任务部署自主工作者。
 ```yaml
 # examples/jobs/morning-standup.yaml
 name: morning-standup
-schedule: "0 9 * * 1-5"
-prompt: "检查我的 GitHub 通知和 Slack 消息，总结今天需要我关注的事项"
-model: anthropic/claude-sonnet-4-20250514
+schedule: "0 9 * * 1-5" # 每个工作日早上 9 点
+prompt: "检查 GitHub 通知，总结需要我关注的事项。"
 ```
 
-### 🔧 零代码技能配置
-
-通过 `SKILL.md` 文件定义能力 — 无需编写代码：
-
+### 🔧 零代码技能定义
+通过 `SKILL.md` 文件定义能力。无需复杂代码即可扩展 Viber 的功能。
 ```markdown
 ---
 name: git-commit
 description: 暂存并提交更改
 ---
-
 git add . && git commit -m "$message"
 ```
 
-### 🌐 MCP 集成
+### 🌐 Model Context Protocol (MCP)
+无缝连接到任何 MCP 服务器，让您的 Viber 访问外部工具，如 Google Maps、Slack 或自定义内部 API。
 
-连接任何 Model Context Protocol 服务器扩展能力：
-
-```yaml
-mcp_servers:
-  - name: github
-    command: npx -y @modelcontextprotocol/server-github
-```
-
-### 👤 人机协同 (Human-in-the-Loop)
-
-对于长时间运行的 vibe-working 任务（如 vibe-coding）至关重要：
-
-- **审批门控** — 在关键操作前暂停等待人工审核
-- **交互渠道** — 通过钉钉/企业微信实时协作
-- **渐进式自主** — 从监督开始，逐步增加 Viber 自主权
-- **上下文交接** — 人机之间无缝传递上下文
-
-```yaml
-# 示例：部署操作需要审批
-approval_required:
-  - deploy
-  - delete
-  - billing
-```
-
-### 💬 企业通讯渠道
-
-原生支持钉钉和企业微信：
-
-```bash
-openviber start --channel dingtalk --token YOUR_TOKEN
-openviber start --channel wecom --corpid YOUR_CORP
-```
-
----
-
-## 📚 示例
-
-### 🩹 Antigravity — AI 编码工具自愈
-
-一个内置的技能示例，用于监控和恢复 AI 编码工具：
-
-```yaml
-# examples/jobs/antigravity-healer.yaml
-name: antigravity-healer
-schedule: "*/3 * * * * *" # 每3秒
-skill: antigravity
-prompt: "检查 Antigravity IDE 状态，如有错误则自动恢复"
-```
-
-- **监控** 所有 IDE 窗口的智能体崩溃
-- **自动恢复** 跨多窗口点击重试按钮
-- **保持** 您的工作流不中断
+### 👤 人机协同
+通过审批门控保持控制。可以配置 Viber 在执行敏感操作（如删除文件、支付）前暂停并请求许可。
 
 ---
 
@@ -174,52 +175,25 @@ prompt: "检查 Antigravity IDE 状态，如有错误则自动恢复"
       仅出站连接           本地执行
 ```
 
-## 📦 三大支柱
-
-| 组件       | 功能                 | 位置             |
-| ---------- | -------------------- | ---------------- |
-| **Jobs**   | 定时任务 (YAML cron) | `examples/jobs/` |
-| **Skills** | 能力定义 (SKILL.md)  | `skills/`        |
-| **Tools**  | 底层原语             | `src/tools/`     |
-
 ## 📊 对比
 
-|      |     Viber     |     云端代理      | IDE 插件 |
-| ---- | :-----------: | :---------------: | :------: |
-| 部署 |   本地应用    |     云服务器      | 仅编辑器 |
-| 连接 |     出站      |       入站        |    无    |
-| 任务 |   YAML cron   |     复杂代码      |   手动   |
-| 隐私 |   100% 本地   |     数据外泄      |   不定   |
-| 渠道 | 钉钉/企业微信 | WhatsApp/Telegram |    无    |
+| 功能 | OpenViber | 云端代理 | IDE 插件 |
+| :--- | :---: | :---: | :---: |
+| **部署** | 本地节点 | 云端服务器 | 仅编辑器 |
+| **连接性** | 出站连接 | 入站/云端 | 无 |
+| **自主权** | 完全 (Jobs/Cron) | 受管 | 手动触发 |
+| **隐私** | 100% 本地 | 数据外泄 | 有限 |
+| **渠道** | 多渠道支持 | 仅网页 | 仅对话 |
 
 ---
 
 ## 🤝 贡献
 
-欢迎贡献！请参阅 [CONTRIBUTING.md](./CONTRIBUTING.md) 了解指南。
+欢迎贡献！详见 [CONTRIBUTING.md](./CONTRIBUTING.md)。
 
 ## 📄 许可证
 
 本项目采用 [Apache License 2.0](./LICENSE) 许可。
-
-```
-Copyright 2024-2026 Dustland
-
-根据 Apache License 2.0 许可；
-除非遵守许可证，否则不得使用此文件。
-您可以在以下位置获取许可证副本：
-
-    http://www.apache.org/licenses/LICENSE-2.0
-```
-
-### 🙏 致谢
-
-Viber 基于以下优秀开源项目构建：
-
-- [Vercel AI SDK](https://sdk.vercel.ai) — 统一 LLM 接口
-- [Model Context Protocol](https://modelcontextprotocol.io) — 标准化工具集成
-- [Croner](https://github.com/hexagon/croner) — 轻量级定时调度
-- [Zod](https://zod.dev) — TypeScript 优先的模式验证
 
 ---
 
@@ -234,7 +208,6 @@ Viber 基于以下优秀开源项目构建：
 </div>
 
 <!-- LINKS -->
-
 [viber-site]: https://viber.dustland.ai
 [viber-github]: https://github.com/dustland/openviber
 [viber-npm]: https://www.npmjs.com/package/openviber
@@ -243,7 +216,6 @@ Viber 基于以下优秀开源项目构建：
 [license-link]: https://github.com/dustland/openviber/blob/main/LICENSE
 
 <!-- SHIELDS -->
-
 [download-shield]: https://img.shields.io/badge/Download-Viber-blue?style=flat-square
 [github-star]: https://img.shields.io/github/stars/dustland/openviber?style=flat-square&logo=github
 [npm-shield]: https://img.shields.io/npm/v/openviber?style=flat-square&logo=npm

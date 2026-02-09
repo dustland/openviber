@@ -40,8 +40,8 @@ This document compares OpenViber's feature set against [OpenClaw](https://github
 | Microsoft Teams | -- | Yes |
 | Google Chat | -- | Yes |
 | Matrix | -- | Yes (extension) |
-| DingTalk | Planned | -- |
-| WeCom | Planned | -- |
+| DingTalk | Yes | -- |
+| WeCom | Yes | -- |
 | Zalo / Zalo Personal | -- | Yes (extension) |
 | LINE | -- | Yes (extension) |
 | Feishu (Lark) | -- | Yes (extension) |

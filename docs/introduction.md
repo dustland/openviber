@@ -29,8 +29,9 @@ OpenViber handles tasks that require multiple steps, file operations, web browsi
 Open the browser-based interface to chat with your viber:
 
 ```bash
-npx openviber start
-# Start the web UI (`pnpm dev:web`) and open http://localhost:6006
+# Start the full stack (Hub, Viber Node, and Web UI)
+pnpm dev
+# Open http://localhost:6006
 ```
 
 ### 2. Command Line
@@ -48,7 +49,7 @@ openviber chat
 openviber run jobs/morning-standup.yaml
 ```
 
-### 3. Enterprise Channels *(Coming Soon)*
+### 3. Enterprise Channels
 
 Connect to DingTalk or WeCom for team collaboration:
 
@@ -56,7 +57,7 @@ Connect to DingTalk or WeCom for team collaboration:
 openviber gateway
 ```
 
-> **Note:** Enterprise channel integration is planned but not yet available.
+> **Note:** Requires configuration of API keys in environment variables. See documentation for details.
 
 ## Key Concepts
 

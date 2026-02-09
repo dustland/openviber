@@ -41,7 +41,7 @@ Get an API key at: [openrouter.ai/keys](https://openrouter.ai/keys)
 ### Step 4: Start Your Viber
 
 ```bash
-openviber start
+npx openviber start
 ```
 
 That's it! Your viber will automatically connect to OpenViber Web.
@@ -61,13 +61,13 @@ Then:
 
 ```bash
 export OPENROUTER_API_KEY="sk-or-v1-xxx"
-openviber start
+npx openviber start
 ```
 
 You can connect to OpenViber Web later:
 
 ```bash
-openviber onboard --token <token-from-web>
+npx openviber onboard --token <token-from-web>
 ```
 
 ---
@@ -95,20 +95,20 @@ After onboarding, your `~/.openviber/` directory looks like:
 
 | Command | Description |
 |---------|-------------|
-| `openviber onboard` | Set up standalone mode |
-| `openviber onboard --token <t>` | Connect to OpenViber Web |
-| `openviber start` | Start the viber daemon |
-| `openviber run "<task>"` | Run a one-off task |
-| `openviber chat` | Interactive chat mode |
-| `openviber status` | Check viber status |
+| `npx openviber onboard` | Set up standalone mode |
+| `npx openviber onboard --token <t>` | Connect to OpenViber Web |
+| `npx openviber start` | Start the viber daemon |
+| `npx openviber run "<task>"` | Run a one-off task |
+| `npx openviber chat` | Interactive chat mode |
+| `npx openviber status` | Check viber status |
 
 ---
 
 ## Troubleshooting
 
-**Token expired?** Create a new viber node on the web and run `onboard --token` again.
+**Token expired?** Create a new viber node on the web and run `npx openviber onboard --token` again.
 
 **Can't connect?** Make sure OpenViber Web is running. By default: `http://localhost:6006`
 
-**Need to switch modes?** You can always re-run `openviber onboard --token <token>` to switch
+**Need to switch modes?** You can always re-run `npx openviber onboard --token <token>` to switch
 from standalone to connected mode.

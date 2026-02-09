@@ -67,7 +67,9 @@
     "commander": "^14.0.2",
     "croner": "^9.1.0",
     "dotenv": "^17.2.3",
+    "imapflow": "^1.2.9",
     "nanoid": "^3.3.8",
+    "nodemailer": "^8.0.1",
     "reflect-metadata": "^0.2.2",
     "ws": "^8.19.0",
     "yaml": "^2.8.1",
@@ -76,6 +78,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.10.6",
+    "@types/nodemailer": "^7.0.9",
     "@types/ws": "^8.18.1",
     "@vitest/ui": "^3.2.4",
     "concurrently": "^9.0.0",

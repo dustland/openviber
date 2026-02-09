@@ -4,6 +4,8 @@ import { getTools as getCursorAgentTools } from "./cursor-agent";
 import { getTools as getCodexCliTools } from "./codex-cli";
 import { getTools as getGithubTools } from "./github";
 import { getTools as getTmuxTools } from "./tmux";
+import { getTools as getRailwayTools } from "./railway";
+import { getTools as getGmailTools } from "./gmail";
 
 // Register default skills and their tools
 // This is called during module initialization to pre-register tools
@@ -19,7 +21,12 @@ export function registerDefaultSkills() {
   defaultRegistry.preRegisterTools("github", getGithubTools());
   // Pre-register tmux tools (run commands in tmux, check install)
   defaultRegistry.preRegisterTools("tmux", getTmuxTools());
+  // Pre-register railway tools (deployment status, logs, build logs)
+  defaultRegistry.preRegisterTools("railway", getRailwayTools());
+  // Pre-register gmail tools (search, read, send emails)
+  defaultRegistry.preRegisterTools("gmail", getGmailTools());
 }
 
 // Auto-register on import
 registerDefaultSkills();
+

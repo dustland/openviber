@@ -33,8 +33,10 @@ railway link
 ## Tools
 
 - **`railway_status`** — Get deployment status for the linked project or a specific service
-- **`railway_logs`** — View recent deployment logs
+- **`railway_logs`** — View recent runtime logs
 - **`railway_deploy`** — Trigger a redeployment
+- **`railway_deployments`** — List recent deployments with status (SUCCESS/FAILED/BUILDING)
+- **`railway_build_logs`** — Fetch build logs for a specific deployment by ID (for diagnosing build failures)
 - **`railway_run`** — Run any Railway CLI command directly
 
 ## Parameters
@@ -49,6 +51,13 @@ railway link
 ### railway_deploy
 - `service` (optional): Service to redeploy
 
+### railway_deployments
+- `cwd` (optional): Working directory (must be a linked Railway project)
+
+### railway_build_logs
+- `deploymentId` (required): Deployment ID (UUID from railway_deployments output)
+- `cwd` (optional): Working directory
+
 ### railway_run
 - `command` (required): Railway CLI subcommand and arguments (e.g. `variables list`)
 - `cwd` (optional): Working directory (must be a linked Railway project)
@@ -61,6 +70,7 @@ Use this skill when user intent is:
 - "show railway logs"
 - "redeploy on railway"
 - "check deployment status"
+- "why did the deployment fail"
 
 Examples:
 
@@ -68,5 +78,7 @@ Examples:
 railway_status({ service: "web" })
 railway_logs({ service: "web", lines: 100 })
 railway_deploy({ service: "web" })
+railway_deployments({})
+railway_build_logs({ deploymentId: "abc-123..." })
 railway_run({ command: "variables list" })
 ```

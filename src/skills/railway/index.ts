@@ -277,5 +277,71 @@ export function getTools(): Record<string, import("../../core/tool").CoreTool> {
         }
       },
     },
+
+    railway_deployments: {
+      description:
+        "List recent deployments for the linked Railway service. Shows deployment IDs, status (SUCCESS/FAILED/BUILDING), and timestamps. Use this to find failed deployments before fetching their build logs.",
+      inputSchema: z.object({
+        cwd: z
+          .string()
+          .optional()
+          .describe("Project directory (must be railway-linked)"),
+      }),
+      execute: async (args: { cwd?: string }) => {
+        try {
+          ensureRailwayCli();
+          const cwd = resolveWorkingDirectory(args.cwd);
+          const result = await runRailway(["deployment", "list"], cwd, 30);
+          return formatResult({ ...result, exitCode: result.exitCode });
+        } catch (err: any) {
+          return {
+            ok: false,
+            command: "railway deployment list",
+            output: "",
+            stdoutTail: "",
+            stderrTail: "",
+            error: err?.message || String(err),
+            summary: "status=failed",
+          };
+        }
+      },
+    },
+
+    railway_build_logs: {
+      description:
+        "Fetch build logs for a specific Railway deployment by its deployment ID. Use this to diagnose build failures. Get the deployment ID from railway_deployments first.",
+      inputSchema: z.object({
+        deploymentId: z
+          .string()
+          .min(1)
+          .describe("Deployment ID (UUID from railway_deployments output)"),
+        cwd: z
+          .string()
+          .optional()
+          .describe("Project directory (must be railway-linked)"),
+      }),
+      execute: async (args: { deploymentId: string; cwd?: string }) => {
+        try {
+          ensureRailwayCli();
+          const cwd = resolveWorkingDirectory(args.cwd);
+          const result = await runRailway(
+            ["logs", "-d", args.deploymentId],
+            cwd,
+            60
+          );
+          return formatResult({ ...result, exitCode: result.exitCode });
+        } catch (err: any) {
+          return {
+            ok: false,
+            command: `railway logs -d ${args.deploymentId}`,
+            output: "",
+            stdoutTail: "",
+            stderrTail: "",
+            error: err?.message || String(err),
+            summary: "status=failed",
+          };
+        }
+      },
+    },
   };
 }

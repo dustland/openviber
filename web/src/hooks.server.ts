@@ -1,4 +1,4 @@
-import type { Handle } from "@sveltejs/kit";
+import type { Handle, HandleServerError } from "@sveltejs/kit";
 import { getAuthUser } from "$lib/server/auth";
 
 // Only these routes require authentication
@@ -51,4 +51,20 @@ export const handle: Handle = async ({ event, resolve }) => {
   }
 
   return resolve(event);
+};
+
+/**
+ * Suppress verbose error logging for 404s (bot scanners).
+ * Only real 500-level errors produce full stack traces.
+ */
+export const handleError: HandleServerError = ({ error, status, message, event }) => {
+  if (status === 404) {
+    // One-line log for 404s — no stack trace
+    console.warn(`[404] ${event.request.method} ${event.url.pathname}`);
+    return { message: "Not Found" };
+  }
+
+  // Real errors get full logging
+  console.error(`[Server Error] ${status} ${event.url.pathname}`, error);
+  return { message };
 };

@@ -22,6 +22,7 @@ import * as readline from "readline";
 import WebSocket from "ws";
 import YAML from "yaml";
 import { getOpenViberVersion } from "../utils/version";
+import type { ChannelRuntimeContext, InboundMessage, InterruptSignal } from "../channels/channel";
 
 const VERSION = getOpenViberVersion();
 const OPENVIBER_DIR = path.join(os.homedir(), ".openviber");
@@ -1326,8 +1327,12 @@ program
   .option("-p, --port <port>", "Gateway port", "6009")
   .action(async (options) => {
     const { channelManager } = await import("../channels/manager");
-    const { DingTalkChannel } = await import("../channels/dingtalk");
-    const { WeComChannel } = await import("../channels/wecom");
+    const { ChannelGateway } = await import("../channels/gateway");
+    const { loadGatewayBootstrapConfig } = await import("../channels/config");
+    const {
+      registerBuiltinChannels,
+      createChannelsFromConfig,
+    } = await import("../channels/builtin");
 
     console.log(`
 ╔═══════════════════════════════════════════════════════════╗
@@ -1335,42 +1340,21 @@ program
 ╚═══════════════════════════════════════════════════════════╝
 `);
 
-    // Register channels based on environment
-    const channels: string[] = [];
+    const bootstrap = await loadGatewayBootstrapConfig({
+      port: parseInt(options.port, 10),
+    });
 
-    if (process.env.DINGTALK_APP_KEY && process.env.DINGTALK_APP_SECRET) {
-      channelManager.register(
-        new DingTalkChannel({
-          enabled: true,
-          appKey: process.env.DINGTALK_APP_KEY,
-          appSecret: process.env.DINGTALK_APP_SECRET,
-          robotCode: process.env.DINGTALK_ROBOT_CODE,
-        })
-      );
-      channels.push("DingTalk");
-    }
+    registerBuiltinChannels();
 
-    if (
-      process.env.WECOM_CORP_ID &&
-      process.env.WECOM_AGENT_SECRET &&
-      process.env.WECOM_TOKEN &&
-      process.env.WECOM_ENCODING_AES_KEY
-    ) {
-      channelManager.register(
-        new WeComChannel({
-          enabled: true,
-          corpId: process.env.WECOM_CORP_ID,
-          agentId: process.env.WECOM_AGENT_ID || "0",
-          secret: process.env.WECOM_AGENT_SECRET,
-          token: process.env.WECOM_TOKEN,
-          aesKey: process.env.WECOM_ENCODING_AES_KEY,
-        })
-      );
-      channels.push("WeCom");
-    }
+    const context: ChannelRuntimeContext = {
+      routeMessage: (message: InboundMessage) => channelManager.routeMessage(message),
+      handleInterrupt: (signal: InterruptSignal) => channelManager.handleInterrupt(signal),
+    };
 
+    const channelInstances = createChannelsFromConfig(bootstrap.channels, context);
+    const channelNames = channelInstances.map((channel) => channel.id);
 
-    if (channels.length === 0) {
+    if (channelInstances.length === 0) {
       console.log(`
 No channels configured. Set environment variables to enable channels:
 
@@ -1381,32 +1365,42 @@ WeCom:
   WECOM_CORP_ID, WECOM_AGENT_ID, WECOM_AGENT_SECRET
   WECOM_TOKEN, WECOM_ENCODING_AES_KEY (optional)
 
-Run 'openviber gateway' again after setting environment variables.
+Discord:
+  DISCORD_BOT_TOKEN (optional: DISCORD_APP_ID, DISCORD_ALLOW_GUILDS, DISCORD_ALLOW_CHANNELS)
+
+Feishu:
+  FEISHU_APP_ID, FEISHU_APP_SECRET (optional: FEISHU_VERIFICATION_TOKEN, FEISHU_DOMAIN)
+
+Or configure channels from the OpenViber web and re-run gateway.
 `);
       process.exit(1);
     }
 
-    // Start all channels
-    await channelManager.startAll();
+    const gateway = new ChannelGateway(bootstrap.gateway, channelInstances, channelManager);
+
+    await gateway.start();
 
     // Handle graceful shutdown
     process.on("SIGINT", async () => {
       console.log("\n[Gateway] Shutting down...");
-      await channelManager.stopAll();
+      await gateway.stop();
       process.exit(0);
     });
 
     process.on("SIGTERM", async () => {
       console.log("\n[Gateway] Shutting down...");
-      await channelManager.stopAll();
+      await gateway.stop();
       process.exit(0);
     });
+
+    const basePath = bootstrap.gateway.basePath || "/";
 
     console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║                   GATEWAY RUNNING                         ║
 ╠═══════════════════════════════════════════════════════════╣
-║  Channels:     ${channels.join(", ").padEnd(41)}║
+║  Channels:     ${channelNames.join(", ").padEnd(41)}║
+║  Webhooks:     ${`${bootstrap.gateway.host}:${bootstrap.gateway.port}${basePath}`.slice(0, 41).padEnd(41)}║
 ║  Status:       ● Ready                                    ║
 ╚═══════════════════════════════════════════════════════════╝
 

@@ -10,10 +10,12 @@
 import crypto from "crypto";
 import {
   Channel,
+  ChannelRuntimeContext,
   InboundMessage,
   AgentStreamEvent,
   DingTalkConfig,
 } from "./channel";
+import type { ChannelWebhookRoute, GatewayRequest } from "./webhook";
 
 // ==================== DingTalk Types ====================
 
@@ -53,11 +55,13 @@ export class DingTalkChannel implements Channel {
   type = "webhook" as const;
 
   private config: DingTalkConfig;
+  private context: ChannelRuntimeContext;
   private sessionWebhooks = new Map<string, string>();
   private responseBuffers = new Map<string, string>();
 
-  constructor(config: DingTalkConfig) {
+  constructor(config: DingTalkConfig, context: ChannelRuntimeContext) {
     this.config = config;
+    this.context = context;
   }
 
   async start(): Promise<void> {
@@ -145,6 +149,39 @@ export class DingTalkChannel implements Channel {
     }
   }
 
+  getWebhookRoutes(): ChannelWebhookRoute[] {
+    return [
+      {
+        method: "POST",
+        path: "/webhook/dingtalk",
+        handler: async (req) => this.handleWebhook(req),
+      },
+    ];
+  }
+
+  private async handleWebhook(req: GatewayRequest) {
+    const payload = (req.json || safeJsonParse(req.body)) as DingTalkWebhookPayload;
+    if (!payload) {
+      return { status: 400, json: { error: "Invalid payload" } };
+    }
+
+    const timestamp =
+      req.query.get("timestamp") ||
+      (typeof req.headers["timestamp"] === "string" ? req.headers["timestamp"] : "");
+    const sign =
+      req.query.get("sign") ||
+      (typeof req.headers["sign"] === "string" ? req.headers["sign"] : "");
+
+    if (timestamp && sign && !this.verifySignature(timestamp, sign)) {
+      return { status: 401, json: { error: "Invalid signature" } };
+    }
+
+    const inbound = this.parseWebhook(payload);
+    await this.handleMessage(inbound);
+    await this.context.routeMessage(inbound);
+    return { status: 200, json: { ok: true } };
+  }
+
   /**
    * Send message via DingTalk session webhook
    */
@@ -166,5 +203,13 @@ export class DingTalkChannel implements Channel {
     } catch (error) {
       console.error("[DingTalk] Send message error:", error);
     }
+  }
+}
+
+function safeJsonParse(value: string): unknown {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return undefined;
   }
 }

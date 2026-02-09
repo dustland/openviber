@@ -10,7 +10,6 @@
     Key,
     Loader2,
     Puzzle,
-    RefreshCw,
     Save,
     Settings,
     Shield,
@@ -36,7 +35,6 @@
   let successMessage = $state<string | null>(null);
   let revealedKeys = $state<Set<string>>(new Set());
 
-  // Editable copies for the form
   let editSources = $state<Record<string, { enabled: boolean; url: string; apiKey: string }>>({});
 
   function initEditState(src: Record<string, SourceConfig>) {
@@ -96,10 +94,8 @@
       }
 
       successMessage = "Settings saved successfully";
-      // Refresh to get latest state
       await fetchSettings();
 
-      // Clear success message after 3 seconds
       setTimeout(() => {
         successMessage = null;
       }, 3000);
@@ -124,19 +120,6 @@
     if (editSources[key]) {
       editSources[key].enabled = !editSources[key].enabled;
     }
-  }
-
-  function getSourceIcon(key: string): string {
-    const icons: Record<string, string> = {
-      openclaw: "/favicon.png",
-      github: "",
-      npm: "",
-      huggingface: "",
-      smithery: "",
-      composio: "",
-      glama: "",
-    };
-    return icons[key] || "";
   }
 
   const enabledCount = $derived(
@@ -165,14 +148,13 @@
 
 <div class="flex-1 min-h-0 overflow-y-auto">
   <div class="mx-auto w-full max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
-    <!-- Header -->
     <header class="mb-8">
       <div class="flex items-center gap-3 mb-2">
         <div class="flex items-center justify-center size-10 rounded-lg bg-primary/10">
           <Settings class="size-5 text-primary" />
         </div>
         <div>
-          <h1 class="text-2xl font-semibold text-foreground">Settings</h1>
+          <h1 class="text-2xl font-semibold text-foreground">General</h1>
           <p class="text-sm text-muted-foreground">
             Configure your OpenViber instance
           </p>
@@ -206,7 +188,6 @@
         </div>
       </div>
     {:else}
-      <!-- Skill Sources Section -->
       <section class="mb-10">
         <div class="flex items-center justify-between mb-4">
           <div class="flex items-center gap-2.5">
@@ -244,9 +225,7 @@
                   ? 'border-border bg-card shadow-sm'
                   : 'border-border/60 bg-card/50'}"
               >
-                <!-- Source Header -->
                 <div class="flex items-start gap-4 p-4">
-                  <!-- Toggle -->
                   <button
                     type="button"
                     onclick={() => toggleSource(key)}
@@ -263,7 +242,6 @@
                     />
                   </button>
 
-                  <!-- Info -->
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2 mb-1">
                       <h3 class="text-base font-semibold text-foreground {!edit.enabled ? 'opacity-60' : ''}">
@@ -286,7 +264,6 @@
                     </p>
                   </div>
 
-                  <!-- Status badge -->
                   <div class="shrink-0">
                     {#if edit.enabled}
                       <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
@@ -302,11 +279,9 @@
                   </div>
                 </div>
 
-                <!-- Expandable config (only when enabled) -->
                 {#if edit.enabled}
                   <div class="border-t border-border/50 px-4 py-3 bg-muted/20">
                     <div class="grid gap-3 sm:grid-cols-2">
-                      <!-- Custom URL -->
                       <div>
                         <label
                           for="url-{key}"
@@ -327,7 +302,6 @@
                         </p>
                       </div>
 
-                      <!-- API Key -->
                       {#if meta.apiKeyLabel}
                         <div>
                           <label
@@ -383,7 +357,6 @@
         </div>
       </section>
 
-      <!-- Help section -->
       <section class="rounded-xl border border-dashed border-border/70 p-6 text-center mb-8">
         <Puzzle class="size-8 text-muted-foreground/40 mx-auto mb-3" />
         <h3 class="text-sm font-medium text-foreground mb-1">Want to add a custom skill source?</h3>

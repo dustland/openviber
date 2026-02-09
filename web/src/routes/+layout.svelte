@@ -6,6 +6,7 @@
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
   } from "$lib/components/ui/dropdown-menu";
   import { applyTheme, themeStore, type Theme } from "$lib/stores/theme";
@@ -16,13 +17,15 @@
     Sun,
     ChevronDown,
     Server,
+    LayoutDashboard,
+    Home,
     BookOpen,
   } from "@lucide/svelte";
 
   let { children, data } = $props();
 
   // Route detection
-  const isHomepage = $derived($page.url.pathname === "/");
+  const isHomepage = $derived($page.url.pathname === "/landing");
   const isLogin = $derived($page.url.pathname === "/login");
   const isVibers = $derived($page.url.pathname.startsWith("/vibers"));
   const isDocs = $derived($page.url.pathname.startsWith("/docs"));
@@ -79,7 +82,7 @@
     <header class="absolute top-0 left-0 right-0 z-50">
       <nav class="flex items-center gap-2 px-6 py-4 text-sm">
         <a
-          href="/"
+          href="/landing"
           class="font-semibold text-foreground flex items-center gap-2 shrink-0"
         >
           <img src="/favicon.png" alt="Viber" class="size-7" />
@@ -88,11 +91,11 @@
 
         <div class="flex items-center gap-1 ml-auto">
           <a
-            href="/vibers"
+            href="/"
             class="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors shrink-0 px-3 py-2 rounded-md hover:bg-accent/50"
           >
-            <Server class="size-4 shrink-0" />
-            <span class="text-sm">Vibers</span>
+            <LayoutDashboard class="size-4 shrink-0" />
+            <span class="text-sm">Dashboard</span>
           </a>
           <a
             href="/docs"
@@ -132,6 +135,16 @@
                   <p class="text-xs text-muted-foreground">{data.user.email}</p>
                 </div>
                 <DropdownMenuItem
+                  class="w-full rounded px-2.5 py-2 text-left text-sm hover:bg-accent flex items-center gap-2.5 outline-none cursor-pointer"
+                  onSelect={() => {
+                    window.location.href = "/";
+                  }}
+                >
+                  <LayoutDashboard class="size-4" />
+                  Go to Dashboard
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
                   class="w-full rounded px-2.5 py-2 text-left text-sm hover:bg-accent flex items-center gap-2.5 outline-none cursor-pointer text-destructive"
                   onSelect={() => {
                     const form = document.createElement("form");
@@ -147,7 +160,7 @@
             </DropdownMenu>
           {:else}
             <a
-              href="/login"
+              href="/auth/github?redirect=/"
               class="text-muted-foreground hover:text-foreground transition-colors shrink-0 px-3 py-2 rounded-md hover:bg-accent/50"
             >
               Sign in
@@ -177,7 +190,9 @@
               >
                 <Laptop class="size-4" />
                 System
-                {#if $themeStore === "system"}<Check class="size-4 ml-auto" />{/if}
+                {#if $themeStore === "system"}<Check
+                    class="size-4 ml-auto"
+                  />{/if}
               </DropdownMenuItem>
               <DropdownMenuItem
                 class="w-full rounded px-2.5 py-2 text-left text-sm hover:bg-accent flex items-center gap-2.5 outline-none cursor-pointer"
@@ -185,7 +200,9 @@
               >
                 <Sun class="size-4" />
                 Light
-                {#if $themeStore === "light"}<Check class="size-4 ml-auto" />{/if}
+                {#if $themeStore === "light"}<Check
+                    class="size-4 ml-auto"
+                  />{/if}
               </DropdownMenuItem>
               <DropdownMenuItem
                 class="w-full rounded px-2.5 py-2 text-left text-sm hover:bg-accent flex items-center gap-2.5 outline-none cursor-pointer"
@@ -193,7 +210,9 @@
               >
                 <Moon class="size-4" />
                 Dark
-                {#if $themeStore === "dark"}<Check class="size-4 ml-auto" />{/if}
+                {#if $themeStore === "dark"}<Check
+                    class="size-4 ml-auto"
+                  />{/if}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -209,7 +228,7 @@
     >
       <nav class="flex items-center gap-2 px-4 py-2 text-sm min-h-12">
         <a
-          href="/"
+          href="/landing"
           class="font-semibold text-foreground flex items-center gap-2 shrink-0"
         >
           <img src="/favicon.png" alt="Viber" class="size-6" />
@@ -218,11 +237,18 @@
 
         <div class="flex items-center gap-1 ml-auto">
           <a
-            href="/vibers"
+            href="/landing"
             class="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors shrink-0 px-2.5 py-1.5 rounded-md hover:bg-accent"
           >
-            <Server class="size-4 shrink-0" />
-            <span class="hidden sm:inline text-sm">Vibers</span>
+            <Home class="size-4 shrink-0" />
+            <span class="hidden sm:inline text-sm">Home</span>
+          </a>
+          <a
+            href="/"
+            class="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors shrink-0 px-2.5 py-1.5 rounded-md hover:bg-accent"
+          >
+            <LayoutDashboard class="size-4 shrink-0" />
+            <span class="hidden sm:inline text-sm">Dashboard</span>
           </a>
           <a
             href="/docs"
@@ -309,7 +335,9 @@
               >
                 <Laptop class="size-4" />
                 System
-                {#if $themeStore === "system"}<Check class="size-4 ml-auto" />{/if}
+                {#if $themeStore === "system"}<Check
+                    class="size-4 ml-auto"
+                  />{/if}
               </DropdownMenuItem>
               <DropdownMenuItem
                 class="w-full rounded px-2.5 py-2 text-left text-sm hover:bg-accent flex items-center gap-2.5 outline-none cursor-pointer"
@@ -317,7 +345,9 @@
               >
                 <Sun class="size-4" />
                 Light
-                {#if $themeStore === "light"}<Check class="size-4 ml-auto" />{/if}
+                {#if $themeStore === "light"}<Check
+                    class="size-4 ml-auto"
+                  />{/if}
               </DropdownMenuItem>
               <DropdownMenuItem
                 class="w-full rounded px-2.5 py-2 text-left text-sm hover:bg-accent flex items-center gap-2.5 outline-none cursor-pointer"
@@ -325,7 +355,9 @@
               >
                 <Moon class="size-4" />
                 Dark
-                {#if $themeStore === "dark"}<Check class="size-4 ml-auto" />{/if}
+                {#if $themeStore === "dark"}<Check
+                    class="size-4 ml-auto"
+                  />{/if}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

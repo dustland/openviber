@@ -28,7 +28,8 @@
     status: string;
     createdAt: string | null;
     completedAt: string | null;
-    isConnected: boolean;
+    /** Connection status of the node hosting this viber; null if no node */
+    nodeConnected: boolean | null;
     archivedAt: string | null;
   }
 

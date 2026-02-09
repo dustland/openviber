@@ -4,8 +4,10 @@ import { getAuthUser } from "$lib/server/auth";
 // Only these routes require authentication
 const PROTECTED_PATHS = [
   "/vibers",
-  "/skills",
+  "/settings",
   "/jobs",
+  "/nodes",
+  "/environments",
   "/api/vibers",
   "/api/nodes",
   "/api/environments",
@@ -21,6 +23,8 @@ function requiresAuth(pathname: string) {
   if (AUTH_EXCLUDED_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`))) {
     return false;
   }
+  // Dashboard root is protected (exact match only — "/" prefix would match everything)
+  if (pathname === "/") return true;
   return PROTECTED_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
 }
 
@@ -42,7 +46,7 @@ export const handle: Handle = async ({ event, resolve }) => {
     const target = encodeURIComponent(`${pathname}${event.url.search}`);
     return new Response(null, {
       status: 303,
-      headers: { Location: `/login?redirect=${target}` },
+      headers: { Location: `/landing?redirect=${target}` },
     });
   }
 

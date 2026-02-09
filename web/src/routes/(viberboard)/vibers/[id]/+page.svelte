@@ -181,7 +181,8 @@
     version: string | null;
     capabilities: string[] | null;
     skills?: ViberSkill[] | null;
-    isConnected: boolean;
+    /** Connection status of the node hosting this viber; null if no node */
+    nodeConnected: boolean | null;
     runningTasks: string[];
     status?: {
       uptime: number;
@@ -451,7 +452,7 @@
 
   async function sendMessage(overrideContent?: string) {
     const content = (overrideContent ?? inputValue).trim();
-    if (!content || sending || !viber?.isConnected) return;
+    if (!content || sending || viber?.nodeConnected !== true) return;
 
     inputValue = "";
     sending = true;
@@ -630,7 +631,7 @@
 
   $effect(() => {
     if (typeof window === "undefined") return;
-    if (loading || sending || !viber?.isConnected) return;
+    if (loading || sending || viber?.nodeConnected !== true) return;
     if (bootstrapTaskHandledViberId === viber.id) return;
 
     const storageKey = `openviber:new-viber-task:${viber.id}`;
@@ -687,16 +688,16 @@
           >
             Loading...
           </div>
-        {:else if !viber?.isConnected}
+        {:else if viber?.nodeConnected !== true}
           <div
             class="h-full flex items-center justify-center text-center text-muted-foreground p-4"
           >
             <div>
               <Cpu class="size-12 mx-auto mb-4 opacity-50" />
-              <p class="text-lg font-medium">Viber is Offline</p>
+              <p class="text-lg font-medium">Node is offline</p>
               <p class="text-sm mt-2 max-w-sm">
-                This viber is not currently connected. Start the viber daemon to
-                chat.
+                The node that hosts this viber is not connected. Start the viber
+                daemon on that node to chat.
               </p>
             </div>
           </div>
@@ -943,18 +944,18 @@
               onkeydown={handleKeydown}
               placeholder={configError
                 ? "Agent config missing — run openviber onboard first"
-                : viber?.isConnected
+                : viber?.nodeConnected === true
                   ? "Send a task or command..."
-                  : "Viber is offline"}
+                  : "Node is offline"}
               class="composer-input flex-1 min-h-[40px] max-h-36 resize-none rounded-xl border border-transparent bg-transparent px-2 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
               rows="1"
-              disabled={sending || !viber?.isConnected || !!configError}
+              disabled={sending || viber?.nodeConnected !== true || !!configError}
             ></textarea>
             <Button
               onclick={() => sendMessage()}
               disabled={sending ||
                 !inputValue.trim() ||
-                !viber?.isConnected ||
+                viber?.nodeConnected !== true ||
                 !!configError}
               class="size-10 shrink-0 rounded-xl"
             >

@@ -13,7 +13,8 @@
   interface Viber {
     id: string;
     name: string;
-    isConnected: boolean;
+    /** Connection status of the node hosting this viber; null if no node */
+    nodeConnected: boolean | null;
   }
 
   interface Props {
@@ -60,7 +61,7 @@
       <span class="truncate font-semibold text-sm flex-1 text-left">
         {currentViber?.name || "All Vibers"}
       </span>
-      {#if currentViber?.isConnected}
+      {#if currentViber?.nodeConnected === true}
         <span class="size-1.5 rounded-full bg-green-500 shrink-0"></span>
       {:else if currentViber}
         <span class="size-1.5 rounded-full bg-muted-foreground shrink-0"></span>
@@ -97,7 +98,7 @@
           onSelect={() => navigateToViber(viber.id)}
         >
           <Circle
-            class="size-2 {viber.isConnected
+            class="size-2 {viber.nodeConnected === true
               ? 'fill-green-500 text-green-500'
               : 'fill-muted-foreground text-muted-foreground'}"
           />

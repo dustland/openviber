@@ -74,7 +74,7 @@
           No skills found
         </h2>
         <p class="text-muted-foreground text-sm max-w-md mx-auto mb-6">
-          Connect a node (run <code class="rounded bg-muted px-1.5 py-0.5 text-xs">openviber start</code>) so that its installed skills appear here. Skills are loaded from the node’s skill registry.
+          Connect a node (run <code class="rounded bg-muted px-1.5 py-0.5 text-xs">openviber start</code>) so that its installed skills appear here. Skills are loaded from the node's skill registry.
         </p>
         <a
           href="/docs/concepts/skills"

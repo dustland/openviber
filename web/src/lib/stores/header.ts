@@ -11,7 +11,8 @@ export interface ViberSkillInfo {
 export interface ViberHeaderContext {
   viberId: string;
   viberName: string;
-  isConnected: boolean;
+  /** Connection status of the node hosting this viber; null if no node */
+  nodeConnected: boolean | null;
   platform: string | null;
   skills: ViberSkillInfo[];
   activeTab: ViberHeaderTab;
@@ -35,7 +36,7 @@ function createHeaderStore() {
         viber: {
           viberId: viber.viberId ?? s.viber?.viberId ?? "",
           viberName: viber.viberName ?? s.viber?.viberName ?? "",
-          isConnected: viber.isConnected ?? s.viber?.isConnected ?? false,
+          nodeConnected: viber.nodeConnected ?? s.viber?.nodeConnected ?? null,
           platform: viber.platform ?? s.viber?.platform ?? null,
           skills: viber.skills ?? s.viber?.skills ?? [],
           activeTab: viber.activeTab ?? s.viber?.activeTab ?? "chat",

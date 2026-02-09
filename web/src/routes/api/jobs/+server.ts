@@ -30,7 +30,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
   try {
     const body = await request.json();
-    const { name, schedule, prompt, description, model, nodeId } = body;
+    const { name, schedule, prompt, description, model, nodeId, skills, tools } = body;
 
     if (!name || typeof name !== "string" || !name.trim()) {
       return json({ error: "Missing or invalid name" }, { status: 400 });
@@ -60,6 +60,12 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     }
     if (nodeId != null && typeof nodeId === "string" && nodeId.trim()) {
       config.nodeId = nodeId.trim();
+    }
+    if (Array.isArray(skills) && skills.length > 0) {
+      config.skills = skills.filter((s: unknown) => typeof s === "string" && String(s).trim()).map((s: string) => s.trim());
+    }
+    if (Array.isArray(tools) && tools.length > 0) {
+      config.tools = tools.filter((t: unknown) => typeof t === "string" && String(t).trim()).map((t: string) => t.trim());
     }
 
     await fs.writeFile(jobPath, yaml.stringify(config), "utf8");

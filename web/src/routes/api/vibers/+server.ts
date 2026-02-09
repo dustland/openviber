@@ -62,12 +62,17 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       return json({ error: "No node available or hub unreachable" }, { status: 503 });
     }
 
-    // Assign environment if provided
-    if (environmentId && locals.user?.id) {
+    // Persist viber to Supabase so it survives hub restarts; set environment if provided
+    if (locals.user?.id) {
       try {
-        await setViberEnvironmentForUser(locals.user.id, result.viberId, environmentId);
+        await setViberEnvironmentForUser(
+          locals.user.id,
+          result.viberId,
+          environmentId ?? null,
+          goal,
+        );
       } catch (e) {
-        console.error("Failed to assign environment:", e);
+        console.error("Failed to persist viber or assign environment:", e);
       }
     }
 
@@ -78,7 +83,16 @@ export const POST: RequestHandler = async ({ request, locals }) => {
   }
 };
 
-// GET /api/vibers - List vibers from hub
+// Persisted viber row from Supabase (used for listing)
+interface PersistedViberRow {
+  id: string;
+  name: string | null;
+  created_at: string | null;
+  archived_at: string | null;
+  environment_id: string | null;
+}
+
+// GET /api/vibers - List vibers: Supabase as source of truth, hub for live state
 export const GET: RequestHandler = async ({ locals, url }) => {
   if (!locals.user) {
     return json({ error: "Unauthorized" }, { status: 401 });
@@ -87,53 +101,41 @@ export const GET: RequestHandler = async ({ locals, url }) => {
   const includeArchived = url.searchParams.get("include_archived") === "true";
 
   try {
-    const { vibers } = await hubClient.getVibers();
-
-    // Look up environment assignments for all vibers
-    const viberIds = vibers.map((v) => v.id);
-    const [assignments, environments, archivedRows] = await Promise.all([
-      listViberEnvironmentAssignmentsForUser(locals.user.id, viberIds),
+    const [persistedRows, { vibers: hubVibers }, environments] = await Promise.all([
+      supabaseRequest<PersistedViberRow[]>("vibers", {
+        params: {
+          select: "id,name,created_at,archived_at,environment_id",
+          ...(includeArchived ? {} : { archived_at: "is.null" }),
+          order: "created_at.desc",
+        },
+      }),
+      hubClient.getVibers(),
       listEnvironmentsForUser(locals.user.id),
-      viberIds.length > 0
-        ? supabaseRequest<Array<{ id: string; archived_at: string | null }>>("vibers", {
-          params: {
-            select: "id,archived_at",
-            id: toInFilter(viberIds),
-          },
-        })
-        : Promise.resolve([]),
     ]);
 
-    const envAssignMap = new Map(
-      assignments.map((a) => [a.viberId, a.environmentId]),
-    );
-    const envNameMap = new Map(
-      environments.map((e) => [e.id, e.name]),
-    );
-    const archivedMap = new Map(
-      archivedRows.map((r) => [r.id, r.archived_at]),
-    );
+    const hubMap = new Map(hubVibers.map((v) => [v.id, v]));
+    const envNameMap = new Map(environments.map((e) => [e.id, e.name]));
 
-    // Transform to expected format for the sidebar/frontend
-    const result = vibers
-      .map((v) => {
-        const environmentId = envAssignMap.get(v.id) ?? null;
-        const archivedAt = archivedMap.get(v.id) ?? null;
+    const result = persistedRows
+      .filter((row) => includeArchived || !row.archived_at)
+      .map((row) => {
+        const hub = hubMap.get(row.id);
+        const environmentId = row.environment_id ?? null;
         return {
-          id: v.id,
-          nodeId: v.nodeId,
-          nodeName: v.nodeName ?? null,
+          id: row.id,
+          nodeId: hub?.nodeId ?? null,
+          nodeName: hub?.nodeName ?? null,
           environmentId,
           environmentName: environmentId ? (envNameMap.get(environmentId) ?? null) : null,
-          goal: v.goal,
-          status: v.status,
-          createdAt: v.createdAt,
-          completedAt: v.completedAt,
-          isConnected: v.isNodeConnected !== false,
-          archivedAt,
+          goal: hub?.goal ?? row.name ?? row.id,
+          status: hub?.status ?? "unknown",
+          createdAt: hub?.createdAt ?? row.created_at ?? new Date().toISOString(),
+          completedAt: hub?.completedAt ?? null,
+          nodeConnected:
+            hub != null ? (hub.isNodeConnected !== false) : null,
+          archivedAt: row.archived_at,
         };
-      })
-      .filter((v) => includeArchived || !v.archivedAt);
+      });
 
     return json(result);
   } catch (error) {

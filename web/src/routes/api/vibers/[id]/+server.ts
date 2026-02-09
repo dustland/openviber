@@ -17,7 +17,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
         nodeId: null,
         goal: "",
         status: "unknown",
-        isConnected: false,
+        nodeConnected: null,
       });
     }
 
@@ -27,7 +27,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
       nodeName: viber.nodeName ?? viber.nodeId,
       goal: viber.goal,
       status: viber.status,
-      isConnected: viber.isNodeConnected !== false,
+      nodeConnected: viber.isNodeConnected !== false,
       createdAt: viber.createdAt,
       completedAt: viber.completedAt,
     });

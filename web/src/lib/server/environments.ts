@@ -409,6 +409,7 @@ export async function setViberEnvironmentForUser(
   userId: string,
   viberId: string,
   environmentId: string | null,
+  goal?: string,
 ): Promise<ViberEnvironmentAssignment | null> {
   const normalizedEnvironmentId = environmentId?.trim() || null;
 
@@ -430,7 +431,7 @@ export async function setViberEnvironmentForUser(
     body: [
       {
         id: viberId,
-        name: viberId,
+        name: goal?.trim() || viberId,
         environment_id: normalizedEnvironmentId,
         created_at: now,
         updated_at: now,

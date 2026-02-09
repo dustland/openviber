@@ -26,7 +26,7 @@
 	<div
 		class={cn(
 			"bg-sidebar text-sidebar-foreground flex h-full w-(--sidebar-width) flex-col",
-			className
+			className,
 		)}
 		bind:this={ref}
 		{...restProps}
@@ -74,7 +74,7 @@
 				"group-data-[side=right]:rotate-180",
 				variant === "floating" || variant === "inset"
 					? "group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]"
-					: "group-data-[collapsible=icon]:w-(--sidebar-width-icon)"
+					: "group-data-[collapsible=icon]:w-(--sidebar-width-icon)",
 			)}
 		></div>
 		<div
@@ -87,15 +87,15 @@
 				// Adjust the padding for floating and inset variants.
 				variant === "floating" || variant === "inset"
 					? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]"
-					: "group-data-[collapsible=icon]:w-(--sidebar-width-icon) group-data-[side=left]:border-e group-data-[side=right]:border-s",
-				className
+					: "group-data-[collapsible=icon]:w-(--sidebar-width-icon) group-data-[side=left]:border-e group-data-[side=left]:border-sidebar-border/40 group-data-[side=right]:border-s group-data-[side=right]:border-sidebar-border/40",
+				className,
 			)}
 			{...restProps}
 		>
 			<div
 				data-sidebar="sidebar"
 				data-slot="sidebar-inner"
-				class="bg-sidebar group-data-[variant=floating]:border-sidebar-border flex h-full w-full flex-col group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:shadow-sm"
+				class="bg-sidebar group-data-[variant=floating]:border-sidebar-border flex h-full w-full flex-col group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:shadow-sm shadow-[2px_0_8px_-2px_rgba(0,0,0,0.08)]"
 			>
 				{@render children?.()}
 			</div>

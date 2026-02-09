@@ -11,8 +11,13 @@
     Trash2,
     Info,
     X,
+    HeartPulse,
+    Users,
+    FilePlus,
+    Sparkles,
   } from "@lucide/svelte";
   import { Button } from "$lib/components/ui/button";
+  import { JOB_TEMPLATES, type JobTemplate } from "$lib/data/job-templates";
 
   interface JobEntry {
     name: string;
@@ -85,6 +90,9 @@
   let formDescription = $state("");
   let formModel = $state("");
   let formNodeId = $state("");
+  let formSkills = $state("");
+  let formTools = $state("");
+  let selectedTemplateId = $state<string | null>(null);
 
   let nodes = $state<NodeOption[]>([]);
 
@@ -94,12 +102,38 @@
   let dailyMinute = $state(0);
   let intervalHours = $state(24);
   let intervalDailyHour = $state(8);
-  let selectedDays = $state<boolean[]>([true, true, true, true, true, true, true]);
+  let selectedDays = $state<boolean[]>([
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+  ]);
 
   let deletingName = $state<string | null>(null);
   let createDialogEl = $state<HTMLDivElement | null>(null);
 
   const formSchedule = $derived(buildCron());
+
+  function applyTemplate(tpl: JobTemplate) {
+    selectedTemplateId = tpl.id;
+    const d = tpl.defaults;
+    formName = d.name ?? "";
+    formPrompt = d.prompt ?? "";
+    formDescription = d.description ?? "";
+    formModel = d.model ?? "";
+    formSkills = d.skills?.join(", ") ?? "";
+    formTools = d.tools?.join(", ") ?? "";
+    if (d.scheduleMode) scheduleMode = d.scheduleMode;
+    // Reset schedule inputs to defaults
+    dailyHour = 8;
+    dailyMinute = 0;
+    intervalHours = 24;
+    intervalDailyHour = 8;
+    selectedDays = [true, true, true, true, true, true, true];
+  }
 
   $effect(() => {
     if (showCreateForm && createDialogEl) {
@@ -138,6 +172,14 @@
     createError = null;
     createSubmitting = true;
     try {
+      const skillsArr = formSkills
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const toolsArr = formTools
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
       const res = await fetch("/api/jobs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -148,6 +190,8 @@
           description: formDescription.trim() || undefined,
           model: formModel.trim() || undefined,
           nodeId: formNodeId.trim() || undefined,
+          skills: skillsArr.length > 0 ? skillsArr : undefined,
+          tools: toolsArr.length > 0 ? toolsArr : undefined,
         }),
       });
       const data = await res.json();
@@ -158,6 +202,9 @@
       formDescription = "";
       formModel = "";
       formNodeId = "";
+      formSkills = "";
+      formTools = "";
+      selectedTemplateId = null;
       scheduleMode = "daily";
       dailyHour = 8;
       dailyMinute = 0;
@@ -193,11 +240,20 @@
       const res = await fetch("/api/nodes");
       if (!res.ok) return;
       const data = await res.json();
-      nodes = (data.nodes ?? []).map((n: { id: string; name?: string; node_id?: string; status?: string }) => ({
-        id: n.node_id ?? n.id,
-        name: n.name ?? n.id,
-        status: n.status ?? "unknown",
-      })).filter((n: NodeOption) => n.id);
+      nodes = (data.nodes ?? [])
+        .map(
+          (n: {
+            id: string;
+            name?: string;
+            node_id?: string;
+            status?: string;
+          }) => ({
+            id: n.node_id ?? n.id,
+            name: n.name ?? n.id,
+            status: n.status ?? "unknown",
+          }),
+        )
+        .filter((n: NodeOption) => n.id);
     } catch {
       nodes = [];
     }
@@ -225,7 +281,9 @@
       <p class="text-muted-foreground">
         Task automation on a schedule. For example: “Summarize my emails and
         send me a report at 8am every day.” Jobs are stored in
-        <code class="rounded bg-muted px-1.5 py-0.5 text-xs">~/.openviber/jobs/</code>
+        <code class="rounded bg-muted px-1.5 py-0.5 text-xs"
+          >~/.openviber/jobs/</code
+        >
         and run when the daemon is started.
       </p>
     </header>
@@ -254,15 +312,17 @@
       </div>
 
       {#if !hasAnyJobs}
-        <div class="rounded-xl border border-dashed border-border p-12 text-center">
+        <div
+          class="rounded-xl border border-dashed border-border p-12 text-center"
+        >
           <Mail class="size-12 text-muted-foreground/50 mx-auto mb-4" />
-          <h2 class="text-lg font-medium text-foreground mb-2">
-            No jobs yet
-          </h2>
+          <h2 class="text-lg font-medium text-foreground mb-2">No jobs yet</h2>
           <p class="text-muted-foreground text-sm max-w-md mx-auto mb-6">
-            Create a job above, or ask a viber to create one (e.g. “Summarize emails and send me a report at 8am every day”). Jobs are stored in
-            <code class="rounded bg-muted px-1.5 py-0.5 text-xs">~/.openviber/jobs/</code>.
-            Restart the daemon to load new jobs.
+            Create a job above, or ask a viber to create one (e.g. “Summarize
+            emails and send me a report at 8am every day”). Jobs are stored in
+            <code class="rounded bg-muted px-1.5 py-0.5 text-xs"
+              >~/.openviber/jobs/</code
+            >. Restart the daemon to load new jobs.
           </p>
           <a
             href="/docs/concepts/jobs"
@@ -277,7 +337,9 @@
           <!-- Global jobs -->
           {#if globalJobs.length > 0}
             <section>
-              <h2 class="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
+              <h2
+                class="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4"
+              >
                 Global jobs
               </h2>
               <div class="grid gap-4">
@@ -287,7 +349,9 @@
                   >
                     <div class="flex-1 min-w-0">
                       <div class="flex items-center gap-2 mb-1">
-                        <h3 class="text-lg font-semibold text-card-foreground truncate">
+                        <h3
+                          class="text-lg font-semibold text-card-foreground truncate"
+                        >
                           {job.name}
                         </h3>
                         <span
@@ -303,22 +367,33 @@
                         </p>
                       {/if}
                       <div class="flex flex-wrap items-center gap-3 text-sm">
-                        <div class="flex items-center gap-1.5 text-muted-foreground">
+                        <div
+                          class="flex items-center gap-1.5 text-muted-foreground"
+                        >
                           <Clock class="size-4" />
                           <span>{job.scheduleDescription || job.schedule}</span>
                         </div>
                         {#if job.nodeId}
-                          <span class="text-muted-foreground">Node: {job.nodeId.slice(0, 12)}{job.nodeId.length > 12 ? "…" : ""}</span>
+                          <span class="text-muted-foreground"
+                            >Node: {job.nodeId.slice(0, 12)}{job.nodeId.length >
+                            12
+                              ? "…"
+                              : ""}</span
+                          >
                         {/if}
                         {#if job.model}
-                          <div class="flex items-center gap-1.5 text-muted-foreground">
+                          <div
+                            class="flex items-center gap-1.5 text-muted-foreground"
+                          >
                             <Zap class="size-4" />
                             <span class="font-mono text-xs">{job.model}</span>
                           </div>
                         {/if}
                       </div>
                       {#if job.prompt}
-                        <div class="mt-3 p-3 rounded-lg bg-muted/50 border border-border/50">
+                        <div
+                          class="mt-3 p-3 rounded-lg bg-muted/50 border border-border/50"
+                        >
                           <p class="text-sm text-muted-foreground line-clamp-2">
                             {job.prompt}
                           </p>
@@ -345,7 +420,9 @@
           {#each perViberJobs as group}
             {#if group.jobs.length > 0}
               <section>
-                <h2 class="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
+                <h2
+                  class="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4"
+                >
                   Viber: {group.viberId}
                 </h2>
                 <div class="grid gap-4">
@@ -356,11 +433,15 @@
                       <div class="flex items-start justify-between gap-4">
                         <div class="flex-1 min-w-0">
                           <div class="flex items-center gap-2 mb-1">
-                            <h3 class="text-lg font-semibold text-card-foreground truncate">
+                            <h3
+                              class="text-lg font-semibold text-card-foreground truncate"
+                            >
                               {job.name}
                             </h3>
                             {#if !job.enabled}
-                              <span class="px-2 py-0.5 rounded-full text-xs bg-muted text-muted-foreground">
+                              <span
+                                class="px-2 py-0.5 rounded-full text-xs bg-muted text-muted-foreground"
+                              >
                                 Disabled
                               </span>
                             {/if}
@@ -370,21 +451,35 @@
                               {job.description}
                             </p>
                           {/if}
-                          <div class="flex flex-wrap items-center gap-3 text-sm">
-                            <div class="flex items-center gap-1.5 text-muted-foreground">
+                          <div
+                            class="flex flex-wrap items-center gap-3 text-sm"
+                          >
+                            <div
+                              class="flex items-center gap-1.5 text-muted-foreground"
+                            >
                               <Clock class="size-4" />
-                              <span>{job.scheduleDescription || job.schedule}</span>
+                              <span
+                                >{job.scheduleDescription || job.schedule}</span
+                              >
                             </div>
                             {#if job.model}
-                              <div class="flex items-center gap-1.5 text-muted-foreground">
+                              <div
+                                class="flex items-center gap-1.5 text-muted-foreground"
+                              >
                                 <Zap class="size-4" />
-                                <span class="font-mono text-xs">{job.model}</span>
+                                <span class="font-mono text-xs"
+                                  >{job.model}</span
+                                >
                               </div>
                             {/if}
                           </div>
                           {#if job.prompt}
-                            <div class="mt-3 p-3 rounded-lg bg-muted/50 border border-border/50">
-                              <p class="text-sm text-muted-foreground line-clamp-2">
+                            <div
+                              class="mt-3 p-3 rounded-lg bg-muted/50 border border-border/50"
+                            >
+                              <p
+                                class="text-sm text-muted-foreground line-clamp-2"
+                              >
                                 {job.prompt}
                               </p>
                             </div>
@@ -395,14 +490,16 @@
                             <span
                               class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400"
                             >
-                              <span class="size-1.5 rounded-full bg-current"></span>
+                              <span class="size-1.5 rounded-full bg-current"
+                              ></span>
                               Active
                             </span>
                           {:else}
                             <span
                               class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground"
                             >
-                              <span class="size-1.5 rounded-full bg-current"></span>
+                              <span class="size-1.5 rounded-full bg-current"
+                              ></span>
                               Paused
                             </span>
                           {/if}
@@ -460,8 +557,12 @@
         }
       }}
     >
-      <div class="flex items-center justify-between px-5 py-4 border-b border-border">
-        <h2 id="create-job-title" class="text-lg font-semibold text-foreground">New job</h2>
+      <div
+        class="flex items-center justify-between px-5 py-4 border-b border-border"
+      >
+        <h2 id="create-job-title" class="text-lg font-semibold text-foreground">
+          New job
+        </h2>
         <button
           type="button"
           class="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
@@ -476,8 +577,33 @@
 
       <div class="px-5 py-4 space-y-5">
         <p class="text-sm text-muted-foreground -mt-1">
-          Schedule a recurring task. The viber runs it on the chosen node and reports back.
+          Pick a template or start from scratch.
         </p>
+
+        <!-- Template picker -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {#each JOB_TEMPLATES as tpl}
+            <button
+              type="button"
+              class="flex flex-col items-center gap-1.5 rounded-lg border p-3 text-center transition-colors {selectedTemplateId ===
+              tpl.id
+                ? 'border-primary bg-primary/5 text-foreground'
+                : 'border-border hover:border-primary/40 text-muted-foreground hover:text-foreground'}"
+              onclick={() => applyTemplate(tpl)}
+            >
+              {#if tpl.icon === "heart-pulse"}
+                <HeartPulse class="size-5" />
+              {:else if tpl.icon === "users"}
+                <Users class="size-5" />
+              {:else if tpl.icon === "sparkles"}
+                <Sparkles class="size-5" />
+              {:else}
+                <FilePlus class="size-5" />
+              {/if}
+              <span class="text-xs font-medium">{tpl.label}</span>
+            </button>
+          {/each}
+        </div>
 
         {#if createError}
           <p class="text-sm text-destructive">{createError}</p>
@@ -491,9 +617,17 @@
           }}
         >
           <section class="space-y-3">
-            <h3 class="text-xs font-medium uppercase tracking-wider text-muted-foreground">Task</h3>
+            <h3
+              class="text-xs font-medium uppercase tracking-wider text-muted-foreground"
+            >
+              Task
+            </h3>
             <div>
-              <label for="job-name" class="block text-sm font-medium text-foreground mb-1.5">Name</label>
+              <label
+                for="job-name"
+                class="block text-sm font-medium text-foreground mb-1.5"
+                >Name</label
+              >
               <input
                 id="job-name"
                 type="text"
@@ -503,7 +637,11 @@
               />
             </div>
             <div>
-              <label for="job-prompt" class="block text-sm font-medium text-foreground mb-1.5">Prompt</label>
+              <label
+                for="job-prompt"
+                class="block text-sm font-medium text-foreground mb-1.5"
+                >Prompt</label
+              >
               <textarea
                 id="job-prompt"
                 rows="3"
@@ -512,15 +650,24 @@
                 bind:value={formPrompt}
               ></textarea>
               <p class="mt-1 text-xs text-muted-foreground">
-                You can add constraints in the prompt (e.g. use only repo evidence, prefer minimal fixes).
+                You can add constraints in the prompt (e.g. use only repo
+                evidence, prefer minimal fixes).
               </p>
             </div>
           </section>
 
           <section class="space-y-3">
-            <h3 class="text-xs font-medium uppercase tracking-wider text-muted-foreground">Run on</h3>
+            <h3
+              class="text-xs font-medium uppercase tracking-wider text-muted-foreground"
+            >
+              Run on
+            </h3>
             <div>
-              <label for="job-node" class="block text-sm font-medium text-foreground mb-1.5">Node</label>
+              <label
+                for="job-node"
+                class="block text-sm font-medium text-foreground mb-1.5"
+                >Node</label
+              >
               <select
                 id="job-node"
                 class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -535,17 +682,24 @@
                 {/each}
               </select>
               <p class="mt-1 text-xs text-muted-foreground">
-                The job is pushed to this node so it runs on that machine. Leave “Any available node” to only store the job (e.g. for manual sync).
+                The job is pushed to this node so it runs on that machine. Leave
+                “Any available node” to only store the job (e.g. for manual
+                sync).
               </p>
             </div>
           </section>
 
           <section class="space-y-3">
-            <h3 class="text-xs font-medium uppercase tracking-wider text-muted-foreground">Schedule</h3>
+            <h3
+              class="text-xs font-medium uppercase tracking-wider text-muted-foreground"
+            >
+              Schedule
+            </h3>
             <div class="flex gap-2">
               <button
                 type="button"
-                class="rounded-md px-3 py-1.5 text-sm font-medium transition-colors {scheduleMode === 'daily'
+                class="rounded-md px-3 py-1.5 text-sm font-medium transition-colors {scheduleMode ===
+                'daily'
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-muted text-muted-foreground hover:bg-muted/80'}"
                 onclick={() => (scheduleMode = "daily")}
@@ -554,7 +708,8 @@
               </button>
               <button
                 type="button"
-                class="rounded-md px-3 py-1.5 text-sm font-medium transition-colors {scheduleMode === 'interval'
+                class="rounded-md px-3 py-1.5 text-sm font-medium transition-colors {scheduleMode ===
+                'interval'
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-muted text-muted-foreground hover:bg-muted/80'}"
                 onclick={() => (scheduleMode = "interval")}
@@ -587,7 +742,9 @@
                 {#each DAY_LABELS as label, i}
                   <button
                     type="button"
-                    class="w-9 h-9 rounded-md text-xs font-medium transition-colors {selectedDays[i]
+                    class="w-9 h-9 rounded-md text-xs font-medium transition-colors {selectedDays[
+                      i
+                    ]
                       ? 'bg-primary text-primary-foreground'
                       : 'bg-muted text-muted-foreground hover:bg-muted/80'}"
                     title={label}
@@ -629,7 +786,9 @@
                 {#each DAY_LABELS as label, i}
                   <button
                     type="button"
-                    class="w-9 h-9 rounded-md text-xs font-medium transition-colors {selectedDays[i]
+                    class="w-9 h-9 rounded-md text-xs font-medium transition-colors {selectedDays[
+                      i
+                    ]
                       ? 'bg-primary text-primary-foreground'
                       : 'bg-muted text-muted-foreground hover:bg-muted/80'}"
                     title={label}
@@ -647,10 +806,18 @@
           </section>
 
           <section class="space-y-3">
-            <h3 class="text-xs font-medium uppercase tracking-wider text-muted-foreground">Optional</h3>
+            <h3
+              class="text-xs font-medium uppercase tracking-wider text-muted-foreground"
+            >
+              Optional
+            </h3>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label for="job-description" class="block text-sm font-medium text-foreground mb-1.5">Description</label>
+                <label
+                  for="job-description"
+                  class="block text-sm font-medium text-foreground mb-1.5"
+                  >Description</label
+                >
                 <input
                   id="job-description"
                   type="text"
@@ -660,7 +827,11 @@
                 />
               </div>
               <div>
-                <label for="job-model" class="block text-sm font-medium text-foreground mb-1.5">Model</label>
+                <label
+                  for="job-model"
+                  class="block text-sm font-medium text-foreground mb-1.5"
+                  >Model</label
+                >
                 <input
                   id="job-model"
                   type="text"
@@ -668,6 +839,40 @@
                   placeholder="e.g. deepseek/deepseek-chat"
                   bind:value={formModel}
                 />
+              </div>
+              <div>
+                <label
+                  for="job-skills"
+                  class="block text-sm font-medium text-foreground mb-1.5"
+                  >Skills</label
+                >
+                <input
+                  id="job-skills"
+                  type="text"
+                  class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  placeholder="e.g. antigravity, github"
+                  bind:value={formSkills}
+                />
+                <p class="mt-1 text-xs text-muted-foreground">
+                  Comma-separated skill names
+                </p>
+              </div>
+              <div>
+                <label
+                  for="job-tools"
+                  class="block text-sm font-medium text-foreground mb-1.5"
+                  >Tools</label
+                >
+                <input
+                  id="job-tools"
+                  type="text"
+                  class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  placeholder="e.g. browser, desktop"
+                  bind:value={formTools}
+                />
+                <p class="mt-1 text-xs text-muted-foreground">
+                  Comma-separated tool names
+                </p>
               </div>
             </div>
           </section>

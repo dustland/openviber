@@ -216,6 +216,19 @@ export class Agent {
       }
     }
 
+    // Primary coding CLI preference (from settings): steer agent when multiple coding CLIs are enabled
+    const primaryCodingCli = this.config.primaryCodingCli as string | undefined;
+    if (
+      primaryCodingCli &&
+      this.skills.includes(primaryCodingCli)
+    ) {
+      segments.push(
+        "\nFor coding tasks, prefer the tools from the **" +
+          primaryCodingCli +
+          "** skill. Only use another coding CLI (e.g. codex_run, cursor_agent_run, gemini_run) if the user explicitly asks for it by name.",
+      );
+    }
+
     // Custom system prompt
     if (this.systemPrompt) {
       segments.push(`\n${this.systemPrompt}`);

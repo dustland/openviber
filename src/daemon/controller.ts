@@ -14,7 +14,8 @@
 import { EventEmitter } from "events";
 import WebSocket from "ws";
 import type { ViberOptions } from "../core/viber-agent";
-import { runTask } from "./runtime";
+import { runTask, appendDailyMemory } from "./runtime";
+import { createLogger } from "../utils/logger";
 import { TerminalManager } from "./terminal";
 import { getOpenViberVersion } from "../utils/version";
 import {
@@ -115,14 +116,14 @@ export type ControllerServerMessage =
   | { type: "terminal:input"; target: string; keys: string; appId?: string }
   | { type: "terminal:resize"; target: string; cols: number; rows: number; appId?: string }
   | {
-      type: "job:create";
-      name: string;
-      schedule: string;
-      prompt: string;
-      description?: string;
-      model?: string;
-      nodeId?: string;
-    }
+    type: "job:create";
+    name: string;
+    schedule: string;
+    prompt: string;
+    description?: string;
+    model?: string;
+    nodeId?: string;
+  }
   | { type: "status:request" };
 
 // Viber -> Server messages
@@ -196,6 +197,7 @@ export class ViberController extends EventEmitter {
   private loadedCapabilities: string[] = [];
   /** Timestamp of last heartbeat sent */
   private lastHeartbeatAt?: string;
+  private log = createLogger("controller");
 
   constructor(private config: ViberControllerConfig) {
     super();
@@ -205,8 +207,8 @@ export class ViberController extends EventEmitter {
    * Start the viber daemon
    */
   async start(): Promise<void> {
-    console.log(`[Viber] Starting viber: ${this.config.viberId}`);
-    console.log(`[Viber] Connecting to: ${this.config.serverUrl}`);
+    this.log = createLogger("controller", { viberId: this.config.viberId });
+    this.log.info("Starting viber", { serverUrl: this.config.serverUrl });
     this.shouldReconnect = true;
     await this.connect();
   }
@@ -215,7 +217,7 @@ export class ViberController extends EventEmitter {
    * Stop the viber daemon
    */
   async stop(): Promise<void> {
-    console.log("[Viber] Stopping viber...");
+    this.log.info("Stopping viber");
     this.shouldReconnect = false;
 
     for (const [taskId, runtime] of this.runningTasks) {
@@ -303,13 +305,13 @@ export class ViberController extends EventEmitter {
       this.ws.on("close", () => this.onDisconnected());
       this.ws.on("error", (err) => this.onError(err));
     } catch (error) {
-      console.error("[Viber] Connection failed:", error);
+      this.log.error("Connection failed", { error: String(error) });
       this.scheduleReconnect();
     }
   }
 
   private async onConnected(): Promise<void> {
-    console.log("[Viber] Connected to command center");
+    this.log.info("Connected to command center");
     this.isConnected = true;
 
     const capabilities = ["file", "search", "web"];
@@ -328,7 +330,7 @@ export class ViberController extends EventEmitter {
         description: s.metadata.description || "",
       }));
     } catch (err) {
-      console.warn("[Viber] Could not load skills for capabilities:", err);
+      this.log.warn("Could not load skills for capabilities", { error: String(err) });
     }
 
     // Store loaded capabilities and skills for status reporting
@@ -353,7 +355,7 @@ export class ViberController extends EventEmitter {
   }
 
   private onDisconnected(): void {
-    console.log("[Viber] Disconnected from command center");
+    this.log.info("Disconnected from command center");
     this.isConnected = false;
     this.stopHeartbeat();
 
@@ -365,7 +367,7 @@ export class ViberController extends EventEmitter {
   }
 
   private onError(error: Error): void {
-    console.error("[Viber] WebSocket error:", error.message);
+    this.log.error("WebSocket error", { error: error.message });
     this.emit("error", error);
   }
 
@@ -443,7 +445,7 @@ export class ViberController extends EventEmitter {
           break;
       }
     } catch (error) {
-      console.error("[Viber] Failed to process message:", error);
+      this.log.error("Failed to process message", { error: String(error) });
     }
   }
 
@@ -465,8 +467,8 @@ export class ViberController extends EventEmitter {
   }): Promise<void> {
     const { taskId, goal, options, messages, environment } = message;
 
-    console.log(`[Viber] Received task: ${taskId}`);
-    console.log(`[Viber] Goal: ${goal}`);
+    const taskLog = this.log.child({ taskId });
+    taskLog.info("Received task", { goal });
 
     const runtime: TaskRuntimeState = {
       taskId,
@@ -523,25 +525,39 @@ export class ViberController extends EventEmitter {
       }
 
       if (!runtime.stopped) {
+        const summary = result.agent.getSummary();
         this.send({
           type: "task:completed",
           taskId,
           result: {
             spaceId: taskId,
             text: result.finalText,
-            summary: result.agent.getSummary(),
+            summary,
           },
+        });
+        // Append to daily memory log
+        await appendDailyMemory(this.config.viberId, {
+          taskId,
+          goal,
+          outcome: "completed",
+          details: typeof summary === "string" ? summary : JSON.stringify(summary),
         });
       }
     } catch (error: any) {
       if (error?.name === "AbortError") {
-        console.log(`[Viber] Task ${taskId} stopped`);
+        taskLog.info("Task stopped");
+        await appendDailyMemory(this.config.viberId, {
+          taskId, goal, outcome: "stopped",
+        });
       } else {
-        console.error(`[Viber] Task ${taskId} execution error:`, error);
+        taskLog.error("Task execution error", { error: error.message });
         this.send({
           type: "task:error",
           taskId,
           error: error.message,
+        });
+        await appendDailyMemory(this.config.viberId, {
+          taskId, goal, outcome: "error", details: error.message,
         });
       }
     } finally {
@@ -591,7 +607,7 @@ export class ViberController extends EventEmitter {
         }
       } catch (err: any) {
         if (err?.name !== "AbortError") {
-          console.error(`[Viber] Stream read error:`, err);
+          this.log.error("Stream read error", { taskId: runtime.taskId, error: String(err) });
           throw err;
         }
       }
@@ -611,7 +627,7 @@ export class ViberController extends EventEmitter {
       runtime.stopped = true;
       runtime.controller.abort();
       this.runningTasks.delete(taskId);
-      console.log(`[Viber] Task stopped: ${taskId}`);
+      this.log.info("Task stopped", { taskId });
     }
   }
 
@@ -697,7 +713,7 @@ export class ViberController extends EventEmitter {
   }
 
   private async handleTerminalAttach(target: string, appId?: string): Promise<void> {
-    console.log(`[Viber] Attaching to terminal: ${target}`);
+    this.log.info("Attaching to terminal", { target });
     const ok = await this.terminalManager.attach(
       target,
       (data) => {
@@ -712,7 +728,7 @@ export class ViberController extends EventEmitter {
   }
 
   private handleTerminalDetach(target: string, appId?: string): void {
-    console.log(`[Viber] Detaching from terminal: ${target}`);
+    this.log.info("Detaching from terminal", { target });
     this.terminalManager.detach(target, appId);
     this.send({ type: "terminal:detached", target, appId });
   }
@@ -785,7 +801,7 @@ export class ViberController extends EventEmitter {
     if (!this.shouldReconnect) return;
 
     const interval = this.config.reconnectInterval || 5000;
-    console.log(`[Viber] Reconnecting in ${interval}ms...`);
+    this.log.info("Reconnecting", { intervalMs: interval });
 
     this.reconnectTimer = setTimeout(() => {
       this.connect();

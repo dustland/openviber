@@ -7,6 +7,16 @@ import YAML from "yaml";
 
 const SETTINGS_PATH = path.join(os.homedir(), ".openviber", "settings.yaml");
 
+/** Canonical coding CLI skill IDs (must match src/skills/hub/settings.ts). */
+const CODING_CLI_SKILL_IDS = ["codex-cli", "cursor-agent", "gemini-cli"] as const;
+
+/** Options for the primary coding CLI dropdown. */
+const CODING_CLI_OPTIONS: { id: string; label: string }[] = [
+  { id: "codex-cli", label: "Codex CLI" },
+  { id: "cursor-agent", label: "Cursor Agent" },
+  { id: "gemini-cli", label: "Gemini CLI" },
+];
+
 /** All known skill source provider keys */
 const ALL_PROVIDERS = [
   "openclaw",
@@ -110,13 +120,27 @@ interface SkillSourceSetting {
 
 interface SettingsFile {
   skillSources?: Record<string, SkillSourceSetting>;
+  /** Primary coding CLI skill id (null = let agent choose). */
+  primaryCodingCli?: string | null;
 }
 
 async function readSettings(): Promise<SettingsFile> {
   try {
     const raw = await fs.readFile(SETTINGS_PATH, "utf8");
     const parsed = YAML.parse(raw);
-    return parsed && typeof parsed === "object" ? parsed : {};
+    if (!parsed || typeof parsed !== "object") return {};
+    const out: SettingsFile = { ...parsed };
+    // Normalize primaryCodingCli: only allow known ids
+    if (
+      out.primaryCodingCli != null &&
+      typeof out.primaryCodingCli === "string" &&
+      CODING_CLI_SKILL_IDS.includes(out.primaryCodingCli as (typeof CODING_CLI_SKILL_IDS)[number])
+    ) {
+      // keep as-is
+    } else {
+      out.primaryCodingCli = undefined;
+    }
+    return out;
   } catch {
     return {};
   }
@@ -187,7 +211,11 @@ export const GET: RequestHandler = async ({ locals }) => {
     };
   }
 
-  return json({ sources });
+  return json({
+    sources,
+    primaryCodingCli: settings.primaryCodingCli ?? null,
+    codingCliOptions: CODING_CLI_OPTIONS,
+  });
 };
 
 /**
@@ -201,40 +229,50 @@ export const PUT: RequestHandler = async ({ request, locals }) => {
 
   try {
     const body = await request.json();
-    const { sources } = body as {
+    const payload = body as {
       sources?: Record<string, Partial<SkillSourceSetting>>;
+      primaryCodingCli?: string | null;
     };
-
-    if (!sources || typeof sources !== "object") {
-      return json({ error: "Invalid payload: expected { sources: {...} }" }, { status: 400 });
-    }
+    const { sources, primaryCodingCli: primaryCodingCliPayload } = payload;
 
     // Load current settings
     const settings = await readSettings();
-    const current = settings.skillSources || getDefaultSources();
 
-    // Merge updates
-    for (const key of ALL_PROVIDERS) {
-      const update = sources[key];
-      if (!update) continue;
+    if (sources && typeof sources === "object") {
+      const current = settings.skillSources || getDefaultSources();
+      for (const key of ALL_PROVIDERS) {
+        const update = sources[key];
+        if (!update) continue;
 
-      if (!current[key]) {
-        current[key] = { enabled: false };
-      }
+        if (!current[key]) {
+          current[key] = { enabled: false };
+        }
 
-      if (typeof update.enabled === "boolean") {
-        current[key].enabled = update.enabled;
+        if (typeof update.enabled === "boolean") {
+          current[key].enabled = update.enabled;
+        }
+        if (typeof update.url === "string") {
+          current[key].url = update.url || undefined;
+        }
+        if (typeof update.apiKey === "string" && update.apiKey !== "••••••") {
+          current[key].apiKey = update.apiKey || undefined;
+        }
       }
-      if (typeof update.url === "string") {
-        current[key].url = update.url || undefined;
-      }
-      // Only update apiKey if it's not the masked value
-      if (typeof update.apiKey === "string" && update.apiKey !== "••••••") {
-        current[key].apiKey = update.apiKey || undefined;
+      settings.skillSources = current;
+    }
+
+    if (primaryCodingCliPayload !== undefined) {
+      if (
+        primaryCodingCliPayload === null ||
+        primaryCodingCliPayload === "" ||
+        (typeof primaryCodingCliPayload === "string" &&
+          CODING_CLI_SKILL_IDS.includes(primaryCodingCliPayload as (typeof CODING_CLI_SKILL_IDS)[number]))
+      ) {
+        settings.primaryCodingCli =
+          primaryCodingCliPayload === "" ? undefined : primaryCodingCliPayload ?? undefined;
       }
     }
 
-    settings.skillSources = current;
     await writeSettings(settings);
 
     return json({ ok: true, message: "Settings saved" });

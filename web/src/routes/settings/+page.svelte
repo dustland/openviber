@@ -13,6 +13,7 @@
     Save,
     Settings,
     Shield,
+    Terminal,
   } from "@lucide/svelte";
 
   interface SourceConfig {
@@ -36,6 +37,10 @@
   let revealedKeys = $state<Set<string>>(new Set());
 
   let editSources = $state<Record<string, { enabled: boolean; url: string; apiKey: string }>>({});
+
+  let primaryCodingCli = $state<string | null>(null);
+  let editPrimaryCodingCli = $state<string>("");
+  let codingCliOptions = $state<{ id: string; label: string }[]>([]);
 
   function initEditState(src: Record<string, SourceConfig>) {
     const edit: Record<string, { enabled: boolean; url: string; apiKey: string }> = {};
@@ -61,6 +66,9 @@
       const data = await res.json();
       sources = data.sources ?? {};
       initEditState(sources);
+      primaryCodingCli = data.primaryCodingCli ?? null;
+      editPrimaryCodingCli = primaryCodingCli ?? "";
+      codingCliOptions = data.codingCliOptions ?? [];
     } catch (e) {
       error = e instanceof Error ? e.message : "Failed to load settings";
     } finally {
@@ -85,7 +93,10 @@
       const res = await fetch("/api/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sources: payload }),
+        body: JSON.stringify({
+          sources: payload,
+          primaryCodingCli: editPrimaryCodingCli || null,
+        }),
       });
 
       if (!res.ok) {
@@ -127,6 +138,7 @@
   );
 
   const hasChanges = $derived.by(() => {
+    if ((editPrimaryCodingCli || null) !== (primaryCodingCli ?? null)) return true;
     for (const [key, edit] of Object.entries(editSources)) {
       const orig = sources[key];
       if (!orig) continue;
@@ -188,6 +200,33 @@
         </div>
       </div>
     {:else}
+      <section class="mb-10">
+        <div class="flex items-center gap-2.5 mb-4">
+          <Terminal class="size-5 text-muted-foreground" />
+          <div>
+            <h2 class="text-lg font-semibold text-foreground">Primary coding CLI</h2>
+            <p class="text-sm text-muted-foreground">
+              When multiple coding CLIs are enabled, the viber will prefer this one for coding tasks unless the user asks for another.
+            </p>
+          </div>
+        </div>
+        <div class="rounded-xl border border-border bg-card p-4 max-w-md">
+          <label for="primary-coding-cli" class="block text-xs font-medium text-muted-foreground mb-2">
+            Preferred coding CLI
+          </label>
+          <select
+            id="primary-coding-cli"
+            bind:value={editPrimaryCodingCli}
+            class="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background"
+          >
+            <option value="">Let agent choose</option>
+            {#each codingCliOptions as opt (opt.id)}
+              <option value={opt.id}>{opt.label}</option>
+            {/each}
+          </select>
+        </div>
+      </section>
+
       <section class="mb-10">
         <div class="flex items-center justify-between mb-4">
           <div class="flex items-center gap-2.5">

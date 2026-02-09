@@ -12,10 +12,21 @@ import { getViberRoot } from "../../config";
 import { getDefaultSourcesConfig, type SkillSourcesConfig } from "./manager";
 import type { SkillHubProviderType } from "./types";
 
+/** Canonical list of coding CLI skill IDs (for validation and UI). */
+export const CODING_CLI_SKILL_IDS = [
+  "codex-cli",
+  "cursor-agent",
+  "gemini-cli",
+] as const;
+
+export type PrimaryCodingCliId = (typeof CODING_CLI_SKILL_IDS)[number];
+
 /** Full settings file shape */
 export interface OpenViberSettings {
   /** Skill hub source configuration */
   skillSources?: SkillSourcesConfig;
+  /** Primary coding CLI skill to prefer for coding tasks (null = let agent choose). */
+  primaryCodingCli?: string | null;
 }
 
 const SETTINGS_FILENAME = "settings.yaml";
@@ -112,6 +123,17 @@ function normalizeSettings(raw: any): OpenViberSettings {
     settings.skillSources = normalized;
   } else {
     settings.skillSources = getDefaultSourcesConfig();
+  }
+
+  // Normalize primaryCodingCli: only allow known coding CLI ids
+  if (
+    raw.primaryCodingCli != null &&
+    typeof raw.primaryCodingCli === "string" &&
+    (CODING_CLI_SKILL_IDS as readonly string[]).includes(raw.primaryCodingCli)
+  ) {
+    settings.primaryCodingCli = raw.primaryCodingCli;
+  } else {
+    settings.primaryCodingCli = undefined;
   }
 
   return settings;

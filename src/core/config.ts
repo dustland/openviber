@@ -26,6 +26,8 @@ export interface AgentConfig {
   systemPrompt?: string;
   tools?: string[];
   skills?: string[];
+  /** Primary coding CLI skill id (from settings); agent prefers it for coding tasks when set. */
+  primaryCodingCli?: string | null;
   personality?: string;
   temperature?: number;
   maxTokens?: number;

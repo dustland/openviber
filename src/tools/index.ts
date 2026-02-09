@@ -14,6 +14,7 @@ import { SearchTool } from "./search";
 import { WebTool } from "./web";
 import { BrowserTool } from "./browser";
 import { DesktopTool } from "./desktop";
+import { ShellTool } from "./shell";
 
 // Standalone tools (AI SDK format)
 import { scheduleTools } from "./schedule";
@@ -48,6 +49,7 @@ const toolClasses = new Map<string, new () => Tool>([
   ["web", WebTool],
   ["browser", BrowserTool],
   ["desktop", DesktopTool],
+  ["shell", ShellTool],
 ]);
 
 /**
@@ -180,6 +182,13 @@ const staticFunctionDetails = {
       parameters: {},
     },
   ],
+  shell: [
+    {
+      name: "shell_run",
+      description: "Execute a shell command securely within the workspace.",
+      parameters: {},
+    },
+  ],
 };
 
 /**
@@ -239,6 +248,34 @@ export function getToolProviders(): ToolInfo[] {
             type: "number",
             description: "Maximum file size in bytes",
             defaultValue: 10485760,
+            required: false,
+          },
+        },
+        enabled: true,
+      },
+      {
+        id: "shell",
+        name: "Shell Executor",
+        description: "Execute shell commands securely within the workspace",
+        category: "system",
+        icon: "Terminal",
+        tags: ["Shell", "Command", "System", "Execute", "CLI"],
+        tools: ["shell_run"],
+        functions: ["shell_run"],
+        functionDetails: staticFunctionDetails.shell,
+        configSchema: {
+          timeoutMs: {
+            name: "Timeout (ms)",
+            type: "number",
+            description: "Maximum execution time in milliseconds",
+            defaultValue: 30000,
+            required: false,
+          },
+          restrictToWorkspace: {
+            name: "Restrict to Workspace",
+            type: "boolean",
+            description: "Enforce workspace path restrictions",
+            defaultValue: true,
             required: false,
           },
         },

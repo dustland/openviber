@@ -16,6 +16,7 @@ import * as yaml from "yaml";
 import { getViberPath, getViberRoot } from "../config";
 import type { AgentConfig } from "../core/config";
 import { Agent } from "../core/agent";
+import { loadSettings } from "../skills/hub/settings";
 import type { ViberMessage } from "../core/message";
 
 export interface ViberEnvironmentInfo {
@@ -96,7 +97,109 @@ export async function loadPersonalization(viberId: string = "default"): Promise<
     sections.push(`<memory>\n${memory.trim()}\n</memory>`);
   }
 
+  // Inject recent daily memory logs for continuity
+  const dailyLogs = await loadRecentDailyLogs(viberId);
+  if (dailyLogs) {
+    sections.push(`<recent_activity>\n${dailyLogs}\n</recent_activity>`);
+  }
+
   return sections.join("\n\n");
+}
+
+// ==================== Daily Memory Logs ====================
+
+/**
+ * Get the path for today's daily memory log.
+ * Format: ~/.openviber/vibers/{viberId}/memory/YYYY-MM-DD.md
+ */
+function getDailyLogPath(viberId: string): string {
+  const root = getViberRoot();
+  const date = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  return path.join(root, "vibers", viberId, "memory", `${date}.md`);
+}
+
+/**
+ * Append a task summary to today's daily memory log.
+ * Called at the end of each task to build organic memory over time.
+ */
+export async function appendDailyMemory(
+  viberId: string,
+  summary: {
+    taskId: string;
+    goal: string;
+    outcome: "completed" | "error" | "stopped";
+    details?: string;
+  }
+): Promise<void> {
+  const logPath = getDailyLogPath(viberId);
+  const dir = path.dirname(logPath);
+
+  try {
+    await fs.mkdir(dir, { recursive: true });
+
+    const time = new Date().toLocaleTimeString("en-US", { hour12: false });
+    const entry = [
+      `### ${time} — ${summary.goal}`,
+      `- **Task**: \`${summary.taskId}\``,
+      `- **Outcome**: ${summary.outcome}`,
+      ...(summary.details ? [`- **Notes**: ${summary.details}`] : []),
+      "",
+    ].join("\n");
+
+    // If file doesn't exist yet, add a date header
+    let content = entry;
+    try {
+      await fs.access(logPath);
+    } catch {
+      const date = new Date().toISOString().slice(0, 10);
+      content = `# Daily Log — ${date}\n\n${entry}`;
+    }
+
+    await fs.appendFile(logPath, content + "\n");
+  } catch (error) {
+    // Non-fatal — don't crash the agent over a log write failure
+    console.error(`[DailyMemory] Failed to write log for ${viberId}:`, error);
+  }
+}
+
+/**
+ * Load the most recent N days of daily memory logs for context injection.
+ * Returns a concatenated string of recent daily logs, newest first.
+ */
+export async function loadRecentDailyLogs(
+  viberId: string,
+  days: number = 3
+): Promise<string | null> {
+  const root = getViberRoot();
+  const memoryDir = path.join(root, "vibers", viberId, "memory");
+
+  try {
+    await fs.access(memoryDir);
+  } catch {
+    return null; // No memory directory yet
+  }
+
+  try {
+    const files = await fs.readdir(memoryDir);
+    const logFiles = files
+      .filter((f) => /^\d{4}-\d{2}-\d{2}\.md$/.test(f))
+      .sort()
+      .reverse()
+      .slice(0, days);
+
+    if (logFiles.length === 0) return null;
+
+    const logs: string[] = [];
+    for (const file of logFiles) {
+      const content = await fs.readFile(path.join(memoryDir, file), "utf-8");
+      logs.push(content.trim());
+    }
+
+    return logs.join("\n\n---\n\n");
+  } catch (error) {
+    console.error(`[DailyMemory] Failed to load logs for ${viberId}:`, error);
+    return null;
+  }
 }
 
 // ==================== Coding Task System Prompt ====================
@@ -356,6 +459,16 @@ export async function runTask(
 
   if (modelOverride) {
     config = { ...config, model: modelOverride };
+  }
+
+  // Merge primary coding CLI preference from settings (so agent can prefer one when multiple are enabled)
+  try {
+    const settings = await loadSettings();
+    if (settings.primaryCodingCli != null) {
+      config = { ...config, primaryCodingCli: settings.primaryCodingCli };
+    }
+  } catch (err) {
+    console.warn("[Runtime] Failed to load settings for primaryCodingCli:", err);
   }
 
   // Build the full system prompt with personalization + environment + agent prompt

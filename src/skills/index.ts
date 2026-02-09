@@ -6,6 +6,7 @@ import { getTools as getGithubTools } from "./github";
 import { getTools as getTmuxTools } from "./tmux";
 import { getTools as getRailwayTools } from "./railway";
 import { getTools as getGmailTools } from "./gmail";
+import { getTools as getGogTools } from "./gog";
 
 // Register default skills and their tools
 // This is called during module initialization to pre-register tools
@@ -25,6 +26,8 @@ export function registerDefaultSkills() {
   defaultRegistry.preRegisterTools("railway", getRailwayTools());
   // Pre-register gmail tools (search, read, send emails)
   defaultRegistry.preRegisterTools("gmail", getGmailTools());
+  // Pre-register OpenClaw gog tools (Gmail checking via gog CLI)
+  defaultRegistry.preRegisterTools("gog", getGogTools());
 }
 
 // Auto-register on import

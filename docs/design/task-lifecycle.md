@@ -89,14 +89,35 @@ while (queued messages remain):
 Within a single `runTask()` call, the AI SDK manages a multi-step agent loop:
 
 ```
-streamText({ model, messages, tools, maxSteps: 10 })
+streamText({ model, messages, tools, stopWhen: stepCountIs(maxSteps) })
   → Model generates text or tool call
   → If tool call: execute tool, add result to context, continue
   → If text: stream to response
   → Repeat until no more tool calls or maxSteps reached
 ```
 
+`maxSteps` is configurable per agent via `AgentConfig.maxSteps` (default: 10, recommended 25 for coding tasks). Complex coding tasks that involve exploring code, planning, implementing, and verifying need more steps than simple Q&A tasks.
+
 OpenViber doesn't need to manage the planning/executing/verifying loop — the AI SDK's multi-step tool execution handles it. The viber's system prompt instructs the model on how to approach tasks (plan first, verify results, report evidence).
+
+### Coding Task Best Practices
+
+The daemon runtime includes a structured coding-task system prompt that guides the model through:
+
+1. **UNDERSTAND** — Read the task, explore the codebase, identify patterns
+2. **PLAN** — Break into concrete steps, identify affected files
+3. **IMPLEMENT** — Incremental changes following existing code style
+4. **VERIFY** — Run tests, lint, typecheck; fix before proceeding
+5. **COMMIT & REPORT** — Descriptive commits, summarize with evidence
+
+### Personalization
+
+The daemon loads three markdown files before every task (see [personalization.md](./personalization.md)):
+- `soul.md` — How the viber communicates
+- `user.md` — Who the viber serves
+- `memory.md` — What the viber remembers
+
+These are injected as `<soul>`, `<user>`, `<memory>` blocks in the system prompt before the environment context and agent prompt.
 
 ---
 
@@ -113,20 +134,46 @@ When the operator clicks "Stop" in the Board:
 
 ---
 
-## 6. Scheduled Tasks
+## 6. Scheduled Tasks (Jobs)
 
-Vibers can have cron-scheduled jobs defined in their config:
+Vibers can have cron-scheduled jobs defined as YAML files in their jobs directory:
 
-```yaml
-# ~/.openviber/vibers/dev.yaml
-jobs:
-  - cron: "0 8 * * *"
-    goal: "Check GitHub notifications and summarize"
-  - cron: "0 */4 * * *"
-    goal: "Monitor CI pipelines for failures"
+```
+~/.openviber/vibers/dev/jobs/
+├── daily-summary.yaml
+└── health-check.yaml
 ```
 
-Scheduled tasks follow the same lifecycle — the scheduler submits them like any other task, and they flow through the hub to the daemon.
+Each job file specifies a cron schedule, a prompt, and optional agent configuration:
+
+```yaml
+# ~/.openviber/vibers/dev/jobs/daily-summary.yaml
+name: Daily Summary
+schedule: "0 9 * * *"
+model: deepseek/deepseek-chat
+skills:
+  - github
+prompt: |
+  Summarize my GitHub notifications from the last 24 hours.
+```
+
+### Job Execution Flow
+
+When a job's cron trigger fires:
+
+1. The `JobScheduler` creates a fresh `Agent` with the job's model, skills, and tools.
+2. The prompt is sent as a user message via `agent.generateText()`.
+3. The agent reasons, calls tools (including skill-provided tools), and generates a response.
+4. Tool results and the agent's text response are logged to the console.
+5. Routine "healthy" results (e.g., `antigravity_check_and_heal` returning `HEALTHY`) are suppressed from logs.
+
+Unlike interactive tasks, scheduled jobs run independently of the hub/Board pipeline. They execute directly in the daemon process without SSE streaming. If you need a job's results in the Board, the job's prompt can use the `notify` tool to send a notification.
+
+Jobs can also be created through chat using the `create_scheduled_job` tool (which supports natural language scheduling like "8am daily") or pushed from the Board via the `job:create` WebSocket message.
+
+Global jobs (in `~/.openviber/jobs/`) are shared across all vibers. Per-viber jobs (in `~/.openviber/vibers/{id}/jobs/`) are scoped to a specific viber.
+
+See [Jobs](/docs/concepts/jobs) for the full reference.
 
 ---
 

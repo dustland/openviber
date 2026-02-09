@@ -85,5 +85,6 @@ Multiple vibers coordinate through **external systems** (GitHub issues, email) r
 ## Next Steps
 
 - [Tools](/docs/concepts/tools) — What vibers can do
-- [Skills](/docs/concepts/skills) — Domain knowledge for vibers
+- [Skills](/docs/concepts/skills) — Domain knowledge bundles with specialized tools
+- [Jobs](/docs/concepts/jobs) — Schedule recurring tasks for your vibers
 - [Memory](/docs/concepts/memory) — How vibers remember context

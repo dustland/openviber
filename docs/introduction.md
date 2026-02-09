@@ -64,9 +64,9 @@ openviber gateway
 |---------|------------|
 | **Viber** | A role-scoped AI worker with its own persona, goals, and tools |
 | **Viber Node** | Your machine running OpenViber — hosts one or more vibers |
-| **Tools** | Actions vibers can take (file, search, web, browser, desktop, etc.) |
-| **Skills** | Domain knowledge injected as instructions |
-| **Jobs** | Scheduled tasks defined in YAML |
+| **Tools** | Actions vibers can take (file, search, web, browser, desktop, schedule, notify) |
+| **Skills** | Domain knowledge bundles (`SKILL.md` + optional tools) — antigravity, cursor-agent, codex-cli, github, tmux |
+| **Jobs** | Cron-scheduled YAML tasks that run agents autonomously on a timer |
 
 ## Working Modes
 

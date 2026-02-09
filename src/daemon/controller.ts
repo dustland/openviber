@@ -98,7 +98,7 @@ export type ControllerServerMessage =
       repoBranch?: string;
       variables?: { key: string; value: string }[];
     };
-    settings?: { primaryCodingCli?: string };
+    settings?: { primaryCodingCli?: string; channelIds?: string[] };
   }
   | { type: "task:stop"; taskId: string }
   | { type: "viber:stop"; viberId: string }

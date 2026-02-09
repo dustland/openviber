@@ -8,6 +8,7 @@
     ChevronDown,
     Check,
     Code2,
+    MessageSquare,
     Server,
     FolderGit2,
     Package,
@@ -28,8 +29,17 @@
     name: string;
   }
 
+  interface ChannelOption {
+    id: string;
+    label: string;
+    description?: string;
+    enabled: boolean;
+  }
+
   let nodes = $state<ViberNode[]>([]);
   let environments = $state<SidebarEnvironment[]>([]);
+  let channelOptions = $state<ChannelOption[]>([]);
+  let selectedChannelIds = $state<string[]>([]);
   let selectedEnvironmentId = $state<string | null>(null);
   let selectedNodeId = $state<string | null>(null);
   let taskInput = $state("");
@@ -46,6 +56,9 @@
 
   // Only active nodes (with a daemon connected) can receive tasks
   const activeNodes = $derived(nodes.filter((n) => n.status === "active"));
+  const enabledChannels = $derived(
+    channelOptions.filter((channel) => channel.enabled),
+  );
 
   // Can we send?
   const canSend = $derived(
@@ -57,9 +70,10 @@
 
   async function fetchData() {
     try {
-      const [nodesRes, envsRes] = await Promise.all([
+      const [nodesRes, envsRes, settingsRes] = await Promise.all([
         fetch("/api/nodes"),
         fetch("/api/environments"),
+        fetch("/api/settings"),
       ]);
 
       if (nodesRes.ok) {
@@ -69,6 +83,21 @@
       if (envsRes.ok) {
         const data = await envsRes.json();
         environments = data.environments ?? [];
+      }
+      if (settingsRes.ok) {
+        const data = await settingsRes.json();
+        const channels = data.channels ?? {};
+        channelOptions = Object.entries(channels).map(([id, channel]) => ({
+          id,
+          label: channel.displayName ?? id,
+          description: channel.description ?? "",
+          enabled: channel.enabled ?? false,
+        }));
+        if (selectedChannelIds.length === 0) {
+          selectedChannelIds = channelOptions
+            .filter((channel) => channel.enabled)
+            .map((channel) => channel.id);
+        }
       }
 
       // Auto-select if only one environment
@@ -91,6 +120,14 @@
 
   function selectNode(nodeId: string) {
     selectedNodeId = nodeId;
+  }
+
+  function toggleChannel(channelId: string) {
+    if (selectedChannelIds.includes(channelId)) {
+      selectedChannelIds = selectedChannelIds.filter((id) => id !== channelId);
+    } else {
+      selectedChannelIds = [...selectedChannelIds, channelId];
+    }
   }
 
   async function submitTask(overrideContent?: string) {
@@ -118,6 +155,7 @@
           goal: content,
           nodeId: nodeId ?? undefined,
           environmentId: selectedEnvironmentId ?? undefined,
+          channelIds: selectedChannelIds.length > 0 ? selectedChannelIds : undefined,
         }),
       });
 
@@ -299,6 +337,43 @@
             {/if}
           </DropdownMenu.Content>
         </DropdownMenu.Root>
+      </div>
+
+      <!-- Channel selection -->
+      <div class="mb-6 w-full max-w-2xl">
+        <div class="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
+          <MessageSquare class="size-3.5" />
+          <span>Channels</span>
+        </div>
+        {#if enabledChannels.length === 0}
+          <div
+            class="rounded-xl border border-dashed border-border bg-card/40 px-4 py-3 text-xs text-muted-foreground"
+          >
+            No channels enabled yet. Configure Discord or Feishu in
+            <a href="/settings/channels" class="underline">Settings</a>.
+          </div>
+        {:else}
+          <div class="rounded-xl border border-border bg-card p-4">
+            <p class="text-xs text-muted-foreground mb-3">
+              Choose which enabled channels this viber should post updates to.
+            </p>
+            <div class="flex flex-wrap gap-2">
+              {#each enabledChannels as channel (channel.id)}
+                <button
+                  type="button"
+                  onclick={() => toggleChannel(channel.id)}
+                  aria-pressed={selectedChannelIds.includes(channel.id)}
+                  title={channel.description}
+                  class="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors {selectedChannelIds.includes(channel.id)
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-border/60 bg-muted/40 text-muted-foreground hover:text-foreground'}"
+                >
+                  {channel.label}
+                </button>
+              {/each}
+            </div>
+          </div>
+        {/if}
       </div>
 
       <!-- Suggestion cards -->

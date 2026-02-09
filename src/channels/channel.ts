@@ -104,6 +104,21 @@ export interface WeComConfig extends ChannelConfig {
   aesKey: string;
 }
 
+/** Discord channel configuration. */
+export interface DiscordConfig extends ChannelConfig {
+  botToken: string;
+  guildId?: string;
+  channelId?: string;
+}
+
+/** Feishu (Lark) channel configuration. */
+export interface FeishuConfig extends ChannelConfig {
+  appId: string;
+  appSecret: string;
+  verificationToken?: string;
+  encryptKey?: string;
+}
+
 export interface WebConfig extends ChannelConfig {
   // No special config needed for web channel
 }
@@ -111,5 +126,7 @@ export interface WebConfig extends ChannelConfig {
 export interface ChannelsConfig {
   dingtalk?: DingTalkConfig;
   wecom?: WeComConfig;
+  discord?: DiscordConfig;
+  feishu?: FeishuConfig;
   web?: WebConfig;
 }

@@ -21,12 +21,20 @@ export const CODING_CLI_SKILL_IDS = [
 
 export type PrimaryCodingCliId = (typeof CODING_CLI_SKILL_IDS)[number];
 
+/** Stored configuration for a chat channel integration. */
+export interface ChannelIntegrationSetting {
+  enabled: boolean;
+  config?: Record<string, string>;
+}
+
 /** Full settings file shape */
 export interface OpenViberSettings {
   /** Skill hub source configuration */
   skillSources?: SkillSourcesConfig;
   /** Primary coding CLI skill to prefer for coding tasks (null = let agent choose). */
   primaryCodingCli?: string | null;
+  /** Configured channel integrations (Discord, Feishu, etc.). */
+  channelIntegrations?: Record<string, ChannelIntegrationSetting>;
 }
 
 const SETTINGS_FILENAME = "settings.yaml";
@@ -46,9 +54,9 @@ export async function loadSettings(): Promise<OpenViberSettings> {
     if (parsed && typeof parsed === "object") {
       return normalizeSettings(parsed);
     }
-    return { skillSources: getDefaultSourcesConfig() };
+    return { skillSources: getDefaultSourcesConfig(), channelIntegrations: {} };
   } catch {
-    return { skillSources: getDefaultSourcesConfig() };
+    return { skillSources: getDefaultSourcesConfig(), channelIntegrations: {} };
   }
 }
 
@@ -134,6 +142,29 @@ function normalizeSettings(raw: any): OpenViberSettings {
     settings.primaryCodingCli = raw.primaryCodingCli;
   } else {
     settings.primaryCodingCli = undefined;
+  }
+
+  if (raw.channelIntegrations && typeof raw.channelIntegrations === "object") {
+    const normalized: Record<string, ChannelIntegrationSetting> = {};
+    for (const [key, value] of Object.entries(raw.channelIntegrations)) {
+      if (!value || typeof value !== "object") continue;
+      const enabled = typeof value.enabled === "boolean" ? value.enabled : false;
+      const config: Record<string, string> = {};
+      if (value.config && typeof value.config === "object") {
+        for (const [configKey, configValue] of Object.entries(value.config)) {
+          if (typeof configValue === "string" && configValue.length > 0) {
+            config[configKey] = configValue;
+          }
+        }
+      }
+      normalized[key] = {
+        enabled,
+        ...(Object.keys(config).length > 0 ? { config } : {}),
+      };
+    }
+    settings.channelIntegrations = normalized;
+  } else {
+    settings.channelIntegrations = {};
   }
 
   return settings;

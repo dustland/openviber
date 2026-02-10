@@ -1,6 +1,7 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { env } from "$env/dynamic/private";
+import { hubClient } from "$lib/server/hub-client";
 import { homedir } from "os";
 import path from "path";
 import fs from "fs/promises";
@@ -13,15 +14,6 @@ interface AgentConfig {
   [key: string]: unknown;
 }
 
-const DEFAULT_TOOLS = [
-  "file",
-  "terminal",
-  "browser",
-  "search",
-  "fetch",
-  "git",
-  "schedule",
-] as const;
 
 function getOpenViberDir(): string {
   return env.OPENVIBER_DATA_DIR || path.join(homedir(), ".openviber");
@@ -60,15 +52,21 @@ async function loadConfig(viberId: string): Promise<{ config: AgentConfig; confi
 export const GET: RequestHandler = async ({ params }) => {
   try {
     const { config, configPath } = await loadConfig(params.id);
-    const toolOptions = Array.from(
-      new Set([...(config.tools ?? []), ...DEFAULT_TOOLS]),
+    const { nodes } = await hubClient.getNodes();
+
+    const skillOptions = Array.from(
+      new Set(
+        nodes.flatMap((node) =>
+          (node.skills ?? []).map((skill) => skill.id || skill.name).filter(Boolean),
+        ),
+      ),
     ).sort((a, b) => a.localeCompare(b));
 
     return json({
       configFile: path.basename(configPath),
       tools: config.tools ?? [],
       skills: config.skills ?? [],
-      toolOptions,
+      skillOptions,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load config";
@@ -90,8 +88,12 @@ export const PUT: RequestHandler = async ({ params, request }) => {
         ),
       );
 
-    config.tools = normalize(body.tools);
-    config.skills = normalize(body.skills);
+    if (body.tools) {
+      config.tools = normalize(body.tools);
+    }
+    if (body.skills) {
+      config.skills = normalize(body.skills);
+    }
 
     await fs.writeFile(configPath, yaml.stringify(config), "utf8");
 

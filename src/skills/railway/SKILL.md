@@ -13,7 +13,7 @@ Manage Railway deployments directly from Viber. Uses the Railway CLI (`railway`)
 Install Railway CLI:
 
 ```bash
-npm install -g @railway/cli
+pnpm add -g @railway/cli
 # or
 brew install railway
 ```
@@ -43,25 +43,28 @@ railway link
 
 ### railway_status
 - `service` (optional): Service name to check (defaults to all services)
+- `cwd` (optional): Working directory (if unlinked/mismatched, auto-discovery will try matching repo-related project/service contexts)
 
 ### railway_logs
 - `service` (optional): Service name to get logs for
 - `lines` (optional): Number of log lines (default: 50, max: 500)
 - `deploymentId` (optional): Deployment ID to fetch logs for (if omitted, uses latest deployment)
+- `cwd` (optional): Working directory (if unlinked/mismatched, auto-discovery will try matching repo-related project/service contexts)
 
 ### railway_deploy
 - `service` (optional): Service to redeploy
+- `cwd` (optional): Working directory (if unlinked/mismatched, auto-discovery will try matching repo-related project/service contexts)
 
 ### railway_deployments
-- `cwd` (optional): Working directory (must be a linked Railway project)
+- `cwd` (optional): Working directory (if unlinked/mismatched, auto-discovery will try matching repo-related project/service contexts)
 
 ### railway_build_logs
 - `deploymentId` (required): Deployment ID (UUID from railway_deployments output)
-- `cwd` (optional): Working directory
+- `cwd` (optional): Working directory (if unlinked/mismatched, auto-discovery will try matching repo-related project/service contexts)
 
 ### railway_run
 - `command` (required): Railway CLI subcommand and arguments (e.g. `variables list`)
-- `cwd` (optional): Working directory (must be a linked Railway project)
+- `cwd` (optional): Working directory (if unlinked/mismatched, auto-discovery will try matching repo-related project/service contexts)
 
 ## Usage from Viber
 

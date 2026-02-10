@@ -542,8 +542,12 @@ export function getTools(): Record<string, import("../../core/tool").CoreTool> {
           const cwd = resolveWorkingDirectory(args.cwd);
           const cmdArgs = ["up", "--detach"];
           if (args.service) cmdArgs.push("--service", args.service);
-          const result = await runRailway(cmdArgs, cwd, 120);
-          return formatResult({ ...result, exitCode: result.exitCode });
+          return await runWithDiscovery({
+            cwd,
+            serviceHint: args.service,
+            commandArgs: cmdArgs,
+            timeoutSeconds: 120,
+          });
         } catch (err: any) {
           return {
             ok: false,
@@ -578,8 +582,11 @@ export function getTools(): Record<string, import("../../core/tool").CoreTool> {
           ensureRailwayCli();
           const cwd = resolveWorkingDirectory(args.cwd);
           const cmdArgs = args.command.split(/\s+/).filter(Boolean);
-          const result = await runRailway(cmdArgs, cwd, 60);
-          return formatResult({ ...result, exitCode: result.exitCode });
+          return await runWithDiscovery({
+            cwd,
+            commandArgs: cmdArgs,
+            timeoutSeconds: 60,
+          });
         } catch (err: any) {
           return {
             ok: false,

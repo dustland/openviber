@@ -322,7 +322,7 @@ export async function loadAgentConfig(
       maxSteps: 25,
       systemPrompt: CODING_TASK_SYSTEM_PROMPT,
       tools: [],
-      skills: ["github", "codex-cli", "cursor-agent", "tmux"],
+      skills: ["github", "codex-cli", "cursor-agent", "tmux", "skill-playground"],
     } as AgentConfig;
   }
 

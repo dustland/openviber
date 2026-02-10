@@ -27,6 +27,28 @@ const VERSION = getOpenViberVersion();
 const OPENVIBER_DIR = path.join(os.homedir(), ".openviber");
 const CONFIG_FILE = path.join(OPENVIBER_DIR, "config.yaml");
 
+type SkillHealthCheck = {
+  label: string;
+  ok: boolean;
+  required?: boolean;
+  message?: string;
+  hint?: string;
+};
+
+type SkillHealthResult = {
+  id: string;
+  name: string;
+  status: string;
+  available: boolean;
+  checks: SkillHealthCheck[];
+  summary: string;
+};
+
+type SkillHealthReport = {
+  generatedAt: string;
+  skills: SkillHealthResult[];
+};
+
 function getCliName(): string {
   const invokedPath = process.argv[1];
   const invokedName = invokedPath ? path.parse(invokedPath).name : "";
@@ -727,6 +749,18 @@ program
       formatUptime,
     } = await import("../daemon/node-status");
 
+    let skillHealthReport: SkillHealthReport | null = null;
+    try {
+      const { getSkillHealthReport } = await import("../skills/health");
+      skillHealthReport = await getSkillHealthReport();
+    } catch (err: any) {
+      if (!options.json) {
+        console.warn(
+          `[status] Skill health check failed: ${err?.message || String(err)}`,
+        );
+      }
+    }
+
     // Always show config status
     if (!options.json) {
       console.log(`
@@ -771,6 +805,7 @@ Viber Status
               openRouter: hasOpenRouter,
               configDir: path.join(os.homedir(), ".openviber"),
             },
+            skills: skillHealthReport,
             machine: machineStatus,
             hub: hubNodeStatus,
           },
@@ -779,6 +814,13 @@ Viber Status
         ),
       );
       return;
+    }
+
+    if (skillHealthReport) {
+      const lines = formatSkillHealthReport(skillHealthReport);
+      if (lines.length > 0) {
+        console.log(lines.join("\n"));
+      }
     }
 
     // Display machine resources
@@ -1040,6 +1082,19 @@ workingMode: viber-decides
 
     // Generate viber ID
     const viberId = await getViberId();
+
+    try {
+      const { getSkillHealthReport } = await import("../skills/health");
+      const report = await getSkillHealthReport();
+      const lines = formatSkillHealthReport(report);
+      if (lines.length > 0) {
+        console.log(lines.join("\n"));
+      }
+    } catch (err: any) {
+      console.warn(
+        `[onboard] Skill health check failed: ${err?.message || String(err)}`,
+      );
+    }
 
     if (options.token) {
       console.log(`
@@ -1477,6 +1532,55 @@ Press Ctrl+C to stop.
   });
 
 // ==================== Helpers ====================
+
+function formatSkillHealthReport(report: SkillHealthReport): string[] {
+  if (!report || report.skills.length === 0) {
+    return [];
+  }
+
+  const statusLabel = (status: string) => {
+    switch (status) {
+      case "AVAILABLE":
+        return "OK";
+      case "NOT_AVAILABLE":
+        return "MISSING";
+      case "UNKNOWN":
+        return "UNKNOWN";
+      default:
+        return status || "UNKNOWN";
+    }
+  };
+
+  const lines: string[] = [];
+  lines.push("");
+  lines.push("Skill Health");
+  lines.push("────────────────────────────────────");
+
+  for (const skill of report.skills) {
+    const name = (skill.name || skill.id).slice(0, 22);
+    const status = statusLabel(skill.status);
+    lines.push(`  ${name.padEnd(22)} ${status}`);
+
+    if (skill.status !== "AVAILABLE") {
+      const failed = skill.checks.filter(
+        (check) => (check.required ?? true) && !check.ok,
+      );
+      if (failed.length === 0) {
+        if (skill.summary) {
+          lines.push(`    - ${skill.summary}`);
+        }
+      } else {
+        for (const check of failed) {
+          const detail = check.hint || check.message || "missing";
+          lines.push(`    - ${check.label}: ${detail}`);
+        }
+      }
+    }
+  }
+
+  lines.push("────────────────────────────────────");
+  return lines;
+}
 
 async function getViberId(): Promise<string> {
   const configDir = path.join(os.homedir(), ".openviber");

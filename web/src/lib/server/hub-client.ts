@@ -157,9 +157,33 @@ export interface ViberRunningStatus {
   }[];
   skills: string[];
   capabilities: string[];
+  skillHealth?: SkillHealthReport;
   totalTasksExecuted: number;
   lastHeartbeatAt?: string;
   collectedAt: string;
+}
+
+export interface SkillHealthCheck {
+  id: string;
+  label: string;
+  ok: boolean;
+  required?: boolean;
+  message?: string;
+  hint?: string;
+}
+
+export interface SkillHealthResult {
+  id: string;
+  name: string;
+  status: string;
+  available: boolean;
+  checks: SkillHealthCheck[];
+  summary: string;
+}
+
+export interface SkillHealthReport {
+  generatedAt: string;
+  skills: SkillHealthResult[];
 }
 
 /** Full node observability status (from node status request) */

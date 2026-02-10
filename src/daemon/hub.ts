@@ -429,7 +429,7 @@ export class HubServer {
     req.on("data", (chunk) => (body += chunk));
     req.on("end", () => {
       try {
-        const { goal, nodeId, messages, environment, settings, oauthTokens } = JSON.parse(body);
+        const { goal, nodeId, messages, environment, settings, oauthTokens, model } = JSON.parse(body);
 
         if (!goal) {
           res.writeHead(400, { "Content-Type": "application/json" });
@@ -478,6 +478,7 @@ export class HubServer {
             environment,
             settings,
             oauthTokens,
+            options: model ? { model } : undefined,
           }),
         );
 

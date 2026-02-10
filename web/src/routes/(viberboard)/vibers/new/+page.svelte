@@ -9,11 +9,11 @@
     ChevronDown,
     Check,
     Code2,
+    Cpu,
     FileText,
     HeartPulse,
-    MessageSquare,
+    MoreHorizontal,
     Palette,
-    Search,
     Server,
     ShieldCheck,
     Sparkles,
@@ -22,6 +22,7 @@
     Package,
   } from "@lucide/svelte";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
+  import * as Dialog from "$lib/components/ui/dialog";
   import type { Intent } from "$lib/data/intents";
 
   interface ViberNode {
@@ -54,12 +55,32 @@
     "train-front": TrainFront,
   };
 
+  const MODEL_OPTIONS = [
+    { id: "", label: "Default", badge: "" },
+    // Flagship
+    { id: "anthropic/claude-opus-4.6", label: "Claude Opus 4.6", badge: "Flagship" },
+    { id: "openai/gpt-5.3", label: "GPT-5.3", badge: "Flagship" },
+    { id: "google/gemini-3.0-pro", label: "Gemini 3.0 Pro", badge: "Flagship" },
+    // Fast
+    { id: "anthropic/claude-sonnet-4.6", label: "Claude Sonnet 4.6", badge: "Fast" },
+    { id: "google/gemini-3.0-flash", label: "Gemini 3.0 Flash", badge: "Fast" },
+    { id: "openai/gpt-5.3-mini", label: "GPT-5.3 Mini", badge: "Fast" },
+    // Value
+    { id: "deepseek/deepseek-v3.2", label: "DeepSeek 3.2", badge: "Value" },
+    { id: "zhipu/glm-4.7", label: "GLM-4.7", badge: "Value" },
+    { id: "qwen/qwen-3.5-max", label: "Qwen 3.5 Max", badge: "Value" },
+    // Reasoning
+    { id: "deepseek/deepseek-r2", label: "DeepSeek R2", badge: "Reasoning" },
+    { id: "openai/o4-pro", label: "o4 Pro", badge: "Reasoning" },
+  ];
+
   let nodes = $state<ViberNode[]>([]);
   let environments = $state<SidebarEnvironment[]>([]);
   let channelOptions = $state<ChannelOption[]>([]);
   let selectedChannelIds = $state<string[]>([]);
   let selectedEnvironmentId = $state<string | null>(null);
   let selectedNodeId = $state<string | null>(null);
+  let selectedModelId = $state("");
   let taskInput = $state("");
   let creating = $state(false);
   let error = $state<string | null>(null);
@@ -69,6 +90,12 @@
   let intentsLoading = $state(true);
   let selectedIntentId = $state<string | null>(null);
   let intentPresetApplied = $state(false);
+
+  let showIntentDialog = $state(false);
+
+  // Show first 3 intents inline, rest in dialog
+  const previewIntents = $derived(intents.slice(0, 3));
+  const hasMoreIntents = $derived(intents.length > 3);
 
   // Derived: selected objects
   const selectedEnvironment = $derived(
@@ -81,6 +108,9 @@
     selectedIntentId
       ? intents.find((i) => i.id === selectedIntentId) ?? null
       : null,
+  );
+  const selectedModel = $derived(
+    MODEL_OPTIONS.find((m) => m.id === selectedModelId) ?? MODEL_OPTIONS[0],
   );
 
   // Only active nodes (with a daemon connected) can receive tasks
@@ -137,6 +167,10 @@
           selectedChannelIds = channelOptions
             .filter((channel) => channel.enabled)
             .map((channel) => channel.id);
+        }
+        // Pre-select the user's default chat model
+        if (data.chatModel && !selectedModelId) {
+          selectedModelId = data.chatModel;
         }
       }
 
@@ -220,6 +254,7 @@
           nodeId: nodeId ?? undefined,
           environmentId: selectedEnvironmentId ?? undefined,
           channelIds: selectedChannelIds.length > 0 ? selectedChannelIds : undefined,
+          model: selectedModelId || undefined,
         }),
       });
 
@@ -254,14 +289,6 @@
     }
   }
 
-  function useSuggestion(text: string) {
-    if (!selectedNode || selectedNode.status !== "active") {
-      taskInput = text;
-      return;
-    }
-    void submitTask(text);
-  }
-
   onMount(() => {
     fetchData();
     fetchIntents();
@@ -273,10 +300,10 @@
 </svelte:head>
 
 <div class="new-task-page flex h-full min-h-0 flex-col overflow-hidden">
-  <!-- Main content area: hero + cards -->
+  <!-- Main content area: intents grid -->
   <div class="flex-1 overflow-y-auto">
     <div
-      class="mx-auto flex h-full w-full flex-col items-center justify-center px-4 py-8"
+      class="mx-auto flex h-full w-full max-w-3xl flex-col items-center px-4 py-12"
     >
       <!-- Hero -->
       <div class="mb-10 text-center">
@@ -286,86 +313,131 @@
           <Sparkles class="size-7" />
         </div>
         <h1 class="text-3xl font-semibold tracking-tight text-foreground">
-          Let's build
+          What would you like to build?
         </h1>
-
-        <!-- Environment selector (Codex-style inline dropdown) -->
-        <div class="mt-3 inline-flex items-center justify-center">
-          <DropdownMenu.Root>
-            <DropdownMenu.Trigger
-              class="inline-flex items-center gap-1.5 text-lg text-muted-foreground transition-colors hover:text-foreground cursor-pointer"
-            >
-              {#if selectedEnvironment}
-                <FolderGit2 class="size-4 opacity-60" />
-                <span>{selectedEnvironment.name}</span>
-              {:else}
-                <span class="italic opacity-70">select environment</span>
-              {/if}
-              <ChevronDown class="size-3.5 opacity-50" />
-            </DropdownMenu.Trigger>
-            <DropdownMenu.Content align="center" class="w-56">
-              <DropdownMenu.Label>Select your environment</DropdownMenu.Label>
-              <DropdownMenu.Separator />
-              <DropdownMenu.Item
-                onclick={() => selectEnvironment(null)}
-                class="flex items-center justify-between"
-              >
-                <span class="flex items-center gap-2">
-                  <Package class="size-4 opacity-60" />
-                  All environments
-                </span>
-                {#if selectedEnvironmentId === null}
-                  <Check class="size-3.5 text-primary" />
-                {/if}
-              </DropdownMenu.Item>
-              {#each environments as env (env.id)}
-                <DropdownMenu.Item
-                  onclick={() => selectEnvironment(env.id)}
-                  class="flex items-center justify-between"
-                >
-                  <span class="flex items-center gap-2">
-                    <FolderGit2 class="size-4 opacity-60" />
-                    {env.name}
-                  </span>
-                  {#if selectedEnvironmentId === env.id}
-                    <Check class="size-3.5 text-primary" />
-                  {/if}
-                </DropdownMenu.Item>
-              {/each}
-            </DropdownMenu.Content>
-          </DropdownMenu.Root>
-        </div>
+        <p class="mt-2 text-base text-muted-foreground">
+          Pick an intent to get started, or describe your own task below.
+        </p>
       </div>
 
-      <!-- Node selector (pick which node to run the new viber on) -->
-      <div class="mb-8">
+      <!-- Start with Intents -->
+      <div class="w-full">
+        <div class="flex items-center justify-between mb-4">
+          <h2
+            class="text-sm font-semibold uppercase tracking-wider text-muted-foreground"
+          >
+            Start with Intents
+          </h2>
+          <div class="flex items-center gap-3">
+            {#if selectedIntent}
+              <button
+                type="button"
+                class="text-[11px] text-muted-foreground hover:text-foreground"
+                onclick={clearIntent}
+              >
+                Clear
+              </button>
+            {/if}
+            <a
+              href="/settings/intents"
+              class="text-[11px] text-muted-foreground hover:text-primary transition-colors"
+            >
+              Manage
+            </a>
+          </div>
+        </div>
+
+        {#if intentsLoading}
+          <div class="text-center py-8 text-sm text-muted-foreground">
+            Loading intents...
+          </div>
+        {:else if intents.length === 0}
+          <div
+            class="rounded-xl border border-dashed border-border bg-card/40 px-4 py-8 text-center text-sm text-muted-foreground"
+          >
+            No intents found. <a href="/settings/intents" class="text-primary hover:underline">Create one</a> to get started.
+          </div>
+        {:else}
+          <div class="flex gap-3">
+            {#each previewIntents as intent (intent.id)}
+              {@const IconComponent = INTENT_ICONS[intent.icon] ?? Sparkles}
+              <button
+                type="button"
+                class="flex-1 min-w-0 rounded-xl border p-4 text-left transition-all {selectedIntentId ===
+                intent.id
+                  ? 'border-primary/40 bg-primary/5 ring-1 ring-primary/20'
+                  : 'border-border bg-card hover:border-primary/30 hover:bg-accent/40'}"
+                onclick={() => selectIntent(intent)}
+              >
+                <div class="flex items-start gap-3">
+                  <div
+                    class="size-8 rounded-lg bg-muted/60 flex items-center justify-center text-muted-foreground shrink-0"
+                  >
+                    <IconComponent class="size-4" />
+                  </div>
+                  <div class="min-w-0">
+                    <p class="text-sm font-medium text-foreground truncate">
+                      {intent.name}
+                    </p>
+                    <p class="text-xs text-muted-foreground line-clamp-1">
+                      {intent.description}
+                    </p>
+                  </div>
+                </div>
+              </button>
+            {/each}
+
+            {#if hasMoreIntents}
+              <button
+                type="button"
+                class="flex w-16 shrink-0 flex-col items-center justify-center rounded-xl border border-border bg-card text-muted-foreground transition-all hover:border-primary/30 hover:bg-accent/40 hover:text-foreground"
+                onclick={() => (showIntentDialog = true)}
+                title="Show all {intents.length} intents"
+              >
+                <MoreHorizontal class="size-5" />
+                <span class="mt-1 text-[10px]">More</span>
+              </button>
+            {/if}
+          </div>
+        {/if}
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom input bar -->
+  <div class="shrink-0 p-3 sm:p-4">
+    <div class="mx-auto w-full max-w-3xl space-y-2">
+      {#if error}
+        <div
+          class="rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-2.5 text-sm text-destructive"
+        >
+          {error}
+        </div>
+      {/if}
+
+      <!-- Compact selectors row -->
+      <div class="flex items-center gap-2 px-1">
+        <!-- Node selector -->
         <DropdownMenu.Root>
           <DropdownMenu.Trigger
-            class="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-sm transition-colors hover:bg-accent/50 cursor-pointer"
+            class="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs transition-colors hover:bg-accent/50 cursor-pointer"
           >
             {#if selectedNode}
               <span
-                class="size-2 shrink-0 rounded-full"
+                class="size-1.5 shrink-0 rounded-full"
                 class:bg-emerald-500={selectedNode.status === "active"}
                 class:bg-amber-500={selectedNode.status === "pending"}
                 class:bg-zinc-400={selectedNode.status === "offline"}
               ></span>
-              <Server class="size-3.5 opacity-60" />
-              <span class="font-medium text-foreground"
-                >{selectedNode.name}</span
-              >
-              {#if selectedNode.status !== "active"}
-                <span class="text-xs text-muted-foreground"
-                  >({selectedNode.status})</span
-                >
-              {/if}
+              <Server class="size-3 opacity-60" />
+              <span class="font-medium text-foreground">{selectedNode.name}</span>
             {:else}
-              <Server class="size-3.5 opacity-40" />
+              <Server class="size-3 opacity-40" />
               <span class="text-muted-foreground">Choose node</span>
             {/if}
-            <ChevronDown class="size-3.5 opacity-50" />
+            <ChevronDown class="size-3 opacity-50" />
           </DropdownMenu.Trigger>
-          <DropdownMenu.Content align="center" class="w-64">
+          <DropdownMenu.Content align="start" class="w-64">
             <DropdownMenu.Label>Select node</DropdownMenu.Label>
             <DropdownMenu.Separator />
             {#if nodes.length === 0}
@@ -389,9 +461,7 @@
                     ></span>
                     {node.name}
                     {#if node.status !== "active"}
-                      <span class="text-xs text-muted-foreground"
-                        >({node.status})</span
-                      >
+                      <span class="text-xs text-muted-foreground">({node.status})</span>
                     {/if}
                   </span>
                   {#if selectedNodeId === node.id}
@@ -402,190 +472,94 @@
             {/if}
           </DropdownMenu.Content>
         </DropdownMenu.Root>
-      </div>
 
-      <!-- Channel selection -->
-      <div class="mb-6 w-full">
-        <div class="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
-          <MessageSquare class="size-3.5" />
-          <span>Channels</span>
-        </div>
-        {#if enabledChannels.length === 0}
-          <div
-            class="rounded-xl border border-dashed border-border bg-card/40 px-4 py-3 text-xs text-muted-foreground"
+        <!-- Environment selector -->
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger
+            class="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs transition-colors hover:bg-accent/50 cursor-pointer"
           >
-            No channels enabled yet. Configure Discord or Feishu in
-            <a href="/settings/channels" class="underline">Settings</a>.
-          </div>
-        {:else}
-          <div class="rounded-xl border border-border bg-card p-4">
-            <p class="text-xs text-muted-foreground mb-3">
-              Choose which enabled channels this viber should post updates to.
-            </p>
-            <div class="flex flex-wrap gap-2">
-              {#each enabledChannels as channel (channel.id)}
-                <button
-                  type="button"
-                  onclick={() => toggleChannel(channel.id)}
-                  aria-pressed={selectedChannelIds.includes(channel.id)}
-                  title={channel.description}
-                  class="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors {selectedChannelIds.includes(channel.id)
-                    ? 'border-primary bg-primary/10 text-primary'
-                    : 'border-border/60 bg-muted/40 text-muted-foreground hover:text-foreground'}"
-                >
-                  {channel.label}
-                </button>
-              {/each}
-            </div>
-          </div>
-        {/if}
-      </div>
-
-      <!-- Quick suggestion cards -->
-      <div class="grid w-full grid-cols-3 gap-3">
-        <button
-          type="button"
-          class="suggestion-card group flex flex-col gap-2 rounded-xl border border-border bg-card p-4 text-left transition-all hover:border-primary/30 hover:bg-accent/40"
-          onclick={() => useSuggestion("Build a new feature for this project.")}
-        >
-          <div
-            class="flex size-8 items-center justify-center rounded-lg bg-blue-500/15 text-blue-500"
-          >
-            <Code2 class="size-4" />
-          </div>
-          <p class="text-sm font-medium text-foreground">Build a feature</p>
-          <p class="text-xs leading-relaxed text-muted-foreground">
-            Add functionality to the codebase
-          </p>
-        </button>
-
-        <button
-          type="button"
-          class="suggestion-card group flex flex-col gap-2 rounded-xl border border-border bg-card p-4 text-left transition-all hover:border-primary/30 hover:bg-accent/40"
-          onclick={() =>
-            useSuggestion("Find and fix bugs in the current codebase.")}
-        >
-          <div
-            class="flex size-8 items-center justify-center rounded-lg bg-amber-500/15 text-amber-500"
-          >
-            <Bug class="size-4" />
-          </div>
-          <p class="text-sm font-medium text-foreground">Fix a bug</p>
-          <p class="text-xs leading-relaxed text-muted-foreground">
-            Track down and resolve issues
-          </p>
-        </button>
-
-        <button
-          type="button"
-          class="suggestion-card group flex flex-col gap-2 rounded-xl border border-border bg-card p-4 text-left transition-all hover:border-primary/30 hover:bg-accent/40"
-          onclick={() =>
-            useSuggestion(
-              "Review the codebase and explain the project structure.",
-            )}
-        >
-          <div
-            class="flex size-8 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-500"
-          >
-            <Search class="size-4" />
-          </div>
-          <p class="text-sm font-medium text-foreground">Review codebase</p>
-          <p class="text-xs leading-relaxed text-muted-foreground">
-            Understand the project structure
-          </p>
-        </button>
-      </div>
-
-      <!-- Intent cards -->
-      <div class="mt-10 w-full">
-        <div class="flex items-center justify-between mb-3">
-          <h2
-            class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
-          >
-            Intents
-          </h2>
-          <div class="flex items-center gap-3">
-            {#if selectedIntent}
-              <button
-                type="button"
-                class="text-[11px] text-muted-foreground hover:text-foreground"
-                onclick={clearIntent}
-              >
-                Clear
-              </button>
+            {#if selectedEnvironment}
+              <FolderGit2 class="size-3 opacity-60" />
+              <span class="font-medium text-foreground">{selectedEnvironment.name}</span>
+            {:else}
+              <FolderGit2 class="size-3 opacity-40" />
+              <span class="text-muted-foreground">All environments</span>
             {/if}
-            <a
-              href="/settings/intents"
-              class="text-[11px] text-muted-foreground hover:text-primary transition-colors"
+            <ChevronDown class="size-3 opacity-50" />
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Content align="start" class="w-56">
+            <DropdownMenu.Label>Select environment</DropdownMenu.Label>
+            <DropdownMenu.Separator />
+            <DropdownMenu.Item
+              onclick={() => selectEnvironment(null)}
+              class="flex items-center justify-between"
             >
-              Manage intents
-            </a>
-          </div>
-        </div>
-
-        {#if intentsLoading}
-          <div class="text-center py-6 text-sm text-muted-foreground">
-            Loading intents...
-          </div>
-        {:else if intents.length === 0}
-          <div
-            class="rounded-xl border border-dashed border-border bg-card/40 px-4 py-6 text-center text-sm text-muted-foreground"
-          >
-            No intents found. <a href="/settings/intents" class="text-primary hover:underline">Create one</a> to get started.
-          </div>
-        {:else}
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {#each intents as intent (intent.id)}
-              {@const IconComponent = INTENT_ICONS[intent.icon] ?? Sparkles}
-              <button
-                type="button"
-                class={`rounded-xl border p-4 text-left transition-all ${
-                  selectedIntentId === intent.id
-                    ? "border-primary/40 bg-primary/5 ring-1 ring-primary/20"
-                    : "border-border bg-card hover:border-primary/30 hover:bg-accent/40"
-                }`}
-                onclick={() => selectIntent(intent)}
+              <span class="flex items-center gap-2">
+                <Package class="size-4 opacity-60" />
+                All environments
+              </span>
+              {#if selectedEnvironmentId === null}
+                <Check class="size-3.5 text-primary" />
+              {/if}
+            </DropdownMenu.Item>
+            {#each environments as env (env.id)}
+              <DropdownMenu.Item
+                onclick={() => selectEnvironment(env.id)}
+                class="flex items-center justify-between"
               >
-                <div class="flex items-start gap-3">
-                  <div
-                    class="size-8 rounded-lg bg-muted/60 flex items-center justify-center text-muted-foreground shrink-0"
-                  >
-                    <IconComponent class="size-4" />
-                  </div>
-                  <div class="min-w-0">
-                    <p class="text-sm font-medium text-foreground">
-                      {intent.name}
-                    </p>
-                    <p class="text-xs text-muted-foreground line-clamp-2">
-                      {intent.description}
-                    </p>
-                    {#if intent.builtin}
-                      <span
-                        class="mt-1.5 inline-block rounded-full bg-muted/60 px-1.5 py-0.5 text-[10px] text-muted-foreground"
-                      >
-                        built-in
-                      </span>
-                    {/if}
-                  </div>
-                </div>
-              </button>
+                <span class="flex items-center gap-2">
+                  <FolderGit2 class="size-4 opacity-60" />
+                  {env.name}
+                </span>
+                {#if selectedEnvironmentId === env.id}
+                  <Check class="size-3.5 text-primary" />
+                {/if}
+              </DropdownMenu.Item>
             {/each}
-          </div>
+          </DropdownMenu.Content>
+        </DropdownMenu.Root>
+
+        <!-- Model selector -->
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger
+            class="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs transition-colors hover:bg-accent/50 cursor-pointer"
+          >
+            <Cpu class="size-3 opacity-60" />
+            <span class={selectedModelId ? "font-medium text-foreground" : "text-muted-foreground"}>
+              {selectedModel.label}
+            </span>
+            <ChevronDown class="size-3 opacity-50" />
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Content align="start" class="w-64">
+            <DropdownMenu.Label>Select model</DropdownMenu.Label>
+            <DropdownMenu.Separator />
+            {#each MODEL_OPTIONS as opt (opt.id)}
+              <DropdownMenu.Item
+                onclick={() => (selectedModelId = opt.id)}
+                class="flex items-center justify-between"
+              >
+                <span class="flex items-center gap-2">
+                  {opt.label}
+                  {#if opt.badge}
+                    <span class="rounded-full bg-muted/60 px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                      {opt.badge}
+                    </span>
+                  {/if}
+                </span>
+                {#if selectedModelId === opt.id}
+                  <Check class="size-3.5 text-primary" />
+                {/if}
+              </DropdownMenu.Item>
+            {/each}
+          </DropdownMenu.Content>
+        </DropdownMenu.Root>
+
+        {#if !selectedNode}
+          <span class="text-[11px] italic text-muted-foreground">Choose a node to get started</span>
+        {:else if selectedNode.status !== "active"}
+          <span class="text-[11px] italic text-amber-500">Node is {selectedNode.status} — start the daemon</span>
         {/if}
       </div>
-    </div>
-  </div>
-
-  <!-- Bottom input bar -->
-  <div class="shrink-0 p-3 sm:p-4">
-    <div class="mx-auto w-full space-y-2">
-      {#if error}
-        <div
-          class="rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-2.5 text-sm text-destructive"
-        >
-          {error}
-        </div>
-      {/if}
 
       <!-- Input bar -->
       <div
@@ -615,52 +589,72 @@
           <ArrowUp class="size-4" />
         </button>
       </div>
-
-      <!-- Status row -->
-      <div
-        class="flex items-center gap-2 px-1 text-[11px] text-muted-foreground"
-      >
-        {#if selectedEnvironment}
-          <span
-            class="inline-flex items-center gap-1 rounded-full border border-border bg-muted/40 px-2 py-0.5"
-          >
-            <FolderGit2 class="size-3" />
-            {selectedEnvironment.name}
-          </span>
-        {/if}
-        {#if selectedNode}
-          <span
-            class="inline-flex items-center gap-1 rounded-full border border-border bg-muted/40 px-2 py-0.5"
-          >
-            <span
-              class="size-1.5 rounded-full"
-              class:bg-emerald-500={selectedNode.status === "active"}
-              class:bg-amber-500={selectedNode.status === "pending"}
-              class:bg-zinc-400={selectedNode.status === "offline"}
-            ></span>
-            {selectedNode.name}
-          </span>
-        {/if}
-        {#if !selectedNode}
-          <span class="italic">Choose a node to run the viber on</span>
-        {:else if selectedNode.status !== "active"}
-          <span class="italic text-amber-500"
-            >Node is {selectedNode.status} — start the daemon to continue</span
-          >
-        {/if}
-      </div>
     </div>
   </div>
 </div>
 
-<style>
-  .suggestion-card {
-    min-height: 120px;
-  }
+<!-- All Intents dialog -->
+<Dialog.Root bind:open={showIntentDialog}>
+  <Dialog.Content class="max-w-lg max-h-[80vh] flex flex-col gap-0 p-0">
+    <Dialog.Header class="px-5 pt-5 pb-3">
+      <Dialog.Title>All Intents</Dialog.Title>
+      <Dialog.Description>
+        {intents.length} intent{intents.length !== 1 ? "s" : ""} available
+      </Dialog.Description>
+    </Dialog.Header>
 
-  @media (max-width: 640px) {
-    .suggestion-card {
-      min-height: 100px;
-    }
-  }
-</style>
+    <div class="flex-1 overflow-y-auto px-5 pb-2">
+      <div class="space-y-2">
+        {#each intents as intent (intent.id)}
+          {@const IconComponent = INTENT_ICONS[intent.icon] ?? Sparkles}
+          <button
+            type="button"
+            class="w-full rounded-xl border p-4 text-left transition-all {selectedIntentId ===
+            intent.id
+              ? 'border-primary/40 bg-primary/5 ring-1 ring-primary/20'
+              : 'border-border bg-card hover:border-primary/30 hover:bg-accent/40'}"
+            onclick={() => {
+              selectIntent(intent);
+              showIntentDialog = false;
+            }}
+          >
+            <div class="flex items-start gap-3">
+              <div
+                class="size-9 rounded-lg bg-muted/60 flex items-center justify-center text-muted-foreground shrink-0"
+              >
+                <IconComponent class="size-4" />
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2">
+                  <p class="text-sm font-medium text-foreground">
+                    {intent.name}
+                  </p>
+                  {#if intent.builtin}
+                    <span
+                      class="inline-block rounded-full bg-muted/60 px-1.5 py-0.5 text-[10px] text-muted-foreground"
+                    >
+                      built-in
+                    </span>
+                  {/if}
+                </div>
+                <p class="text-xs text-muted-foreground mt-0.5">
+                  {intent.description}
+                </p>
+              </div>
+            </div>
+          </button>
+        {/each}
+      </div>
+    </div>
+
+    <Dialog.Footer class="border-t border-border px-5 py-3">
+      <a
+        href="/settings/intents"
+        class="text-xs text-muted-foreground hover:text-primary transition-colors"
+      >
+        Manage intents in Settings
+      </a>
+    </Dialog.Footer>
+  </Dialog.Content>
+</Dialog.Root>
+

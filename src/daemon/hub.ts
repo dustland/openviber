@@ -46,7 +46,7 @@ interface ConnectedNode {
   version: string;
   platform: string;
   capabilities: string[];
-  skills?: { id: string; name: string; description: string }[];
+  skills?: { id: string; name: string; description: string; available: boolean; status: "AVAILABLE" | "NOT_AVAILABLE" | "UNKNOWN"; healthSummary?: string }[];
   ws: WebSocket;
   connectedAt: Date;
   lastHeartbeat: Date;
@@ -550,7 +550,7 @@ export class HubServer {
     req.on("data", (chunk) => (body += chunk));
     req.on("end", () => {
       try {
-        const { messages, goal, environment, settings, oauthTokens } = JSON.parse(body);
+        const { messages, goal, environment, settings, oauthTokens, model } = JSON.parse(body);
 
         // Reset viber state for the new message
         viber.status = "pending";
@@ -576,6 +576,7 @@ export class HubServer {
             environment,
             settings,
             oauthTokens,
+            options: model ? { model } : undefined,
           }),
         );
 
@@ -870,7 +871,7 @@ export class HubServer {
 
       case "viber:error":
       case "task:error":
-        this.handleViberError(msg.viberId || msg.taskId, msg.error);
+        this.handleViberError(msg.viberId || msg.taskId, msg.error, msg.model);
         break;
 
       case "heartbeat":
@@ -998,13 +999,25 @@ export class HubServer {
     };
   }
 
-  private handleViberError(viberId: string, error: string): void {
+  private handleViberError(viberId: string, error: string, model?: string): void {
     const viber = this.vibers.get(viberId);
     if (viber) {
       viber.status = "error";
       viber.error = error;
       viber.completedAt = new Date();
-      console.log(`[Hub] Viber error: ${viberId} - ${error}`);
+      console.log(`[Hub] Viber error: ${viberId} - ${error}${model ? ` (model: ${model})` : ""}`);
+
+      // Push an error event so it appears in the /api/events stream (and Logs page)
+      const now = new Date().toISOString();
+      viber.events.push({
+        at: now,
+        event: {
+          kind: "error",
+          message: error,
+          model: model ?? undefined,
+          phase: "execution",
+        },
+      });
 
       // Close SSE stream subscribers
       this.closeStreamSubscribers(viberId);
@@ -1104,6 +1117,10 @@ export class HubServer {
           }
           if (heartbeatStatus.viberStatus) {
             node.viberStatus = heartbeatStatus.viberStatus;
+          }
+          // Update skill availability info from heartbeat
+          if (heartbeatStatus.skills) {
+            node.skills = heartbeatStatus.skills;
           }
         }
 

@@ -66,11 +66,11 @@ The quality of the Cursor agent's output depends heavily on the prompt. Follow t
    - "The function should handle null inputs gracefully"
    - "Follow the existing code style (no semicolons, 2-space indent)"
 
-4. **For coding tasks that make changes, include git workflow instructions:**
-   - **Create a branch first:** "Create a branch named fix/auth-error-handling"
-   - **Commit and push when done:** "When complete, commit the changes with message 'fix: add error handling to login function', push the branch to origin"
-   - **Create a PR:** "Create a pull request with title 'Fix: Add error handling to login function' and body describing the changes"
-   - Example full prompt: "Create a branch named fix/auth-error-handling. In src/auth/login.ts, add proper error handling to the loginUser() function. When complete, commit with message 'fix: add error handling to login function', push the branch, and create a pull request titled 'Fix: Add error handling to login function'."
+4. **Git workflow is automatic for coding tasks:**
+   - The tool automatically detects if you're in a git repository
+   - For coding tasks, it automatically adds instructions to create a branch, commit, push, and create a PR
+   - You don't need to include these steps in your prompt — just focus on the actual coding task
+   - Example: "In src/auth/login.ts, add proper error handling to the loginUser() function" — the tool will automatically add branch/PR instructions
 
 5. **For multi-step tasks, break them down:**
    - Run one focused prompt per logical change
@@ -149,13 +149,12 @@ Check status of all sessions with `tmux_list`.
 
 1. `gh_get_issue` → Read the full issue
 2. `gh_clone_repo` → Clone (or pull latest)
-3. `cursor_agent_run` → Fix the issue with a prompt that includes:
-   - Issue details and requirements
-   - Instructions to create a branch (e.g., "Create a branch named fix/issue-123")
-   - Instructions to commit, push, and create a PR when done
-   - Example: "Create a branch named fix/issue-123. Fix the bug described in issue #123: [issue details]. When complete, commit with message 'fix: resolve issue #123', push the branch, and create a pull request titled 'Fix: [issue title]' that references issue #123."
+3. `cursor_agent_run` → Fix the issue with a prompt describing the issue and requirements
+   - Example: "Fix the bug described in issue #123: [issue details]. Ensure all tests pass."
+   - The tool automatically adds branch creation, commit, push, and PR creation instructions
+   - No need to manually include git workflow steps in your prompt
 
-**Note:** The Cursor agent can execute git commands directly, so you don't need separate `gh_create_branch`, `gh_commit_and_push`, or `gh_create_pr` calls. Just include these instructions in the prompt to `cursor_agent_run`.
+**Note:** The Cursor agent can execute git commands directly. The `cursor_agent_run` tool automatically enhances your prompt with git workflow instructions for coding tasks in git repositories, so you can focus on describing what needs to be done rather than how to manage branches and PRs.
 
 ### Code Review Workflow
 

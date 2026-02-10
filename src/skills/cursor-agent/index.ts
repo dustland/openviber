@@ -91,6 +91,99 @@ function getTailLines(raw: string, maxLines: number = DEFAULT_TAIL_LINES): strin
   return `...[${hidden} earlier lines omitted]...\n${tail.join("\n")}`;
 }
 
+/**
+ * Check if a directory is a git repository.
+ */
+function isGitRepo(cwd: string): boolean {
+  try {
+    execSync("git rev-parse --git-dir", {
+      encoding: "utf8",
+      stdio: "pipe",
+      cwd,
+      timeout: 5000,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Generate a branch name from a task goal.
+ */
+function generateBranchName(goal: string): string {
+  // Extract key words and create a slug
+  const words = goal
+    .toLowerCase()
+    .replace(/[^\w\s]/g, " ")
+    .split(/\s+/)
+    .filter((w) => w.length > 3 && !["the", "and", "for", "with", "from", "that", "this"].includes(w))
+    .slice(0, 4);
+  
+  const slug = words.join("-").slice(0, 40);
+  const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+  return `cursor-agent/${timestamp}-${slug || "task"}`;
+}
+
+/**
+ * Enhance a coding task prompt with git workflow instructions.
+ * Automatically adds branch creation and PR creation steps if:
+ * - The directory is a git repository
+ * - The prompt doesn't already mention branch/PR creation
+ * - The prompt appears to be a coding task (mentions files, functions, code changes)
+ */
+function enhancePromptForCodingTask(goal: string, cwd: string): string {
+  // Check if it's a git repo
+  if (!isGitRepo(cwd)) {
+    return goal;
+  }
+
+  // Check if prompt already includes branch/PR instructions
+  const hasBranchInstruction = /\b(create|make|new).*branch|branch.*named|checkout.*-b/i.test(goal);
+  const hasPRInstruction = /\b(create|make|open).*(?:pull request|pr|merge request)|pr.*create/i.test(goal);
+  const hasCommitInstruction = /\b(commit|push|git commit|git push)/i.test(goal);
+
+  // If already has git workflow instructions, don't modify
+  if (hasBranchInstruction && (hasPRInstruction || hasCommitInstruction)) {
+    return goal;
+  }
+
+  // Check if it looks like a coding task (mentions files, functions, code changes)
+  const isCodingTask = /\b(file|function|class|method|code|implement|fix|add|refactor|update|modify|change|create|write|edit)/i.test(goal);
+  
+  if (!isCodingTask) {
+    return goal;
+  }
+
+  // Generate branch name
+  const branchName = generateBranchName(goal);
+
+  // Build enhanced prompt
+  const parts: string[] = [];
+  
+  // Add branch creation instruction if not present
+  if (!hasBranchInstruction) {
+    parts.push(`First, create a new git branch named "${branchName}" and switch to it.`);
+  }
+
+  // Add the original goal
+  parts.push(goal);
+
+  // Add commit/push/PR instructions if not present
+  if (!hasCommitInstruction || !hasPRInstruction) {
+    parts.push(`\n\nWhen you have completed the task:`);
+    if (!hasCommitInstruction) {
+      parts.push(`- Commit all changes with a descriptive commit message`);
+      parts.push(`- Push the branch to the remote repository`);
+    }
+    if (!hasPRInstruction) {
+      parts.push(`- Create a pull request with a clear title and description of the changes`);
+    }
+  }
+
+  return parts.join(" ");
+}
+
 
 /**
  * Run Cursor CLI (agent) inside tmux so it gets a PTY.
@@ -239,13 +332,13 @@ export function getTools(): Record<string, import("../../core/tool").CoreTool> {
   return {
     cursor_agent_run: {
       description:
-        "Run the Cursor CLI (agent) with the given prompt for AI-powered coding tasks. Call this whenever the user says 'use cursor-agent', 'cursor agent', 'run the Cursor CLI', or asks to delegate a coding task to Cursor. Provide a detailed, specific goal with context about the codebase. For coding tasks that will make changes, include instructions in the prompt to create a git branch first and create a pull request when complete. The Cursor agent can execute git commands directly. Runs in tmux (TTY required). Requires tmux and Cursor CLI installed.",
+        "Run the Cursor CLI (agent) with the given prompt for AI-powered coding tasks. Call this whenever the user says 'use cursor-agent', 'cursor agent', 'run the Cursor CLI', or asks to delegate a coding task to Cursor. Provide a detailed, specific goal with context about the codebase. For coding tasks in git repositories, the tool automatically enhances the prompt to include branch creation and PR creation instructions. The Cursor agent can execute git commands directly. Runs in tmux (TTY required). Requires tmux and Cursor CLI installed.",
       inputSchema: z.object({
         goal: z
           .string()
           .min(5)
           .describe(
-            "Detailed task prompt for the Cursor agent. For coding tasks, include: (1) specific files/functions to modify, (2) acceptance criteria, (3) instructions to create a git branch first (e.g. 'Create a branch named fix/issue-123'), and (4) instructions to commit, push, and create a PR when done (e.g. 'When complete, commit the changes, push to the branch, and create a pull request with title \"Fix: [description]\"'). Example: 'Create a branch named fix/auth-refactor. In src/utils/auth.ts, refactor the login function to use async/await instead of Promise chains. Ensure all existing tests pass. When complete, commit with message \"refactor: use async/await in login function\", push the branch, and create a pull request.'",
+            "Detailed task prompt for the Cursor agent. Include: (1) specific files/functions to modify, (2) acceptance criteria. For coding tasks in git repositories, the tool will automatically add instructions to create a branch, commit, push, and create a PR. You don't need to include these git workflow steps manually. Example: 'In src/utils/auth.ts, refactor the login function to use async/await instead of Promise chains. Ensure all existing tests pass.'",
           ),
         cwd: z
           .string()
@@ -282,9 +375,21 @@ export function getTools(): Record<string, import("../../core/tool").CoreTool> {
         const sessionName = args.sessionName ?? DEFAULT_SESSION;
         const onProgress = context?.onProgress;
 
+        // Enhance prompt with git workflow instructions for coding tasks
+        const enhancedGoal = enhancePromptForCodingTask(args.goal, cwd);
+        
+        if (enhancedGoal !== args.goal && onProgress) {
+          onProgress({
+            kind: "status",
+            phase: "preparing",
+            message: "Enhanced prompt with git workflow instructions",
+            data: { originalLength: args.goal.length, enhancedLength: enhancedGoal.length },
+          });
+        }
+
         try {
           const { output, completed, elapsed } = runInTmux(
-            args.goal,
+            enhancedGoal,
             cwd,
             waitSeconds,
             sessionName,

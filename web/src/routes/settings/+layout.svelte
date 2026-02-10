@@ -8,8 +8,17 @@
 
   const pathname = $derived($page.url.pathname);
   const isGeneralRoute = $derived(pathname === "/settings");
+  const isHubRoute = $derived(
+    pathname === "/settings/skills/hub" ||
+      pathname.startsWith("/settings/skills/hub/"),
+  );
   const isSkillsRoute = $derived(
-    pathname === "/settings/skills" || pathname.startsWith("/settings/skills/"),
+    pathname === "/settings/skills" ||
+      (pathname.startsWith("/settings/skills/") && !isHubRoute),
+  );
+  const isChannelsRoute = $derived(
+    pathname === "/settings/channels" ||
+      pathname.startsWith("/settings/channels/"),
   );
 </script>
 
@@ -23,10 +32,7 @@
               isActive={isGeneralRoute}
               tooltipContent="General"
             >
-              <a
-                href="/settings"
-                class="w-full inline-flex items-center gap-2"
-              >
+              <a href="/settings" class="w-full inline-flex items-center gap-2">
                 <SettingsIcon class="size-4 shrink-0" />
                 <span class="truncate group-data-[collapsible=icon]:hidden"
                   >General</span

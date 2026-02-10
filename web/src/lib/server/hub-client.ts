@@ -157,9 +157,33 @@ export interface ViberRunningStatus {
   }[];
   skills: string[];
   capabilities: string[];
+  skillHealth?: SkillHealthReport;
   totalTasksExecuted: number;
   lastHeartbeatAt?: string;
   collectedAt: string;
+}
+
+export interface SkillHealthCheck {
+  id: string;
+  label: string;
+  ok: boolean;
+  required?: boolean;
+  message?: string;
+  hint?: string;
+}
+
+export interface SkillHealthResult {
+  id: string;
+  name: string;
+  status: string;
+  available: boolean;
+  checks: SkillHealthCheck[];
+  summary: string;
+}
+
+export interface SkillHealthReport {
+  generatedAt: string;
+  skills: SkillHealthResult[];
 }
 
 /** Full node observability status (from node status request) */
@@ -229,7 +253,7 @@ export const hubClient = {
     nodeId?: string,
     messages?: { role: string; content: string }[],
     environment?: ViberEnvironmentContext,
-    settings?: { primaryCodingCli?: string },
+    settings?: { primaryCodingCli?: string; channelIds?: string[] },
   ): Promise<{ viberId: string; nodeId: string } | null> {
     try {
       const response = await hubFetch("/api/vibers", {

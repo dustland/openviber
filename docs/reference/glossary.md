@@ -39,11 +39,30 @@ The accumulated information that vibers use to understand and respond to request
 
 The complete record of messages between users and vibers within a Space. History persists across sessions, enabling vibers to maintain continuity.
 
+## D
+
+### Daemon (Node Runtime)
+
+The local process running on a Viber Node that executes tasks and connects outbound to the Hub
+control plane. In docs, "daemon" and "node runtime" are used interchangeably.
+
+## G
+
+### Gateway
+
+The enterprise channel gateway started with `viber gateway` (DingTalk, WeCom, etc.). This is
+distinct from the Hub's gateway control plane role.
+
 ## H
 
 ### History
 
 See [Conversation History](#conversation-history).
+
+### Hub (Gateway Control Plane)
+
+The central coordinator that routes messages between node runtimes (daemons) and the web app.
+This is the "gateway control plane" role in OpenClaw terminology.
 
 ## J
 
@@ -159,7 +178,7 @@ Vibers are configured through YAML files in `~/.openviber/vibers/`.
 
 A machine running the OpenViber runtime that hosts one or more vibers. A Viber Node provides:
 
-- **Runtime** — The process that executes viber tasks
+- **Runtime** — The node runtime (daemon) process that executes viber tasks and connects to the Hub
 - **Scheduler** — Cron-based job scheduling for automated tasks
 - **Credentials** — Shared account access for hosted vibers
 - **Config** — Identity and viber settings at `~/.openviber/` (lightweight, portable)

@@ -1,8 +1,26 @@
 import { CoreTool } from "../core/tool";
 
+/**
+ * Playground definition for verifying a skill in a known scenario.
+ */
+export interface SkillPlaygroundSpec {
+  /** Public GitHub repository in owner/name format. */
+  repo: string;
+  /** File path to review within the repo. Must be relative. */
+  file: string;
+  /** Optional branch to use when cloning/updating. */
+  branch?: string;
+  /** Optional shallow clone depth (defaults to 1). */
+  cloneDepth?: number;
+  /** Optional prompt template for verification runs. */
+  prompt?: string;
+}
+
 export interface SkillMetadata {
   name: string;
   description: string;
+  /** Optional playground scenario to verify the skill works. */
+  playground?: SkillPlaygroundSpec;
   [key: string]: any;
 }
 

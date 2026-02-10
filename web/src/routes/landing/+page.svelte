@@ -179,6 +179,18 @@
   <!-- Grain texture overlay -->
   <div class="grain"></div>
 
+  <!-- Dot grid pattern -->
+  <div class="dot-grid"></div>
+
+  <!-- Hero radial grid rings -->
+  <div class="hero-grid-rings"></div>
+
+  <!-- Diagonal light beams -->
+  <div class="light-beams"></div>
+
+  <!-- Topographic contour lines -->
+  <div class="topo-lines"></div>
+
   <!-- Animated background orbs -->
   <div class="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
     <div class="orb orb-1"></div>
@@ -278,7 +290,9 @@
     </section>
 
     <!-- Divider -->
-    <div class="section-divider mx-auto mt-20 md:mt-28"></div>
+    <div class="section-divider mx-auto mt-20 md:mt-28">
+      <div class="divider-glow"></div>
+    </div>
 
     <!-- What Vibers Can Do -->
     <section class="reveal mx-auto mt-12 max-w-6xl md:mt-16">
@@ -348,6 +362,7 @@
     <section
       class="reveal dark-section mx-auto mt-20 max-w-6xl rounded-3xl px-6 py-14 md:mt-28 md:px-10 md:py-16"
     >
+      <div class="hex-pattern"></div>
       <h2 class="section-label mb-3 text-center">Why OpenViber</h2>
       <p
         class="mx-auto mb-12 max-w-2xl text-center text-base text-[hsl(var(--muted-foreground)/0.8)]"
@@ -435,6 +450,7 @@
     <!-- Get Started CTA -->
     <section class="reveal mx-auto mt-20 max-w-3xl text-center md:mt-28">
       <div class="cta-card rounded-2xl px-8 py-10 md:px-12 md:py-14">
+        <div class="cta-cross-hatch"></div>
         <Bot class="mx-auto mb-4 size-8 text-primary" />
         <h2 class="text-2xl font-semibold text-card-foreground">
           Your first viber, running in 5 minutes
@@ -716,6 +732,7 @@
 
   /* ── Section divider gradient ── */
   .section-divider {
+    position: relative;
     height: 1px;
     max-width: 20rem;
     background: linear-gradient(
@@ -724,6 +741,20 @@
       hsl(var(--primary) / 0.4),
       transparent
     );
+  }
+  .divider-glow {
+    position: absolute;
+    top: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 12rem;
+    height: 17px;
+    background: radial-gradient(
+      ellipse at center,
+      hsl(var(--primary) / 0.12),
+      transparent 70%
+    );
+    pointer-events: none;
   }
 
   /* ── Section label ── */
@@ -804,12 +835,18 @@
 
   /* ── Dark contrast section ── */
   .dark-section {
+    position: relative;
+    overflow: hidden;
     background: hsl(var(--card) / 0.5);
     border: 1px solid hsl(var(--border) / 0.5);
     backdrop-filter: blur(16px);
     box-shadow:
       0 0 0 1px hsl(var(--primary) / 0.04),
       0 20px 60px -12px hsl(var(--background) / 0.3);
+  }
+  .dark-section > :not(.hex-pattern) {
+    position: relative;
+    z-index: 1;
   }
 
   /* ── Glass card ── */
@@ -999,6 +1036,193 @@
     transition-delay: var(--delay, 0ms);
   }
 
+  /* ── Dot grid pattern ── */
+  .dot-grid {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+    opacity: 0.35;
+    background-image: radial-gradient(
+      circle,
+      hsl(var(--foreground) / 0.12) 1px,
+      transparent 1px
+    );
+    background-size: 32px 32px;
+    mask-image: radial-gradient(
+      ellipse 80% 60% at 50% 30%,
+      black 20%,
+      transparent 70%
+    );
+    -webkit-mask-image: radial-gradient(
+      ellipse 80% 60% at 50% 30%,
+      black 20%,
+      transparent 70%
+    );
+  }
+
+  /* ── Hero radial grid rings ── */
+  .hero-grid-rings {
+    position: absolute;
+    top: -20rem;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60rem;
+    height: 60rem;
+    pointer-events: none;
+    z-index: -1;
+    opacity: 0;
+    animation: rings-fade-in 2s ease-out 0.3s forwards;
+    background:
+      radial-gradient(circle, transparent 8rem, hsl(var(--primary) / 0.04) 8.5rem, transparent 9rem),
+      radial-gradient(circle, transparent 14rem, hsl(var(--primary) / 0.035) 14.5rem, transparent 15rem),
+      radial-gradient(circle, transparent 20rem, hsl(var(--primary) / 0.03) 20.5rem, transparent 21rem),
+      radial-gradient(circle, transparent 26rem, hsl(var(--primary) / 0.02) 26.5rem, transparent 27rem);
+    mask-image: radial-gradient(
+      circle at 50% 50%,
+      black 30%,
+      transparent 65%
+    );
+    -webkit-mask-image: radial-gradient(
+      circle at 50% 50%,
+      black 30%,
+      transparent 65%
+    );
+  }
+  @keyframes rings-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  /* ── Diagonal light beams ── */
+  .light-beams {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+    opacity: 0.4;
+    overflow: hidden;
+  }
+  .light-beams::before,
+  .light-beams::after {
+    content: "";
+    position: absolute;
+    width: 1px;
+    height: 200%;
+    top: -50%;
+    background: linear-gradient(
+      to bottom,
+      transparent,
+      hsl(var(--primary) / 0.06),
+      hsl(var(--primary) / 0.1),
+      hsl(var(--primary) / 0.06),
+      transparent
+    );
+    animation: beam-drift 30s ease-in-out infinite;
+  }
+  .light-beams::before {
+    left: 20%;
+    transform: rotate(15deg);
+    animation-delay: 0s;
+  }
+  .light-beams::after {
+    right: 25%;
+    transform: rotate(-12deg);
+    animation-delay: -15s;
+  }
+  @keyframes beam-drift {
+    0%, 100% { transform: rotate(15deg) translateX(0); }
+    50% { transform: rotate(15deg) translateX(40px); }
+  }
+
+  /* ── Topographic contour lines ── */
+  .topo-lines {
+    position: absolute;
+    top: 50rem;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80rem;
+    height: 50rem;
+    pointer-events: none;
+    z-index: -1;
+    opacity: 0.25;
+    background-image:
+      url("data:image/svg+xml,%3Csvg width='800' height='500' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M-50 250 Q100 180 200 220 Q350 280 450 200 Q550 140 650 210 Q750 260 850 190' fill='none' stroke='%239ca3af' stroke-width='0.5' opacity='0.5'/%3E%3Cpath d='M-50 290 Q120 220 230 260 Q360 310 470 240 Q580 170 670 250 Q770 300 870 230' fill='none' stroke='%239ca3af' stroke-width='0.5' opacity='0.4'/%3E%3Cpath d='M-50 330 Q80 270 190 300 Q330 350 440 270 Q560 200 660 280 Q780 340 880 260' fill='none' stroke='%239ca3af' stroke-width='0.5' opacity='0.3'/%3E%3Cpath d='M-50 210 Q140 150 240 180 Q370 240 480 160 Q590 100 700 170 Q800 230 880 150' fill='none' stroke='%239ca3af' stroke-width='0.5' opacity='0.3'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    animation: topo-float 40s ease-in-out infinite;
+  }
+  @keyframes topo-float {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(20px); }
+  }
+
+  /* ── Hex pattern (for dark section) ── */
+  .hex-pattern {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    border-radius: inherit;
+    overflow: hidden;
+    opacity: 0.5;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='49' viewBox='0 0 28 49'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.06'%3E%3Cpath d='M13.99 9.25l13 7.5v15l-13 7.5L1 31.75v-15l12.99-7.5zM3 17.9v12.7l10.99 6.34 11-6.35V17.9l-11-6.34L3 17.9zM0 15l12.98-7.5V0h-2v6.35L0 12.69v2.3zm0 18.5L12.98 41v8h-2v-6.85L0 35.81v-2.3zM15 0v7.5L27.99 15H28v-2.31h-.01L17 6.35V0h-2zm0 49v-8l12.99-7.5H28v2.31h-.01L17 42.15V49h-2z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    mask-image: radial-gradient(
+      ellipse 80% 70% at 50% 50%,
+      black 20%,
+      transparent 70%
+    );
+    -webkit-mask-image: radial-gradient(
+      ellipse 80% 70% at 50% 50%,
+      black 20%,
+      transparent 70%
+    );
+  }
+
+  /* ── CTA cross-hatch pattern ── */
+  .cta-cross-hatch {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    border-radius: inherit;
+    overflow: hidden;
+    opacity: 0.5;
+    background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 40L40 0M-10 10L10-10M30 50L50 30' stroke='%239C92AC' stroke-opacity='0.05' stroke-width='0.5'/%3E%3C/svg%3E");
+    mask-image: radial-gradient(
+      ellipse 90% 80% at 50% 50%,
+      black 20%,
+      transparent 70%
+    );
+    -webkit-mask-image: radial-gradient(
+      ellipse 90% 80% at 50% 50%,
+      black 20%,
+      transparent 70%
+    );
+  }
+
+  /* ── Floating connection nodes (constellation) ── */
+  .homepage::after {
+    content: "";
+    position: fixed;
+    top: 0;
+    right: 5%;
+    width: 40rem;
+    height: 100%;
+    pointer-events: none;
+    z-index: -1;
+    opacity: 0.15;
+    background-image: url("data:image/svg+xml,%3Csvg width='400' height='800' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='80' cy='120' r='1.5' fill='%239ca3af' opacity='0.6'/%3E%3Ccircle cx='250' cy='200' r='1' fill='%239ca3af' opacity='0.4'/%3E%3Ccircle cx='150' cy='350' r='1.5' fill='%239ca3af' opacity='0.5'/%3E%3Ccircle cx='320' cy='450' r='1' fill='%239ca3af' opacity='0.3'/%3E%3Ccircle cx='60' cy='550' r='1.5' fill='%239ca3af' opacity='0.4'/%3E%3Ccircle cx='280' cy='650' r='1' fill='%239ca3af' opacity='0.5'/%3E%3Ccircle cx='180' cy='750' r='1.5' fill='%239ca3af' opacity='0.3'/%3E%3Cline x1='80' y1='120' x2='250' y2='200' stroke='%239ca3af' stroke-width='0.3' opacity='0.25'/%3E%3Cline x1='250' y1='200' x2='150' y2='350' stroke='%239ca3af' stroke-width='0.3' opacity='0.2'/%3E%3Cline x1='150' y1='350' x2='320' y2='450' stroke='%239ca3af' stroke-width='0.3' opacity='0.15'/%3E%3Cline x1='320' y1='450' x2='60' y2='550' stroke='%239ca3af' stroke-width='0.3' opacity='0.2'/%3E%3Cline x1='60' y1='550' x2='280' y2='650' stroke='%239ca3af' stroke-width='0.3' opacity='0.15'/%3E%3Cline x1='280' y1='650' x2='180' y2='750' stroke='%239ca3af' stroke-width='0.3' opacity='0.1'/%3E%3C/svg%3E");
+    background-repeat: repeat-y;
+    background-size: 400px 800px;
+    animation: constellation-drift 50s linear infinite;
+  }
+  @keyframes constellation-drift {
+    0% { background-position: 0 0; }
+    100% { background-position: 0 800px; }
+  }
+
   /* Reduce motion for accessibility */
   @media (prefers-reduced-motion: reduce) {
     .orb,
@@ -1010,7 +1234,12 @@
     .hero-cta,
     .reveal,
     .reveal-card,
-    .edge-glow {
+    .edge-glow,
+    .hero-grid-rings,
+    .topo-lines,
+    .light-beams::before,
+    .light-beams::after,
+    .homepage::after {
       animation: none !important;
       opacity: 1 !important;
       transform: none !important;

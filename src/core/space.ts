@@ -412,7 +412,7 @@ export async function startSpace({
     model: model || "deepseek/deepseek-chat",
     temperature: 0.7,
     promptFile: "", // ViberAgent doesn't use prompt files
-    skills: ["tmux", "cursor-agent", "codex-cli"],
+    skills: ["tmux", "cursor-agent", "codex-cli", "skill-playground"],
   };
 
   const viberAgent = new ViberAgent(viberAgentConfig, space, {

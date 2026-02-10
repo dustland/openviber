@@ -16,18 +16,37 @@ import type {
   SkillSearchResult,
   ExternalSkillInfo,
   SkillImportResult,
+  SkillHubProviderConfig,
 } from "../types";
 import * as fs from "fs/promises";
 import * as path from "path";
 
-const NPM_REGISTRY = "https://registry.npmjs.org";
-const NPM_SEARCH = "https://registry.npmjs.org/-/v1/search";
+const DEFAULT_NPM_REGISTRY = "https://registry.npmjs.org";
 
 export class NpmProvider implements SkillHubProvider {
   readonly type = "npm" as const;
   readonly displayName = "npm Registry";
+  private config: SkillHubProviderConfig;
+
+  constructor(config?: SkillHubProviderConfig) {
+    this.config = config ?? {};
+  }
+
+  setConfig(config?: SkillHubProviderConfig): void {
+    this.config = config ?? {};
+  }
+
+  private getRegistryBase(): string {
+    return (
+      this.config.url ||
+      process.env.NPM_REGISTRY_URL ||
+      DEFAULT_NPM_REGISTRY
+    ).replace(/\/$/, "");
+  }
 
   async search(query: SkillSearchQuery): Promise<SkillSearchResult> {
+    const registryBase = this.getRegistryBase();
+    const searchUrl = `${registryBase}/-/v1/search`;
     const page = query.page ?? 1;
     const size = Math.min(query.limit ?? 20, 250);
     const from = (page - 1) * size;
@@ -55,7 +74,7 @@ export class NpmProvider implements SkillHubProvider {
     }
 
     try {
-      const res = await fetch(`${NPM_SEARCH}?${params.toString()}`, {
+      const res = await fetch(`${searchUrl}?${params.toString()}`, {
         headers: { Accept: "application/json" },
         signal: AbortSignal.timeout(15000),
       });
@@ -103,8 +122,9 @@ export class NpmProvider implements SkillHubProvider {
 
   async getSkillInfo(skillId: string): Promise<ExternalSkillInfo | null> {
     try {
+      const registryBase = this.getRegistryBase();
       const res = await fetch(
-        `${NPM_REGISTRY}/${encodeURIComponent(skillId)}`,
+        `${registryBase}/${encodeURIComponent(skillId)}`,
         {
           headers: { Accept: "application/json" },
           signal: AbortSignal.timeout(15000),
@@ -150,9 +170,10 @@ export class NpmProvider implements SkillHubProvider {
     targetDir: string,
   ): Promise<SkillImportResult> {
     try {
+      const registryBase = this.getRegistryBase();
       // Fetch package metadata to get tarball URL
       const res = await fetch(
-        `${NPM_REGISTRY}/${encodeURIComponent(skillId)}`,
+        `${registryBase}/${encodeURIComponent(skillId)}`,
         {
           headers: { Accept: "application/json" },
           signal: AbortSignal.timeout(15000),

@@ -1,3 +1,4 @@
+import type { ExecException } from "child_process";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const execMock = vi.fn();
@@ -21,7 +22,7 @@ describe("ShellTool", () => {
     expect(execMock).not.toHaveBeenCalled();
   });
 
-  it("blocks execution outside the workspace when restricted", async () => {
+  it("blocks execution outside the workspace when restrictToWorkspace is enabled", async () => {
     const tool = new ShellTool();
     await expect(
       tool.shell_run({ command: "echo ok", cwd: "/tmp" }),
@@ -29,9 +30,38 @@ describe("ShellTool", () => {
     expect(execMock).not.toHaveBeenCalled();
   });
 
+  it("allows execution within workspace subdirectories", async () => {
+    execMock.mockImplementation(
+      (_command: string, _opts: unknown, callback: (error: ExecException | null, stdout: string, stderr: string) => void) => {
+        callback(null, "ok", "");
+      },
+    );
+
+    const tool = new ShellTool();
+    const result = await tool.shell_run({ command: "echo ok", cwd: "subdir" });
+
+    expect(result.ok).toBe(true);
+    expect(execMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("allows execution outside the workspace when restrictToWorkspace is disabled", async () => {
+    execMock.mockImplementation(
+      (_command: string, _opts: unknown, callback: (error: ExecException | null, stdout: string, stderr: string) => void) => {
+        callback(null, "ok", "");
+      },
+    );
+
+    const tool = new ShellTool();
+    tool.setConfig({ restrictToWorkspace: false });
+    const result = await tool.shell_run({ command: "echo ok", cwd: "/tmp" });
+
+    expect(result.ok).toBe(true);
+    expect(execMock).toHaveBeenCalledTimes(1);
+  });
+
   it("returns ok=true on successful exec", async () => {
     execMock.mockImplementation(
-      (_command: string, _opts: unknown, callback: any) => {
+      (_command: string, _opts: unknown, callback: (error: ExecException | null, stdout: string, stderr: string) => void) => {
         callback(null, "hello", "");
       },
     );
@@ -50,8 +80,8 @@ describe("ShellTool", () => {
 
   it("returns ok=false when exec fails", async () => {
     execMock.mockImplementation(
-      (_command: string, _opts: unknown, callback: any) => {
-        const error = Object.assign(new Error("boom"), { code: 2 });
+      (_command: string, _opts: unknown, callback: (error: ExecException | null, stdout: string, stderr: string) => void) => {
+        const error = Object.assign(new Error("boom"), { code: 2 }) as ExecException;
         callback(error, "", "boom");
       },
     );

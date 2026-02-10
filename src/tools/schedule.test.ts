@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mkdirMock = vi.fn();
 const writeFileMock = vi.fn();
@@ -25,9 +25,16 @@ import { createJobTool, deleteJobTool, listJobsTool } from "./schedule";
 const JOBS_DIR = "/tmp/openviber-jobs";
 
 describe("schedule tools", () => {
+  let originalJobsDir: string | undefined;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    originalJobsDir = process.env.OPENVIBER_JOBS_DIR;
     process.env.OPENVIBER_JOBS_DIR = JOBS_DIR;
+  });
+
+  afterEach(() => {
+    process.env.OPENVIBER_JOBS_DIR = originalJobsDir;
   });
 
   it("creates a scheduled job from natural language time", async () => {
@@ -117,5 +124,28 @@ describe("schedule tools", () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toContain("not found");
+  });
+
+  it("sanitizes job names to prevent path traversal", async () => {
+    mkdirMock.mockResolvedValue(undefined);
+    writeFileMock.mockResolvedValue(undefined);
+
+    const cases = [
+      { name: "../../etc/cron.d/malicious", expected: "etc-cron-d-malicious" },
+      { name: "/absolute/path/job", expected: "absolute-path-job" },
+      { name: "null\x00byte", expected: "null-byte" },
+    ];
+
+    for (const { name, expected } of cases) {
+      const result = await createJobTool.execute({
+        name,
+        schedule: "8am daily",
+        task: "Do something",
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.jobPath).toBe(`${JOBS_DIR}/${expected}.yaml`);
+      expect(result.jobPath).not.toContain("..");
+    }
   });
 });

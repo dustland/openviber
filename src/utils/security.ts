@@ -31,9 +31,26 @@ export class SecurityGuard {
    * Returns the resolved absolute path if valid, throws error if not
    */
   validatePath(targetPath: string, allowAbsolute = false): string {
+    if (targetPath.includes("\0")) {
+      throw new Error("Security Error: Path contains null byte");
+    }
+
+    if (/%2e|%2f|%5c/i.test(targetPath)) {
+      throw new Error("Security Error: Path contains encoded traversal");
+    }
+
     const resolved = path.resolve(this.workspaceRoot, targetPath);
-    
+
     // Check if path is within workspace
+    if (!allowAbsolute) {
+      const relative = path.relative(this.workspaceRoot, resolved);
+      if (relative.startsWith("..") || path.isAbsolute(relative)) {
+        throw new Error(
+          `Security Error: Path '${targetPath}' is outside the allowed workspace '${this.workspaceRoot}'`
+        );
+      }
+    }
+
     if (!resolved.startsWith(this.workspaceRoot) && !allowAbsolute) {
       throw new Error(
         `Security Error: Path '${targetPath}' is outside the allowed workspace '${this.workspaceRoot}'`

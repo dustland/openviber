@@ -91,6 +91,7 @@ function getTailLines(raw: string, maxLines: number = DEFAULT_TAIL_LINES): strin
   return `...[${hidden} earlier lines omitted]...\n${tail.join("\n")}`;
 }
 
+
 /**
  * Run Cursor CLI (agent) inside tmux so it gets a PTY.
  *
@@ -99,12 +100,14 @@ function getTailLines(raw: string, maxLines: number = DEFAULT_TAIL_LINES): strin
  * - Configurable session names for parallel runs
  * - Better output capture and parsing
  * - Handles workspace trust prompt automatically
+ * - Emits intermediate progress updates via callback
  */
 function runInTmux(
   goal: string,
   cwd: string,
   waitSeconds: number,
   sessionName: string,
+  onProgress?: (event: { kind: string; phase?: string; message?: string; data?: any }) => void,
 ): { output: string; completed: boolean; elapsed: number } {
   const session = safeSession(sessionName);
 
@@ -150,14 +153,51 @@ function runInTmux(
 
   // Initial wait before first poll (let the agent start)
   execSync("sleep 5", { encoding: "utf8", stdio: "pipe" });
+  
+  // Emit initial progress
+  if (onProgress) {
+    onProgress({
+      kind: "status",
+      phase: "starting",
+      message: "Starting Cursor agent...",
+      data: { goal, cwd, sessionName },
+    });
+  }
 
   while (Date.now() - startTime < maxWaitMs) {
     const output = captureTmuxPane(session);
+    const elapsed = Math.round((Date.now() - startTime) / 1000);
+
+    // Emit intermediate progress with latest output
+    if (onProgress && output !== lastOutput) {
+      const tail = getTailLines(output, 20);
+      const detection = detectCompletion(output);
+      onProgress({
+        kind: "progress",
+        phase: detection.completed ? "completing" : "working",
+        message: detection.completed 
+          ? "Agent appears to be completing..." 
+          : `Agent is working... (${elapsed}s elapsed)`,
+        data: {
+          elapsed,
+          outputTail: tail,
+          evidence: detection.evidence,
+        },
+      });
+    }
 
     // Check for completion patterns
     const detection = detectCompletion(output);
     if (detection.completed) {
       completed = true;
+      if (onProgress) {
+        onProgress({
+          kind: "status",
+          phase: "completed",
+          message: "Cursor agent completed successfully",
+          data: { elapsed, evidence: detection.evidence },
+        });
+      }
       break;
     }
 
@@ -167,6 +207,14 @@ function runInTmux(
       // If output hasn't changed for ~15 seconds, likely done
       if (stableCount >= 5) {
         completed = true;
+        if (onProgress) {
+          onProgress({
+            kind: "status",
+            phase: "completed",
+            message: "Cursor agent appears to have finished (output stabilized)",
+            data: { elapsed },
+          });
+        }
         break;
       }
     } else {
@@ -191,13 +239,13 @@ export function getTools(): Record<string, import("../../core/tool").CoreTool> {
   return {
     cursor_agent_run: {
       description:
-        "Run the Cursor CLI (agent) with the given prompt for AI-powered coding tasks. Call this whenever the user says 'use cursor-agent', 'cursor agent', 'run the Cursor CLI', or asks to delegate a coding task to Cursor. Provide a detailed, specific goal with context about the codebase. Runs in tmux (TTY required). Requires tmux and Cursor CLI installed.",
+        "Run the Cursor CLI (agent) with the given prompt for AI-powered coding tasks. Call this whenever the user says 'use cursor-agent', 'cursor agent', 'run the Cursor CLI', or asks to delegate a coding task to Cursor. Provide a detailed, specific goal with context about the codebase. For coding tasks that will make changes, include instructions in the prompt to create a git branch first and create a pull request when complete. The Cursor agent can execute git commands directly. Runs in tmux (TTY required). Requires tmux and Cursor CLI installed.",
       inputSchema: z.object({
         goal: z
           .string()
           .min(5)
           .describe(
-            "Detailed task prompt for the Cursor agent. Best practice: include context about the codebase, specific files to modify, and acceptance criteria. Example: 'In the file src/utils/auth.ts, refactor the login function to use async/await instead of Promise chains. Ensure existing tests pass.'",
+            "Detailed task prompt for the Cursor agent. For coding tasks, include: (1) specific files/functions to modify, (2) acceptance criteria, (3) instructions to create a git branch first (e.g. 'Create a branch named fix/issue-123'), and (4) instructions to commit, push, and create a PR when done (e.g. 'When complete, commit the changes, push to the branch, and create a pull request with title \"Fix: [description]\"'). Example: 'Create a branch named fix/auth-refactor. In src/utils/auth.ts, refactor the login function to use async/await instead of Promise chains. Ensure all existing tests pass. When complete, commit with message \"refactor: use async/await in login function\", push the branch, and create a pull request.'",
           ),
         cwd: z
           .string()
@@ -228,10 +276,11 @@ export function getTools(): Record<string, import("../../core/tool").CoreTool> {
         cwd?: string;
         waitSeconds?: number;
         sessionName?: string;
-      }) => {
+      }, context?: any) => {
         const cwd = args.cwd ? path.resolve(args.cwd) : process.cwd();
         const waitSeconds = args.waitSeconds ?? DEFAULT_WAIT_SECONDS;
         const sessionName = args.sessionName ?? DEFAULT_SESSION;
+        const onProgress = context?.onProgress;
 
         try {
           const { output, completed, elapsed } = runInTmux(
@@ -239,6 +288,7 @@ export function getTools(): Record<string, import("../../core/tool").CoreTool> {
             cwd,
             waitSeconds,
             sessionName,
+            onProgress,
           );
 
           const outputTail = getTailLines(output);

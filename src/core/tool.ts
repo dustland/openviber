@@ -17,6 +17,14 @@ export interface CoreTool {
 // Cache for MCP clients
 const mcpClients = new Map<string, any>();
 
+/** Progress callback for tools to emit intermediate updates */
+export type ToolProgressCallback = (event: {
+  kind: string;
+  phase?: string;
+  message?: string;
+  data?: any;
+}) => void;
+
 /** Context passed through to tool execution */
 export interface ToolContext {
   spaceId?: string;
@@ -24,6 +32,8 @@ export interface ToolContext {
     google?: { accessToken: string; refreshToken?: string | null };
     [provider: string]: { accessToken: string; refreshToken?: string | null } | undefined;
   };
+  /** Optional progress callback for tools to emit intermediate updates */
+  onProgress?: ToolProgressCallback;
 }
 
 /**

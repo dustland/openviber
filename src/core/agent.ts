@@ -332,11 +332,19 @@ export class Agent {
         converted = { ...tool };
       }
 
-      // Wrap execute to inject oauthTokens into context if available
-      if (oauthTokens && typeof converted.execute === "function") {
+      // Wrap execute to inject oauthTokens and progress callback into context if available
+      if (typeof converted.execute === "function") {
         const originalExecute = converted.execute;
         converted.execute = (args: any, aiSdkContext?: any) => {
-          const enrichedContext = { ...aiSdkContext, oauthTokens };
+          const enrichedContext = { ...aiSdkContext };
+          if (oauthTokens) {
+            enrichedContext.oauthTokens = oauthTokens;
+          }
+          // Extract onProgress from metadata if available
+          const metadata = context?.metadata as any;
+          if (metadata?.onProgress) {
+            enrichedContext.onProgress = metadata.onProgress;
+          }
           return originalExecute(args, enrichedContext);
         };
       }

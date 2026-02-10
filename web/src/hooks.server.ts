@@ -5,6 +5,7 @@ import { getAuthUser } from "$lib/server/auth";
 const PROTECTED_PATHS = [
   "/vibers",
   "/settings",
+  "/skills",
   "/jobs",
   "/nodes",
   "/environments",

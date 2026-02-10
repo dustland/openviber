@@ -1,7 +1,10 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
+import { env } from "$env/dynamic/private";
 import { getNodeByAuthToken, getViberNode, updateNodeConfig, updateNodeName } from "$lib/server/viber-nodes";
 import { listEnvironmentConfigForNode } from "$lib/server/environments";
+import { getDecryptedOAuthConnections } from "$lib/server/oauth";
+import { getSettingsForUser, getPersonalizationForUser } from "$lib/server/user-settings";
 
 /**
  * GET /api/nodes/[id]/config
@@ -10,6 +13,10 @@ import { listEnvironmentConfigForNode } from "$lib/server/environments";
  * Authenticated by either:
  *   - Bearer auth_token (for daemon config pull)
  *   - Cookie-based session (for web UI)
+ *
+ * For daemon calls (Bearer), the response includes the user's global settings
+ * (AI provider keys, personalization, timezone, default model) so the daemon
+ * can operate without additional API calls.
  */
 export const GET: RequestHandler = async ({ params, request, locals }) => {
   const nodeId = params.id;
@@ -25,11 +32,70 @@ export const GET: RequestHandler = async ({ params, request, locals }) => {
     const environments = await listEnvironmentConfigForNode(nodeId, {
       includeSecrets: true,
     });
+    // Include decrypted OAuth tokens so the daemon can use them for skills
+    let oauthConnections: Awaited<ReturnType<typeof getDecryptedOAuthConnections>> = [];
+    try {
+      oauthConnections = await getDecryptedOAuthConnections(node.user_id);
+    } catch {
+      // Non-fatal — daemon can still work without OAuth connections
+    }
+
+    // Include global user settings so the daemon has API keys, model, timezone, etc.
+    let globalSettings: {
+      aiProviders: Record<string, { apiKey?: string; baseUrl?: string }>;
+      chatModel: string | null;
+      timezone: string | null;
+      primaryCodingCli: string | null;
+    } | null = null;
+    try {
+      const userSettings = await getSettingsForUser(node.user_id);
+
+      // Merge user's own provider keys with the built-in OpenRouter fallback.
+      // If the user hasn't added any keys, the daemon can still work via the
+      // platform's built-in OpenRouter key.
+      const aiProviders = { ...userSettings.aiProviders };
+      const hasAnyUserKey = Object.values(aiProviders).some((p) => !!p.apiKey);
+      if (!hasAnyUserKey) {
+        const platformKey = env.OPENROUTER_API_KEY;
+        if (platformKey) {
+          aiProviders["openrouter"] = {
+            ...(aiProviders["openrouter"] || {}),
+            apiKey: platformKey,
+            baseUrl: aiProviders["openrouter"]?.baseUrl || undefined,
+          };
+        }
+      }
+
+      globalSettings = {
+        aiProviders,
+        chatModel: userSettings.chatModel,
+        timezone: userSettings.timezone,
+        primaryCodingCli: userSettings.primaryCodingCli,
+      };
+    } catch {
+      // Non-fatal
+    }
+
+    // Personalization files (injected into agent system prompt)
+    let personalization: {
+      soulMd: string;
+      userMd: string;
+      memoryMd: string;
+    } | null = null;
+    try {
+      personalization = await getPersonalizationForUser(node.user_id);
+    } catch {
+      // Non-fatal
+    }
+
     return json({
       nodeId: node.id,
       name: node.name,
       config: node.config,
       environments,
+      oauthConnections,
+      globalSettings,
+      personalization,
       configVersion: Date.now(),
       status: node.status,
     });

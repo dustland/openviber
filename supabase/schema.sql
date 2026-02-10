@@ -35,6 +35,13 @@ CREATE TABLE IF NOT EXISTS public.user_settings (
   skill_sources jsonb NOT NULL DEFAULT '{}',
   channel_integrations jsonb NOT NULL DEFAULT '{}',
   primary_coding_cli text,
+  chat_model text,
+  ai_providers jsonb NOT NULL DEFAULT '{}',
+  timezone text,
+  onboarding_completed_at timestamptz,
+  soul_md text NOT NULL DEFAULT '',
+  user_md text NOT NULL DEFAULT '',
+  memory_md text NOT NULL DEFAULT '',
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT user_settings_user_id_key UNIQUE (user_id)
@@ -59,6 +66,53 @@ CREATE POLICY "Users can update own settings"
   ON public.user_settings FOR UPDATE
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
+
+-- =============================================================================
+-- OAuth connections (per-user; encrypted tokens for Google, Microsoft, etc.)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS public.oauth_connections (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  provider text NOT NULL,
+  account_email text,
+  access_token_encrypted text NOT NULL,
+  refresh_token_encrypted text,
+  token_expires_at timestamptz,
+  scopes text[] NOT NULL DEFAULT '{}',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE(user_id, provider, account_email)
+);
+
+CREATE INDEX IF NOT EXISTS oauth_connections_user_id_idx ON public.oauth_connections(user_id);
+
+ALTER TABLE public.oauth_connections ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can select own oauth connections" ON public.oauth_connections;
+CREATE POLICY "Users can select own oauth connections"
+  ON public.oauth_connections FOR SELECT
+  USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can insert own oauth connections" ON public.oauth_connections;
+CREATE POLICY "Users can insert own oauth connections"
+  ON public.oauth_connections FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update own oauth connections" ON public.oauth_connections;
+CREATE POLICY "Users can update own oauth connections"
+  ON public.oauth_connections FOR UPDATE
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete own oauth connections" ON public.oauth_connections;
+CREATE POLICY "Users can delete own oauth connections"
+  ON public.oauth_connections FOR DELETE
+  USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Service role can manage oauth connections" ON public.oauth_connections;
+CREATE POLICY "Service role can manage oauth connections"
+  ON public.oauth_connections FOR ALL
+  USING (auth.role() = 'service_role');
 
 -- =============================================================================
 -- Environments (per-user; vibers are linked to an environment)
@@ -285,3 +339,42 @@ CREATE POLICY "Users can delete messages for own vibers"
       WHERE v.id = messages.viber_id AND (e.user_id)::uuid = auth.uid()
     )
   );
+
+-- =============================================================================
+-- Intents (user-defined viber intent templates)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS public.intents (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id text NOT NULL,
+  name text NOT NULL,
+  description text NOT NULL DEFAULT '',
+  icon text NOT NULL DEFAULT 'sparkles',
+  body text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS intents_user_id_idx ON public.intents(user_id);
+
+ALTER TABLE public.intents ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can select own intents" ON public.intents;
+CREATE POLICY "Users can select own intents"
+  ON public.intents FOR SELECT
+  USING ((user_id)::uuid = auth.uid());
+
+DROP POLICY IF EXISTS "Users can insert own intents" ON public.intents;
+CREATE POLICY "Users can insert own intents"
+  ON public.intents FOR INSERT
+  WITH CHECK ((user_id)::uuid = auth.uid());
+
+DROP POLICY IF EXISTS "Users can update own intents" ON public.intents;
+CREATE POLICY "Users can update own intents"
+  ON public.intents FOR UPDATE
+  USING ((user_id)::uuid = auth.uid())
+  WITH CHECK ((user_id)::uuid = auth.uid());
+
+DROP POLICY IF EXISTS "Users can delete own intents" ON public.intents;
+CREATE POLICY "Users can delete own intents"
+  ON public.intents FOR DELETE
+  USING ((user_id)::uuid = auth.uid());

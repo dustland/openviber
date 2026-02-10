@@ -2,18 +2,38 @@
   import { onMount } from "svelte";
   import {
     AlertCircle,
+    AlertTriangle,
     ArrowLeft,
     ArrowRight,
+    Check,
     CheckCircle,
+    ChevronDown,
+    ChevronUp,
+    Copy,
     Download,
     ExternalLink,
     FileText,
+    Link2,
     Loader2,
     Puzzle,
     Search,
     Server,
     Sparkles,
   } from "@lucide/svelte";
+
+  interface UnmetRequirement {
+    type: "oauth" | "env" | "bin";
+    label: string;
+    hint?: string;
+    connectUrl?: string;
+    envName?: string;
+  }
+
+  interface SkillRequirementStatus {
+    ready: boolean;
+    unmet: UnmetRequirement[];
+    loading: boolean;
+  }
 
   interface InstalledSkill {
     id: string;
@@ -67,6 +87,9 @@
   let sourcesLoading = $state(true);
   let sourcesError = $state<string | null>(null);
   let importStates = $state<Record<string, ImportState>>({});
+  let requirementStatuses = $state<Record<string, SkillRequirementStatus>>({});
+  let expandedSetup = $state<string | null>(null);
+  let copiedHint = $state<string | null>(null);
 
   const enabledSources = $derived(sources.filter((s) => s.enabled));
   const enabledSourcesCount = $derived(enabledSources.length);
@@ -201,6 +224,57 @@
     }
   }
 
+  async function checkRequirements(skillId: string) {
+    requirementStatuses = {
+      ...requirementStatuses,
+      [skillId]: { ready: false, unmet: [], loading: true },
+    };
+    try {
+      const res = await fetch(`/api/skills/requirements?skillId=${encodeURIComponent(skillId)}`);
+      if (!res.ok) {
+        requirementStatuses = {
+          ...requirementStatuses,
+          [skillId]: { ready: true, unmet: [], loading: false },
+        };
+        return;
+      }
+      const data = await res.json();
+      requirementStatuses = {
+        ...requirementStatuses,
+        [skillId]: {
+          ready: data.ready ?? true,
+          unmet: data.unmet ?? [],
+          loading: false,
+        },
+      };
+    } catch {
+      requirementStatuses = {
+        ...requirementStatuses,
+        [skillId]: { ready: true, unmet: [], loading: false },
+      };
+    }
+  }
+
+  async function checkAllRequirements() {
+    // Skills that have known requirements
+    const skillsToCheck = ["gmail"];
+    for (const skillId of skillsToCheck) {
+      await checkRequirements(skillId);
+    }
+  }
+
+  function toggleSetup(skillId: string) {
+    expandedSetup = expandedSetup === skillId ? null : skillId;
+  }
+
+  function copyToClipboard(text: string, id: string) {
+    navigator.clipboard.writeText(text);
+    copiedHint = id;
+    setTimeout(() => {
+      if (copiedHint === id) copiedHint = null;
+    }, 2000);
+  }
+
   function handleSearchKeydown(event: KeyboardEvent) {
     if (event.key === "Enter") {
       event.preventDefault();
@@ -210,6 +284,7 @@
 
   onMount(async () => {
     await Promise.all([fetchInstalled(), fetchSources()]);
+    await checkAllRequirements();
     if (!sourcesError && enabledSourcesCount > 0) {
       await searchDiscover(1);
     }
@@ -221,7 +296,7 @@
 </svelte:head>
 
 <div class="p-6 h-full overflow-y-auto">
-  <div class="max-w-4xl mx-auto space-y-10">
+  <div class="space-y-10">
     <header>
       <h1 class="text-2xl font-semibold text-foreground mb-1">Skills</h1>
       <p class="text-sm text-muted-foreground">
@@ -266,6 +341,8 @@
       {:else}
         <div class="grid gap-4">
           {#each installed as skill (skill.id)}
+            {@const reqStatus = requirementStatuses[skill.id]}
+            {@const isExpanded = expandedSetup === skill.id}
             <div
               class="rounded-xl border border-border bg-card p-5 transition-all hover:border-primary/30 hover:shadow-sm"
             >
@@ -293,17 +370,101 @@
                     </div>
                   {/if}
                 </div>
-                <span
-                  class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary"
-                >
-                  <Puzzle class="size-3.5" />
-                  {skill.usedByNodes.length === 0
-                    ? "Available"
-                    : skill.usedByNodes.length === 1
-                      ? "1 node"
-                      : `${skill.usedByNodes.length} nodes`}
-                </span>
+                <div class="flex items-center gap-2 shrink-0">
+                  {#if reqStatus?.loading}
+                    <Loader2 class="size-4 animate-spin text-muted-foreground" />
+                  {:else if reqStatus && !reqStatus.ready}
+                    <button
+                      type="button"
+                      onclick={() => toggleSetup(skill.id)}
+                      class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-950/50 transition-colors"
+                    >
+                      <AlertTriangle class="size-3.5" />
+                      Needs Setup
+                      {#if isExpanded}
+                        <ChevronUp class="size-3" />
+                      {:else}
+                        <ChevronDown class="size-3" />
+                      {/if}
+                    </button>
+                  {:else if reqStatus?.ready}
+                    <span
+                      class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-950/30 dark:text-green-400"
+                    >
+                      <Check class="size-3.5" />
+                      Ready
+                    </span>
+                  {:else}
+                    <span
+                      class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary"
+                    >
+                      <Puzzle class="size-3.5" />
+                      {skill.usedByNodes.length === 0
+                        ? "Available"
+                        : skill.usedByNodes.length === 1
+                          ? "1 node"
+                          : `${skill.usedByNodes.length} nodes`}
+                    </span>
+                  {/if}
+                </div>
               </div>
+
+              <!-- Setup wizard panel -->
+              {#if isExpanded && reqStatus && !reqStatus.ready}
+                <div class="mt-4 rounded-lg border border-amber-200 dark:border-amber-900 bg-amber-50/50 dark:bg-amber-950/20 p-4 space-y-3">
+                  <p class="text-sm font-medium text-amber-800 dark:text-amber-300">
+                    This skill needs the following to work:
+                  </p>
+                  {#each reqStatus.unmet as req, i (i)}
+                    <div class="flex items-start gap-3 rounded-md bg-background/60 p-3">
+                      <div class="mt-0.5 flex size-6 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-950/40 shrink-0">
+                        {#if req.type === "oauth"}
+                          <Link2 class="size-3.5 text-amber-600 dark:text-amber-400" />
+                        {:else if req.type === "env"}
+                          <AlertTriangle class="size-3.5 text-amber-600 dark:text-amber-400" />
+                        {:else}
+                          <Download class="size-3.5 text-amber-600 dark:text-amber-400" />
+                        {/if}
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium">{req.label}</p>
+                        {#if req.hint}
+                          <div class="flex items-center gap-2 mt-1">
+                            <code class="text-xs text-muted-foreground bg-muted rounded px-1.5 py-0.5">{req.hint}</code>
+                            <button
+                              type="button"
+                              class="text-muted-foreground hover:text-foreground"
+                              onclick={() => copyToClipboard(req.hint || '', `hint-${i}`)}
+                            >
+                              {#if copiedHint === `hint-${i}`}
+                                <Check class="size-3" />
+                              {:else}
+                                <Copy class="size-3" />
+                              {/if}
+                            </button>
+                          </div>
+                        {/if}
+                      </div>
+                      {#if req.connectUrl}
+                        <a
+                          href={req.connectUrl}
+                          class="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors shrink-0"
+                        >
+                          <Link2 class="size-3" />
+                          Connect
+                        </a>
+                      {/if}
+                    </div>
+                  {/each}
+                  <button
+                    type="button"
+                    class="text-xs text-primary hover:underline"
+                    onclick={async () => { await checkRequirements(skill.id); }}
+                  >
+                    Re-check requirements
+                  </button>
+                </div>
+              {/if}
             </div>
           {/each}
         </div>

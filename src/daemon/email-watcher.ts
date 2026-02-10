@@ -1,9 +1,9 @@
 /**
  * Email Watcher
  *
- * Core daemon infrastructure that polls a Gmail inbox via IMAP for emails
- * matching configurable natural-language rules. When a match is found,
- * it emits an event that can trigger viber task execution.
+ * Core daemon infrastructure that polls a Gmail inbox via the Google Gmail
+ * API (googleapis) for emails matching configurable natural-language rules.
+ * When a match is found, it emits an event that can trigger viber task execution.
  *
  * Rules are defined in ~/.openviber/email-rules.yaml with a simple format:
  *
@@ -13,12 +13,13 @@
  *     - when: "github issue assigned"
  *       do: "review the issue and start working on it"
  *
- * Environment:
- *   GMAIL_ADDRESS      — Gmail address to watch
- *   GMAIL_APP_PASSWORD — Google App Password (not regular password)
+ * Prerequisites:
+ *   - Google OAuth connection configured via Settings > Integrations
+ *   - OAuth tokens available in daemon config (pulled from hub)
  *
  * Usage:
  *   const watcher = new EmailWatcher();
+ *   watcher.setOAuthTokens({ accessToken: '...', refreshToken: '...' });
  *   watcher.on("email:triggered", ({ rule, email, prompt }) => { ... });
  *   await watcher.start();
  */
@@ -65,6 +66,35 @@ export interface EmailTriggerEvent {
   prompt: string;
 }
 
+interface GoogleOAuthTokens {
+  accessToken: string;
+  refreshToken?: string | null;
+}
+
+// ==================== Helpers ====================
+
+/**
+ * Create a Gmail client from OAuth tokens.
+ * Lazily imports googleapis to avoid bundling when not needed.
+ */
+async function createGmailClient(tokens: GoogleOAuthTokens) {
+  const { google } = await import("googleapis");
+  const oauth2Client = new google.auth.OAuth2();
+  oauth2Client.setCredentials({
+    access_token: tokens.accessToken,
+    refresh_token: tokens.refreshToken || undefined,
+  });
+  return google.gmail({ version: "v1", auth: oauth2Client });
+}
+
+function getHeader(payload: any, name: string): string {
+  if (!payload?.headers) return "";
+  const header = payload.headers.find(
+    (h: any) => h.name.toLowerCase() === name.toLowerCase(),
+  );
+  return header?.value || "";
+}
+
 // ==================== Email Watcher ====================
 
 const DEFAULT_POLL_INTERVAL_SEC = 60;
@@ -76,6 +106,7 @@ export class EmailWatcher extends EventEmitter {
   private rules: EmailRule[] = [];
   private pollInterval = DEFAULT_POLL_INTERVAL_SEC;
   private log = createLogger("email-watcher");
+  private oauthTokens: GoogleOAuthTokens | null = null;
 
   /** Path to email rules config file */
   private get rulesPath(): string {
@@ -83,14 +114,35 @@ export class EmailWatcher extends EventEmitter {
   }
 
   /**
+   * Set OAuth tokens for Gmail API access.
+   * Called by the daemon controller when it receives tokens from the hub.
+   */
+  setOAuthTokens(tokens: GoogleOAuthTokens): void {
+    this.oauthTokens = tokens;
+  }
+
+  /**
    * Start the email watcher.
-   * Loads rules and begins polling Gmail inbox.
+   * Loads rules and begins polling Gmail inbox via Google API.
    */
   async start(): Promise<void> {
-    // Check for credentials
-    if (!process.env.GMAIL_ADDRESS || !process.env.GMAIL_APP_PASSWORD) {
+    if (!this.oauthTokens) {
       this.log.warn(
-        "Email watcher disabled: GMAIL_ADDRESS and GMAIL_APP_PASSWORD env vars required"
+        "Email watcher disabled: Google OAuth tokens not available. " +
+        "Connect your Google account in Settings > Integrations.",
+      );
+      return;
+    }
+
+    // Verify tokens work
+    try {
+      const gmail = await createGmailClient(this.oauthTokens);
+      await gmail.users.getProfile({ userId: "me" });
+    } catch (err: any) {
+      this.log.warn(
+        "Email watcher disabled: Gmail API authentication failed. " +
+        "Re-connect your Google account in Settings > Integrations.",
+        { error: err?.message },
       );
       return;
     }
@@ -117,7 +169,7 @@ export class EmailWatcher extends EventEmitter {
     // Schedule recurring polls
     this.pollTimer = setInterval(
       () => void this.pollInbox(),
-      this.pollInterval * 1000
+      this.pollInterval * 1000,
     );
   }
 
@@ -164,111 +216,106 @@ export class EmailWatcher extends EventEmitter {
 
   /**
    * Poll Gmail inbox for unread emails and match against rules.
-   * Uses imapflow to connect via IMAP.
+   * Uses the Google Gmail API with OAuth.
    */
   private async pollInbox(): Promise<void> {
-    if (!this.running) return;
+    if (!this.running || !this.oauthTokens) return;
 
-    let client: any;
     try {
-      // Dynamic import to avoid issues when imapflow is not installed
-      const { ImapFlow } = await import("imapflow");
+      const gmail = await createGmailClient(this.oauthTokens);
 
-      client = new ImapFlow({
-        host: "imap.gmail.com",
-        port: 993,
-        secure: true,
-        auth: {
-          user: process.env.GMAIL_ADDRESS!,
-          pass: process.env.GMAIL_APP_PASSWORD!,
-        },
-        logger: false,
+      // Search for unread messages
+      const listRes = await gmail.users.messages.list({
+        userId: "me",
+        q: "is:unread",
+        maxResults: 50,
       });
 
-      await client.connect();
-      const lock = await client.getMailboxLock("INBOX");
+      const messageIds = listRes.data.messages || [];
+      if (messageIds.length === 0) return;
 
-      try {
-        // Fetch unread messages
-        const messages: ParsedEmail[] = [];
-
-        for await (const msg of client.fetch(
-          { seen: false },
-          { envelope: true, source: false }
-        )) {
-          const envelope = msg.envelope;
-          if (!envelope) continue;
+      // Fetch metadata for each message
+      const messages: ParsedEmail[] = [];
+      for (const msg of messageIds) {
+        try {
+          const detail = await gmail.users.messages.get({
+            userId: "me",
+            id: msg.id!,
+            format: "metadata",
+            metadataHeaders: ["From", "Subject", "Date"],
+          });
 
           messages.push({
-            messageId: envelope.messageId || "",
-            uid: msg.uid,
-            from:
-              envelope.from?.[0]?.address ||
-              envelope.from?.[0]?.name ||
-              "unknown",
-            subject: envelope.subject || "",
-            snippet: "",
-            date: envelope.date ? new Date(envelope.date) : new Date(),
+            messageId: msg.id || "",
+            uid: 0,
+            from: getHeader(detail.data.payload, "From"),
+            subject: getHeader(detail.data.payload, "Subject"),
+            snippet: detail.data.snippet || "",
+            date: detail.data.payload
+              ? new Date(getHeader(detail.data.payload, "Date"))
+              : new Date(),
+          });
+        } catch (err: any) {
+          this.log.warn("Failed to fetch message details", {
+            messageId: msg.id,
+            error: err?.message,
           });
         }
-
-        // Match emails against rules
-        for (const email of messages) {
-          const matchedRule = this.matchEmail(email);
-          if (!matchedRule) continue;
-
-          this.log.info("Email matched rule", {
-            rule: matchedRule.when,
-            from: email.from,
-            subject: email.subject,
-          });
-
-          // Build the prompt with email context
-          const prompt = [
-            matchedRule.do,
-            "",
-            "--- Email context ---",
-            `From: ${email.from}`,
-            `Subject: ${email.subject}`,
-            `Date: ${email.date.toISOString()}`,
-          ].join("\n");
-
-          // Emit trigger event
-          this.emit("email:triggered", {
-            rule: matchedRule,
-            email,
-            prompt,
-          } as EmailTriggerEvent);
-
-          // Mark as read to prevent re-triggering
-          if (matchedRule.markRead !== false) {
-            try {
-              await client.messageFlagsAdd(email.uid, ["\\Seen"], {
-                uid: true,
-              });
-            } catch (flagErr: any) {
-              this.log.warn("Failed to mark email as read", {
-                uid: email.uid,
-                error: flagErr?.message,
-              });
-            }
-          }
-        }
-      } finally {
-        lock.release();
       }
 
-      await client.logout();
+      // Match emails against rules
+      for (const email of messages) {
+        const matchedRule = this.matchEmail(email);
+        if (!matchedRule) continue;
+
+        this.log.info("Email matched rule", {
+          rule: matchedRule.when,
+          from: email.from,
+          subject: email.subject,
+        });
+
+        // Build the prompt with email context
+        const prompt = [
+          matchedRule.do,
+          "",
+          "--- Email context ---",
+          `From: ${email.from}`,
+          `Subject: ${email.subject}`,
+          `Date: ${email.date.toISOString()}`,
+          email.snippet ? `Snippet: ${email.snippet}` : "",
+        ]
+          .filter(Boolean)
+          .join("\n");
+
+        // Emit trigger event
+        this.emit("email:triggered", {
+          rule: matchedRule,
+          email,
+          prompt,
+        } as EmailTriggerEvent);
+
+        // Mark as read to prevent re-triggering
+        if (matchedRule.markRead !== false && email.messageId) {
+          try {
+            await gmail.users.messages.modify({
+              userId: "me",
+              id: email.messageId,
+              requestBody: {
+                removeLabelIds: ["UNREAD"],
+              },
+            });
+          } catch (flagErr: any) {
+            this.log.warn("Failed to mark email as read", {
+              messageId: email.messageId,
+              error: flagErr?.message,
+            });
+          }
+        }
+      }
     } catch (err: any) {
       this.log.error("Email poll failed", {
         error: err?.message || String(err),
       });
-      // Try to clean up the connection
-      try {
-        await client?.logout();
-      } catch {
-        /* ignore cleanup errors */
-      }
     }
   }
 
@@ -281,11 +328,12 @@ export class EmailWatcher extends EventEmitter {
    * A rule matches if ALL keywords are found in the email metadata.
    *
    * Examples:
-   *   "deployment failure from railway" → keywords: [deployment, failure, railway]
-   *   → matches email with from: "notifications@railway.com", subject: "Deployment failure..."
+   *   "deployment failure from railway" -> keywords: [deployment, failure, railway]
+   *   -> matches email with from: "notifications@railway.com", subject: "Deployment failure..."
    */
   matchEmail(email: ParsedEmail): EmailRule | null {
-    const searchable = `${email.from} ${email.subject}`.toLowerCase();
+    const searchable =
+      `${email.from} ${email.subject} ${email.snippet}`.toLowerCase();
 
     for (const rule of this.rules) {
       const keywords = this.extractKeywords(rule.when);

@@ -100,6 +100,7 @@ export type ControllerServerMessage =
       variables?: { key: string; value: string }[];
     };
     settings?: { primaryCodingCli?: string; channelIds?: string[] };
+    oauthTokens?: Record<string, { accessToken: string; refreshToken?: string | null }>;
   }
   | { type: "task:stop"; taskId: string }
   | { type: "viber:stop"; viberId: string }
@@ -177,6 +178,7 @@ interface TaskRuntimeState {
     repoBranch?: string;
     variables?: { key: string; value: string }[];
   };
+  oauthTokens?: Record<string, { accessToken: string; refreshToken?: string | null }>;
 }
 
 // ==================== Controller ====================
@@ -394,6 +396,7 @@ export class ViberController extends EventEmitter {
             options: { ...message.options, settings: message.settings },
             messages: message.messages,
             environment: message.environment,
+            oauthTokens: message.oauthTokens,
           });
           break;
 
@@ -471,8 +474,9 @@ export class ViberController extends EventEmitter {
       repoBranch?: string;
       variables?: { key: string; value: string }[];
     };
+    oauthTokens?: Record<string, { accessToken: string; refreshToken?: string | null }>;
   }): Promise<void> {
-    const { taskId, goal, options, messages, environment } = message;
+    const { taskId, goal, options, messages, environment, oauthTokens } = message;
 
     const taskLog = this.log.child({ taskId });
     taskLog.info("Received task", { goal });
@@ -492,6 +496,7 @@ export class ViberController extends EventEmitter {
       queuedFollowups: [],
       collectBuffer: [],
       environment,
+      oauthTokens,
     };
     this.runningTasks.set(taskId, runtime);
 
@@ -588,6 +593,7 @@ export class ViberController extends EventEmitter {
         signal: runtime.controller.signal,
         environment: runtime.environment,
         settingsOverride: runtime.options?.settings,
+        oauthTokens: runtime.oauthTokens,
       },
       runtime.messageHistory
     );

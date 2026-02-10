@@ -389,19 +389,16 @@ async function checkTmuxHealth(skill: SkillInfo): Promise<SkillHealthResult> {
 }
 
 async function checkGmailHealth(skill: SkillInfo): Promise<SkillHealthResult> {
-  const addressCheck = buildEnvCheck({
-    id: "gmail-address",
-    label: "GMAIL_ADDRESS configured",
-    envVars: ["GMAIL_ADDRESS"],
-    hint: "Set GMAIL_ADDRESS env var",
+  // Gmail uses Google OAuth — check for GOOGLE_CLIENT_ID env var
+  // The actual token is stored in the DB, but having the client configured
+  // on the server side is the prerequisite for the OAuth flow.
+  const clientIdCheck = buildEnvCheck({
+    id: "google-client-id",
+    label: "Google OAuth configured",
+    envVars: ["GOOGLE_CLIENT_ID"],
+    hint: "Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET env vars, then connect via Settings > Integrations",
   });
-  const passwordCheck = buildEnvCheck({
-    id: "gmail-password",
-    label: "GMAIL_APP_PASSWORD configured",
-    envVars: ["GMAIL_APP_PASSWORD"],
-    hint: "Set GMAIL_APP_PASSWORD env var",
-  });
-  return buildResult(skill, [addressCheck, passwordCheck]);
+  return buildResult(skill, [clientIdCheck]);
 }
 
 const SKILL_CHECKERS: Record<

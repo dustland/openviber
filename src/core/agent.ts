@@ -313,21 +313,35 @@ export class Agent {
 
     // Convert CoreTool ({inputSchema, execute}) → AI SDK ({parameters, execute}).
     // The AI SDK silently ignores tools that lack a `parameters` property.
+    // Also injects oauthTokens into the execution context for skills that need it.
+    const oauthTokens = (context?.metadata as any)?.oauthTokens;
     const aiSdkTools: Record<string, any> = {};
     for (const [name, tool] of Object.entries(tools) as [string, any][]) {
+      let converted: any;
       if (tool.parameters) {
         // Already in AI SDK format
-        aiSdkTools[name] = tool;
+        converted = { ...tool };
       } else if (tool.inputSchema) {
         // Convert CoreTool → AI SDK tool
-        aiSdkTools[name] = {
+        converted = {
           ...tool,
           parameters: tool.inputSchema,
         };
       } else {
         // No schema at all — pass through as-is
-        aiSdkTools[name] = tool;
+        converted = { ...tool };
       }
+
+      // Wrap execute to inject oauthTokens into context if available
+      if (oauthTokens && typeof converted.execute === "function") {
+        const originalExecute = converted.execute;
+        converted.execute = (args: any, aiSdkContext?: any) => {
+          const enrichedContext = { ...aiSdkContext, oauthTokens };
+          return originalExecute(args, enrichedContext);
+        };
+      }
+
+      aiSdkTools[name] = converted;
     }
 
     const resolvedTools = Object.keys(aiSdkTools).length > 0 ? aiSdkTools : undefined;

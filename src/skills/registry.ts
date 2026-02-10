@@ -4,6 +4,7 @@ import * as path from "path";
 import * as yaml from "yaml";
 import { Skill, SkillModule } from "./types";
 import { CoreTool } from "../core/tool";
+import type { SkillRequirements } from "./hub/types";
 
 export class SkillRegistry {
   private skills: Map<string, Skill> = new Map();
@@ -130,6 +131,14 @@ export class SkillRegistry {
 
   getAllSkills(): Skill[] {
     return Array.from(this.skills.values());
+  }
+
+  /**
+   * Get the requirements for a skill (from SKILL.md frontmatter).
+   */
+  getRequirements(skillId: string): SkillRequirements | undefined {
+    const skill = this.skills.get(skillId);
+    return skill?.metadata?.requires;
   }
 }
 

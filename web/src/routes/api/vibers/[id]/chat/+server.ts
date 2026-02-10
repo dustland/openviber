@@ -7,6 +7,7 @@ import {
   getEnvironmentForUser,
 } from "$lib/server/environments";
 import { getSettingsForUser } from "$lib/server/user-settings";
+import { getDecryptedOAuthConnections } from "$lib/server/oauth";
 
 const HUB_URL = process.env.VIBER_HUB_URL || "http://localhost:6007";
 
@@ -98,6 +99,25 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
       primaryCodingCli: settings.primaryCodingCli ?? undefined,
     };
 
+    // Look up OAuth tokens for this user (for skills like Gmail)
+    let oauthTokens: Record<string, { accessToken: string; refreshToken?: string | null }> | undefined;
+    if (locals.user?.id) {
+      try {
+        const connections = await getDecryptedOAuthConnections(locals.user.id);
+        if (connections.length > 0) {
+          oauthTokens = {};
+          for (const conn of connections) {
+            oauthTokens[conn.provider] = {
+              accessToken: conn.accessToken,
+              refreshToken: conn.refreshToken,
+            };
+          }
+        }
+      } catch (e) {
+        console.error("[Chat] Failed to look up OAuth tokens:", e);
+      }
+    }
+
     const existingViber = await hubClient.getViber(params.id);
     let viberId: string;
 
@@ -108,6 +128,7 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
         goal,
         environment,
         settingsPayload,
+        oauthTokens,
       );
       if (!result) {
         return json({ error: "Failed to send message to viber" }, { status: 503 });
@@ -120,6 +141,7 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
         simpleMessages,
         environment,
         settingsPayload,
+        oauthTokens,
       );
       if (!result) {
         return json({ error: "Failed to create viber on hub" }, { status: 503 });

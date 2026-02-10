@@ -1,4 +1,5 @@
 import { CoreTool } from "../core/tool";
+import type { SkillRequirements } from "./hub/types";
 
 /**
  * Playground definition for verifying a skill in a known scenario.
@@ -21,6 +22,8 @@ export interface SkillMetadata {
   description: string;
   /** Optional playground scenario to verify the skill works. */
   playground?: SkillPlaygroundSpec;
+  /** Skill setup requirements (OAuth, env vars, binaries) parsed from SKILL.md frontmatter */
+  requires?: SkillRequirements;
   [key: string]: any;
 }
 

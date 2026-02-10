@@ -1,52 +1,72 @@
 ---
 name: gmail
-description: "Read, search, and send emails via Gmail. Used with email-watcher for autonomous email-driven workflows."
+description: "Search, read, send, and manage Gmail emails via Google API"
+requires:
+  oauth:
+    - provider: google
+      scopes:
+        - https://www.googleapis.com/auth/gmail.readonly
+        - https://www.googleapis.com/auth/gmail.send
+        - https://www.googleapis.com/auth/gmail.modify
 ---
 
-# Gmail Skill
+# Gmail
 
-Provides tools for interacting with a Gmail mailbox via IMAP and SMTP.
+Search, read, send, and manage Gmail emails using the Google Gmail API with OAuth authentication.
 
-## Environment Variables
+## Setup
 
-- `GMAIL_ADDRESS` — Gmail address
-- `GMAIL_APP_PASSWORD` — Google App Password (generate at https://myaccount.google.com/apppasswords)
+Connect your Google account via **Settings > Integrations > Google > Connect**.
+The OAuth flow requests Gmail read, send, and modify permissions. No app passwords or CLI tools needed.
 
 ## Tools
 
 ### gmail_search
 
-Search for emails matching a query. Returns subject, from, date, and message UID.
+Search Gmail messages using full Gmail search syntax (same as the Gmail search bar).
 
 **Parameters:**
-- `query` (string) — Search terms to match against sender and subject
-- `limit` (number, optional) — Max results (default: 10)
-- `unreadOnly` (boolean, optional) — Only return unread emails (default: true)
+- `query` (required): Gmail search query (e.g. `is:unread`, `from:alice@example.com newer_than:7d`, `subject:deploy`)
+- `maxResults` (optional): Maximum number of messages to return (default: 20, max: 100)
+
+**Returns:** Message IDs, subjects, senders, dates, and snippets.
 
 ### gmail_read
 
-Read the full body of an email by its UID.
+Read the full body of a Gmail message by its message ID.
 
 **Parameters:**
-- `uid` (number) — Message UID from gmail_search results
+- `messageId` (required): Gmail message ID from gmail_search results
+
+**Returns:** Full email with from, to, subject, date, body, and labels.
 
 ### gmail_send
 
-Send an email via SMTP.
+Send a plain text email via Gmail.
 
 **Parameters:**
-- `to` (string) — Recipient email address
-- `subject` (string) — Email subject
-- `body` (string) — Email body (plain text)
+- `to` (required): Recipient email address
+- `subject` (required): Email subject line
+- `body` (required): Email body (plain text)
+- `cc` (optional): CC recipient email address
+- `bcc` (optional): BCC recipient email address
 
-## Usage with Email Watcher
+### gmail_modify
 
-The email-watcher daemon monitors Gmail for emails matching rules in `~/.openviber/email-rules.yaml`.
-When a match triggers, the viber can use these tools to read the full email body and send status reports.
+Modify labels on a Gmail message (mark read/unread, archive, star).
 
-```yaml
-# ~/.openviber/email-rules.yaml
-rules:
-  - when: "deployment failure from railway"
-    do: "diagnose and fix the build error"
-```
+**Parameters:**
+- `messageId` (required): Gmail message ID
+- `addLabels` (optional): Label IDs to add (e.g. `['STARRED', 'UNREAD']`)
+- `removeLabels` (optional): Label IDs to remove (e.g. `['UNREAD', 'INBOX']`)
+
+## Common Gmail Search Queries
+
+- `is:unread` — All unread messages
+- `is:starred` — Starred messages
+- `from:alice@example.com` — From a specific sender
+- `subject:meeting` — Subject contains "meeting"
+- `newer_than:7d` — Last 7 days
+- `has:attachment` — Messages with attachments
+- `in:inbox` — Inbox only
+- `label:important` — Important messages

@@ -17,13 +17,22 @@ export interface CoreTool {
 // Cache for MCP clients
 const mcpClients = new Map<string, any>();
 
+/** Context passed through to tool execution */
+export interface ToolContext {
+  spaceId?: string;
+  oauthTokens?: {
+    google?: { accessToken: string; refreshToken?: string | null };
+    [provider: string]: { accessToken: string; refreshToken?: string | null } | undefined;
+  };
+}
+
 /**
  * Build a tool map for streamText from an array of tool IDs
  * Delegates to appropriate providers without knowing their internals
  */
 export async function buildToolMap(
   toolIds: string[],
-  context?: { spaceId?: string }
+  context?: ToolContext
 ): Promise<Record<string, CoreTool>> {
   const tools: Record<string, CoreTool> = {};
 

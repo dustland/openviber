@@ -36,6 +36,11 @@ export interface DaemonRunTaskOptions {
   environment?: ViberEnvironmentInfo;
   /** Settings from hub (Supabase); overrides local file and updates cache */
   settingsOverride?: { primaryCodingCli?: string; channelIds?: string[] };
+  /** OAuth tokens pulled from hub config, injected into tool execution context */
+  oauthTokens?: {
+    google?: { accessToken: string; refreshToken?: string | null };
+    [provider: string]: { accessToken: string; refreshToken?: string | null } | undefined;
+  };
 }
 
 const __filename = fileURLToPath(import.meta.url);
@@ -501,7 +506,7 @@ export async function runTask(
 
   const streamResult = await agent.streamText({
     messages: viberMessages,
-    metadata: { taskId },
+    metadata: { taskId, oauthTokens: options.oauthTokens },
     ...(signal && { abortSignal: signal }),
   });
 

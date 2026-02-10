@@ -219,10 +219,8 @@
   let configSaving = $state(false);
   let configError = $state<string | null>(null);
   let configFile = $state<string | null>(null);
-  let configuredTools = $state<string[]>([]);
   let configuredSkills = $state<string[]>([]);
-  let toolOptions = $state<string[]>([]);
-  let skillsInput = $state("");
+  let skillOptions = $state<string[]>([]);
   let showConfigDialog = $state(false);
 
   // Open config panel when navigating with ?config=1 (e.g. from sidebar "Configure")
@@ -407,10 +405,8 @@
         return;
       }
       configFile = payload.configFile ?? null;
-      configuredTools = payload.tools ?? [];
       configuredSkills = payload.skills ?? [];
-      toolOptions = payload.toolOptions ?? [];
-      skillsInput = configuredSkills.join(", ");
+      skillOptions = payload.skillOptions ?? [];
     } catch (error) {
       console.error("Failed to fetch agent config:", error);
       configError = "Failed to load agent config.";
@@ -419,12 +415,12 @@
     }
   }
 
-  function toggleConfiguredTool(toolId: string) {
-    if (configuredTools.includes(toolId)) {
-      configuredTools = configuredTools.filter((tool) => tool !== toolId);
+  function toggleConfiguredSkill(skillId: string) {
+    if (configuredSkills.includes(skillId)) {
+      configuredSkills = configuredSkills.filter((skill) => skill !== skillId);
       return;
     }
-    configuredTools = [...configuredTools, toolId];
+    configuredSkills = [...configuredSkills, skillId];
   }
 
   async function saveAgentConfig() {
@@ -432,17 +428,11 @@
     configSaving = true;
     configError = null;
     try {
-      const skills = skillsInput
-        .split(",")
-        .map((skill) => skill.trim())
-        .filter(Boolean);
-
       const response = await fetch(`/api/vibers/${viber.id}/config`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          tools: configuredTools,
-          skills,
+          skills: configuredSkills,
         }),
       });
 
@@ -451,8 +441,7 @@
         throw new Error(payload.error || "Failed to save agent config.");
       }
 
-      configuredSkills = payload.skills ?? skills;
-      skillsInput = configuredSkills.join(", ");
+      configuredSkills = payload.skills ?? configuredSkills;
     } catch (error) {
       configError =
         error instanceof Error ? error.message : "Failed to save agent config.";
@@ -1184,7 +1173,7 @@
       <!-- Content -->
       <div class="px-4 pb-4 space-y-4">
         {#if configLoading}
-          <p class="text-xs text-muted-foreground">Loading tools and skills…</p>
+          <p class="text-xs text-muted-foreground">Loading skills…</p>
         {:else if configError}
           <div
             class="rounded-lg border border-destructive/30 bg-destructive/5 p-3"
@@ -1208,39 +1197,29 @@
               <p
                 class="mb-1.5 text-[11px] uppercase tracking-wide text-muted-foreground"
               >
-                Tools
+                Skills
               </p>
-              <div class="flex flex-wrap gap-1.5">
-                {#each toolOptions as tool}
-                  <button
-                    type="button"
-                    class="rounded-full border px-2.5 py-1 text-[11px] transition-colors {configuredTools.includes(
-                      tool,
-                    )
-                      ? 'border-primary/40 bg-primary/10 text-primary'
-                      : 'border-border bg-muted/30 text-muted-foreground hover:text-foreground'}"
-                    onclick={() => toggleConfiguredTool(tool)}
-                  >
-                    {tool}
-                  </button>
-                {/each}
-              </div>
-            </div>
-
-            <div>
-              <label
-                class="block text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5"
-                for="dialog-skill-input"
-              >
-                Skills (comma-separated)
-              </label>
-              <input
-                id="dialog-skill-input"
-                type="text"
-                bind:value={skillsInput}
-                placeholder="tmux, cursor-agent"
-                class="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground"
-              />
+              {#if skillOptions.length > 0}
+                <div class="flex flex-wrap gap-1.5">
+                  {#each skillOptions as skill}
+                    <button
+                      type="button"
+                      class="rounded-full border px-2.5 py-1 text-[11px] transition-colors {configuredSkills.includes(
+                        skill,
+                      )
+                        ? 'border-primary/40 bg-primary/10 text-primary'
+                        : 'border-border bg-muted/30 text-muted-foreground hover:text-foreground'}"
+                      onclick={() => toggleConfiguredSkill(skill)}
+                    >
+                      {skill}
+                    </button>
+                  {/each}
+                </div>
+              {:else}
+                <p class="text-xs text-muted-foreground">
+                  No skills discovered from connected nodes.
+                </p>
+              {/if}
             </div>
           </div>
         {/if}

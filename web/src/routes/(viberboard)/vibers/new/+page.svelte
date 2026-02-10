@@ -196,6 +196,11 @@
   function selectIntent(intent: Intent) {
     selectedIntentId = intent.id;
     taskInput = intent.body;
+    // Auto-submit the task when an intent is selected
+    // submitTask will handle validation (node selection, active status, etc.)
+    if (intent.body.trim()) {
+      void submitTask(intent.body);
+    }
   }
 
   function clearIntent() {

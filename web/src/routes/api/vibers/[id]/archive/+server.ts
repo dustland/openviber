@@ -1,6 +1,7 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { supabaseRequest } from "$lib/server/supabase-rest";
+import { writeLog } from "$lib/server/logs";
 
 // POST /api/vibers/[id]/archive - Archive a viber
 export const POST: RequestHandler = async ({ params, locals }) => {
@@ -18,6 +19,16 @@ export const POST: RequestHandler = async ({ params, locals }) => {
         name: params.id,
         archived_at: new Date().toISOString(),
       },
+    });
+
+    // Log archive event
+    writeLog({
+      user_id: locals.user.id,
+      level: "info",
+      category: "activity",
+      component: "task",
+      message: `Viber archived: ${params.id}`,
+      viber_id: params.id,
     });
 
     return json({ ok: true });
@@ -38,6 +49,16 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
       method: "PATCH",
       params: { id: `eq.${params.id}` },
       body: { archived_at: null },
+    });
+
+    // Log restore event
+    writeLog({
+      user_id: locals.user.id,
+      level: "info",
+      category: "activity",
+      component: "task",
+      message: `Viber restored: ${params.id}`,
+      viber_id: params.id,
     });
 
     return json({ ok: true });

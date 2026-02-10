@@ -218,6 +218,24 @@ export interface HubViber {
   isNodeConnected?: boolean;
 }
 
+/** An event from the hub's unified event stream */
+export interface HubEvent {
+  at: string;
+  category: "activity" | "system";
+  // Activity event fields
+  viberId?: string;
+  goal?: string;
+  viberStatus?: string;
+  event?: Record<string, unknown>;
+  // System event fields
+  component?: string;
+  level?: "info" | "warn" | "error";
+  message?: string;
+  nodeId?: string;
+  nodeName?: string;
+  metadata?: Record<string, unknown>;
+}
+
 export const hubClient = {
   /** List connected nodes (daemons) from the hub */
   async getNodes(): Promise<{ connected: boolean; nodes: ConnectedNode[] }> {
@@ -397,6 +415,25 @@ export const hubClient = {
     } catch (error) {
       console.error("[HubClient] Failed to get node status:", error);
       return null;
+    }
+  },
+
+  /** Fetch unified event stream from the hub (activity + system events) */
+  async getEvents(
+    limit = 200,
+    since?: string,
+  ): Promise<{ events: HubEvent[] }> {
+    try {
+      const params = new URLSearchParams({ limit: String(limit) });
+      if (since) params.set("since", since);
+      const response = await hubFetch(`/api/events?${params}`);
+      if (!response.ok) {
+        return { events: [] };
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("[HubClient] Failed to get events:", error);
+      return { events: [] };
     }
   },
 

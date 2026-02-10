@@ -9,6 +9,7 @@ import {
 } from "$lib/server/environments";
 import { getSettingsForUser } from "$lib/server/user-settings";
 import { supabaseRequest, toInFilter } from "$lib/server/supabase-rest";
+import { writeLog } from "$lib/server/logs";
 
 // POST /api/vibers - Create a new viber on a node
 export const POST: RequestHandler = async ({ request, locals }) => {
@@ -86,6 +87,18 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         console.error("Failed to persist viber or assign environment:", e);
       }
     }
+
+    // Log viber creation
+    writeLog({
+      user_id: locals.user.id,
+      level: "info",
+      category: "activity",
+      component: "task",
+      message: `Viber created: ${goal}`,
+      viber_id: result.viberId,
+      node_id: result.nodeId ?? null,
+      metadata: { environmentId: environmentId ?? null },
+    });
 
     return json(result, { status: 201 });
   } catch (error) {

@@ -13,6 +13,7 @@
     LoaderCircle,
     Plus,
     Puzzle,
+    ScrollText,
     Server,
     Settings2,
     Wifi,
@@ -96,6 +97,9 @@
   );
   const isSkillsRoute = $derived(
     pathname === "/skills" || pathname.startsWith("/skills/"),
+  );
+  const isLogsRoute = $derived(
+    pathname === "/logs" || pathname.startsWith("/logs/"),
   );
   // Stories route removed — intents live inside /vibers/new and /settings/intents
 
@@ -266,6 +270,20 @@
                 <Puzzle class="size-4 shrink-0" />
                 <span class="truncate group-data-[collapsible=icon]:hidden"
                   >Skills</span
+                >
+              </a>
+            </Sidebar.MenuButton>
+          </Sidebar.MenuItem>
+
+          <Sidebar.MenuItem>
+            <Sidebar.MenuButton
+              isActive={isLogsRoute}
+              tooltipContent="Logs"
+            >
+              <a href="/logs" class="w-full inline-flex items-center gap-2">
+                <ScrollText class="size-4 shrink-0" />
+                <span class="truncate group-data-[collapsible=icon]:hidden"
+                  >Logs</span
                 >
               </a>
             </Sidebar.MenuButton>

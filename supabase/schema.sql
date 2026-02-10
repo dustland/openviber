@@ -378,3 +378,42 @@ DROP POLICY IF EXISTS "Users can delete own intents" ON public.intents;
 CREATE POLICY "Users can delete own intents"
   ON public.intents FOR DELETE
   USING ((user_id)::uuid = auth.uid());
+
+-- =============================================================================
+-- Activity Logs (persistent event log for diagnostics)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS public.activity_logs (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id text NOT NULL,
+  level text NOT NULL DEFAULT 'info',        -- info | warn | error
+  category text NOT NULL DEFAULT 'activity', -- activity | system
+  component text NOT NULL,                   -- task | node | hub | skill | job
+  message text NOT NULL,
+  viber_id text,
+  task_id text,
+  node_id text,
+  metadata jsonb,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS activity_logs_user_created_idx
+  ON public.activity_logs(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS activity_logs_category_idx
+  ON public.activity_logs(category);
+
+ALTER TABLE public.activity_logs ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can select own logs" ON public.activity_logs;
+CREATE POLICY "Users can select own logs"
+  ON public.activity_logs FOR SELECT
+  USING ((user_id)::uuid = auth.uid());
+
+DROP POLICY IF EXISTS "Users can insert own logs" ON public.activity_logs;
+CREATE POLICY "Users can insert own logs"
+  ON public.activity_logs FOR INSERT
+  WITH CHECK ((user_id)::uuid = auth.uid());
+
+DROP POLICY IF EXISTS "Users can delete own logs" ON public.activity_logs;
+CREATE POLICY "Users can delete own logs"
+  ON public.activity_logs FOR DELETE
+  USING ((user_id)::uuid = auth.uid());

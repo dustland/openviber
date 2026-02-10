@@ -7,6 +7,7 @@
  * REST API (for Viber Board):
  *   GET  /health              - Health check
  *   GET  /api/nodes           - List connected nodes
+ *   GET  /api/events          - Unified event stream (activity + system)
  *   GET  /api/vibers          - List all vibers (sessions)
  *   POST /api/vibers          - Create a new viber on a node
  *   GET  /api/vibers/:id      - Get viber details
@@ -65,6 +66,17 @@ interface ViberEvent {
   event: any;
 }
 
+interface SystemEvent {
+  at: string;
+  category: "system";
+  component: string;
+  level: "info" | "warn" | "error";
+  message: string;
+  nodeId?: string;
+  nodeName?: string;
+  metadata?: Record<string, unknown>;
+}
+
 interface ViberProgressEnvelope {
   eventId: string;
   sequence: number;
@@ -96,6 +108,7 @@ interface Viber {
 
 export class HubServer {
   private static readonly MAX_STREAM_BUFFER_BYTES = 2_000_000;
+  private static readonly MAX_NODE_EVENTS = 200;
 
   private server: ReturnType<typeof createServer> | null = null;
   private wss: WebSocketServer | null = null;
@@ -103,8 +116,17 @@ export class HubServer {
   private vibers: Map<string, Viber> = new Map();
   // Active SSE stream subscribers per viber.
   private streamSubscribers: Map<string, ServerResponse[]> = new Map();
+  // System-level events ring buffer (node connect/disconnect/heartbeat-miss)
+  private nodeEvents: SystemEvent[] = [];
 
   constructor(private config: HubConfig) {}
+
+  private pushNodeEvent(evt: Omit<SystemEvent, "at" | "category">): void {
+    this.nodeEvents.push({ ...evt, at: new Date().toISOString(), category: "system" });
+    if (this.nodeEvents.length > HubServer.MAX_NODE_EVENTS) {
+      this.nodeEvents.shift();
+    }
+  }
 
   async start(): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -206,6 +228,8 @@ export class HubServer {
       this.handleListNodes(res);
     } else if (url.pathname === "/api/jobs" && method === "GET") {
       this.handleListAllJobs(res);
+    } else if (url.pathname === "/api/events" && method === "GET") {
+      this.handleListEvents(url, res);
     } else if (url.pathname === "/api/vibers" && method === "GET") {
       this.handleListVibers(res);
     } else if (url.pathname === "/api/vibers" && method === "POST") {
@@ -346,6 +370,58 @@ export class HubServer {
 
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ vibers }));
+  }
+
+  /**
+   * GET /api/events - Unified chronological event stream across all vibers + system events.
+   * Supports ?limit=200&since=<ISO timestamp>
+   */
+  private handleListEvents(url: URL, res: ServerResponse): void {
+    const limit = Math.min(parseInt(url.searchParams.get("limit") || "200", 10), 1000);
+    const since = url.searchParams.get("since");
+    const sinceMs = since ? new Date(since).getTime() : 0;
+
+    // Collect viber activity events
+    const activityEvents: Array<{
+      at: string;
+      category: "activity";
+      viberId: string;
+      goal: string;
+      viberStatus: string;
+      event: any;
+    }> = [];
+
+    for (const [id, viber] of this.vibers) {
+      for (const evt of viber.events) {
+        if (sinceMs && new Date(evt.at).getTime() <= sinceMs) continue;
+        activityEvents.push({
+          at: evt.at,
+          category: "activity",
+          viberId: id,
+          goal: viber.goal,
+          viberStatus: viber.status,
+          event: evt.event,
+        });
+      }
+    }
+
+    // Collect system events
+    const systemEvents = sinceMs
+      ? this.nodeEvents.filter((e) => new Date(e.at).getTime() > sinceMs)
+      : [...this.nodeEvents];
+
+    // Merge and sort descending
+    const allEvents = [
+      ...activityEvents.map((e) => ({ ...e } as Record<string, unknown>)),
+      ...systemEvents.map((e) => ({ ...e } as Record<string, unknown>)),
+    ];
+    allEvents.sort(
+      (a, b) =>
+        new Date(b.at as string).getTime() - new Date(a.at as string).getTime(),
+    );
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ events: allEvents.slice(0, limit) }));
   }
 
   private handleCreateViber(req: IncomingMessage, res: ServerResponse): void {
@@ -747,6 +823,13 @@ export class HubServer {
       for (const [id, node] of this.nodes) {
         if (node.ws === ws) {
           console.log(`[Hub] Node disconnected: ${id}`);
+          this.pushNodeEvent({
+            component: "node",
+            level: "warn",
+            message: `Node disconnected: ${node.name}`,
+            nodeId: id,
+            nodeName: node.name,
+          });
           this.nodes.delete(id);
           break;
         }
@@ -826,6 +909,20 @@ export class HubServer {
       lastHeartbeat: new Date(),
       runningVibers: nodeInfo.runningTasks || [],
       jobs: [],
+    });
+
+    this.pushNodeEvent({
+      component: "node",
+      level: "info",
+      message: `Node connected: ${nodeInfo.name}`,
+      nodeId: nodeInfo.id,
+      nodeName: nodeInfo.name,
+      metadata: {
+        version: nodeInfo.version,
+        platform: nodeInfo.platform,
+        capabilities: nodeInfo.capabilities,
+        skillCount: nodeInfo.skills?.length ?? 0,
+      },
     });
   }
 

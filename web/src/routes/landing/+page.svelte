@@ -198,24 +198,24 @@
     <div class="orb orb-3"></div>
   </div>
 
-  <main class="container relative mx-auto px-6 py-16 md:px-8 md:py-24">
+  <main class="container relative mx-auto px-6 py-16 md:px-8 md:py-24 lg:py-28">
     <!-- Hero -->
-    <section class="mx-auto max-w-5xl pt-8 text-center md:pt-12">
-      <div class="hero-logo-wrap mx-auto mb-8 w-fit">
+    <section class="mx-auto max-w-5xl pt-12 text-center md:pt-20 lg:pt-24">
+      <div class="hero-logo-wrap mx-auto mb-10 w-fit">
         <img
           src="/favicon.png"
           alt="OpenViber"
-          class="hero-logo size-20 md:size-24"
+          class="hero-logo size-20 md:size-24 lg:size-28"
         />
       </div>
 
       <h1
-        class="hero-title pb-1 text-4xl font-semibold leading-[1.15] tracking-tight md:text-6xl"
+        class="hero-title pb-1 text-4xl font-bold leading-[1.08] tracking-tight sm:text-5xl md:text-6xl lg:text-7xl"
       >
         You Imagine It. Vibers Build It.
       </h1>
       <p
-        class="hero-subtitle mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground md:text-xl"
+        class="hero-subtitle mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground md:text-xl lg:max-w-3xl"
       >
         Turn your machine into an AI workforce. Deploy role-scoped agents that
         write code, research the web, manage files, and run scheduled jobs — all
@@ -224,7 +224,7 @@
 
       <!-- Open source badge -->
       <div
-        class="hero-badge mx-auto mt-6 flex items-center justify-center gap-2"
+        class="hero-badge mx-auto mt-8 flex items-center justify-center gap-2.5"
       >
         <span
           class="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/50 px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur-sm"
@@ -247,12 +247,12 @@
       </div>
 
       <div
-        class="hero-cta mt-9 flex flex-wrap items-center justify-center gap-3"
+        class="hero-cta mt-10 flex flex-wrap items-center justify-center gap-3 md:gap-4"
       >
         {#if data.user}
           <a
             href="/"
-            class="cta-primary group inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-all duration-300 hover:-translate-y-1"
+            class="cta-primary group inline-flex items-center gap-2.5 rounded-lg bg-primary px-8 py-3 text-sm font-semibold text-primary-foreground transition-all duration-300 hover:-translate-y-1"
           >
             Go to Dashboard
             <ArrowRight
@@ -262,7 +262,7 @@
         {:else if data.supabaseAuthEnabled}
           <a
             href={githubAuthUrl}
-            class="cta-primary group inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-all duration-300 hover:-translate-y-1"
+            class="cta-primary group inline-flex items-center gap-2.5 rounded-lg bg-primary px-8 py-3 text-sm font-semibold text-primary-foreground transition-all duration-300 hover:-translate-y-1"
           >
             <svg
               class="size-4"
@@ -290,15 +290,15 @@
     </section>
 
     <!-- Divider -->
-    <div class="section-divider mx-auto mt-20 md:mt-28">
+    <div class="section-divider mx-auto mt-24 md:mt-32">
       <div class="divider-glow"></div>
     </div>
 
     <!-- What Vibers Can Do -->
-    <section class="reveal mx-auto mt-12 max-w-6xl md:mt-16">
+    <section class="reveal mx-auto mt-16 max-w-6xl md:mt-20">
       <h2 class="section-label mb-3 text-center">What Vibers Can Do</h2>
       <p
-        class="mx-auto mb-12 max-w-2xl text-center text-base text-muted-foreground"
+        class="mx-auto mb-14 max-w-2xl text-center text-base text-muted-foreground md:text-lg"
       >
         Give a viber a goal in plain language. It plans, executes, verifies, and
         reports back — with evidence.
@@ -327,10 +327,10 @@
     </section>
 
     <!-- How it Works -->
-    <section class="reveal mx-auto mt-20 max-w-6xl md:mt-28">
+    <section class="reveal mx-auto mt-24 max-w-6xl md:mt-32">
       <h2 class="section-label mb-3 text-center">How it Works</h2>
       <p
-        class="mx-auto mb-12 max-w-2xl text-center text-base text-muted-foreground"
+        class="mx-auto mb-14 max-w-2xl text-center text-base text-muted-foreground md:text-lg"
       >
         From YAML config to autonomous execution in three steps.
       </p>
@@ -360,12 +360,12 @@
 
     <!-- Why OpenViber — dark contrast section -->
     <section
-      class="reveal dark-section mx-auto mt-20 max-w-6xl rounded-3xl px-6 py-14 md:mt-28 md:px-10 md:py-16"
+      class="reveal dark-section mx-auto mt-24 max-w-6xl rounded-3xl px-6 py-14 md:mt-32 md:px-10 md:py-20 lg:px-14"
     >
       <div class="hex-pattern"></div>
       <h2 class="section-label mb-3 text-center">Why OpenViber</h2>
       <p
-        class="mx-auto mb-12 max-w-2xl text-center text-base text-[hsl(var(--muted-foreground)/0.8)]"
+        class="mx-auto mb-14 max-w-2xl text-center text-base text-[hsl(var(--muted-foreground)/0.8)] md:text-lg"
       >
         A local-first AI platform for people who want their agents to actually
         do things — not just chat.
@@ -392,10 +392,10 @@
     </section>
 
     <!-- Built-in Tools -->
-    <section class="reveal mx-auto mt-20 max-w-6xl md:mt-28">
+    <section class="reveal mx-auto mt-24 max-w-6xl md:mt-32">
       <h2 class="section-label mb-3 text-center">Built-in Tools</h2>
       <p
-        class="mx-auto mb-12 max-w-2xl text-center text-base text-muted-foreground"
+        class="mx-auto mb-14 max-w-2xl text-center text-base text-muted-foreground md:text-lg"
       >
         Every viber ships with real tools — file ops, web search, browser
         automation, terminal sessions, and more.
@@ -426,10 +426,10 @@
     </section>
 
     <!-- Works With -->
-    <section class="reveal mx-auto mt-20 max-w-6xl md:mt-28">
+    <section class="reveal mx-auto mt-24 max-w-6xl md:mt-32">
       <h2 class="section-label mb-3 text-center">Integrations</h2>
       <p
-        class="mx-auto mb-10 max-w-xl text-center text-base text-muted-foreground"
+        class="mx-auto mb-12 max-w-xl text-center text-base text-muted-foreground md:text-lg"
       >
         Vibers drive your favorite dev tools through skills and MCP servers.
       </p>
@@ -448,11 +448,11 @@
     </section>
 
     <!-- Get Started CTA -->
-    <section class="reveal mx-auto mt-20 max-w-3xl text-center md:mt-28">
-      <div class="cta-card rounded-2xl px-8 py-10 md:px-12 md:py-14">
+    <section class="reveal mx-auto mt-24 max-w-3xl text-center md:mt-32">
+      <div class="cta-card rounded-2xl px-8 py-12 md:px-14 md:py-16">
         <div class="cta-cross-hatch"></div>
         <Bot class="mx-auto mb-4 size-8 text-primary" />
-        <h2 class="text-2xl font-semibold text-card-foreground">
+        <h2 class="text-2xl font-semibold text-card-foreground md:text-3xl">
           Your first viber, running in 5 minutes
         </h2>
         <p
@@ -462,15 +462,15 @@
           viber — all from the terminal.
         </p>
 
-        <div class="code-block mx-auto mt-6 max-w-sm rounded-lg px-4 py-3">
+        <div class="code-block mx-auto mt-8 max-w-sm rounded-lg px-5 py-3.5">
           <code class="text-sm text-foreground">npx openviber onboard</code>
         </div>
 
-        <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
+        <div class="mt-8 flex flex-wrap items-center justify-center gap-3 md:gap-4">
           {#if !data.user && data.supabaseAuthEnabled}
             <a
               href={githubAuthUrl}
-              class="cta-primary group inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-all duration-300 hover:-translate-y-1"
+              class="cta-primary group inline-flex items-center gap-2.5 rounded-lg bg-primary px-8 py-3 text-sm font-semibold text-primary-foreground transition-all duration-300 hover:-translate-y-1"
             >
               <svg
                 class="size-4"
@@ -490,7 +490,7 @@
           {:else}
             <a
               href="/docs/getting-started/quick-start"
-              class="cta-primary group inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-all duration-300 hover:-translate-y-1"
+              class="cta-primary group inline-flex items-center gap-2.5 rounded-lg bg-primary px-8 py-3 text-sm font-semibold text-primary-foreground transition-all duration-300 hover:-translate-y-1"
             >
               Quick Start Guide
               <ArrowRight
@@ -517,7 +517,7 @@
     class="relative border-t border-border/40 bg-card/20 backdrop-blur-sm"
   >
     <div
-      class="container mx-auto flex flex-col items-center gap-6 px-6 py-10 md:flex-row md:justify-between md:px-8"
+      class="container mx-auto flex flex-col items-center gap-6 px-6 py-12 md:flex-row md:justify-between md:px-8 md:py-14"
     >
       <div class="flex items-center gap-2">
         <img src="/favicon.png" alt="OpenViber" class="size-5" />
@@ -720,14 +720,14 @@
   /* ── CTA button glow ── */
   .cta-primary {
     box-shadow:
-      0 4px 14px -2px hsl(var(--primary) / 0.3),
+      0 4px 20px -4px hsl(var(--primary) / 0.35),
       0 0 0 0 hsl(var(--primary) / 0);
     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .cta-primary:hover {
     box-shadow:
-      0 8px 24px -4px hsl(var(--primary) / 0.4),
-      0 0 0 1px hsl(var(--primary) / 0.15);
+      0 10px 28px -4px hsl(var(--primary) / 0.45),
+      0 0 0 1px hsl(var(--primary) / 0.18);
   }
 
   /* ── Section divider gradient ── */
@@ -759,10 +759,10 @@
 
   /* ── Section label ── */
   .section-label {
-    font-size: 0.8rem;
+    font-size: 0.875rem;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.15em;
+    letter-spacing: 0.12em;
     color: hsl(var(--primary));
   }
 

@@ -404,18 +404,18 @@
               </div>
 
               <!-- Content -->
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2 flex-wrap">
+              <div class="flex-1 min-w-0 overflow-hidden">
+                <div class="flex items-center gap-2 min-w-0">
                   <!-- Component badge -->
                   <span
-                    class="inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground uppercase tracking-wider"
+                    class="inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground uppercase tracking-wider shrink-0"
                   >
                     <ComponentIcon class="size-2.5" />
                     {log.component}
                   </span>
 
                   <!-- Message -->
-                  <span class="text-sm text-foreground truncate">
+                  <span class="text-sm text-foreground truncate min-w-0">
                     {log.message}
                   </span>
                 </div>

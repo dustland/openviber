@@ -369,7 +369,7 @@
                               <!-- Header -->
                               <div class="px-3.5 pt-3 pb-2.5">
                                 <p
-                                  class="text-sm font-medium leading-snug text-foreground"
+                                  class="text-sm font-medium leading-snug text-foreground line-clamp-3"
                                 >
                                   {viber.goal || viber.id}
                                 </p>

@@ -12,7 +12,6 @@
   } from "$lib/components/ai-elements";
   import {
     AlertCircle,
-    Bot,
     CheckCircle2,
     ChevronDown,
     ChevronRight,
@@ -20,15 +19,14 @@
     Cpu,
     LoaderCircle,
     MessageSquare,
-    Send,
     Settings2,
     Sparkles,
     TerminalSquare,
-    User,
     X,
   } from "@lucide/svelte";
   import { marked } from "marked";
   import { Button } from "$lib/components/ui/button";
+  import ChatComposer from "$lib/components/chat-composer.svelte";
   import * as Resizable from "$lib/components/ui/resizable";
   import {
     Collapsible,
@@ -532,7 +530,8 @@
         },
         onError: (error: Error) => {
           console.error("Chat error:", error);
-          chatError = error.message || "An error occurred during the chat session.";
+          chatError =
+            error.message || "An error occurred during the chat session.";
           sending = false;
           sessionStartedAt = null;
         },
@@ -547,16 +546,10 @@
       }
     } catch (error) {
       console.error("Failed to send message:", error);
-      chatError = error instanceof Error ? error.message : "Failed to send message.";
+      chatError =
+        error instanceof Error ? error.message : "Failed to send message.";
       sending = false;
       sessionStartedAt = null;
-    }
-  }
-
-  function handleKeydown(e: KeyboardEvent) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
     }
   }
 
@@ -688,12 +681,19 @@
 </svelte:head>
 
 <div class="chat-shell flex-1 flex flex-col min-h-0 overflow-hidden">
-  <Resizable.PaneGroup direction="horizontal" class="flex-1 min-h-0">
-    <Resizable.Pane defaultSize={65} minSize={35} class="min-h-0 flex flex-col">
+  <Resizable.PaneGroup
+    direction="horizontal"
+    class="flex-1 min-h-0 min-w-0 overflow-hidden"
+  >
+    <Resizable.Pane
+      defaultSize={65}
+      minSize={35}
+      class="min-h-0 min-w-0 overflow-hidden flex flex-col"
+    >
       <!-- Messages -->
       <div
         bind:this={messagesContainer}
-        class="chat-scroll flex-1 min-h-0 overflow-y-auto"
+        class="chat-scroll flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden"
         onscroll={handleScroll}
       >
         {#if loading}
@@ -819,29 +819,32 @@
           <div class="px-3 py-6 sm:px-5">
             <div class="w-full space-y-5">
               {#each displayMessages as message (message.id)}
-                <div
-                  class="message-row flex {message.role === 'user'
-                    ? 'justify-end user-row'
-                    : 'justify-start assistant-row'}"
-                >
-                  {#if message.role !== "user"}
+                {#if message.role === "user"}
+                  <!-- User message: right-aligned bubble with subtle background -->
+                  <div class="flex justify-end">
                     <div
-                      class="message-avatar assistant-avatar"
-                      aria-hidden="true"
+                      class="user-bubble min-w-0 max-w-[85%] sm:max-w-[75%] rounded-2xl px-4 py-3 text-foreground"
                     >
-                      <Bot class="size-4" />
+                      {#each message.parts as part}
+                        {#if part.type === "text" && (part as any).text}
+                          <div class="message-markdown">
+                            {@html renderMarkdown((part as any).text)}
+                          </div>
+                        {/if}
+                      {/each}
+                      <p class="text-[11px] mt-1.5 opacity-40 tracking-wide">
+                        {new Date(
+                          (message as any).createdAt || Date.now(),
+                        ).toLocaleTimeString()}
+                      </p>
                     </div>
-                  {/if}
-
-                  <div
-                    class="message-bubble max-w-[90%] sm:max-w-[82%] rounded-2xl px-4 py-3 {message.role ===
-                    'user'
-                      ? 'user-bubble bg-primary text-primary-foreground'
-                      : 'assistant-bubble bg-card text-foreground'}"
-                  >
+                  </div>
+                {:else}
+                  <!-- Assistant message: full-width, transparent background -->
+                  <div class="min-w-0 w-full">
                     {#each message.parts as part, i}
                       {#if part.type === "text" && (part as any).text}
-                        <div class="message-markdown">
+                        <div class="message-markdown text-foreground">
                           {@html renderMarkdown((part as any).text)}
                         </div>
                       {:else if part.type === "reasoning"}
@@ -865,46 +868,30 @@
                         {/if}
                       {/if}
                     {/each}
-                    <p class="text-[11px] mt-2 opacity-60 tracking-wide">
+                    <p class="text-[11px] mt-1.5 opacity-30 tracking-wide">
                       {new Date(
                         (message as any).createdAt || Date.now(),
                       ).toLocaleTimeString()}
                     </p>
                   </div>
-
-                  {#if message.role === "user"}
-                    <div class="message-avatar user-avatar" aria-hidden="true">
-                      <User class="size-4" />
-                    </div>
-                  {/if}
-                </div>
+                {/if}
               {/each}
 
               {#if sending && (!chat?.messages || chat.messages.length === 0 || chat.messages[chat.messages.length - 1]?.role === "user")}
-                <div class="message-row flex justify-start assistant-row">
-                  <div
-                    class="message-avatar assistant-avatar"
-                    aria-hidden="true"
-                  >
-                    <Bot class="size-4" />
-                  </div>
-                  <div
-                    class="message-bubble max-w-[90%] sm:max-w-[82%] rounded-2xl px-4 py-3 assistant-bubble bg-card text-foreground"
-                  >
-                    {#if sessionStartedAt}
-                      <SessionIndicator
-                        startedAt={sessionStartedAt}
-                        steps={activitySteps}
-                      />
-                    {:else}
-                      <div
-                        class="flex items-center gap-2 text-sm text-muted-foreground"
-                      >
-                        <Sparkles class="size-4 animate-pulse" />
-                        <span>Starting...</span>
-                      </div>
-                    {/if}
-                  </div>
+                <div class="min-w-0 w-full">
+                  {#if sessionStartedAt}
+                    <SessionIndicator
+                      startedAt={sessionStartedAt}
+                      steps={activitySteps}
+                    />
+                  {:else}
+                    <div
+                      class="flex items-center gap-2 text-sm text-muted-foreground"
+                    >
+                      <Sparkles class="size-4 animate-pulse" />
+                      <span>Starting...</span>
+                    </div>
+                  {/if}
                 </div>
               {/if}
             </div>
@@ -913,58 +900,70 @@
       </div>
 
       <div class="chat-composer-wrap p-3 shrink-0 sm:p-4">
-        <div class="w-full space-y-3">
-          <!-- Error banner -->
-          {#if chatError}
-            <div
-              class="flex items-start gap-3 rounded-xl border border-destructive/40 bg-destructive/5 px-4 py-3 animate-in fade-in slide-in-from-bottom-1 duration-200"
-            >
-              <AlertCircle class="size-4 text-destructive shrink-0 mt-0.5" />
-              <div class="flex-1 min-w-0">
-                <p class="text-sm font-medium text-destructive">Task failed</p>
-                <p class="text-xs text-destructive/80 mt-0.5 wrap-break-word">
-                  {chatError}
-                </p>
-              </div>
-              <button
-                type="button"
-                class="shrink-0 p-0.5 text-destructive/60 hover:text-destructive transition-colors"
-                onclick={() => (chatError = null)}
-                aria-label="Dismiss error"
+        <ChatComposer
+          bind:value={inputValue}
+          bind:inputElement={inputEl}
+          placeholder={configError
+            ? "Agent config missing — run openviber onboard first"
+            : viber?.nodeConnected === true
+              ? "Send a task or command..."
+              : "Node is offline"}
+          disabled={viber?.nodeConnected !== true || !!configError}
+          {sending}
+          showSelectors={false}
+          onsubmit={() => sendMessage()}
+        >
+          {#snippet beforeInput()}
+            <!-- Error banner -->
+            {#if chatError}
+              <div
+                class="flex items-start gap-3 rounded-xl border border-destructive/40 bg-destructive/5 px-4 py-3 animate-in fade-in slide-in-from-bottom-1 duration-200"
               >
-                <X class="size-3.5" />
-              </button>
-            </div>
-          {/if}
-
-          <!-- Persistent session activity bar for long-running tasks -->
-          {#if sending && sessionStartedAt}
-            <SessionIndicator
-              startedAt={sessionStartedAt}
-              steps={activitySteps}
-            />
-          {/if}
-
-          {#if viber?.skills && viber.skills.length > 0 && displayMessages.length > 0}
-            <div class="overflow-x-auto pb-0.5">
-              <div class="flex items-center gap-1.5 flex-wrap">
-                {#each viber.skills as skill}
-                  <button
-                    type="button"
-                    class="rounded-full border border-border bg-muted/40 px-2.5 py-1 text-[11px] text-muted-foreground hover:text-foreground hover:bg-muted transition-colors whitespace-nowrap"
-                    onclick={() => insertSkillTemplate(skill)}
-                    title={skill.description}
-                  >
-                    Use {skill.name}...
-                  </button>
-                {/each}
+                <AlertCircle class="size-4 text-destructive shrink-0 mt-0.5" />
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-medium text-destructive">Task failed</p>
+                  <p class="text-xs text-destructive/80 mt-0.5 wrap-break-word">
+                    {chatError}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  class="shrink-0 p-0.5 text-destructive/60 hover:text-destructive transition-colors"
+                  onclick={() => (chatError = null)}
+                  aria-label="Dismiss error"
+                >
+                  <X class="size-3.5" />
+                </button>
               </div>
-            </div>
-          {/if}
+            {/if}
 
-          <div
-            class="composer-card flex gap-2.5 items-end rounded-2xl border border-border bg-background/95 px-3 py-2.5 shadow-sm backdrop-blur"
-          >
+            <!-- Persistent session activity bar for long-running tasks -->
+            {#if sending && sessionStartedAt}
+              <SessionIndicator
+                startedAt={sessionStartedAt}
+                steps={activitySteps}
+              />
+            {/if}
+
+            {#if viber?.skills && viber.skills.length > 0 && displayMessages.length > 0}
+              <div class="overflow-x-auto pb-0.5">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  {#each viber.skills as skill}
+                    <button
+                      type="button"
+                      class="rounded-full border border-border bg-muted/40 px-2.5 py-1 text-[11px] text-muted-foreground hover:text-foreground hover:bg-muted transition-colors whitespace-nowrap"
+                      onclick={() => insertSkillTemplate(skill)}
+                      title={skill.description}
+                    >
+                      Use {skill.name}...
+                    </button>
+                  {/each}
+                </div>
+              </div>
+            {/if}
+          {/snippet}
+
+          {#snippet leftAction()}
             <button
               type="button"
               class="size-10 shrink-0 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors {configError
@@ -975,49 +974,26 @@
             >
               <Settings2 class="size-4" />
             </button>
-            <textarea
-              bind:this={inputEl}
-              bind:value={inputValue}
-              onkeydown={handleKeydown}
-              placeholder={configError
-                ? "Agent config missing — run openviber onboard first"
-                : viber?.nodeConnected === true
-                  ? "Send a task or command..."
-                  : "Node is offline"}
-              class="composer-input flex-1 min-h-[40px] max-h-36 resize-none rounded-xl border border-transparent bg-transparent px-2 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
-              rows="1"
-              disabled={sending || viber?.nodeConnected !== true || !!configError}
-            ></textarea>
-            <Button
-              onclick={() => sendMessage()}
-              disabled={sending ||
-                !inputValue.trim() ||
-                viber?.nodeConnected !== true ||
-                !!configError}
-              class="size-10 shrink-0 rounded-xl"
-            >
-              <Send class="size-4" />
-            </Button>
-          </div>
-          <p
-            class="flex items-center gap-1.5 px-1 text-[11px] text-muted-foreground"
-          >
-            <CornerDownLeft class="size-3" />
-            Press Enter to send, Shift + Enter for a new line.
-          </p>
-        </div>
+          {/snippet}
+        </ChatComposer>
+        <p
+          class="flex items-center gap-1.5 px-1 mt-2 text-[11px] text-muted-foreground"
+        >
+          <CornerDownLeft class="size-3" />
+          Press Enter to send, Shift + Enter for a new line.
+        </p>
       </div>
     </Resizable.Pane>
 
-    <Resizable.Handle withHandle class="hidden lg:flex" />
+    <Resizable.Handle class="hidden lg:flex" />
 
     <Resizable.Pane
       defaultSize={35}
       minSize={20}
       maxSize={55}
-      class="hidden min-h-0 lg:block"
+      class="hidden min-h-0 min-w-0 overflow-hidden lg:block"
     >
-      <aside class="tool-pane flex h-full min-h-0 flex-col bg-background/70">
+      <aside class="tool-pane flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-background/70">
         <div class="border-b border-border/60 px-3 py-2.5 shrink-0">
           <div class="flex items-center gap-2">
             <TerminalSquare class="size-4 text-muted-foreground" />
@@ -1041,14 +1017,17 @@
         {:else}
           <div
             bind:this={toolOutputContainer}
-            class="flex-1 min-h-0 overflow-y-auto p-1.5"
+            class="flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden p-1.5"
             onscroll={handleToolOutputScroll}
           >
-            <div class="space-y-1">
+            <div class="space-y-1 min-w-0">
               {#each toolOutputEntries as entry (entry.id)}
-                <Collapsible open={selectedToolOutputId === entry.id}>
+                <Collapsible
+                  open={selectedToolOutputId === entry.id}
+                  class="min-w-0 w-full overflow-hidden"
+                >
                   <CollapsibleTrigger
-                    class="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-muted/60 {selectedToolOutputId ===
+                    class="flex w-full min-w-0 overflow-hidden items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-muted/60 {selectedToolOutputId ===
                     entry.id
                       ? 'bg-muted/50'
                       : ''}"
@@ -1057,46 +1036,48 @@
                         selectedToolOutputId === entry.id ? null : entry.id;
                     }}
                   >
-                    <ChevronRight
-                      class="size-3.5 shrink-0 text-muted-foreground transition-transform duration-200 {selectedToolOutputId ===
-                      entry.id
-                        ? 'rotate-90'
-                        : ''}"
-                    />
-                    {#if isToolStateRunning(entry.state)}
-                      <LoaderCircle
-                        class="size-3.5 shrink-0 animate-spin text-amber-500"
+                    <div class="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
+                      <ChevronRight
+                        class="size-3.5 shrink-0 text-muted-foreground transition-transform duration-200 {selectedToolOutputId ===
+                        entry.id
+                          ? 'rotate-90'
+                          : ''}"
                       />
-                    {:else if isToolStateError(entry.state)}
-                      <AlertCircle class="size-3.5 shrink-0 text-red-500" />
-                    {:else}
-                      <CheckCircle2
-                        class="size-3.5 shrink-0 text-emerald-500"
-                      />
-                    {/if}
-                    <div class="min-w-0 flex-1">
-                      <p
-                        class="truncate text-[12px] font-medium text-foreground"
-                      >
-                        {entry.toolName}
-                      </p>
-                      {#if entry.summary}
-                        <p class="truncate text-[10px] text-muted-foreground">
-                          {entry.summary}
-                        </p>
+                      {#if isToolStateRunning(entry.state)}
+                        <LoaderCircle
+                          class="size-3.5 shrink-0 animate-spin text-amber-500"
+                        />
+                      {:else if isToolStateError(entry.state)}
+                        <AlertCircle class="size-3.5 shrink-0 text-red-500" />
+                      {:else}
+                        <CheckCircle2
+                          class="size-3.5 shrink-0 text-emerald-500"
+                        />
                       {/if}
+                      <div class="min-w-0 flex-1 overflow-hidden">
+                        <p
+                          class="overflow-hidden text-ellipsis whitespace-nowrap text-[12px] font-medium text-foreground"
+                        >
+                          {entry.toolName}
+                        </p>
+                        {#if entry.summary}
+                          <p
+                            class="max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-[10px] text-muted-foreground"
+                            title={entry.summary}
+                          >
+                            {entry.summary}
+                          </p>
+                        {/if}
+                      </div>
                     </div>
-                    <span class="shrink-0 text-[10px] text-muted-foreground">
-                      {getToolStateLabel(entry.state)}
-                    </span>
                   </CollapsibleTrigger>
-                  <CollapsibleContent>
+                  <CollapsibleContent class="min-w-0 w-full overflow-hidden">
                     <div
-                      class="ml-3 mr-1 mb-1 max-h-48 overflow-y-auto rounded-md border border-border/50 bg-black/[0.03] dark:bg-white/[0.03]"
+                      class="mx-2 mb-1 box-border max-h-48 min-w-0 w-[calc(100%-1rem)] overflow-y-auto overflow-x-auto rounded-md border border-border/50 bg-black/[0.03] dark:bg-white/[0.03]"
                     >
                       {#if entry.output}
                         <pre
-                          class="whitespace-pre-wrap break-words p-3 font-mono text-[11px] leading-relaxed text-foreground/85">{entry.output}</pre>
+                          class="box-border w-full min-w-0 whitespace-pre-wrap break-all p-3 font-mono text-[11px] leading-relaxed text-foreground/85">{entry.output}</pre>
                       {:else}
                         <p class="p-3 text-[11px] text-muted-foreground">
                           Waiting for output...
@@ -1261,52 +1242,10 @@
     );
   }
 
-  .message-row {
-    align-items: flex-end;
-    gap: 0.625rem;
-  }
-
-  .message-avatar {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 1.85rem;
-    height: 1.85rem;
-    border-radius: 9999px;
-    border: 1px solid hsl(var(--border));
-    color: hsl(var(--muted-foreground));
-    background: hsl(var(--background));
-    flex-shrink: 0;
-  }
-
-  .assistant-avatar {
-    box-shadow: 0 4px 20px hsl(var(--foreground) / 0.04);
-  }
-
-  .user-avatar {
-    color: hsl(var(--primary));
-    border-color: hsl(var(--primary) / 0.25);
-    background: hsl(var(--primary) / 0.08);
-  }
-
-  .message-bubble {
-    border: 1px solid hsl(var(--border) / 0.8);
-    box-shadow: 0 10px 35px hsl(var(--foreground) / 0.04);
-  }
-
-  .assistant-bubble {
-    border-top-left-radius: 0.55rem;
-  }
-
   .user-bubble {
+    background: hsl(var(--muted));
+    border: 1px solid hsl(var(--border) / 0.6);
     border-top-right-radius: 0.55rem;
-    box-shadow: 0 10px 30px hsl(var(--primary) / 0.22);
-    border-color: hsl(var(--primary) / 0.45);
-  }
-
-  .composer-card:focus-within {
-    border-color: hsl(var(--ring));
-    box-shadow: 0 0 0 2px hsl(var(--ring) / 0.2);
   }
 
   :global(.message-markdown) {

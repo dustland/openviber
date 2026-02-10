@@ -15,11 +15,15 @@ This document compares OpenViber's feature set against [OpenClaw](https://github
 |---|---|---|
 | **Tagline** | "You Imagine It. Vibers Build It." | "Your own personal AI assistant" |
 | **Focus** | Role-scoped AI workforce for task automation | Personal AI assistant across all your devices/channels |
-| **Architecture** | Hub + Daemon + Web Board (SvelteKit) | Gateway control plane + Channels + Nodes |
+| **Architecture** | Hub (gateway control plane) + Node runtime (daemon) + Web Board (SvelteKit) | Gateway control plane + Channels + Nodes |
 | **Language** | TypeScript | TypeScript |
 | **License** | Apache 2.0 | MIT |
 | **Stars** | ~100 | ~175,000 |
 | **Deployment** | Local-first, `npx openviber start` | Local-first, `openclaw onboard --install-daemon` |
+
+Terminology mapping: OpenViber's **Hub** is the gateway control plane (OpenClaw naming),
+and OpenViber's **daemon** is the node runtime. The **enterprise channel gateway**
+(`viber gateway`) is a separate component.
 
 ---
 

@@ -164,7 +164,7 @@
 
 <Collapsible
   bind:open={isOpen}
-  class="group not-prose mb-3 w-full rounded-lg border border-border/60 bg-card/50 {className}"
+  class="group not-prose mb-3 w-full min-w-0 overflow-hidden rounded-lg border border-border/60 bg-card/50 {className}"
 >
   <CollapsibleTrigger
     class="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left transition-colors hover:bg-muted/50"
@@ -229,7 +229,7 @@
             Parameters
           </h4>
           <pre
-            class="overflow-x-auto rounded-md bg-muted/50 p-2.5 text-xs leading-relaxed max-h-40 overflow-y-auto">{formatJson(
+            class="overflow-x-auto whitespace-pre-wrap break-all rounded-md bg-muted/50 p-2.5 text-xs leading-relaxed max-h-40 overflow-y-auto">{formatJson(
               input,
             )}</pre>
         </div>
@@ -250,7 +250,7 @@
             </div>
           {:else}
             <pre
-              class="overflow-x-auto rounded-md bg-muted/50 p-2.5 text-xs leading-relaxed max-h-60 overflow-y-auto">{formatJson(
+              class="overflow-x-auto whitespace-pre-wrap break-all rounded-md bg-muted/50 p-2.5 text-xs leading-relaxed max-h-60 overflow-y-auto">{formatJson(
                 output,
               )}</pre>
           {/if}

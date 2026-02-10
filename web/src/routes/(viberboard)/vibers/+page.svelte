@@ -196,22 +196,22 @@
       {#each vibers as viber (viber.id)}
         <a href="/vibers/{viber.id}" class="block group/card">
           <Card
-            class="hover:shadow-md transition-shadow cursor-pointer {viber.archivedAt
+            class="overflow-hidden hover:shadow-md transition-shadow cursor-pointer {viber.archivedAt
               ? 'opacity-60'
               : ''}"
           >
-            <CardHeader class="pb-3">
-              <div class="flex items-start gap-3">
+            <CardHeader class="pb-3 overflow-hidden">
+              <div class="flex items-start gap-3 min-w-0">
                 <div
                   class="size-2.5 mt-1.5 shrink-0 rounded-full {statusColor(
                     viber.status,
                   )}"
                 ></div>
-                <div class="min-w-0 flex-1">
-                  <CardTitle class="text-sm font-medium leading-snug">
+                <div class="min-w-0 flex-1 overflow-hidden">
+                  <CardTitle class="text-sm font-medium leading-snug truncate">
                     {viber.goal || viber.id}
                   </CardTitle>
-                  <CardDescription class="text-xs mt-1">
+                  <CardDescription class="text-xs mt-1 truncate">
                     <Badge
                       variant="outline"
                       class="text-[10px] px-1.5 py-0 mr-1"

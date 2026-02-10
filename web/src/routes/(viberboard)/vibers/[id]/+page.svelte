@@ -12,7 +12,6 @@
   } from "$lib/components/ai-elements";
   import {
     AlertCircle,
-    Bot,
     CheckCircle2,
     ChevronDown,
     ChevronRight,
@@ -24,7 +23,6 @@
     Settings2,
     Sparkles,
     TerminalSquare,
-    User,
     X,
   } from "@lucide/svelte";
   import { marked } from "marked";
@@ -532,7 +530,8 @@
         },
         onError: (error: Error) => {
           console.error("Chat error:", error);
-          chatError = error.message || "An error occurred during the chat session.";
+          chatError =
+            error.message || "An error occurred during the chat session.";
           sending = false;
           sessionStartedAt = null;
         },
@@ -547,7 +546,8 @@
       }
     } catch (error) {
       console.error("Failed to send message:", error);
-      chatError = error instanceof Error ? error.message : "Failed to send message.";
+      chatError =
+        error instanceof Error ? error.message : "Failed to send message.";
       sending = false;
       sessionStartedAt = null;
     }
@@ -819,29 +819,32 @@
           <div class="px-3 py-6 sm:px-5">
             <div class="w-full space-y-5">
               {#each displayMessages as message (message.id)}
-                <div
-                  class="message-row flex {message.role === 'user'
-                    ? 'justify-end user-row'
-                    : 'justify-start assistant-row'}"
-                >
-                  {#if message.role !== "user"}
+                {#if message.role === "user"}
+                  <!-- User message: right-aligned bubble with subtle background -->
+                  <div class="flex justify-end">
                     <div
-                      class="message-avatar assistant-avatar"
-                      aria-hidden="true"
+                      class="user-bubble min-w-0 max-w-[85%] sm:max-w-[75%] rounded-2xl px-4 py-3 text-foreground"
                     >
-                      <Bot class="size-4" />
+                      {#each message.parts as part}
+                        {#if part.type === "text" && (part as any).text}
+                          <div class="message-markdown">
+                            {@html renderMarkdown((part as any).text)}
+                          </div>
+                        {/if}
+                      {/each}
+                      <p class="text-[11px] mt-1.5 opacity-40 tracking-wide">
+                        {new Date(
+                          (message as any).createdAt || Date.now(),
+                        ).toLocaleTimeString()}
+                      </p>
                     </div>
-                  {/if}
-
-                  <div
-                    class="message-bubble max-w-[90%] sm:max-w-[82%] rounded-2xl px-4 py-3 {message.role ===
-                    'user'
-                      ? 'user-bubble bg-primary text-primary-foreground'
-                      : 'assistant-bubble bg-card text-foreground'}"
-                  >
+                  </div>
+                {:else}
+                  <!-- Assistant message: full-width, transparent background -->
+                  <div class="min-w-0 w-full">
                     {#each message.parts as part, i}
                       {#if part.type === "text" && (part as any).text}
-                        <div class="message-markdown">
+                        <div class="message-markdown text-foreground">
                           {@html renderMarkdown((part as any).text)}
                         </div>
                       {:else if part.type === "reasoning"}
@@ -865,46 +868,30 @@
                         {/if}
                       {/if}
                     {/each}
-                    <p class="text-[11px] mt-2 opacity-60 tracking-wide">
+                    <p class="text-[11px] mt-1.5 opacity-30 tracking-wide">
                       {new Date(
                         (message as any).createdAt || Date.now(),
                       ).toLocaleTimeString()}
                     </p>
                   </div>
-
-                  {#if message.role === "user"}
-                    <div class="message-avatar user-avatar" aria-hidden="true">
-                      <User class="size-4" />
-                    </div>
-                  {/if}
-                </div>
+                {/if}
               {/each}
 
               {#if sending && (!chat?.messages || chat.messages.length === 0 || chat.messages[chat.messages.length - 1]?.role === "user")}
-                <div class="message-row flex justify-start assistant-row">
-                  <div
-                    class="message-avatar assistant-avatar"
-                    aria-hidden="true"
-                  >
-                    <Bot class="size-4" />
-                  </div>
-                  <div
-                    class="message-bubble max-w-[90%] sm:max-w-[82%] rounded-2xl px-4 py-3 assistant-bubble bg-card text-foreground"
-                  >
-                    {#if sessionStartedAt}
-                      <SessionIndicator
-                        startedAt={sessionStartedAt}
-                        steps={activitySteps}
-                      />
-                    {:else}
-                      <div
-                        class="flex items-center gap-2 text-sm text-muted-foreground"
-                      >
-                        <Sparkles class="size-4 animate-pulse" />
-                        <span>Starting...</span>
-                      </div>
-                    {/if}
-                  </div>
+                <div class="min-w-0 w-full">
+                  {#if sessionStartedAt}
+                    <SessionIndicator
+                      startedAt={sessionStartedAt}
+                      steps={activitySteps}
+                    />
+                  {:else}
+                    <div
+                      class="flex items-center gap-2 text-sm text-muted-foreground"
+                    >
+                      <Sparkles class="size-4 animate-pulse" />
+                      <span>Starting...</span>
+                    </div>
+                  {/if}
                 </div>
               {/if}
             </div>
@@ -986,7 +973,9 @@
                   : "Node is offline"}
               class="composer-input flex-1 min-h-[40px] max-h-36 resize-none rounded-xl border border-transparent bg-transparent px-2 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
               rows="1"
-              disabled={sending || viber?.nodeConnected !== true || !!configError}
+              disabled={sending ||
+                viber?.nodeConnected !== true ||
+                !!configError}
             ></textarea>
             <Button
               onclick={() => sendMessage()}
@@ -1009,15 +998,15 @@
       </div>
     </Resizable.Pane>
 
-    <Resizable.Handle withHandle class="hidden lg:flex" />
+    <Resizable.Handle class="hidden lg:flex" />
 
     <Resizable.Pane
       defaultSize={35}
       minSize={20}
       maxSize={55}
-      class="hidden min-h-0 lg:block"
+      class="hidden min-h-0 min-w-0 overflow-hidden lg:block"
     >
-      <aside class="tool-pane flex h-full min-h-0 flex-col bg-background/70">
+      <aside class="tool-pane flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-background/70">
         <div class="border-b border-border/60 px-3 py-2.5 shrink-0">
           <div class="flex items-center gap-2">
             <TerminalSquare class="size-4 text-muted-foreground" />
@@ -1041,14 +1030,14 @@
         {:else}
           <div
             bind:this={toolOutputContainer}
-            class="flex-1 min-h-0 overflow-y-auto p-1.5"
+            class="flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden p-1.5"
             onscroll={handleToolOutputScroll}
           >
-            <div class="space-y-1">
+            <div class="space-y-1 min-w-0">
               {#each toolOutputEntries as entry (entry.id)}
-                <Collapsible open={selectedToolOutputId === entry.id}>
+                <Collapsible open={selectedToolOutputId === entry.id} class="min-w-0 w-full overflow-hidden">
                   <CollapsibleTrigger
-                    class="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-muted/60 {selectedToolOutputId ===
+                    class="flex w-full min-w-0 overflow-hidden items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-muted/60 {selectedToolOutputId ===
                     entry.id
                       ? 'bg-muted/50'
                       : ''}"
@@ -1092,11 +1081,11 @@
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <div
-                      class="ml-3 mr-1 mb-1 max-h-48 overflow-y-auto rounded-md border border-border/50 bg-black/[0.03] dark:bg-white/[0.03]"
+                      class="ml-3 mr-1 mb-1 max-h-48 min-w-0 overflow-y-auto overflow-x-hidden rounded-md border border-border/50 bg-black/[0.03] dark:bg-white/[0.03]"
                     >
                       {#if entry.output}
                         <pre
-                          class="whitespace-pre-wrap break-words p-3 font-mono text-[11px] leading-relaxed text-foreground/85">{entry.output}</pre>
+                          class="whitespace-pre-wrap break-all p-3 font-mono text-[11px] leading-relaxed text-foreground/85">{entry.output}</pre>
                       {:else}
                         <p class="p-3 text-[11px] text-muted-foreground">
                           Waiting for output...
@@ -1261,47 +1250,10 @@
     );
   }
 
-  .message-row {
-    align-items: flex-end;
-    gap: 0.625rem;
-  }
-
-  .message-avatar {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 1.85rem;
-    height: 1.85rem;
-    border-radius: 9999px;
-    border: 1px solid hsl(var(--border));
-    color: hsl(var(--muted-foreground));
-    background: hsl(var(--background));
-    flex-shrink: 0;
-  }
-
-  .assistant-avatar {
-    box-shadow: 0 4px 20px hsl(var(--foreground) / 0.04);
-  }
-
-  .user-avatar {
-    color: hsl(var(--primary));
-    border-color: hsl(var(--primary) / 0.25);
-    background: hsl(var(--primary) / 0.08);
-  }
-
-  .message-bubble {
-    border: 1px solid hsl(var(--border) / 0.8);
-    box-shadow: 0 10px 35px hsl(var(--foreground) / 0.04);
-  }
-
-  .assistant-bubble {
-    border-top-left-radius: 0.55rem;
-  }
-
   .user-bubble {
+    background: hsl(var(--muted));
+    border: 1px solid hsl(var(--border) / 0.6);
     border-top-right-radius: 0.55rem;
-    box-shadow: 0 10px 30px hsl(var(--primary) / 0.22);
-    border-color: hsl(var(--primary) / 0.45);
   }
 
   .composer-card:focus-within {

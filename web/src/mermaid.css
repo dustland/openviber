@@ -1,0 +1,94 @@
+/* Global Mermaid styling to align diagrams with app theme tokens. */
+:root {
+  --mermaid-font-family:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  --mermaid-font-size: 13px;
+  --mermaid-text-color: hsl(var(--foreground));
+  --mermaid-muted-color: hsl(var(--muted-foreground));
+  --mermaid-line-color: hsl(var(--muted-foreground) / 0.58);
+  --mermaid-border-color: hsl(var(--border));
+  --mermaid-surface-color: hsl(var(--card));
+  --mermaid-surface-muted: hsl(var(--muted) / 0.55);
+  --mermaid-primary-fill: hsl(var(--primary) / 0.08);
+  --mermaid-label-bg: hsl(var(--background));
+  --mermaid-note-bg: hsl(var(--muted) / 0.65);
+  --mermaid-accent-color: hsl(var(--primary));
+}
+
+.dark {
+  --mermaid-line-color: hsl(var(--muted-foreground) / 0.72);
+  --mermaid-surface-muted: hsl(var(--muted) / 0.72);
+  --mermaid-primary-fill: hsl(var(--primary) / 0.14);
+  --mermaid-label-bg: hsl(var(--background) / 0.96);
+  --mermaid-note-bg: hsl(var(--muted) / 0.78);
+}
+
+.mermaid,
+.mermaid svg {
+  font-family: var(--mermaid-font-family) !important;
+  font-size: var(--mermaid-font-size);
+}
+
+.mermaid svg {
+  max-width: 100%;
+  height: auto;
+  color: var(--mermaid-text-color);
+}
+
+.mermaid :where(text, tspan, foreignObject, .label, .nodeLabel, .edgeLabel, .cluster-label text, .legend text, .taskText) {
+  fill: var(--mermaid-text-color) !important;
+  color: var(--mermaid-text-color) !important;
+  font-family: var(--mermaid-font-family) !important;
+}
+
+.mermaid :where(.node rect, .node circle, .node ellipse, .node polygon, .node path) {
+  fill: var(--mermaid-surface-color) !important;
+  stroke: var(--mermaid-border-color) !important;
+  stroke-width: 1.2px;
+}
+
+/* Prefer a subtle primary tint for default flowchart nodes. */
+.mermaid :where(.node.default rect, .node.default circle, .node.default ellipse, .node.default polygon, .node.default path) {
+  fill: var(--mermaid-primary-fill) !important;
+}
+
+.mermaid :where(.cluster rect, .group rect, .classGroup rect, .stateGroup rect) {
+  fill: var(--mermaid-surface-muted) !important;
+  stroke: var(--mermaid-border-color) !important;
+}
+
+/* Sequence diagram actors and boxes. */
+.mermaid :where(.actor, .actor-top, .actor-bottom) {
+  fill: var(--mermaid-primary-fill) !important;
+  stroke: var(--mermaid-border-color) !important;
+}
+
+.mermaid :where(.edgeLabel rect, .labelBkg, .edgeLabel .label-container) {
+  fill: var(--mermaid-label-bg) !important;
+  opacity: 0.96;
+}
+
+.mermaid :where(.flowchart-link, .messageLine0, .messageLine1, .actor-line, .edgePath path, .relation, .dependency, .transition) {
+  stroke: var(--mermaid-line-color) !important;
+}
+
+.mermaid :where(.arrowheadPath, marker path, .marker path) {
+  fill: var(--mermaid-line-color) !important;
+  stroke: var(--mermaid-line-color) !important;
+}
+
+.mermaid :where(.note rect, .note) {
+  fill: var(--mermaid-note-bg) !important;
+  stroke: var(--mermaid-border-color) !important;
+}
+
+.mermaid :where(.titleText, .pieTitleText, .flowchartTitleText) {
+  fill: var(--mermaid-text-color) !important;
+  font-weight: 600;
+}
+
+.mermaid :where(.active rect, .active circle, .active ellipse, .active polygon, .active path) {
+  stroke: var(--mermaid-accent-color) !important;
+  stroke-width: 1.5px;
+}

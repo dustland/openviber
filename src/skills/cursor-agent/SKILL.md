@@ -1,7 +1,7 @@
 ---
 name: cursor-agent
-version: 3.0.0
-description: Use the Cursor CLI (agent) for software engineering tasks. Includes installation, auth, commands, tmux-based automation, and best practices for AI coding workflows.
+version: 3.1.0
+description: Use the Cursor CLI (agent) for software engineering tasks. Includes installation, auth, commands, tmux-based automation, intermediate progress reporting, branch creation, and automated PR creation for coding workflows.
 author: Pushpinder Pal Singh
 playground:
   repo: dustland/openviber
@@ -108,14 +108,24 @@ Cursor agent supports MCP (Model Context Protocol) servers defined in `mcp.json`
 The `cursor_agent_run` tool:
 - Runs the Cursor agent in a tmux session with a specified prompt
 - **Polls for completion** instead of blindly waiting a fixed duration
+- **Reports intermediate progress** during execution (essential for coding tasks)
 - Returns structured output with status, timing, and captured terminal output
 - Supports parallel runs via distinct `sessionName` values
+- **Optional branch creation** before running (recommended for coding tasks)
+- **Optional PR creation** after completion (automatically commits, pushes, and creates PR)
 
 **Parameters:**
 - `goal` (required): Detailed task prompt — be specific (see best practices above)
 - `cwd` (optional): Project root directory
 - `waitSeconds` (optional): Maximum wait time (default: 120s, polls every 3s)
 - `sessionName` (optional): Tmux session name for parallel runs (default: 'cursor-agent')
+- `createBranch` (optional, default: false): Create a new git branch before running. **Recommended for coding tasks** to keep changes isolated.
+- `branchName` (optional): Name for the git branch (only if `createBranch` is true). Auto-generated if not provided (format: `cursor-agent-{timestamp}`).
+- `baseBranch` (optional): Base branch to create from (only if `createBranch` is true). Defaults to current branch.
+- `createPR` (optional, default: false): After successful completion, commit changes, push to branch, and create a pull request. Requires `createBranch` to be true and `gh` CLI installed.
+- `prTitle` (optional): PR title (only if `createPR` is true). Auto-generated from goal if not provided.
+- `prBody` (optional): PR body/description (only if `createPR` is true). Supports markdown. Can include 'Fixes #123' to auto-close issues.
+- `commitMessage` (optional): Commit message (only if `createPR` is true). Auto-generated from goal if not provided.
 
 **Return shape:**
 - `ok`: boolean — whether the agent completed within the time limit
@@ -124,6 +134,13 @@ The `cursor_agent_run` tool:
 - `outputTail`: last ~100 lines of terminal output (chat-friendly)
 - `output`: full captured output (truncated if very large)
 - `elapsed`: seconds spent
+- `progressUpdates`: Array of intermediate progress updates showing agent activity during execution. Each update includes:
+  - `elapsed`: seconds since start
+  - `output`: last 50 lines of output at that point
+  - `status`: 'starting' | 'running' | 'completed' | 'timed_out'
+  - `evidence`: optional completion detection evidence
+- `branch`: branch name (if `createBranch` was true)
+- `prUrl`: PR URL (if `createPR` was true and successful)
 - `hint`: guidance when timed out or errored
 
 ### Parallel Cursor Agent Runs
@@ -139,7 +156,35 @@ Check status of all sessions with `tmux_list`.
 
 ## Recommended Workflows
 
-### Issue Fix Workflow
+### Issue Fix Workflow (Automated)
+
+For coding tasks, use `cursor_agent_run` with `createBranch` and `createPR` to automate the entire workflow:
+
+```typescript
+cursor_agent_run({
+  goal: "Fix issue #123: Add null check in user service to prevent crashes",
+  cwd: "/path/to/repo",
+  createBranch: true,
+  branchName: "fix/issue-123",
+  baseBranch: "main",
+  createPR: true,
+  prTitle: "Fix: Add null check in user service (#123)",
+  prBody: "Fixes #123\n\nAdded null check to prevent crashes when user data is missing.",
+  commitMessage: "fix: add null check in user service (#123)"
+})
+```
+
+This single call will:
+1. Create a branch from `main`
+2. Run the Cursor agent to fix the issue
+3. Report intermediate progress as the agent works
+4. Commit the changes
+5. Push to the branch
+6. Create a PR with the specified title and body
+
+### Issue Fix Workflow (Manual Steps)
+
+Alternatively, use separate steps for more control:
 
 1. `gh_get_issue` → Read the full issue
 2. `gh_clone_repo` → Clone (or pull latest)
@@ -150,21 +195,44 @@ Check status of all sessions with `tmux_list`.
 
 ### Code Review Workflow
 
-```
-agent -p 'Review the changes in the current branch against main. Focus on security and performance.'
+```typescript
+cursor_agent_run({
+  goal: "Review the changes in the current branch against main. Focus on security and performance.",
+  createBranch: false  // Review doesn't need a new branch
+})
 ```
 
 ### Refactor Workflow
 
-```
-agent -p 'Refactor src/utils.ts to reduce complexity and improve type safety. Ensure all tests pass.'
+```typescript
+cursor_agent_run({
+  goal: "Refactor src/utils.ts to reduce complexity and improve type safety. Ensure all tests pass.",
+  createBranch: true,
+  branchName: "refactor/utils-ts",
+  createPR: true,
+  prTitle: "Refactor: Improve type safety in utils.ts"
+})
 ```
 
 ### Debug Workflow
 
+```typescript
+cursor_agent_run({
+  goal: "Analyze the following error and suggest a fix: [paste error]. The error occurs in src/api/handler.ts.",
+  createBranch: true,
+  branchName: "fix/handler-error"
+})
 ```
-agent -p 'Analyze the following error and suggest a fix: [paste error]. The error occurs in src/api/handler.ts.'
-```
+
+### Progress Reporting
+
+The tool now reports **intermediate progress updates** during execution, which is essential for coding scenarios where you want to see what the agent is doing in real-time. Progress updates are included in the `progressUpdates` array in the result, showing:
+
+- Agent startup
+- Ongoing activity (every 10 seconds or when new output appears)
+- Completion status with evidence
+
+This addresses the previous issue where you'd only see a "completed" status at the end. Now you can see intermediate results as the agent works.
 
 ## Rules & MCP
 

@@ -35,7 +35,7 @@ export interface DaemonRunTaskOptions {
   signal?: AbortSignal;
   environment?: ViberEnvironmentInfo;
   /** Settings from hub (Supabase); overrides local file and updates cache */
-  settingsOverride?: { primaryCodingCli?: string; channelIds?: string[] };
+  settingsOverride?: { primaryCodingCli?: string; channelIds?: string[]; skills?: string[] };
   /** OAuth tokens pulled from hub config, injected into tool execution context */
   oauthTokens?: {
     google?: { accessToken: string; refreshToken?: string | null };
@@ -491,6 +491,20 @@ export async function runTask(
     }
   } catch (err) {
     console.warn("[Runtime] Failed to load settings for primaryCodingCli:", err);
+  }
+
+  // Merge additional skills from intent/settings override into the agent config
+  const extraSkills = options.settingsOverride?.skills;
+  if (extraSkills && extraSkills.length > 0) {
+    const existing = new Set(config.skills ?? []);
+    const merged = [...(config.skills ?? [])];
+    for (const s of extraSkills) {
+      if (!existing.has(s)) {
+        merged.push(s);
+        existing.add(s);
+      }
+    }
+    config = { ...config, skills: merged };
   }
 
   // Build the full system prompt with personalization + environment + agent prompt

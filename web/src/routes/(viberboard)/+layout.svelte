@@ -81,6 +81,10 @@
     });
   });
 
+  const allVibers = $derived(
+    viberGroups.flatMap((g) => g.vibers),
+  );
+
   const pathname = $derived($page.url.pathname);
   const isVibersRoute = $derived(
     pathname === "/vibers" || pathname.startsWith("/vibers/"),
@@ -295,7 +299,39 @@
 
     {#if viberGroups.length > 0}
       <Sidebar.Separator />
-      <Sidebar.Group>
+
+      <!-- Collapsed view: flat icon list with tooltips -->
+      <Sidebar.Group class="hidden group-data-[collapsible=icon]:block">
+        <Sidebar.GroupContent>
+          <Sidebar.Menu>
+            {#each allVibers as viber (viber.id)}
+              <Sidebar.MenuItem>
+                <Sidebar.MenuButton
+                  isActive={pathname.startsWith(`/vibers/${viber.id}`)}
+                  tooltipContent={viber.goal || viber.id}
+                >
+                  <a
+                    href={`/vibers/${viber.id}`}
+                    class="w-full inline-flex items-center gap-2"
+                  >
+                    {#if viber.status === "running"}
+                      <LoaderCircle class="size-4 shrink-0 animate-spin text-emerald-500" />
+                    {:else if viber.status === "error"}
+                      <Circle class="size-4 shrink-0 fill-current text-red-500" />
+                    {:else}
+                      <Circle class="size-4 shrink-0 {getStatusTone(viber.status)}" />
+                    {/if}
+                    <span class="truncate">{viber.goal || viber.id}</span>
+                  </a>
+                </Sidebar.MenuButton>
+              </Sidebar.MenuItem>
+            {/each}
+          </Sidebar.Menu>
+        </Sidebar.GroupContent>
+      </Sidebar.Group>
+
+      <!-- Expanded view: collapsible groups -->
+      <Sidebar.Group class="group-data-[collapsible=icon]:hidden">
         <Sidebar.GroupLabel
           class="text-[10px] uppercase tracking-wider text-sidebar-foreground/55 px-2"
         >
@@ -310,12 +346,12 @@
                     <Sidebar.MenuButton class="text-sidebar-foreground/70">
                       <FolderGit2 class="size-4 shrink-0" />
                       <span
-                        class="truncate text-xs font-medium group-data-[collapsible=icon]:hidden"
+                        class="truncate text-xs font-medium"
                       >
                         {group.label}
                       </span>
                       <ChevronRight
-                        class="ml-auto size-3.5 shrink-0 transition-transform group-data-[state=open]/collapsible:rotate-90 group-data-[collapsible=icon]:hidden"
+                        class="ml-auto size-3.5 shrink-0 transition-transform group-data-[state=open]/collapsible:rotate-90"
                       />
                     </Sidebar.MenuButton>
                   </CollapsibleTrigger>
@@ -352,7 +388,7 @@
                                   </span>
                                 {/if}
                                 <span
-                                  class="truncate leading-none group-data-[collapsible=icon]:hidden"
+                                  class="truncate leading-none"
                                 >
                                   {viber.goal.length > 42
                                     ? viber.goal.slice(0, 42) + "…"

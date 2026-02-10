@@ -19,7 +19,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
   try {
     const body = await request.json();
-    const { goal, nodeId, environmentId, channelIds, model } = body;
+    const { goal, nodeId, environmentId, channelIds, model, skills } = body;
 
     if (!goal) {
       return json({ error: "Missing goal" }, { status: 400 });
@@ -66,6 +66,11 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     // Use model from request body, or fall back to user's default chatModel setting
     const viberModel = model || settings.chatModel || undefined;
 
+    // Normalize intent-required skills
+    const extraSkills = Array.isArray(skills)
+      ? skills.filter((s: unknown) => typeof s === "string" && s.length > 0)
+      : undefined;
+
     const result = await hubClient.createViber(
       goal,
       nodeId,
@@ -76,6 +81,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         ...(selectedChannels && selectedChannels.length > 0
           ? { channelIds: selectedChannels }
           : {}),
+        ...(extraSkills && extraSkills.length > 0 ? { skills: extraSkills } : {}),
       },
       undefined, // oauthTokens
       viberModel,
@@ -93,6 +99,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
           environmentId ?? null,
           goal,
           result.nodeId ?? null,
+          extraSkills,
         );
       } catch (e) {
         console.error("Failed to persist viber or assign environment:", e);

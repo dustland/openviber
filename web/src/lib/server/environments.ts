@@ -355,12 +355,31 @@ export async function getViberEnvironmentForUser(
   return assignments[0]?.environmentId ?? null;
 }
 
+/** Read the extra skills attached to a viber (set during creation from an intent). */
+export async function getViberSkills(
+  viberId: string,
+): Promise<string[]> {
+  try {
+    const rows = await supabaseRequest<{ skills: string[] | null }[]>("vibers", {
+      params: {
+        select: "skills",
+        id: `eq.${viberId}`,
+        limit: "1",
+      },
+    });
+    return rows[0]?.skills ?? [];
+  } catch {
+    return [];
+  }
+}
+
 export async function setViberEnvironmentForUser(
   userId: string,
   viberId: string,
   environmentId: string | null,
   goal?: string,
   nodeId?: string | null,
+  skills?: string[],
 ): Promise<ViberEnvironmentAssignment | null> {
   const normalizedEnvironmentId = environmentId?.trim() || null;
 
@@ -388,6 +407,9 @@ export async function setViberEnvironmentForUser(
   };
   if (nodeId != null && nodeId !== "") {
     body.node_id = nodeId;
+  }
+  if (skills && skills.length > 0) {
+    body.skills = skills;
   }
 
   const rows = await supabaseRequest<ViberEnvironmentRow[]>("vibers", {

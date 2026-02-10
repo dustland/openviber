@@ -91,15 +91,18 @@
   function getToolInputSummary(part: any): string | undefined {
     const input = part?.input;
     if (!input || typeof input !== "object") return undefined;
-    return (
+    const raw: string | undefined =
       input.command ||
       input.path ||
       input.query ||
       input.url ||
       input.goal ||
       input.prompt ||
-      undefined
-    );
+      undefined;
+    if (!raw) return undefined;
+    // Collapse whitespace and cap length for display
+    const cleaned = raw.replace(/\s+/g, " ").trim();
+    return cleaned.length > 120 ? cleaned.slice(0, 117) + "…" : cleaned;
   }
 
   type ToolOutputScenario = "terminal" | "structured" | "text";
@@ -925,7 +928,7 @@
     class="flex-1 min-h-0 min-w-0 w-full overflow-hidden"
   >
     <Resizable.Pane
-      defaultSize={65}
+      defaultSize={55}
       minSize={35}
       class="min-h-0 min-w-0 overflow-hidden flex flex-col"
     >
@@ -1174,6 +1177,8 @@
           disabled={viber?.nodeConnected !== true || !!configError}
           {sending}
           showSelectors={false}
+          skills={viber?.skills ?? []}
+          onskillclick={(skill) => insertSkillTemplate(skill)}
           onsubmit={() => sendMessage()}
         >
           {#snippet beforeInput()}
@@ -1210,22 +1215,6 @@
               />
             {/if}
 
-            {#if viber?.skills && viber.skills.length > 0 && displayMessages.length > 0}
-              <div class="overflow-x-auto pb-0.5">
-                <div class="flex items-center gap-1.5 flex-wrap">
-                  {#each viber.skills as skill}
-                    <button
-                      type="button"
-                      class="rounded-full border border-border bg-muted/40 px-2.5 py-1 text-[11px] text-muted-foreground hover:text-foreground hover:bg-muted transition-colors whitespace-nowrap"
-                      onclick={() => insertSkillTemplate(skill)}
-                      title={skill.description}
-                    >
-                      Use {skill.name}...
-                    </button>
-                  {/each}
-                </div>
-              </div>
-            {/if}
           {/snippet}
 
           {#snippet leftAction()}
@@ -1253,9 +1242,9 @@
     <Resizable.Handle class="hidden lg:flex" />
 
     <Resizable.Pane
-      defaultSize={35}
+      defaultSize={45}
       minSize={20}
-      maxSize={55}
+      maxSize={60}
       class="hidden min-h-0 min-w-0 w-full overflow-hidden lg:block"
     >
       <aside
@@ -1343,15 +1332,15 @@
                 {:else}
                   <CheckCircle2 class="size-3.5 shrink-0 text-emerald-500" />
                 {/if}
-                <div class="min-w-0 flex-1 overflow-hidden">
+                <div class="min-w-0 w-0 flex-1 overflow-hidden">
                   <p
-                    class="overflow-hidden text-ellipsis whitespace-nowrap text-[12px] font-medium text-foreground"
+                    class="truncate text-[12px] font-medium text-foreground"
                   >
                     {entry.toolName}
                   </p>
                   {#if entry.summary}
                     <p
-                      class="max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-[10px] text-muted-foreground"
+                      class="truncate text-[10px] text-muted-foreground"
                       title={entry.summary}
                     >
                       {entry.summary}

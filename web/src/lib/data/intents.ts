@@ -15,6 +15,8 @@ export interface Intent {
   body: string;
   /** Whether this is a built-in intent (vs user-created) */
   builtin?: boolean;
+  /** Skills required by this intent — merged into agent config at viber creation */
+  skills?: string[];
 }
 
 /**
@@ -122,6 +124,7 @@ export const BUILTIN_INTENTS: Intent[] = [
     description: "Scan Gmail alerts and summarize deployment failures",
     icon: "bug",
     builtin: true,
+    skills: ["gmail"],
     body: `Check my Gmail for recent deployment failure alerts and summarize what is broken.
 
 - Use gmail_search with targeted queries like:

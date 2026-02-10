@@ -99,7 +99,7 @@ export type ControllerServerMessage =
       repoBranch?: string;
       variables?: { key: string; value: string }[];
     };
-    settings?: { primaryCodingCli?: string; channelIds?: string[] };
+    settings?: { primaryCodingCli?: string; channelIds?: string[]; skills?: string[] };
     oauthTokens?: Record<string, { accessToken: string; refreshToken?: string | null }>;
   }
   | { type: "task:stop"; taskId: string }

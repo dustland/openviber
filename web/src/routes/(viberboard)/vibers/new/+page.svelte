@@ -4,20 +4,12 @@
   import { goto } from "$app/navigation";
   import { getVibersStore } from "$lib/stores/vibers";
   import {
-    Bug,
     Check,
     ChevronDown,
-    Code2,
-    FileText,
     FolderGit2,
     GitBranch,
-    HeartPulse,
-    MoreHorizontal,
-    Palette,
     Server,
-    ShieldCheck,
     Sparkles,
-    TrainFront,
   } from "@lucide/svelte";
   import * as Dialog from "$lib/components/ui/dialog";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
@@ -48,17 +40,6 @@
     enabled: boolean;
   }
 
-  const INTENT_ICONS: Record<string, typeof Sparkles> = {
-    palette: Palette,
-    sparkles: Sparkles,
-    "heart-pulse": HeartPulse,
-    "shield-check": ShieldCheck,
-    "file-text": FileText,
-    "code-2": Code2,
-    bug: Bug,
-    "train-front": TrainFront,
-  };
-
   let nodes = $state<ViberNode[]>([]);
   let environments = $state<SidebarEnvironment[]>([]);
   let channelOptions = $state<ChannelOption[]>([]);
@@ -80,7 +61,6 @@
 
   // Show first 3 intents inline, rest in dialog
   const previewIntents = $derived(intents.slice(0, 3));
-  const hasMoreIntents = $derived(intents.length > 3);
 
   // Derived: selected objects
   const selectedEnvironment = $derived(
@@ -212,6 +192,9 @@
       const nodeId = node.node_id;
 
       // Create a new viber via POST /api/vibers
+      // Collect skills required by the selected intent (if any)
+      const intentSkills = selectedIntent?.skills;
+
       const response = await fetch("/api/vibers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -221,6 +204,7 @@
           environmentId: selectedEnvironmentId ?? undefined,
           channelIds: selectedChannelIds.length > 0 ? selectedChannelIds : undefined,
           model: selectedModelId || undefined,
+          skills: intentSkills && intentSkills.length > 0 ? intentSkills : undefined,
         }),
       });
 
@@ -436,12 +420,15 @@
                 Clear
               </button>
             {/if}
-            <a
-              href="/settings/intents"
-              class="text-[11px] text-muted-foreground hover:text-primary transition-colors"
-            >
-              Manage
-            </a>
+            {#if intents.length > 0}
+              <button
+                type="button"
+                class="text-[11px] text-muted-foreground hover:text-primary transition-colors"
+                onclick={() => (showIntentDialog = true)}
+              >
+                All intents
+              </button>
+            {/if}
           </div>
         </div>
 
@@ -460,7 +447,6 @@
             class="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-1 sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 sm:pb-0"
           >
             {#each previewIntents as intent (intent.id)}
-              {@const IconComponent = INTENT_ICONS[intent.icon] ?? Sparkles}
               <button
                 type="button"
                 class="w-[260px] shrink-0 snap-start rounded-xl border p-4 text-left transition-all sm:w-auto sm:min-w-0 {selectedIntentId ===
@@ -469,40 +455,20 @@
                   : 'border-border bg-card hover:border-primary/30 hover:bg-accent/40'}"
                 onclick={() => selectIntent(intent)}
               >
-                <div class="flex items-start gap-3">
-                  <div
-                    class="size-8 rounded-lg bg-muted/60 flex items-center justify-center text-muted-foreground shrink-0"
-                  >
-                    <IconComponent class="size-4" />
-                  </div>
-                  <div class="min-w-0">
-                    <p class="text-sm font-medium text-foreground">
-                      {intent.name}
-                    </p>
-                    <p class="text-xs text-muted-foreground mt-0.5">
-                      {intent.description}
-                    </p>
-                  </div>
-                </div>
+                <p class="truncate text-sm font-medium text-foreground">
+                  {intent.name}
+                </p>
+                <p class="truncate text-xs text-muted-foreground mt-0.5">
+                  {intent.description}
+                </p>
                 {#if intent.body}
-                  <p class="mt-2.5 text-[11px] leading-relaxed text-muted-foreground/70 line-clamp-3 whitespace-pre-line">
+                  <p class="mt-2 text-[11px] leading-relaxed text-muted-foreground/70 line-clamp-3 whitespace-pre-line">
                     {intent.body.split('\n').filter(Boolean).slice(0, 3).join('\n')}
                   </p>
                 {/if}
               </button>
             {/each}
 
-            {#if hasMoreIntents}
-              <button
-                type="button"
-                class="flex w-16 shrink-0 snap-start flex-col items-center justify-center rounded-xl border border-border bg-card text-muted-foreground transition-all hover:border-primary/30 hover:bg-accent/40 hover:text-foreground sm:w-auto"
-                onclick={() => (showIntentDialog = true)}
-                title="Show all {intents.length} intents"
-              >
-                <MoreHorizontal class="size-5" />
-                <span class="mt-1 text-[10px]">More</span>
-              </button>
-            {/if}
           </div>
         {/if}
       </div>
@@ -543,7 +509,6 @@
     <div class="flex-1 overflow-y-auto px-5 pb-2">
       <div class="space-y-2">
         {#each intents as intent (intent.id)}
-          {@const IconComponent = INTENT_ICONS[intent.icon] ?? Sparkles}
           <button
             type="button"
             class="w-full rounded-xl border p-4 text-left transition-all {selectedIntentId ===
@@ -555,30 +520,21 @@
               showIntentDialog = false;
             }}
           >
-            <div class="flex items-start gap-3">
-              <div
-                class="size-9 rounded-lg bg-muted/60 flex items-center justify-center text-muted-foreground shrink-0"
-              >
-                <IconComponent class="size-4" />
-              </div>
-              <div class="min-w-0 flex-1">
-                <div class="flex items-center gap-2">
-                  <p class="text-sm font-medium text-foreground">
-                    {intent.name}
-                  </p>
-                  {#if intent.builtin}
-                    <span
-                      class="inline-block rounded-full bg-muted/60 px-1.5 py-0.5 text-[10px] text-muted-foreground"
-                    >
-                      built-in
-                    </span>
-                  {/if}
-                </div>
-                <p class="text-xs text-muted-foreground mt-0.5">
-                  {intent.description}
-                </p>
-              </div>
+            <div class="flex items-center gap-2 min-w-0">
+              <p class="truncate text-sm font-medium text-foreground">
+                {intent.name}
+              </p>
+              {#if intent.builtin}
+                <span
+                  class="shrink-0 inline-block rounded-full bg-muted/60 px-1.5 py-0.5 text-[10px] text-muted-foreground"
+                >
+                  built-in
+                </span>
+              {/if}
             </div>
+            <p class="truncate text-xs text-muted-foreground mt-0.5">
+              {intent.description}
+            </p>
           </button>
         {/each}
       </div>

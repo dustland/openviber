@@ -3,13 +3,22 @@
   import { page } from "$app/stores";
   import { onMount } from "svelte";
   import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+  } from "$lib/components/ui/dropdown-menu";
+  import {
     ArrowLeft,
+    Check,
+    ChevronDown,
+    ExternalLink,
+    Github,
+    Loader2,
     Save,
+    Search,
     Sparkles,
     Trash2,
-    Search,
-    Github,
-    ExternalLink,
   } from "@lucide/svelte";
 
   interface EnvironmentVariable {
@@ -87,6 +96,11 @@
   let manualUrlMode = $state(false);
   let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
+  // GitHub branch picker state
+  let branchList = $state<Array<{ name: string; protected: boolean }>>([]);
+  let branchLoading = $state(false);
+  let branchDropdownOpen = $state(false);
+
   const viberId = $derived($page.url.searchParams.get("viber") || "");
   const nodeId = $derived($page.url.searchParams.get("node") || "");
   const environmentRouteId = $derived($page.params.environmentId || "new");
@@ -159,6 +173,11 @@
     secretsText = toLines(payload.variables, true);
     variablesTouched = false;
     secretsTouched = false;
+
+    // Load branches for the existing repo
+    if (repoUrl && type === "github") {
+      loadBranchesForCurrentRepo();
+    }
   }
 
   async function fetchSelectedViber() {
@@ -393,6 +412,39 @@
     if (!name.trim()) {
       name = repo.name;
     }
+    // Fetch branches for the selected repo
+    void fetchBranches(repo.owner, repo.name);
+  }
+
+  function parseOwnerRepoFromUrl(url: string): { owner: string; repo: string } | null {
+    const match = url.match(/github\.com[/:]([^/]+)\/([^/.]+)/);
+    if (!match) return null;
+    return { owner: match[1], repo: match[2] };
+  }
+
+  async function fetchBranches(owner: string, repo: string) {
+    branchLoading = true;
+    branchList = [];
+    try {
+      const params = new URLSearchParams({ owner, repo, per_page: "100" });
+      const response = await fetch(`/api/github/branches?${params}`);
+      const data = await response.json();
+      if (Array.isArray(data.branches)) {
+        branchList = data.branches;
+      }
+    } catch {
+      branchList = [];
+    } finally {
+      branchLoading = false;
+    }
+  }
+
+  function loadBranchesForCurrentRepo() {
+    if (!repoUrl) return;
+    const parsed = parseOwnerRepoFromUrl(repoUrl);
+    if (parsed) {
+      void fetchBranches(parsed.owner, parsed.repo);
+    }
   }
 
   onMount(() => {
@@ -497,20 +549,6 @@
                 <option value="local">Local path</option>
                 <option value="manual">Manual</option>
               </select>
-            </div>
-
-            <div>
-              <label
-                for="env-branch"
-                class="mb-1.5 block text-xs text-muted-foreground">Branch</label
-              >
-              <input
-                id="env-branch"
-                type="text"
-                bind:value={repoBranch}
-                placeholder="main"
-                class="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
-              />
             </div>
 
             <div class="sm:col-span-2">
@@ -653,6 +691,65 @@
                     Search repos instead
                   </button>
                 {/if}
+              {/if}
+            </div>
+
+            <div class="sm:col-span-2">
+              <label
+                for="env-branch"
+                class="mb-1.5 block text-xs text-muted-foreground">Branch</label
+              >
+              {#if type === "github" && branchList.length > 0}
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    class="h-10 w-full rounded-md border border-border bg-background px-3 text-sm inline-flex items-center justify-between gap-2 hover:bg-accent transition-colors"
+                    aria-label="Select branch"
+                  >
+                    <span class="truncate text-left">
+                      {repoBranch || "Select a branch"}
+                    </span>
+                    {#if branchLoading}
+                      <Loader2 class="size-4 animate-spin text-muted-foreground shrink-0" />
+                    {:else}
+                      <ChevronDown class="size-4 text-muted-foreground shrink-0" />
+                    {/if}
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    sideOffset={6}
+                    align="start"
+                    class="max-h-64 overflow-y-auto min-w-(--bits-floating-anchor-width) rounded-md border border-border bg-popover p-1 shadow-md"
+                  >
+                    {#each branchList as branch (branch.name)}
+                      <DropdownMenuItem
+                        class="w-full rounded px-2.5 py-2 text-left text-sm hover:bg-accent flex items-center gap-2.5 outline-none cursor-pointer"
+                        onSelect={() => {
+                          repoBranch = branch.name;
+                        }}
+                      >
+                        <span class="flex-1 truncate">{branch.name}</span>
+                        {#if branch.protected}
+                          <span class="text-[10px] text-muted-foreground">protected</span>
+                        {/if}
+                        {#if repoBranch === branch.name}
+                          <Check class="size-4 text-primary shrink-0" />
+                        {/if}
+                      </DropdownMenuItem>
+                    {/each}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              {:else}
+                <div class="flex items-center gap-2">
+                  <input
+                    id="env-branch"
+                    type="text"
+                    bind:value={repoBranch}
+                    placeholder="main"
+                    class="h-10 flex-1 rounded-md border border-border bg-background px-3 text-sm"
+                  />
+                  {#if branchLoading}
+                    <Loader2 class="size-4 animate-spin text-muted-foreground shrink-0" />
+                  {/if}
+                </div>
               {/if}
             </div>
 

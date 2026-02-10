@@ -5,6 +5,7 @@ import type { ViberEnvironmentContext } from "$lib/server/hub-client";
 import {
   getViberEnvironmentForUser,
   getEnvironmentForUser,
+  getViberSkills,
 } from "$lib/server/environments";
 import { getSettingsForUser } from "$lib/server/user-settings";
 import { getDecryptedOAuthConnections } from "$lib/server/oauth";
@@ -95,9 +96,16 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
       locals.user?.id != null
         ? await getSettingsForUser(locals.user.id)
         : { primaryCodingCli: null as string | null };
-    const settingsPayload = {
+
+    // Fetch extra skills attached to this viber (from intent at creation)
+    const viberSkills = await getViberSkills(params.id);
+
+    const settingsPayload: Record<string, unknown> = {
       primaryCodingCli: settings.primaryCodingCli ?? undefined,
     };
+    if (viberSkills.length > 0) {
+      settingsPayload.skills = viberSkills;
+    }
 
     // Look up OAuth tokens for this user (for skills like Gmail)
     let oauthTokens: Record<string, { accessToken: string; refreshToken?: string | null }> | undefined;

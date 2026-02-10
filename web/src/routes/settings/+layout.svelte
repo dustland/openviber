@@ -3,6 +3,7 @@
   import * as Sidebar from "$lib/components/ui/sidebar";
   import {
     Archive,
+    ArrowLeft,
     BookOpen,
     Cable,
     MessageSquare,
@@ -10,6 +11,7 @@
     Settings,
     Sparkles,
   } from "@lucide/svelte";
+  import { Button } from "$lib/components/ui/button";
   import AppSidebar from "$lib/components/layout/app-sidebar.svelte";
 
   let { children } = $props();
@@ -45,6 +47,18 @@
 </script>
 
 <AppSidebar>
+  {#snippet header()}
+    <Sidebar.Menu>
+      <Sidebar.MenuItem>
+        <Button variant="default" size="sm" href="/" class="w-full gap-2">
+          <ArrowLeft class="size-4 shrink-0" />
+          <span class="truncate group-data-[collapsible=icon]:hidden"
+            >Dashboard</span
+          >
+        </Button>
+      </Sidebar.MenuItem>
+    </Sidebar.Menu>
+  {/snippet}
   {#snippet sidebar()}
     <Sidebar.Group>
       <Sidebar.GroupContent>

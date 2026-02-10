@@ -8,7 +8,7 @@
     ChevronDown,
     FolderGit2,
     GitBranch,
-    Server,
+    Laptop,
     Sparkles,
   } from "@lucide/svelte";
   import * as Dialog from "$lib/components/ui/dialog";
@@ -16,11 +16,18 @@
   import ChatComposer from "$lib/components/chat-composer.svelte";
   import type { Intent } from "$lib/data/intents";
 
+  interface NodeSkill {
+    id: string;
+    name: string;
+    description: string;
+  }
+
   interface ViberNode {
     id: string;
     name: string;
     node_id: string | null;
     status: "pending" | "active" | "offline";
+    skills?: NodeSkill[];
   }
 
   interface SidebarEnvironment {
@@ -73,6 +80,15 @@
     selectedIntentId
       ? intents.find((i) => i.id === selectedIntentId) ?? null
       : null,
+  );
+
+  // Skills from the selected node (for the skill picker in ChatComposer)
+  const nodeSkills = $derived(
+    (selectedNode?.skills ?? []).map((s) => ({
+      id: s.id || s.name,
+      name: s.name,
+      description: s.description,
+    })),
   );
 
   // Only active nodes (with a daemon connected) can receive tasks
@@ -179,6 +195,10 @@
     selectedIntentId = null;
   }
 
+  function insertSkillTemplate(skill: { id: string; name: string; description: string }) {
+    taskInput = `Use ${skill.name} to `;
+  }
+
   async function submitTask(overrideContent?: string) {
     const content = (overrideContent ?? taskInput).trim();
     const node = nodes.find((n) => n.id === selectedNodeId);
@@ -195,11 +215,15 @@
       // Collect skills required by the selected intent (if any)
       const intentSkills = selectedIntent?.skills;
 
+      // Use the intent name as the viber display title (not the full body)
+      const title = selectedIntent?.name ?? undefined;
+
       const response = await fetch("/api/vibers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           goal: content,
+          title,
           nodeId: nodeId ?? undefined,
           environmentId: selectedEnvironmentId ?? undefined,
           channelIds: selectedChannelIds.length > 0 ? selectedChannelIds : undefined,
@@ -338,7 +362,7 @@
             class="flex w-full cursor-pointer items-start gap-3 rounded-xl border p-4 text-left transition-all hover:border-primary/30 hover:bg-accent/40 {selectedNode ? 'border-border bg-card' : 'border-dashed border-border/60 bg-card/50'}"
           >
             <div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground">
-              <Server class="size-5" />
+              <Laptop class="size-5" />
             </div>
             <div class="min-w-0 flex-1">
               <p class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
@@ -489,6 +513,8 @@
         sending={creating}
         {nodes}
         {environments}
+        skills={nodeSkills}
+        onskillclick={(skill) => insertSkillTemplate(skill)}
         showSelectors={true}
         onsubmit={() => void submitTask()}
       />

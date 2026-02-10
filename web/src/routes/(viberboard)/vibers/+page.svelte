@@ -8,7 +8,7 @@
     Plus,
     Server,
     Archive,
-    ArchiveRestore,
+    LoaderCircle,
   } from "@lucide/svelte";
   import { Button } from "$lib/components/ui/button";
   import {
@@ -48,9 +48,13 @@
     }
   }
 
+  const busyViberIds = $state<Set<string>>(new Set());
+
   async function archiveViber(viberId: string, event: MouseEvent) {
     event.preventDefault();
     event.stopPropagation();
+    if (busyViberIds.has(viberId)) return;
+    busyViberIds.add(viberId);
     try {
       const response = await fetch(`/api/vibers/${viberId}/archive`, {
         method: "POST",
@@ -60,21 +64,8 @@
       }
     } catch (error) {
       console.error("Failed to archive viber:", error);
-    }
-  }
-
-  async function restoreViber(viberId: string, event: MouseEvent) {
-    event.preventDefault();
-    event.stopPropagation();
-    try {
-      const response = await fetch(`/api/vibers/${viberId}/archive`, {
-        method: "DELETE",
-      });
-      if (response.ok) {
-        await vibersStore.invalidate();
-      }
-    } catch (error) {
-      console.error("Failed to restore viber:", error);
+    } finally {
+      busyViberIds.delete(viberId);
     }
   }
 
@@ -227,31 +218,26 @@
                     {/if}
                   </CardDescription>
                 </div>
-                <div
-                  class="shrink-0 opacity-0 group-hover/card:opacity-100 transition-opacity"
-                >
-                  {#if viber.archivedAt}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      class="size-7"
-                      title="Restore viber"
-                      onclick={(e: MouseEvent) => restoreViber(viber.id, e)}
-                    >
-                      <ArchiveRestore class="size-3.5" />
-                    </Button>
-                  {:else}
+                {#if !viber.archivedAt}
+                  <div
+                    class="shrink-0 transition-opacity {busyViberIds.has(viber.id) ? 'opacity-100' : 'opacity-0 group-hover/card:opacity-100'}"
+                  >
                     <Button
                       variant="ghost"
                       size="icon"
                       class="size-7"
                       title="Archive viber"
+                      disabled={busyViberIds.has(viber.id)}
                       onclick={(e: MouseEvent) => archiveViber(viber.id, e)}
                     >
-                      <Archive class="size-3.5" />
+                      {#if busyViberIds.has(viber.id)}
+                        <LoaderCircle class="size-3.5 animate-spin" />
+                      {:else}
+                        <Archive class="size-3.5" />
+                      {/if}
                     </Button>
-                  {/if}
-                </div>
+                  </div>
+                {/if}
               </div>
             </CardHeader>
           </Card>

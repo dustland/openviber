@@ -7,7 +7,7 @@
     Cpu,
     FolderGit2,
     Package,
-    Server,
+    Laptop,
     Sparkles,
   } from "@lucide/svelte";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
@@ -173,40 +173,38 @@
     <!-- Toolbar row (inside card) -->
     <div class="flex items-center justify-between gap-2 px-3 pb-2.5 pt-0.5">
       <div class="flex items-center gap-0.5">
-        {#if showSelectors}
-          <!-- Model selector (inline) -->
-          <DropdownMenu.Root>
-            <DropdownMenu.Trigger
-              class="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer"
-            >
-              <Cpu class="size-3.5" />
-              <span>{selectedModel.label}</span>
-              <ChevronDown class="size-3 opacity-50" />
-            </DropdownMenu.Trigger>
-            <DropdownMenu.Content align="start" class="w-64">
-              <DropdownMenu.Label>Select model</DropdownMenu.Label>
-              <DropdownMenu.Separator />
-              {#each MODEL_OPTIONS as opt (opt.id)}
-                <DropdownMenu.Item
-                  onclick={() => (selectedModelId = opt.id)}
-                  class="flex items-center justify-between"
-                >
-                  <span class="flex items-center gap-2">
-                    {opt.label}
-                    {#if opt.badge}
-                      <span class="rounded-full bg-muted/60 px-1.5 py-0.5 text-[10px] text-muted-foreground">
-                        {opt.badge}
-                      </span>
-                    {/if}
-                  </span>
-                  {#if selectedModelId === opt.id}
-                    <Check class="size-3.5 text-primary" />
+        <!-- Model selector (always visible) -->
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger
+            class="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer"
+          >
+            <Cpu class="size-3.5" />
+            <span>{selectedModel.label}</span>
+            <ChevronDown class="size-3 opacity-50" />
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Content align="start" class="w-64">
+            <DropdownMenu.Label>Select model</DropdownMenu.Label>
+            <DropdownMenu.Separator />
+            {#each MODEL_OPTIONS as opt (opt.id)}
+              <DropdownMenu.Item
+                onclick={() => (selectedModelId = opt.id)}
+                class="flex items-center justify-between"
+              >
+                <span class="flex items-center gap-2">
+                  {opt.label}
+                  {#if opt.badge}
+                    <span class="rounded-full bg-muted/60 px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                      {opt.badge}
+                    </span>
                   {/if}
-                </DropdownMenu.Item>
-              {/each}
-            </DropdownMenu.Content>
-          </DropdownMenu.Root>
-        {/if}
+                </span>
+                {#if selectedModelId === opt.id}
+                  <Check class="size-3.5 text-primary" />
+                {/if}
+              </DropdownMenu.Item>
+            {/each}
+          </DropdownMenu.Content>
+        </DropdownMenu.Root>
 
         <!-- Skill picker -->
         {#if skills.length > 0}
@@ -268,7 +266,7 @@
               ></span>
               <span>{selectedNode.name}</span>
             {:else}
-              <Server class="size-3 opacity-50" />
+              <Laptop class="size-3 opacity-50" />
               <span>Node</span>
             {/if}
             <ChevronDown class="size-2.5 opacity-40" />

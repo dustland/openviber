@@ -24,7 +24,7 @@ const HUB_URL = process.env.VIBER_HUB_URL || "http://localhost:6007";
 export const POST: RequestHandler = async ({ params, request, locals }) => {
   try {
     const body = await request.json();
-    const { messages } = body;
+    const { messages, model } = body;
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return json({ error: "Missing messages" }, { status: 400 });
@@ -130,6 +130,7 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
     let viberId: string;
 
     if (existingViber) {
+      const viberModel = typeof model === "string" && model ? model : undefined;
       const result = await hubClient.sendMessage(
         params.id,
         simpleMessages,
@@ -137,12 +138,14 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
         environment,
         settingsPayload,
         oauthTokens,
+        viberModel,
       );
       if (!result) {
         return json({ error: "Failed to send message to viber" }, { status: 503 });
       }
       viberId = result.viberId;
     } else {
+      const viberModel = typeof model === "string" && model ? model : undefined;
       const result = await hubClient.createViber(
         goal,
         undefined,
@@ -150,6 +153,7 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
         environment,
         settingsPayload,
         oauthTokens,
+        viberModel,
       );
       if (!result) {
         return json({ error: "Failed to create viber on hub" }, { status: 503 });

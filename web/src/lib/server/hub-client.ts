@@ -316,12 +316,13 @@ export const hubClient = {
     environment?: ViberEnvironmentContext,
     settings?: { primaryCodingCli?: string },
     oauthTokens?: Record<string, { accessToken: string; refreshToken?: string | null }>,
+    model?: string,
   ): Promise<{ viberId: string; nodeId: string } | null> {
     try {
       const response = await hubFetch(`/api/vibers/${viberId}/message`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages, goal, environment, settings, oauthTokens }),
+        body: JSON.stringify({ messages, goal, environment, settings, oauthTokens, model }),
       });
 
       if (!response.ok) {

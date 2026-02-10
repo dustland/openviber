@@ -11,7 +11,7 @@
 
   onMount(async () => {
     const params = new URLSearchParams($page.url.search);
-    const next = params.get("next") || "/vibers";
+    const next = params.get("next") || "/";
     const state = params.get("state") || "";
     const hash = parseHashParams(window.location.hash);
     const accessToken = hash.get("access_token");

@@ -4,17 +4,17 @@
   import * as Sidebar from "$lib/components/ui/sidebar";
   import * as HoverCard from "$lib/components/ui/hover-card";
   import {
-    Archive,
+    AlertCircle,
     CalendarClock,
+    CheckCircle2,
     ChevronRight,
-    Circle,
     Cpu,
     FolderGit2,
     LoaderCircle,
     Plus,
     Puzzle,
     ScrollText,
-    Server,
+    Laptop,
     Settings2,
     Wifi,
     WifiOff,
@@ -38,8 +38,6 @@
     /** Connection status of the node hosting this viber; null if no node */
     nodeConnected: boolean | null;
   }
-
-  type ViberStatus = "running" | "completed" | "error" | "pending" | "stopped";
 
   interface SidebarEnvironment {
     id: string;
@@ -106,56 +104,6 @@
     pathname === "/logs" || pathname.startsWith("/logs/"),
   );
   // Stories route removed — intents live inside /vibers/new and /settings/intents
-
-  const archivingViberIds = $state<Set<string>>(new Set());
-
-  function getStatusTone(status: string): string {
-    switch (status as ViberStatus) {
-      case "running":
-        return "text-emerald-500";
-      case "completed":
-        return "text-blue-500";
-      case "error":
-        return "text-red-500";
-      case "stopped":
-        return "text-muted-foreground";
-      default:
-        return "text-amber-500";
-    }
-  }
-
-  async function archiveViber(viberId: string, event: MouseEvent) {
-    event.preventDefault();
-    event.stopPropagation();
-
-    if (archivingViberIds.has(viberId)) {
-      return;
-    }
-
-    const next = new Set(archivingViberIds);
-    next.add(viberId);
-    archivingViberIds.clear();
-    next.forEach((id) => archivingViberIds.add(id));
-
-    try {
-      const response = await fetch(`/api/vibers/${viberId}/archive`, {
-        method: "POST",
-      });
-
-      if (!response.ok) {
-        return;
-      }
-
-      await vibersStore.invalidate();
-    } catch (error) {
-      console.error("Failed to archive viber:", error);
-    } finally {
-      const remaining = new Set(archivingViberIds);
-      remaining.delete(viberId);
-      archivingViberIds.clear();
-      remaining.forEach((id) => archivingViberIds.add(id));
-    }
-  }
 
   async function fetchEnvironments() {
     try {
@@ -229,7 +177,7 @@
           <Sidebar.MenuItem>
             <Sidebar.MenuButton isActive={isNodesRoute} tooltipContent="Nodes">
               <a href="/nodes" class="w-full inline-flex items-center gap-2">
-                <Server class="size-4 shrink-0" />
+                <Laptop class="size-4 shrink-0" />
                 <span class="truncate group-data-[collapsible=icon]:hidden"
                   >Nodes</span
                 >
@@ -305,10 +253,13 @@
         <Sidebar.GroupContent>
           <Sidebar.Menu>
             {#each allVibers as viber (viber.id)}
+              {@const goalText = viber.goal || viber.id}
+              {@const tooltipText = goalText.length > 120 ? goalText.slice(0, 117) + "…" : goalText}
               <Sidebar.MenuItem>
                 <Sidebar.MenuButton
                   isActive={pathname.startsWith(`/vibers/${viber.id}`)}
-                  tooltipContent={viber.goal || viber.id}
+                  tooltipContent={tooltipText}
+                  tooltipContentProps={{ class: "max-w-64 whitespace-normal text-xs leading-relaxed" }}
                 >
                   <a
                     href={`/vibers/${viber.id}`}
@@ -317,9 +268,11 @@
                     {#if viber.status === "running"}
                       <LoaderCircle class="size-4 shrink-0 animate-spin text-emerald-500" />
                     {:else if viber.status === "error"}
-                      <Circle class="size-4 shrink-0 fill-current text-red-500" />
+                      <AlertCircle class="size-4 shrink-0 text-red-500" />
+                    {:else if viber.status === "completed"}
+                      <CheckCircle2 class="size-4 shrink-0 text-blue-500" />
                     {:else}
-                      <Circle class="size-4 shrink-0 {getStatusTone(viber.status)}" />
+                      <Cpu class="size-4 shrink-0 text-muted-foreground" />
                     {/if}
                     <span class="truncate">{viber.goal || viber.id}</span>
                   </a>
@@ -368,25 +321,29 @@
                                 isActive={pathname.startsWith(
                                   `/vibers/${viber.id}`,
                                 )}
-                                class="min-h-8 -translate-x-0 gap-2 rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-sidebar-foreground/85 hover:bg-sidebar-accent data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-foreground"
+                                class="min-h-8 translate-x-0 gap-2 rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-sidebar-foreground/85 hover:bg-sidebar-accent data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-foreground"
                               >
-                                {#if viber.status === "running"}
-                                  <span
-                                    class="flex size-4 shrink-0 items-center justify-center"
-                                  >
+                                <span
+                                  class="flex size-4 shrink-0 items-center justify-center"
+                                >
+                                  {#if viber.status === "running"}
                                     <LoaderCircle
                                       class="size-3.5 animate-spin text-emerald-500"
                                     />
-                                  </span>
-                                {:else if viber.status === "error"}
-                                  <span
-                                    class="flex size-4 shrink-0 items-center justify-center"
-                                  >
-                                    <Circle
-                                      class="size-2.5 fill-current text-red-500"
+                                  {:else if viber.status === "error"}
+                                    <AlertCircle
+                                      class="size-3.5 text-red-500"
                                     />
-                                  </span>
-                                {/if}
+                                  {:else if viber.status === "completed"}
+                                    <CheckCircle2
+                                      class="size-3.5 text-blue-500"
+                                    />
+                                  {:else}
+                                    <Cpu
+                                      class="size-3.5 text-muted-foreground/50"
+                                    />
+                                  {/if}
+                                </span>
                                 <span
                                   class="truncate leading-none"
                                 >
@@ -477,21 +434,6 @@
                                   <Settings2 class="size-3.5" />
                                   Config
                                 </a>
-                                <button
-                                  type="button"
-                                  class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                                  onclick={(event: MouseEvent) =>
-                                    archiveViber(viber.id, event)}
-                                >
-                                  {#if archivingViberIds.has(viber.id)}
-                                    <LoaderCircle
-                                      class="size-3.5 animate-spin"
-                                    />
-                                  {:else}
-                                    <Archive class="size-3.5" />
-                                  {/if}
-                                  Archive
-                                </button>
                               </div>
                             </HoverCard.Content>
                           </HoverCard.Root>

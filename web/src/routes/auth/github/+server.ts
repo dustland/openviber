@@ -10,7 +10,7 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
     return new Response("Supabase OAuth is not configured", { status: 503 });
   }
 
-  const next = url.searchParams.get("redirect") || "/vibers";
+  const next = url.searchParams.get("redirect") || "/";
   const { url: authUrl, state } = getSupabaseGitHubAuthUrl(next);
   setOAuthStateCookie(state, cookies, url.protocol === "https:");
 

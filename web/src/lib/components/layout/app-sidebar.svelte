@@ -13,8 +13,9 @@
   import {
     BookOpen,
     Check,
-    ChevronDown,
+    ChevronRight,
     Laptop,
+    LogOut,
     Moon,
     Sun,
     Settings,
@@ -35,9 +36,11 @@
   let {
     children,
     sidebar,
+    header,
   }: {
     children: Snippet;
     sidebar?: Snippet;
+    header?: Snippet;
   } = $props();
 
   const user = $derived(($page.data?.user as SessionUser | undefined) || null);
@@ -46,22 +49,26 @@
 <Sidebar.Provider>
   <Sidebar.Root collapsible="icon">
     <Sidebar.Header class="p-2 pb-1">
-      <Sidebar.Menu>
-        <Sidebar.MenuItem class="flex items-center gap-2">
-          <a
-            href="/"
-            class="w-full inline-flex items-center gap-2 rounded-md px-2 py-1 hover:bg-sidebar-accent transition-colors"
-            title="OpenViber"
-          >
-            <img src="/favicon.png" alt="OpenViber" class="size-5" />
-            <span
-              class="truncate font-medium group-data-[collapsible=icon]:hidden"
+      {#if header}
+        {@render header()}
+      {:else}
+        <Sidebar.Menu>
+          <Sidebar.MenuItem class="flex items-center gap-2">
+            <a
+              href="/"
+              class="w-full inline-flex items-center gap-2 rounded-md px-2 py-1 hover:bg-sidebar-accent transition-colors"
+              title="OpenViber"
             >
-              OpenViber
-            </span>
-          </a>
-        </Sidebar.MenuItem>
-      </Sidebar.Menu>
+              <img src="/favicon.png" alt="OpenViber" class="size-5" />
+              <span
+                class="truncate font-medium group-data-[collapsible=icon]:hidden"
+              >
+                OpenViber
+              </span>
+            </a>
+          </Sidebar.MenuItem>
+        </Sidebar.Menu>
+      {/if}
     </Sidebar.Header>
 
     <Sidebar.Content>
@@ -76,7 +83,7 @@
           {#if user}
             <DropdownMenu>
               <DropdownMenuTrigger
-                class="w-full h-9 rounded-md px-2 text-sm text-sidebar-foreground inline-flex items-center gap-2.5 hover:bg-sidebar-accent transition-colors group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center"
+                class="group/usermenu w-full h-9 rounded-md px-2 text-sm text-sidebar-foreground inline-flex items-center gap-2.5 hover:bg-sidebar-accent transition-colors group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center"
               >
                 {#if user.avatarUrl}
                   <img
@@ -96,8 +103,8 @@
                 >
                   {user.name}
                 </span>
-                <ChevronDown
-                  class="size-3.5 opacity-50 group-data-[collapsible=icon]:hidden"
+                <ChevronRight
+                  class="size-3.5 opacity-50 transition-transform duration-200 group-data-[state=open]/usermenu:rotate-180 group-data-[collapsible=icon]:hidden"
                 />
               </DropdownMenuTrigger>
               <DropdownMenuContent
@@ -115,7 +122,7 @@
                   onSelect={() => goto("/hub")}
                 >
                   <Sparkles class="size-4" />
-                  Hub
+                  Skill Hub
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   class="w-full rounded px-2.5 py-2 text-left text-sm hover:bg-accent flex items-center gap-2.5 outline-none cursor-pointer"
@@ -180,6 +187,7 @@
                     form.submit();
                   }}
                 >
+                  <LogOut class="size-4" />
                   Sign out
                 </DropdownMenuItem>
               </DropdownMenuContent>

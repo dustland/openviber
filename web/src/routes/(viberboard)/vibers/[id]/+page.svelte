@@ -19,6 +19,7 @@
     Cpu,
     LoaderCircle,
     MessageSquare,
+    RefreshCw,
     Settings2,
     Sparkles,
     TerminalSquare,
@@ -456,6 +457,7 @@
   let dbMessages = $state<Message[]>([]);
   let loading = $state(true);
   let inputValue = $state("");
+  let selectedModelId = $state("");
   let sending = $state(false);
   let messagesContainer = $state<HTMLDivElement | null>(null);
   let inputEl = $state<HTMLTextAreaElement | null>(null);
@@ -628,11 +630,11 @@
         // Only reload messages when NOT actively sending (prevents duplicates)
         if (id && !sending) await fetchMessages(id);
       } else {
-        goto("/vibers");
+        goto("/");
       }
     } catch (error) {
       console.error("Failed to fetch viber:", error);
-      goto("/vibers");
+      goto("/");
     } finally {
       loading = false;
     }
@@ -714,11 +716,12 @@
       /* ignore */
     }
 
-    // Initialize Chat if needed
-    if (!chat || !chatInitialized) {
+    // (Re-)create Chat each send so the transport picks up the latest model selection
+    {
       chat = new Chat({
         transport: new DefaultChatTransport({
           api: `/api/vibers/${viber.id}/chat`,
+          ...(selectedModelId ? { body: { model: selectedModelId } } : {}),
         }),
         // Seed with existing DB messages as initial messages
         messages: dbMessages.map((m) => ({
@@ -895,6 +898,15 @@
     if ($page.params.id) {
       fetchAgentConfig($page.params.id);
     }
+    // Load user's default model preference
+    fetch("/api/settings")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.chatModel && !selectedModelId) {
+          selectedModelId = data.chatModel;
+        }
+      })
+      .catch(() => {});
     const interval = setInterval(fetchViber, 5000);
     return () => clearInterval(interval);
   });
@@ -1063,7 +1075,22 @@
               {#each displayMessages as message (message.id)}
                 {#if message.role === "user"}
                   <!-- User message: right-aligned bubble with subtle background -->
-                  <div class="flex justify-end">
+                  <div class="flex justify-end items-end gap-1.5 group/msg">
+                    <button
+                      type="button"
+                      class="mb-1 shrink-0 rounded-full p-1.5 text-muted-foreground opacity-0 transition-all hover:bg-muted hover:text-foreground group-hover/msg:opacity-100"
+                      title="Resend message"
+                      disabled={sending}
+                      onclick={() => {
+                        const text = message.parts
+                          ?.filter((p: any) => p.type === "text" && p.text)
+                          .map((p: any) => p.text)
+                          .join("\n") || "";
+                        if (text.trim()) sendMessage(text.trim());
+                      }}
+                    >
+                      <RefreshCw class="size-3.5" />
+                    </button>
                     <div
                       class="user-bubble min-w-0 max-w-[85%] sm:max-w-[75%] rounded-2xl px-4 py-3 text-foreground"
                     >
@@ -1169,6 +1196,7 @@
         <ChatComposer
           bind:value={inputValue}
           bind:inputElement={inputEl}
+          bind:selectedModelId
           placeholder={configError
             ? "Agent config missing — run openviber onboard first"
             : viber?.nodeConnected === true

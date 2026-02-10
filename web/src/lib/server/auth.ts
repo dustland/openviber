@@ -54,7 +54,7 @@ export function supabaseAuthConfigured() {
 /**
  * Builds a Supabase-managed GitHub OAuth URL and returns state for CSRF validation.
  */
-export function getSupabaseGitHubAuthUrl(nextPath = "/vibers") {
+export function getSupabaseGitHubAuthUrl(nextPath = "/") {
   const { supabaseUrl } = requireSupabaseAuthConfig();
   const state = randomBytes(24).toString("hex");
 

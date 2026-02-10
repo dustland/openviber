@@ -1,7 +1,9 @@
 /**
- * Job Templates — pre-built configurations users can pick when creating a job.
+ * Job Stories — pre-built configurations users can pick when creating a job.
  * Derived from examples/jobs/*.yaml
  */
+
+import type { TemplateParam } from "$lib/data/template-utils";
 
 export interface JobTemplate {
   id: string;
@@ -9,6 +11,8 @@ export interface JobTemplate {
   description: string;
   /** Lucide icon name hint (rendered by the consumer) */
   icon: "file-plus" | "heart-pulse" | "users" | "sparkles";
+  promptTemplate?: string;
+  params?: TemplateParam[];
   defaults: {
     name?: string;
     prompt?: string;
@@ -16,11 +20,22 @@ export interface JobTemplate {
     /** Raw cron expression */
     schedule?: string;
     scheduleMode?: "daily" | "interval";
+    dailyHour?: number;
+    dailyMinute?: number;
+    intervalHours?: number;
+    intervalDailyHour?: number;
+    selectedDays?: boolean[];
     model?: string;
     skills?: string[];
     tools?: string[];
   };
 }
+
+const PRIMARY_TOOL_OPTIONS = [
+  { value: "cursor-agent", label: "Cursor Agent CLI" },
+  { value: "codex-cli", label: "Codex CLI" },
+  { value: "gemini-cli", label: "Gemini CLI" },
+];
 
 export const JOB_TEMPLATES: JobTemplate[] = [
   {
@@ -97,6 +112,52 @@ Steps:
 1. Call \`gemini_run\` with a clear task description.
 2. Review the output summary and tail logs.
 3. Report what was done and any issues encountered.`,
+    },
+  },
+  {
+    id: "all-day-improvement",
+    label: "All-Day Improvement Loop",
+    description: "Continuously improve a repo using GitHub, Gmail, and Railway",
+    icon: "sparkles",
+    promptTemplate: `You are an all-day continuous improvement agent for {{targetRepo}}.
+Primary AI coding tool: {{primaryTool}}
+
+On each run:
+1. GitHub: scan open issues and recent activity; identify high-signal items to address.
+2. Gmail: search for urgent product/support emails related to the repo; read the top matches.
+3. Railway: check deployment status and recent logs for regressions or failures.
+4. If a small, safe fix is clear, use the {{primaryTool}} skill to implement it, commit, and open a PR.
+5. If no safe fix is available, log findings and create a tracking issue if needed.
+
+Guardrails:
+- Keep changes scoped and low-risk.
+- Avoid breaking API changes.
+- Always include a brief summary of actions and next steps.`,
+    params: [
+      {
+        id: "targetRepo",
+        label: "Target GitHub repo",
+        description: "Owner/name or full GitHub URL",
+        type: "text",
+        required: true,
+        placeholder: "acme/website",
+      },
+      {
+        id: "primaryTool",
+        label: "Primary AI coding tool",
+        type: "select",
+        options: PRIMARY_TOOL_OPTIONS,
+        defaultValue: "cursor-agent",
+      },
+    ],
+    defaults: {
+      name: "All-Day Improvement Loop",
+      description: "Continuously improve a repo from GitHub, Gmail, and Railway",
+      scheduleMode: "interval",
+      intervalHours: 2,
+      model: "openai/gpt-4o",
+      skills: ["github", "gmail", "railway", "{{primaryTool}}"],
+      tools: [],
     },
   },
 ];

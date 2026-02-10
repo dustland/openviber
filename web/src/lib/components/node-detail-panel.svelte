@@ -76,10 +76,34 @@
       }[];
       skills: string[];
       capabilities: string[];
+      skillHealth?: SkillHealthReport;
       totalTasksExecuted: number;
       lastHeartbeatAt?: string;
       collectedAt: string;
     };
+  }
+
+  interface SkillHealthCheck {
+    id: string;
+    label: string;
+    ok: boolean;
+    required?: boolean;
+    message?: string;
+    hint?: string;
+  }
+
+  interface SkillHealthResult {
+    id: string;
+    name: string;
+    status: string;
+    available: boolean;
+    checks: SkillHealthCheck[];
+    summary: string;
+  }
+
+  interface SkillHealthReport {
+    generatedAt: string;
+    skills: SkillHealthResult[];
   }
 
   interface Props {
@@ -129,6 +153,32 @@
     if (percent >= 70) return "text-amber-500";
     if (percent >= 50) return "text-yellow-500";
     return "text-emerald-500";
+  }
+
+  function healthLabel(status: string): string {
+    switch (status) {
+      case "AVAILABLE":
+        return "OK";
+      case "NOT_AVAILABLE":
+        return "MISSING";
+      case "UNKNOWN":
+        return "UNKNOWN";
+      default:
+        return status || "UNKNOWN";
+    }
+  }
+
+  function healthBadgeClass(status: string): string {
+    switch (status) {
+      case "AVAILABLE":
+        return "bg-emerald-500/10 text-emerald-600";
+      case "NOT_AVAILABLE":
+        return "bg-rose-500/10 text-rose-600";
+      case "UNKNOWN":
+        return "bg-amber-500/10 text-amber-600";
+      default:
+        return "bg-muted text-muted-foreground";
+    }
   }
 
   async function fetchStatus() {
@@ -488,6 +538,47 @@
                         </div>
                       </div>
                     {/each}
+                  </div>
+                </div>
+              {/if}
+
+              <!-- Skill Health -->
+              {#if status.viber.skillHealth?.skills && status.viber.skillHealth.skills.length > 0}
+                <div class="rounded-lg border border-border p-4 mb-3">
+                  <div class="flex items-center gap-2 text-sm font-medium text-foreground mb-3">
+                    <Puzzle class="size-4" />
+                    Skill Health
+                  </div>
+                  <div class="space-y-2">
+                    {#each status.viber.skillHealth.skills as skill}
+                      {@const missingChecks = skill.checks?.filter((c) => (c.required ?? true) && !c.ok) || []}
+                      <div class="rounded-md border border-border bg-muted/20 p-3">
+                        <div class="flex items-center justify-between gap-2">
+                          <div class="text-xs font-medium text-foreground">
+                            {skill.name || skill.id}
+                          </div>
+                          <span class={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-medium ${healthBadgeClass(skill.status)}`}>
+                            {healthLabel(skill.status)}
+                          </span>
+                        </div>
+                        {#if skill.status !== "AVAILABLE"}
+                          <div class="mt-2 space-y-1 text-[11px] text-muted-foreground">
+                            {#if missingChecks.length === 0}
+                              <div>{skill.summary}</div>
+                            {:else}
+                              {#each missingChecks as check}
+                                <div>
+                                  - {check.label}: {check.hint || check.message || "missing"}
+                                </div>
+                              {/each}
+                            {/if}
+                          </div>
+                        {/if}
+                      </div>
+                    {/each}
+                  </div>
+                  <div class="text-[11px] text-muted-foreground/60 text-right mt-2">
+                    Updated: {new Date(status.viber.skillHealth.generatedAt).toLocaleTimeString()}
                   </div>
                 </div>
               {/if}

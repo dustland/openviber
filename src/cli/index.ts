@@ -27,6 +27,28 @@ const VERSION = getOpenViberVersion();
 const OPENVIBER_DIR = path.join(os.homedir(), ".openviber");
 const CONFIG_FILE = path.join(OPENVIBER_DIR, "config.yaml");
 
+type SkillHealthCheck = {
+  label: string;
+  ok: boolean;
+  required?: boolean;
+  message?: string;
+  hint?: string;
+};
+
+type SkillHealthResult = {
+  id: string;
+  name: string;
+  status: string;
+  available: boolean;
+  checks: SkillHealthCheck[];
+  summary: string;
+};
+
+type SkillHealthReport = {
+  generatedAt: string;
+  skills: SkillHealthResult[];
+};
+
 function getCliName(): string {
   const invokedPath = process.argv[1];
   const invokedName = invokedPath ? path.parse(invokedPath).name : "";
@@ -727,6 +749,18 @@ program
       formatUptime,
     } = await import("../daemon/node-status");
 
+    let skillHealthReport: SkillHealthReport | null = null;
+    try {
+      const { getSkillHealthReport } = await import("../skills/health");
+      skillHealthReport = await getSkillHealthReport();
+    } catch (err: any) {
+      if (!options.json) {
+        console.warn(
+          `[status] Skill health check failed: ${err?.message || String(err)}`,
+        );
+      }
+    }
+
     // Always show config status
     if (!options.json) {
       console.log(`
@@ -771,6 +805,7 @@ Viber Status
               openRouter: hasOpenRouter,
               configDir: path.join(os.homedir(), ".openviber"),
             },
+            skills: skillHealthReport,
             machine: machineStatus,
             hub: hubNodeStatus,
           },
@@ -779,6 +814,13 @@ Viber Status
         ),
       );
       return;
+    }
+
+    if (skillHealthReport) {
+      const lines = formatSkillHealthReport(skillHealthReport);
+      if (lines.length > 0) {
+        console.log(lines.join("\n"));
+      }
     }
 
     // Display machine resources
@@ -1041,6 +1083,19 @@ workingMode: viber-decides
     // Generate viber ID
     const viberId = await getViberId();
 
+    try {
+      const { getSkillHealthReport } = await import("../skills/health");
+      const report = await getSkillHealthReport();
+      const lines = formatSkillHealthReport(report);
+      if (lines.length > 0) {
+        console.log(lines.join("\n"));
+      }
+    } catch (err: any) {
+      console.warn(
+        `[onboard] Skill health check failed: ${err?.message || String(err)}`,
+      );
+    }
+
     if (options.token) {
       console.log(`
 ────────────────────────────────────────────────────────────
@@ -1116,6 +1171,7 @@ Examples:
   openviber skill import smithery:@anthropic/mcp-server-filesystem
   openviber skill list
   openviber skill remove my-skill
+  openviber skill verify cursor-agent
 `,
   );
 
@@ -1318,6 +1374,66 @@ skillCommand
     }
   });
 
+skillCommand
+  .command("verify <skillId>")
+  .description("Run a skill playground scenario to verify a skill works")
+  .option("-w, --wait <seconds>", "Max seconds to wait for verification", "120")
+  .option("--no-refresh", "Skip updating the playground repo before running")
+  .action(async (skillId, options) => {
+    // Ensure skill tools are pre-registered
+    await import("../skills");
+    const { getTools } = await import("../skills/playground");
+    const tool = getTools().skill_playground_verify;
+
+    const waitSeconds = parseInt(options.wait, 10);
+    const payload = {
+      skillId,
+      waitSeconds: Number.isNaN(waitSeconds) ? undefined : waitSeconds,
+      refreshRepo: options.refresh,
+    };
+
+    console.log(`\nRunning playground for '${skillId}'...\n`);
+    const result = await tool.execute(payload);
+
+    if (result.ok) {
+      console.log(`✓ Playground completed for '${skillId}'`);
+    } else {
+      console.error(`✗ Playground failed for '${skillId}'`);
+      if (result.error) {
+        console.error(`  Error: ${result.error}`);
+      }
+    }
+
+    if (result.playground) {
+      console.log(`\nRepo: ${result.playground.repo}`);
+      console.log(`File: ${result.playground.file}`);
+      if (result.playground.repoPath) {
+        console.log(`Path: ${result.playground.repoPath}`);
+      }
+      if (result.playground.repoStatus) {
+        console.log(`Repo status: ${result.playground.repoStatus}`);
+      }
+    }
+
+    if (result.run?.summary) {
+      console.log(`\nSummary: ${result.run.summary}`);
+    }
+    if (result.run?.outputTail) {
+      console.log(`\n--- Output tail ---\n${result.run.outputTail}`);
+    }
+    if (result.verification) {
+      const markerStatus = result.verification.markerFound ? "found" : "missing";
+      console.log(`\nMarker: ${result.verification.marker} (${markerStatus})`);
+      if (result.verification.warning) {
+        console.log(`Warning: ${result.verification.warning}`);
+      }
+    }
+
+    if (!result.ok) {
+      process.exit(1);
+    }
+  });
+
 // ==================== viber gateway ====================
 
 program
@@ -1416,6 +1532,55 @@ Press Ctrl+C to stop.
   });
 
 // ==================== Helpers ====================
+
+function formatSkillHealthReport(report: SkillHealthReport): string[] {
+  if (!report || report.skills.length === 0) {
+    return [];
+  }
+
+  const statusLabel = (status: string) => {
+    switch (status) {
+      case "AVAILABLE":
+        return "OK";
+      case "NOT_AVAILABLE":
+        return "MISSING";
+      case "UNKNOWN":
+        return "UNKNOWN";
+      default:
+        return status || "UNKNOWN";
+    }
+  };
+
+  const lines: string[] = [];
+  lines.push("");
+  lines.push("Skill Health");
+  lines.push("────────────────────────────────────");
+
+  for (const skill of report.skills) {
+    const name = (skill.name || skill.id).slice(0, 22);
+    const status = statusLabel(skill.status);
+    lines.push(`  ${name.padEnd(22)} ${status}`);
+
+    if (skill.status !== "AVAILABLE") {
+      const failed = skill.checks.filter(
+        (check) => (check.required ?? true) && !check.ok,
+      );
+      if (failed.length === 0) {
+        if (skill.summary) {
+          lines.push(`    - ${skill.summary}`);
+        }
+      } else {
+        for (const check of failed) {
+          const detail = check.hint || check.message || "missing";
+          lines.push(`    - ${check.label}: ${detail}`);
+        }
+      }
+    }
+  }
+
+  lines.push("────────────────────────────────────");
+  return lines;
+}
 
 async function getViberId(): Promise<string> {
   const configDir = path.join(os.homedir(), ".openviber");

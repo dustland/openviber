@@ -47,6 +47,12 @@ describe("Settings Persistence", () => {
         glama: { enabled: false },
         openclaw: { enabled: true },
       },
+      channelIntegrations: {
+        discord: {
+          enabled: true,
+          config: { botToken: "discord_test_token", channelId: "123" },
+        },
+      },
     };
 
     await saveSettings(customSettings);
@@ -64,6 +70,8 @@ describe("Settings Persistence", () => {
     expect(loaded.skillSources!.huggingface?.apiKey).toBe("hf_test_key");
     expect(loaded.skillSources!.composio?.enabled).toBe(true);
     expect(loaded.skillSources!.glama?.enabled).toBe(false);
+    expect(loaded.channelIntegrations?.discord?.enabled).toBe(true);
+    expect(loaded.channelIntegrations?.discord?.config?.channelId).toBe("123");
   });
 
   it("should handle corrupt YAML gracefully", async () => {

@@ -63,3 +63,4 @@ skills:
   - github       # GitHub CLI tools (issues, branches, PRs)
   - codex-cli    # Codex CLI integration (non-interactive coding)
   - cursor-agent # Cursor CLI agent (TTY-based AI coding)
+  - skill-playground # Verify skills with predefined playground scenarios

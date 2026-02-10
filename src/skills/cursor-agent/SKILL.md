@@ -3,6 +3,9 @@ name: cursor-agent
 version: 3.0.0
 description: Use the Cursor CLI (agent) for software engineering tasks. Includes installation, auth, commands, tmux-based automation, and best practices for AI coding workflows.
 author: Pushpinder Pal Singh
+playground:
+  repo: dustland/openviber
+  file: src/skills/cursor-agent/index.ts
 ---
 
 # Cursor CLI Agent Skill

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { page } from "$app/stores";
   import { goto } from "$app/navigation";
   import { getVibersStore } from "$lib/stores/vibers";
   import {
@@ -8,13 +9,23 @@
     ChevronDown,
     Check,
     Code2,
+    MessageSquare,
     Server,
     FolderGit2,
     Package,
     Search,
     Sparkles,
+    Palette,
   } from "@lucide/svelte";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
+  import { TASK_TEMPLATES, type TaskTemplate } from "$lib/data/task-templates";
+  import TemplateParams from "$lib/components/template-params.svelte";
+  import {
+    applyTemplate as applyTemplateString,
+    buildDefaultParams,
+    type TemplateParam,
+  } from "$lib/data/template-utils";
+  import { Textarea } from "$lib/components/ui/textarea";
 
   interface ViberNode {
     id: string;
@@ -28,13 +39,26 @@
     name: string;
   }
 
+  interface ChannelOption {
+    id: string;
+    label: string;
+    description?: string;
+    enabled: boolean;
+  }
+
   let nodes = $state<ViberNode[]>([]);
   let environments = $state<SidebarEnvironment[]>([]);
+  let channelOptions = $state<ChannelOption[]>([]);
+  let selectedChannelIds = $state<string[]>([]);
   let selectedEnvironmentId = $state<string | null>(null);
   let selectedNodeId = $state<string | null>(null);
   let taskInput = $state("");
   let creating = $state(false);
   let error = $state<string | null>(null);
+  let selectedTemplateId = $state<string | null>(null);
+  let templateParams = $state<Record<string, string>>({});
+  let templateParamDefs = $state<TemplateParam[]>([]);
+  let storyPresetApplied = $state(false);
 
   // Derived: selected objects
   const selectedEnvironment = $derived(
@@ -46,6 +70,9 @@
 
   // Only active nodes (with a daemon connected) can receive tasks
   const activeNodes = $derived(nodes.filter((n) => n.status === "active"));
+  const enabledChannels = $derived(
+    channelOptions.filter((channel) => channel.enabled),
+  );
 
   // Can we send?
   const canSend = $derived(
@@ -55,11 +82,43 @@
       !creating,
   );
 
+  const TEMPLATE_ICONS = {
+    palette: Palette,
+    sparkles: Sparkles,
+  } as const;
+
+  const selectedTemplate = $derived(
+    selectedTemplateId
+      ? TASK_TEMPLATES.find((tpl) => tpl.id === selectedTemplateId) ?? null
+      : null,
+  );
+
+  const templatePromptPreview = $derived.by(() => {
+    if (!selectedTemplate) return "";
+    return applyTemplateString(
+      selectedTemplate.promptTemplate,
+      templateParams,
+    ).trim();
+  });
+
+  $effect(() => {
+    if (storyPresetApplied) return;
+    const storyId = $page.url.searchParams.get("story");
+    if (!storyId) return;
+    const match = TASK_TEMPLATES.find((tpl) => tpl.id === storyId);
+    if (!match) return;
+    const paramValues = buildDefaultParams(match.params);
+    selectTemplate(match, paramValues);
+    taskInput = applyTemplateString(match.promptTemplate, paramValues).trim();
+    storyPresetApplied = true;
+  });
+
   async function fetchData() {
     try {
-      const [nodesRes, envsRes] = await Promise.all([
+      const [nodesRes, envsRes, settingsRes] = await Promise.all([
         fetch("/api/nodes"),
         fetch("/api/environments"),
+        fetch("/api/settings"),
       ]);
 
       if (nodesRes.ok) {
@@ -69,6 +128,21 @@
       if (envsRes.ok) {
         const data = await envsRes.json();
         environments = data.environments ?? [];
+      }
+      if (settingsRes.ok) {
+        const data = await settingsRes.json();
+        const channels = data.channels ?? {};
+        channelOptions = Object.entries(channels).map(([id, channel]) => ({
+          id,
+          label: channel.displayName ?? id,
+          description: channel.description ?? "",
+          enabled: channel.enabled ?? false,
+        }));
+        if (selectedChannelIds.length === 0) {
+          selectedChannelIds = channelOptions
+            .filter((channel) => channel.enabled)
+            .map((channel) => channel.id);
+        }
       }
 
       // Auto-select if only one environment
@@ -91,6 +165,14 @@
 
   function selectNode(nodeId: string) {
     selectedNodeId = nodeId;
+  }
+
+  function toggleChannel(channelId: string) {
+    if (selectedChannelIds.includes(channelId)) {
+      selectedChannelIds = selectedChannelIds.filter((id) => id !== channelId);
+    } else {
+      selectedChannelIds = [...selectedChannelIds, channelId];
+    }
   }
 
   async function submitTask(overrideContent?: string) {
@@ -118,6 +200,7 @@
           goal: content,
           nodeId: nodeId ?? undefined,
           environmentId: selectedEnvironmentId ?? undefined,
+          channelIds: selectedChannelIds.length > 0 ? selectedChannelIds : undefined,
         }),
       });
 
@@ -158,6 +241,24 @@
       return;
     }
     void submitTask(text);
+  }
+
+  function selectTemplate(
+    tpl: TaskTemplate,
+    presetValues?: Record<string, string>,
+  ) {
+    selectedTemplateId = tpl.id;
+    templateParamDefs = tpl.params ?? [];
+    templateParams = presetValues ?? buildDefaultParams(tpl.params);
+  }
+
+  function updateTemplateParam(id: string, value: string) {
+    templateParams = { ...templateParams, [id]: value };
+  }
+
+  function useTemplatePrompt() {
+    if (!templatePromptPreview) return;
+    taskInput = templatePromptPreview;
   }
 
   onMount(() => {
@@ -301,6 +402,43 @@
         </DropdownMenu.Root>
       </div>
 
+      <!-- Channel selection -->
+      <div class="mb-6 w-full max-w-2xl">
+        <div class="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
+          <MessageSquare class="size-3.5" />
+          <span>Channels</span>
+        </div>
+        {#if enabledChannels.length === 0}
+          <div
+            class="rounded-xl border border-dashed border-border bg-card/40 px-4 py-3 text-xs text-muted-foreground"
+          >
+            No channels enabled yet. Configure Discord or Feishu in
+            <a href="/settings/channels" class="underline">Settings</a>.
+          </div>
+        {:else}
+          <div class="rounded-xl border border-border bg-card p-4">
+            <p class="text-xs text-muted-foreground mb-3">
+              Choose which enabled channels this viber should post updates to.
+            </p>
+            <div class="flex flex-wrap gap-2">
+              {#each enabledChannels as channel (channel.id)}
+                <button
+                  type="button"
+                  onclick={() => toggleChannel(channel.id)}
+                  aria-pressed={selectedChannelIds.includes(channel.id)}
+                  title={channel.description}
+                  class="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors {selectedChannelIds.includes(channel.id)
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-border/60 bg-muted/40 text-muted-foreground hover:text-foreground'}"
+                >
+                  {channel.label}
+                </button>
+              {/each}
+            </div>
+          </div>
+        {/if}
+      </div>
+
       <!-- Suggestion cards -->
       <div class="grid w-full max-w-2xl grid-cols-3 gap-3">
         <button
@@ -354,6 +492,86 @@
             Understand the project structure
           </p>
         </button>
+      </div>
+
+      <!-- Viber stories -->
+      <div class="mt-10 w-full max-w-2xl">
+        <div class="flex items-center justify-between mb-3">
+          <h2
+            class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+          >
+            Viber stories
+          </h2>
+          {#if selectedTemplate}
+            <span class="text-[11px] text-muted-foreground">
+              Selected story: {selectedTemplate.label}
+            </span>
+          {/if}
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {#each TASK_TEMPLATES as tpl}
+            <button
+              type="button"
+              class={`rounded-xl border p-4 text-left transition-all ${
+                selectedTemplateId === tpl.id
+                  ? "border-primary/40 bg-primary/5"
+                  : "border-border bg-card hover:border-primary/30 hover:bg-accent/40"
+              }`}
+              onclick={() => selectTemplate(tpl)}
+            >
+              <div class="flex items-start gap-3">
+                <div
+                  class="size-8 rounded-lg bg-muted/60 flex items-center justify-center text-muted-foreground"
+                >
+                  <svelte:component
+                    this={TEMPLATE_ICONS[tpl.icon]}
+                    class="size-4"
+                  />
+                </div>
+                <div>
+                  <p class="text-sm font-medium text-foreground">
+                    {tpl.label}
+                  </p>
+                  <p class="text-xs text-muted-foreground">
+                    {tpl.description}
+                  </p>
+                </div>
+              </div>
+            </button>
+          {/each}
+        </div>
+
+        {#if selectedTemplate}
+          <div class="mt-4 rounded-xl border border-border bg-muted/20 p-4">
+            <TemplateParams
+              params={templateParamDefs}
+              values={templateParams}
+              onChange={updateTemplateParam}
+              title="Story inputs"
+            />
+
+            <div class="mt-4 space-y-2">
+              <div class="flex items-center justify-between">
+                <p class="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  Story prompt
+                </p>
+                <button
+                  type="button"
+                  class="text-[11px] font-medium text-primary hover:underline"
+                  onclick={useTemplatePrompt}
+                >
+                  Insert prompt
+                </button>
+              </div>
+              <Textarea
+                value={templatePromptPreview}
+                rows={6}
+                class="resize-y min-h-[120px] font-mono text-xs"
+                readonly
+              />
+            </div>
+          </div>
+        {/if}
       </div>
     </div>
   </div>

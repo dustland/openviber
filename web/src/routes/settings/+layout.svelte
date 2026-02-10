@@ -1,7 +1,7 @@
 <script lang="ts">
   import { page } from "$app/stores";
   import * as Sidebar from "$lib/components/ui/sidebar";
-  import { Puzzle, Settings as SettingsIcon, Sparkles } from "@lucide/svelte";
+  import { Puzzle, Settings as SettingsIcon } from "@lucide/svelte";
   import AppSidebar from "$lib/components/layout/app-sidebar.svelte";
 
   let { children } = $props();
@@ -16,6 +16,10 @@
     pathname === "/settings/skills" ||
       (pathname.startsWith("/settings/skills/") && !isHubRoute),
   );
+  const isChannelsRoute = $derived(
+    pathname === "/settings/channels" ||
+      pathname.startsWith("/settings/channels/"),
+  );
 </script>
 
 <AppSidebar>
@@ -28,10 +32,7 @@
               isActive={isGeneralRoute}
               tooltipContent="General"
             >
-              <a
-                href="/settings"
-                class="w-full inline-flex items-center gap-2"
-              >
+              <a href="/settings" class="w-full inline-flex items-center gap-2">
                 <SettingsIcon class="size-4 shrink-0" />
                 <span class="truncate group-data-[collapsible=icon]:hidden"
                   >General</span
@@ -52,23 +53,6 @@
                 <Puzzle class="size-4 shrink-0" />
                 <span class="truncate group-data-[collapsible=icon]:hidden"
                   >Skills</span
-                >
-              </a>
-            </Sidebar.MenuButton>
-          </Sidebar.MenuItem>
-
-          <Sidebar.MenuItem>
-            <Sidebar.MenuButton
-              isActive={isHubRoute}
-              tooltipContent="Skill Hub"
-            >
-              <a
-                href="/settings/skills/hub"
-                class="w-full inline-flex items-center gap-2"
-              >
-                <Sparkles class="size-4 shrink-0" />
-                <span class="truncate group-data-[collapsible=icon]:hidden"
-                  >Skill Hub</span
                 >
               </a>
             </Sidebar.MenuButton>

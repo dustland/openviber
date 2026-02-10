@@ -9,6 +9,7 @@
     CollapsibleContent,
   } from "$lib/components/ui/collapsible";
   import { ChevronsUpDown } from "@lucide/svelte";
+  import type { Snippet } from "svelte";
   import Shimmer from "./shimmer.svelte";
 
   interface Props {
@@ -17,6 +18,7 @@
     isStreaming?: boolean;
     defaultOpen?: boolean;
     class?: string;
+    children?: Snippet;
   }
 
   let {
@@ -25,9 +27,14 @@
     isStreaming = false,
     defaultOpen = true,
     class: className = "",
+    children,
   }: Props = $props();
 
-  let isOpen = $state(defaultOpen);
+  let isOpen = $state(false);
+
+  $effect(() => {
+    isOpen = defaultOpen;
+  });
 </script>
 
 <Collapsible bind:open={isOpen}>
@@ -65,7 +72,7 @@
     <!-- Collapsible content -->
     <CollapsibleContent>
       <div class="border-t border-border/40 p-4">
-        <slot />
+        {@render children?.()}
       </div>
     </CollapsibleContent>
   </div>

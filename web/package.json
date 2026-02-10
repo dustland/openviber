@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "prebuild": "test -d ../docs || (echo 'Error: docs/ folder not found at repo root. Build from repo root with pnpm build:web' && exit 1)",
+    "prebuild": "test -d ../docs || (echo 'Error: docs/ folder not found at repo root. Build from repo root with pnpm build:web' && exit 1); svelte-kit sync",
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json"

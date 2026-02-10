@@ -3,11 +3,16 @@
    * Shimmer — animated gradient text effect used during streaming.
    * Port of vercel/ai-elements shimmer.tsx
    */
-  let { class: className = "" }: { class?: string } = $props();
+  import type { Snippet } from "svelte";
+
+  let {
+    class: className = "",
+    children,
+  }: { class?: string; children?: Snippet } = $props();
 </script>
 
 <span
-  class="inline-block animate-pulse bg-gradient-to-r from-current via-current/50 to-current bg-clip-text {className}"
+  class="inline-block animate-pulse bg-linear-to-r from-current via-current/50 to-current bg-clip-text {className}"
 >
-  <slot />
+  {@render children?.()}
 </span>

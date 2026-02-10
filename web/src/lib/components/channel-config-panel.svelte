@@ -323,10 +323,11 @@
 
         <div class="grid gap-3 sm:grid-cols-2">
           <div>
-            <label class="text-[11px] text-muted-foreground">Bot Token</label>
+            <label for="discord-bot-token" class="text-[11px] text-muted-foreground">Bot Token</label>
             <div class="relative">
               <input
-                type={revealedSecrets.has("discord-token") ? "text" : "password"}
+                id="discord-bot-token"
+                type={revealSecrets.has("discord-token") ? "text" : "password"}
                 bind:value={discord.botToken}
                 class="mt-1 h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs"
                 placeholder="Discord bot token"
@@ -336,7 +337,7 @@
                 onclick={() => toggleReveal("discord-token")}
                 class="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
-                {#if revealedSecrets.has("discord-token")}
+                {#if revealSecrets.has("discord-token")}
                   <EyeOff class="size-3.5" />
                 {:else}
                   <Eye class="size-3.5" />
@@ -345,8 +346,9 @@
             </div>
           </div>
           <div>
-            <label class="text-[11px] text-muted-foreground">Allow Guild IDs</label>
+            <label for="discord-allow-guild-ids" class="text-[11px] text-muted-foreground">Allow Guild IDs</label>
             <input
+              id="discord-allow-guild-ids"
               type="text"
               bind:value={discord.allowGuildIds}
               class="mt-1 h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs"
@@ -354,8 +356,9 @@
             />
           </div>
           <div>
-            <label class="text-[11px] text-muted-foreground">Allow Channel IDs</label>
+            <label for="discord-allow-channel-ids" class="text-[11px] text-muted-foreground">Allow Channel IDs</label>
             <input
+              id="discord-allow-channel-ids"
               type="text"
               bind:value={discord.allowChannelIds}
               class="mt-1 h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs"
@@ -363,8 +366,9 @@
             />
           </div>
           <div>
-            <label class="text-[11px] text-muted-foreground">Allow User IDs</label>
+            <label for="discord-allow-user-ids" class="text-[11px] text-muted-foreground">Allow User IDs</label>
             <input
+              id="discord-allow-user-ids"
               type="text"
               bind:value={discord.allowUserIds}
               class="mt-1 h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs"
@@ -378,8 +382,9 @@
             </label>
           </div>
           <div>
-            <label class="text-[11px] text-muted-foreground">Reply Mode</label>
+            <label for="discord-reply-mode" class="text-[11px] text-muted-foreground">Reply Mode</label>
             <select
+              id="discord-reply-mode"
               bind:value={discord.replyMode}
               class="mt-1 h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs"
             >
@@ -407,8 +412,9 @@
 
         <div class="grid gap-3 sm:grid-cols-2">
           <div>
-            <label class="text-[11px] text-muted-foreground">App ID</label>
+            <label for="feishu-app-id" class="text-[11px] text-muted-foreground">App ID</label>
             <input
+              id="feishu-app-id"
               type="text"
               bind:value={feishu.appId}
               class="mt-1 h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs"
@@ -416,10 +422,11 @@
             />
           </div>
           <div>
-            <label class="text-[11px] text-muted-foreground">App Secret</label>
+            <label for="feishu-app-secret" class="text-[11px] text-muted-foreground">App Secret</label>
             <div class="relative">
               <input
-                type={revealedSecrets.has("feishu-secret") ? "text" : "password"}
+                id="feishu-app-secret"
+                type={revealSecrets.has("feishu-secret") ? "text" : "password"}
                 bind:value={feishu.appSecret}
                 class="mt-1 h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs"
                 placeholder="app secret"
@@ -429,7 +436,7 @@
                 onclick={() => toggleReveal("feishu-secret")}
                 class="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
-                {#if revealedSecrets.has("feishu-secret")}
+                {#if revealSecrets.has("feishu-secret")}
                   <EyeOff class="size-3.5" />
                 {:else}
                   <Eye class="size-3.5" />
@@ -438,8 +445,9 @@
             </div>
           </div>
           <div>
-            <label class="text-[11px] text-muted-foreground">Domain</label>
+            <label for="feishu-domain" class="text-[11px] text-muted-foreground">Domain</label>
             <input
+              id="feishu-domain"
               type="text"
               bind:value={feishu.domain}
               class="mt-1 h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs"
@@ -447,8 +455,9 @@
             />
           </div>
           <div>
-            <label class="text-[11px] text-muted-foreground">Connection Mode</label>
+            <label for="feishu-connection-mode" class="text-[11px] text-muted-foreground">Connection Mode</label>
             <select
+              id="feishu-connection-mode"
               bind:value={feishu.connectionMode}
               class="mt-1 h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs"
             >
@@ -457,8 +466,9 @@
             </select>
           </div>
           <div>
-            <label class="text-[11px] text-muted-foreground">Webhook Path</label>
+            <label for="feishu-webhook-path" class="text-[11px] text-muted-foreground">Webhook Path</label>
             <input
+              id="feishu-webhook-path"
               type="text"
               bind:value={feishu.webhookPath}
               class="mt-1 h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs"
@@ -466,8 +476,9 @@
             />
           </div>
           <div>
-            <label class="text-[11px] text-muted-foreground">Verification Token</label>
+            <label for="feishu-verification-token" class="text-[11px] text-muted-foreground">Verification Token</label>
             <input
+              id="feishu-verification-token"
               type="text"
               bind:value={feishu.verificationToken}
               class="mt-1 h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs"
@@ -475,8 +486,9 @@
             />
           </div>
           <div>
-            <label class="text-[11px] text-muted-foreground">Encrypt Key</label>
+            <label for="feishu-encrypt-key" class="text-[11px] text-muted-foreground">Encrypt Key</label>
             <input
+              id="feishu-encrypt-key"
               type="text"
               bind:value={feishu.encryptKey}
               class="mt-1 h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs"
@@ -515,8 +527,9 @@
 
         <div class="grid gap-3 sm:grid-cols-2">
           <div>
-            <label class="text-[11px] text-muted-foreground">App Key</label>
+            <label for="dingtalk-app-key" class="text-[11px] text-muted-foreground">App Key</label>
             <input
+              id="dingtalk-app-key"
               type="text"
               bind:value={dingtalk.appKey}
               class="mt-1 h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs"
@@ -524,8 +537,9 @@
             />
           </div>
           <div>
-            <label class="text-[11px] text-muted-foreground">App Secret</label>
+            <label for="dingtalk-app-secret" class="text-[11px] text-muted-foreground">App Secret</label>
             <input
+              id="dingtalk-app-secret"
               type="text"
               bind:value={dingtalk.appSecret}
               class="mt-1 h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs"
@@ -533,8 +547,9 @@
             />
           </div>
           <div>
-            <label class="text-[11px] text-muted-foreground">Robot Code</label>
+            <label for="dingtalk-robot-code" class="text-[11px] text-muted-foreground">Robot Code</label>
             <input
+              id="dingtalk-robot-code"
               type="text"
               bind:value={dingtalk.robotCode}
               class="mt-1 h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs"
@@ -561,8 +576,9 @@
 
         <div class="grid gap-3 sm:grid-cols-2">
           <div>
-            <label class="text-[11px] text-muted-foreground">Corp ID</label>
+            <label for="wecom-corp-id" class="text-[11px] text-muted-foreground">Corp ID</label>
             <input
+              id="wecom-corp-id"
               type="text"
               bind:value={wecom.corpId}
               class="mt-1 h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs"
@@ -570,8 +586,9 @@
             />
           </div>
           <div>
-            <label class="text-[11px] text-muted-foreground">Agent ID</label>
+            <label for="wecom-agent-id" class="text-[11px] text-muted-foreground">Agent ID</label>
             <input
+              id="wecom-agent-id"
               type="text"
               bind:value={wecom.agentId}
               class="mt-1 h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs"
@@ -579,8 +596,9 @@
             />
           </div>
           <div>
-            <label class="text-[11px] text-muted-foreground">Agent Secret</label>
+            <label for="wecom-agent-secret" class="text-[11px] text-muted-foreground">Agent Secret</label>
             <input
+              id="wecom-agent-secret"
               type="text"
               bind:value={wecom.secret}
               class="mt-1 h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs"
@@ -588,8 +606,9 @@
             />
           </div>
           <div>
-            <label class="text-[11px] text-muted-foreground">Token</label>
+            <label for="wecom-token" class="text-[11px] text-muted-foreground">Token</label>
             <input
+              id="wecom-token"
               type="text"
               bind:value={wecom.token}
               class="mt-1 h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs"
@@ -597,8 +616,9 @@
             />
           </div>
           <div>
-            <label class="text-[11px] text-muted-foreground">AES Key</label>
+            <label for="wecom-aes-key" class="text-[11px] text-muted-foreground">AES Key</label>
             <input
+              id="wecom-aes-key"
               type="text"
               bind:value={wecom.aesKey}
               class="mt-1 h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs"

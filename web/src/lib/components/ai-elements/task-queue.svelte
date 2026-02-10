@@ -36,7 +36,11 @@
   );
   const pendingItems = $derived(items.filter((i) => i.status !== "completed"));
 
-  let isOpen = $state(defaultOpen);
+  let isOpen = $state(false);
+
+  $effect(() => {
+    isOpen = defaultOpen;
+  });
 </script>
 
 <div
@@ -74,7 +78,7 @@
                       : ''}"
                   ></span>
                   <span
-                    class="line-clamp-1 grow break-words text-muted-foreground"
+                    class="line-clamp-1 grow wrap-break-word text-muted-foreground"
                   >
                     {item.title}
                   </span>
@@ -95,7 +99,7 @@
                     class="mt-0.5 inline-block size-2.5 shrink-0 rounded-full border border-muted-foreground/20 bg-muted-foreground/10"
                   ></span>
                   <span
-                    class="line-clamp-1 grow break-words text-muted-foreground/50 line-through"
+                    class="line-clamp-1 grow wrap-break-word text-muted-foreground/50 line-through"
                   >
                     {item.title}
                   </span>

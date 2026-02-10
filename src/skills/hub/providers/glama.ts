@@ -20,7 +20,7 @@ import type {
 import * as fs from "fs/promises";
 import * as path from "path";
 
-const DEFAULT_API_URL = "https://glama.ai/api/mcp";
+const DEFAULT_API_URL = "https://glama.ai/api/mcp/v1";
 
 export class GlamaProvider implements SkillHubProvider {
   readonly type = "glama" as const;
@@ -84,14 +84,24 @@ export class GlamaProvider implements SkillHubProvider {
           id: server.id || server.slug || server.name || "unknown",
           name: server.name || server.title || "Untitled",
           description: server.description || server.summary || "",
-          author: server.author || server.vendor || server.owner || "unknown",
+          author:
+            server.author ||
+            server.namespace ||
+            server.vendor ||
+            server.owner ||
+            "unknown",
           version: server.version || "latest",
           source: "glama",
-          url: server.homepage || server.url || server.repository || `https://glama.ai/mcp/servers/${server.id || server.slug}`,
+          url:
+            server.homepage ||
+            server.url ||
+            server.repository?.url ||
+            server.repository ||
+            `https://glama.ai/mcp/servers/${server.id || server.slug}`,
           tags: server.tags || server.categories || [],
           popularity: server.stars ?? server.downloads ?? 0,
-          updatedAt: server.updatedAt || server.lastModified || undefined,
-          license: server.license || undefined,
+          updatedAt: server.updatedAt || server.lastModified || server.createdAt || undefined,
+          license: server.license || server.spdxLicense || undefined,
         }),
       );
 
@@ -106,13 +116,10 @@ export class GlamaProvider implements SkillHubProvider {
     const apiUrl = this.getApiUrl();
 
     try {
-      const res = await fetch(
-        `${apiUrl}/servers/${encodeURIComponent(skillId)}`,
-        {
-          headers: { Accept: "application/json" },
-          signal: AbortSignal.timeout(15000),
-        },
-      );
+      const res = await fetch(`${apiUrl}/servers/${encodeURIComponent(skillId)}`, {
+        headers: { Accept: "application/json" },
+        signal: AbortSignal.timeout(15000),
+      });
 
       if (!res.ok) return null;
 
@@ -122,15 +129,19 @@ export class GlamaProvider implements SkillHubProvider {
         id: server.id || server.slug || skillId,
         name: server.name || server.title || skillId,
         description: server.description || "",
-        author: server.author || server.vendor || "unknown",
+        author: server.author || server.namespace || server.vendor || "unknown",
         version: server.version || "latest",
         source: "glama",
-        url: server.homepage || server.repository || `https://glama.ai/mcp/servers/${server.id || server.slug}`,
+        url:
+          server.homepage ||
+          server.repository?.url ||
+          server.repository ||
+          `https://glama.ai/mcp/servers/${server.id || server.slug}`,
         tags: server.tags || [],
         popularity: server.stars ?? 0,
         updatedAt: server.updatedAt || undefined,
         readme: server.readme || server.longDescription || undefined,
-        license: server.license || undefined,
+        license: server.license || server.spdxLicense || undefined,
         dependencies: server.tools?.map((t: any) => t.name || t) || undefined,
       };
     } catch {
@@ -145,13 +156,10 @@ export class GlamaProvider implements SkillHubProvider {
 
     try {
       // Fetch server details
-      const res = await fetch(
-        `${apiUrl}/servers/${encodeURIComponent(skillId)}`,
-        {
-          headers: { Accept: "application/json" },
-          signal: AbortSignal.timeout(15000),
-        },
-      );
+      const res = await fetch(`${apiUrl}/servers/${encodeURIComponent(skillId)}`, {
+        headers: { Accept: "application/json" },
+        signal: AbortSignal.timeout(15000),
+      });
 
       if (!res.ok) {
         return {
@@ -164,7 +172,8 @@ export class GlamaProvider implements SkillHubProvider {
       }
 
       const server = (await res.json()) as any;
-      const repoUrl: string | undefined = server.repository || server.homepage;
+      const repoUrl: string | undefined =
+        server.repository?.url || server.repository || server.homepage;
       const npmPkg: string | undefined = server.npmPackage || server.package;
 
       await fs.mkdir(installPath, { recursive: true });

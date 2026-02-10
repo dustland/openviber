@@ -267,7 +267,7 @@
       <!-- Hero -->
       <div class="mb-10 text-center">
         <div
-          class="mx-auto mb-5 inline-flex size-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 text-primary"
+          class="mx-auto mb-5 inline-flex size-14 items-center justify-center rounded-2xl bg-linear-to-br from-primary/20 to-primary/5 text-primary"
         >
           <Sparkles class="size-7" />
         </div>
@@ -456,12 +456,14 @@
             No intents found. <a href="/settings/intents" class="text-primary hover:underline">Create one</a> to get started.
           </div>
         {:else}
-          <div class="flex gap-3">
+          <div
+            class="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-1 sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 sm:pb-0"
+          >
             {#each previewIntents as intent (intent.id)}
               {@const IconComponent = INTENT_ICONS[intent.icon] ?? Sparkles}
               <button
                 type="button"
-                class="flex-1 min-w-0 rounded-xl border p-4 text-left transition-all {selectedIntentId ===
+                class="w-[260px] shrink-0 snap-start rounded-xl border p-4 text-left transition-all sm:w-auto sm:min-w-0 {selectedIntentId ===
                 intent.id
                   ? 'border-primary/40 bg-primary/5 ring-1 ring-primary/20'
                   : 'border-border bg-card hover:border-primary/30 hover:bg-accent/40'}"
@@ -493,7 +495,7 @@
             {#if hasMoreIntents}
               <button
                 type="button"
-                class="flex w-16 shrink-0 flex-col items-center justify-center rounded-xl border border-border bg-card text-muted-foreground transition-all hover:border-primary/30 hover:bg-accent/40 hover:text-foreground"
+                class="flex w-16 shrink-0 snap-start flex-col items-center justify-center rounded-xl border border-border bg-card text-muted-foreground transition-all hover:border-primary/30 hover:bg-accent/40 hover:text-foreground sm:w-auto"
                 onclick={() => (showIntentDialog = true)}
                 title="Show all {intents.length} intents"
               >

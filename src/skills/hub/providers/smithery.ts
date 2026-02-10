@@ -57,7 +57,7 @@ export class SmitheryProvider implements SkillHubProvider {
     }
 
     try {
-      const res = await fetch(`${registryUrl}/api/servers?${params.toString()}`, {
+      const res = await fetch(`${registryUrl}/servers?${params.toString()}`, {
         headers: { Accept: "application/json" },
         signal: AbortSignal.timeout(15000),
       });
@@ -99,13 +99,10 @@ export class SmitheryProvider implements SkillHubProvider {
     const registryUrl = this.getRegistryUrl();
 
     try {
-      const res = await fetch(
-        `${registryUrl}/api/servers/${encodeURIComponent(skillId)}`,
-        {
-          headers: { Accept: "application/json" },
-          signal: AbortSignal.timeout(15000),
-        },
-      );
+      const res = await fetch(`${registryUrl}/servers/${encodeURIComponent(skillId)}`, {
+        headers: { Accept: "application/json" },
+        signal: AbortSignal.timeout(15000),
+      });
 
       if (!res.ok) return null;
 
@@ -138,13 +135,10 @@ export class SmitheryProvider implements SkillHubProvider {
 
     try {
       // Fetch server details to get repository or npm package info
-      const res = await fetch(
-        `${registryUrl}/api/servers/${encodeURIComponent(skillId)}`,
-        {
-          headers: { Accept: "application/json" },
-          signal: AbortSignal.timeout(15000),
-        },
-      );
+      const res = await fetch(`${registryUrl}/servers/${encodeURIComponent(skillId)}`, {
+        headers: { Accept: "application/json" },
+        signal: AbortSignal.timeout(15000),
+      });
 
       if (!res.ok) {
         return {

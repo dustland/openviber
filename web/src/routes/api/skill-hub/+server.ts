@@ -3,19 +3,16 @@ import type { RequestHandler } from "./$types";
 import {
   SkillHubManager,
   type SkillHubProviderType,
-  type SkillSearchQuery,
   type SkillSourcesConfig,
 } from "../../../../../src/skills/hub";
 import { getSettingsForUser } from "$lib/server/user-settings";
+import {
+  loadCuratedOpenClawSkills,
+  scoreForRelevance,
+} from "$lib/server/openclaw-curated";
 
 const PROVIDERS = [
   "openclaw",
-  "github",
-  "npm",
-  "huggingface",
-  "smithery",
-  "composio",
-  "glama",
 ] as const;
 
 type ProviderKey = (typeof PROVIDERS)[number];
@@ -40,24 +37,44 @@ function buildSourcesConfig(
   return config;
 }
 
-function scopeSourcesConfig(
-  baseConfig: SkillSourcesConfig,
-  selectedSources: ProviderKey[],
-): SkillSourcesConfig {
-  const selected = new Set<ProviderKey>(selectedSources);
-  const scoped: SkillSourcesConfig = {};
+function splitCsv(value?: string | null): string[] {
+  if (!value) return [];
+  return value
+    .split(",")
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean);
+}
 
-  for (const key of PROVIDERS) {
-    const sourceConfig = baseConfig[key];
-    const isEnabledByUser = sourceConfig?.enabled !== false;
+function sortCuratedSkills(
+  skills: Awaited<ReturnType<typeof loadCuratedOpenClawSkills>>,
+  sort: string,
+  query?: string,
+): Awaited<ReturnType<typeof loadCuratedOpenClawSkills>> {
+  const sorted = [...skills];
 
-    scoped[key] = {
-      ...(sourceConfig || {}),
-      enabled: selected.has(key) && isEnabledByUser,
-    };
+  switch (sort) {
+    case "name":
+      sorted.sort((a, b) => a.name.localeCompare(b.name));
+      return sorted;
+    case "recent":
+    case "popularity":
+      // Curated list has no stable recency/popularity metadata; preserve curated rank.
+      sorted.sort((a, b) => (a.rank ?? Number.MAX_SAFE_INTEGER) - (b.rank ?? Number.MAX_SAFE_INTEGER));
+      return sorted;
+    case "relevance":
+    default: {
+      if (!query) {
+        sorted.sort((a, b) => (a.rank ?? Number.MAX_SAFE_INTEGER) - (b.rank ?? Number.MAX_SAFE_INTEGER));
+        return sorted;
+      }
+      sorted.sort((a, b) => {
+        const scoreDiff = scoreForRelevance(b, query) - scoreForRelevance(a, query);
+        if (scoreDiff !== 0) return scoreDiff;
+        return (a.rank ?? Number.MAX_SAFE_INTEGER) - (b.rank ?? Number.MAX_SAFE_INTEGER);
+      });
+      return sorted;
+    }
   }
-
-  return scoped;
 }
 
 /**
@@ -73,11 +90,11 @@ export const GET: RequestHandler = async ({ url, locals }) => {
     const query = url.searchParams.get("q")?.trim() || undefined;
     const sourceParam = url.searchParams.get("source")?.trim();
     const sourcesParam = url.searchParams.get("sources")?.trim();
-    const sortParam = url.searchParams.get("sort")?.trim() || "relevance";
+    const sortParam = url.searchParams.get("sort")?.trim().toLowerCase() || "relevance";
     const pageParam = Number(url.searchParams.get("page") || "1");
     const limitParam = Number(url.searchParams.get("limit") || "20");
     const tagsParam = url.searchParams.get("tags")?.trim();
-    const authorParam = url.searchParams.get("author")?.trim();
+    const authorParam = url.searchParams.get("author")?.trim().toLowerCase();
 
     const rawRequestedSources = [
       ...(sourcesParam ? sourcesParam.split(",") : []),
@@ -135,38 +152,42 @@ export const GET: RequestHandler = async ({ url, locals }) => {
       });
     }
 
-    const managerConfig =
-      requestedSources.length > 0
-        ? scopeSourcesConfig(sourcesConfig, selectedSources)
-        : sourcesConfig;
-    const manager = new SkillHubManager(managerConfig);
-    const searchQuery: SkillSearchQuery = {
-      query,
-      tags: tagsParam
-        ? tagsParam
-            .split(",")
-            .map((tag) => tag.trim())
-            .filter(Boolean)
-        : undefined,
-      author: authorParam || undefined,
-      sort: sortParam as SkillSearchQuery["sort"],
-      page: Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1,
-      limit: Number.isFinite(limitParam) && limitParam > 0 ? limitParam : 20,
-    };
+    const normalizedTags = splitCsv(tagsParam);
+    const normalizedQuery = query?.toLowerCase();
+    const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
+    const limit = Number.isFinite(limitParam) && limitParam > 0 ? limitParam : 20;
 
-    const result =
-      selectedSources.length === 1
-        ? await manager.search(
-            searchQuery,
-            selectedSources[0] as SkillHubProviderType,
-          )
-        : await manager.search(searchQuery);
+    const curatedSkills = await loadCuratedOpenClawSkills();
+    const filtered = curatedSkills.filter((skill) => {
+      const haystack = `${skill.id} ${skill.name} ${skill.description} ${skill.category || ""}`.toLowerCase();
+      if (normalizedQuery && !haystack.includes(normalizedQuery)) {
+        return false;
+      }
+      if (authorParam && (skill.author || "").toLowerCase() !== authorParam) {
+        return false;
+      }
+      if (normalizedTags.length > 0) {
+        const tags = (skill.tags || []).map((tag) => tag.toLowerCase());
+        const category = (skill.category || "").toLowerCase();
+        const matched = normalizedTags.every(
+          (tag) => tags.includes(tag) || category.includes(tag),
+        );
+        if (!matched) return false;
+      }
+      return true;
+    });
+
+    const sorted = sortCuratedSkills(filtered, sortParam, query);
+    const startIndex = (page - 1) * limit;
+    const paged = sorted.slice(startIndex, startIndex + limit);
+    const total = sorted.length;
+    const totalPages = total > 0 ? Math.ceil(total / limit) : 0;
 
     return json({
-      skills: result.skills,
-      total: result.total,
-      page: result.page,
-      totalPages: result.totalPages,
+      skills: paged,
+      total,
+      page,
+      totalPages,
       sources: selectedSources,
     });
   } catch (error: any) {

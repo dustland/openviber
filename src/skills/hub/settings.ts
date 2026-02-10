@@ -102,7 +102,6 @@ function normalizeSettings(raw: any): OpenViberSettings {
     // Merge with defaults to ensure all providers are present
     const allTypes: SkillHubProviderType[] = [
       "openclaw",
-      "github",
       "npm",
       "huggingface",
       "smithery",
@@ -148,10 +147,15 @@ function normalizeSettings(raw: any): OpenViberSettings {
     const normalized: Record<string, ChannelIntegrationSetting> = {};
     for (const [key, value] of Object.entries(raw.channelIntegrations)) {
       if (!value || typeof value !== "object") continue;
-      const enabled = typeof value.enabled === "boolean" ? value.enabled : false;
+      const channelValue = value as {
+        enabled?: unknown;
+        config?: Record<string, unknown>;
+      };
+      const enabled =
+        typeof channelValue.enabled === "boolean" ? channelValue.enabled : false;
       const config: Record<string, string> = {};
-      if (value.config && typeof value.config === "object") {
-        for (const [configKey, configValue] of Object.entries(value.config)) {
+      if (channelValue.config && typeof channelValue.config === "object") {
+        for (const [configKey, configValue] of Object.entries(channelValue.config)) {
           if (typeof configValue === "string" && configValue.length > 0) {
             config[configKey] = configValue;
           }

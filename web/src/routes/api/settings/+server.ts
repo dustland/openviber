@@ -24,12 +24,6 @@ const MASKED_SECRET = "••••••";
 /** All known skill source provider keys */
 const ALL_PROVIDERS = [
   "openclaw",
-  "github",
-  "npm",
-  "huggingface",
-  "smithery",
-  "composio",
-  "glama",
 ] as const;
 
 /** Display metadata for each provider */
@@ -46,73 +40,14 @@ const PROVIDER_META: Record<
   }
 > = {
   openclaw: {
-    displayName: "OpenClaw Skill Hub",
-    description: "Community-curated skill registry for OpenViber agents",
+    displayName: "OpenClaw Skills (Curated)",
+    description:
+      "Curated OpenClaw skills catalog (awesome-openclaw-skills) with OpenClaw-compatible install flow",
     defaultUrl: "https://hub.openclaw.org/api/v1",
-    urlLabel: "Hub API URL",
+    urlLabel: "OpenClaw API URL",
     apiKeyLabel: "",
     apiKeyEnvVar: "",
-    docsUrl: "https://hub.openclaw.org",
-  },
-  github: {
-    displayName: "GitHub",
-    description:
-      "Import skills from GitHub repositories tagged with openviber-skill topic",
-    defaultUrl: "https://api.github.com",
-    urlLabel: "GitHub API URL",
-    apiKeyLabel: "GitHub Token",
-    apiKeyEnvVar: "GITHUB_TOKEN",
-    docsUrl: "https://github.com/topics/openviber-skill",
-  },
-  npm: {
-    displayName: "npm Registry",
-    description:
-      "npm packages with the openviber-skill keyword",
-    defaultUrl: "https://registry.npmjs.org",
-    urlLabel: "npm Registry URL",
-    apiKeyLabel: "",
-    apiKeyEnvVar: "",
-    docsUrl: "https://www.npmjs.com/search?q=keywords:openviber-skill",
-  },
-  huggingface: {
-    displayName: "Hugging Face",
-    description:
-      "Models and spaces on Hugging Face tagged with openviber-skill",
-    defaultUrl: "https://huggingface.co/api",
-    urlLabel: "HF API URL",
-    apiKeyLabel: "HF Token",
-    apiKeyEnvVar: "HUGGINGFACE_TOKEN",
-    docsUrl: "https://huggingface.co",
-  },
-  smithery: {
-    displayName: "Smithery (MCP)",
-    description:
-      "MCP server registry — discover Model Context Protocol tools",
-    defaultUrl: "https://registry.smithery.ai",
-    urlLabel: "Registry URL",
-    apiKeyLabel: "",
-    apiKeyEnvVar: "",
-    docsUrl: "https://smithery.ai",
-  },
-  composio: {
-    displayName: "Composio",
-    description:
-      "250+ SaaS integrations (GitHub, Slack, Google, etc.) as agent tools",
-    defaultUrl: "https://backend.composio.dev/api/v2",
-    urlLabel: "API URL",
-    apiKeyLabel: "API Key",
-    apiKeyEnvVar: "COMPOSIO_API_KEY",
-    docsUrl: "https://composio.dev",
-  },
-  glama: {
-    displayName: "Glama (MCP)",
-    description:
-      "Curated directory of MCP servers for AI agents",
-    defaultUrl: "https://glama.ai/api/mcp",
-    urlLabel: "API URL",
-    apiKeyLabel: "",
-    apiKeyEnvVar: "",
-    docsUrl: "https://glama.ai/mcp/servers",
+    docsUrl: "https://github.com/VoltAgent/awesome-openclaw-skills",
   },
 };
 
@@ -270,12 +205,6 @@ interface SkillSourceSetting {
 function getDefaultSources(): Record<string, SkillSourceSetting> {
   return {
     openclaw: { enabled: true },
-    github: { enabled: true },
-    npm: { enabled: true },
-    huggingface: { enabled: true },
-    smithery: { enabled: true },
-    composio: { enabled: false },
-    glama: { enabled: true },
   };
 }
 

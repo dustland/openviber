@@ -47,7 +47,7 @@ export type SkillSourcesConfig = Partial<
 export function getDefaultSourcesConfig(): SkillSourcesConfig {
   return {
     openclaw: { enabled: true },
-    github: { enabled: true },
+    github: { enabled: false },
     npm: { enabled: true },
     huggingface: { enabled: true },
     smithery: { enabled: true },
@@ -99,8 +99,11 @@ export class SkillHubManager {
   /** Check if a source is enabled */
   isSourceEnabled(type: SkillHubProviderType): boolean {
     const cfg = this.sourcesConfig[type];
-    // Default to enabled for backwards compat if not specified
-    return cfg?.enabled !== false;
+    if (cfg) {
+      return cfg.enabled !== false;
+    }
+    // Fall back to current defaults when a provider is omitted.
+    return getDefaultSourcesConfig()[type]?.enabled !== false;
   }
 
   /** Get all enabled provider types */

@@ -229,7 +229,7 @@ export const hubClient = {
     nodeId?: string,
     messages?: { role: string; content: string }[],
     environment?: ViberEnvironmentContext,
-    settings?: { primaryCodingCli?: string },
+    settings?: { primaryCodingCli?: string; channelIds?: string[] },
   ): Promise<{ viberId: string; nodeId: string } | null> {
     try {
       const response = await hubFetch("/api/vibers", {

@@ -35,7 +35,7 @@ export interface DaemonRunTaskOptions {
   signal?: AbortSignal;
   environment?: ViberEnvironmentInfo;
   /** Settings from hub (Supabase); overrides local file and updates cache */
-  settingsOverride?: { primaryCodingCli?: string };
+  settingsOverride?: { primaryCodingCli?: string; channelIds?: string[] };
 }
 
 const __filename = fileURLToPath(import.meta.url);

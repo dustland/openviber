@@ -40,6 +40,26 @@ function buildSourcesConfig(
   return config;
 }
 
+function scopeSourcesConfig(
+  baseConfig: SkillSourcesConfig,
+  selectedSources: ProviderKey[],
+): SkillSourcesConfig {
+  const selected = new Set<ProviderKey>(selectedSources);
+  const scoped: SkillSourcesConfig = {};
+
+  for (const key of PROVIDERS) {
+    const sourceConfig = baseConfig[key];
+    const isEnabledByUser = sourceConfig?.enabled !== false;
+
+    scoped[key] = {
+      ...(sourceConfig || {}),
+      enabled: selected.has(key) && isEnabledByUser,
+    };
+  }
+
+  return scoped;
+}
+
 /**
  * GET /api/skill-hub
  * Search for skills across external sources.
@@ -52,27 +72,74 @@ export const GET: RequestHandler = async ({ url, locals }) => {
   try {
     const query = url.searchParams.get("q")?.trim() || undefined;
     const sourceParam = url.searchParams.get("source")?.trim();
+    const sourcesParam = url.searchParams.get("sources")?.trim();
     const sortParam = url.searchParams.get("sort")?.trim() || "relevance";
     const pageParam = Number(url.searchParams.get("page") || "1");
     const limitParam = Number(url.searchParams.get("limit") || "20");
     const tagsParam = url.searchParams.get("tags")?.trim();
     const authorParam = url.searchParams.get("author")?.trim();
 
-    const source =
-      sourceParam && sourceParam !== "all" ? sourceParam : undefined;
+    const rawRequestedSources = [
+      ...(sourcesParam ? sourcesParam.split(",") : []),
+      ...(sourceParam ? [sourceParam] : []),
+    ]
+      .map((value) => value.trim())
+      .filter((value) => value.length > 0 && value.toLowerCase() !== "all");
 
-    if (source && !isProviderKey(source)) {
-      return json({ error: "Unknown skill source" }, { status: 400 });
+    const invalidSources = rawRequestedSources.filter(
+      (value) => !isProviderKey(value),
+    );
+
+    if (invalidSources.length > 0) {
+      return json(
+        {
+          error: `Unknown skill source: ${invalidSources.join(", ")}`,
+        },
+        { status: 400 },
+      );
     }
+
+    const requestedSources = Array.from(
+      new Set(rawRequestedSources),
+    ) as ProviderKey[];
 
     const settings = await getSettingsForUser(locals.user.id);
     const sourcesConfig = buildSourcesConfig(settings.skillSources || {});
 
-    if (source && sourcesConfig[source]?.enabled === false) {
-      return json({ error: "Skill source disabled" }, { status: 403 });
+    const enabledSources = PROVIDERS.filter(
+      (provider) => sourcesConfig[provider]?.enabled !== false,
+    );
+    const selectedSources =
+      requestedSources.length > 0 ? requestedSources : enabledSources;
+
+    const disabledRequestedSources = selectedSources.filter(
+      (provider) => sourcesConfig[provider]?.enabled === false,
+    );
+
+    if (disabledRequestedSources.length > 0) {
+      return json(
+        {
+          error: `Skill source disabled: ${disabledRequestedSources.join(", ")}`,
+        },
+        { status: 403 },
+      );
     }
 
-    const manager = new SkillHubManager(sourcesConfig);
+    if (selectedSources.length === 0) {
+      return json({
+        skills: [],
+        total: 0,
+        page: 1,
+        totalPages: 0,
+        sources: [],
+      });
+    }
+
+    const managerConfig =
+      requestedSources.length > 0
+        ? scopeSourcesConfig(sourcesConfig, selectedSources)
+        : sourcesConfig;
+    const manager = new SkillHubManager(managerConfig);
     const searchQuery: SkillSearchQuery = {
       query,
       tags: tagsParam
@@ -87,13 +154,20 @@ export const GET: RequestHandler = async ({ url, locals }) => {
       limit: Number.isFinite(limitParam) && limitParam > 0 ? limitParam : 20,
     };
 
-    const result = await manager.search(searchQuery, source as SkillHubProviderType);
+    const result =
+      selectedSources.length === 1
+        ? await manager.search(
+            searchQuery,
+            selectedSources[0] as SkillHubProviderType,
+          )
+        : await manager.search(searchQuery);
 
     return json({
       skills: result.skills,
       total: result.total,
       page: result.page,
       totalPages: result.totalPages,
+      sources: selectedSources,
     });
   } catch (error: any) {
     console.error("[Skill Hub API] Search failed:", error);

@@ -15,3 +15,11 @@ export { ChannelManager, channelManager } from "./manager";
 export { DingTalkChannel } from "./dingtalk";
 export { WeComChannel } from "./wecom";
 export { WebChannel, webChannel } from "./web";
+export { DiscordChannel } from "./discord";
+export { FeishuChannel } from "./feishu";
+
+// Gateway utilities
+export { ChannelGateway } from "./gateway";
+export { loadGatewayBootstrapConfig } from "./config";
+export { registerBuiltinChannels, createChannelsFromConfig } from "./builtin";
+export { channelRegistry, ChannelRegistry } from "./registry";

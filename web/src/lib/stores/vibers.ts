@@ -136,7 +136,7 @@ function createVibersStore() {
 
       const cached =
         state!.includeArchived === includeArchived &&
-        state!.vibers.length >= 0 &&
+        state!.vibers.length > 0 &&
         state!.fetchedAt > 0;
 
       if (cached) {
@@ -149,8 +149,10 @@ function createVibersStore() {
 
     /** Mark cache stale and refetch (e.g. after create/archive/restore). */
     async invalidate(): Promise<void> {
+      let state: VibersState;
+      subscribe((s) => (state = s))();
       update((s) => ({ ...s, fetchedAt: 0 }));
-      await fetchVibers(false);
+      await fetchVibers(state!.includeArchived);
     },
 
     /** Force refetch for current includeArchived. */

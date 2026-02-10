@@ -21,8 +21,11 @@
   import TemplateParams from "$lib/components/template-params.svelte";
   import {
     applyTemplate as applyTemplateString,
+    applySmartDefaults,
     buildDefaultParams,
+    buildEnvironmentSmartFields,
     type TemplateParam,
+    type TemplateSmartFields,
   } from "$lib/data/template-utils";
   import { Textarea } from "$lib/components/ui/textarea";
 
@@ -36,6 +39,11 @@
   interface SidebarEnvironment {
     id: string;
     name: string;
+    repoUrl?: string | null;
+    repoOrg?: string | null;
+    repoName?: string | null;
+    repoBranch?: string | null;
+    workingDir?: string | null;
   }
 
   let nodes = $state<ViberNode[]>([]);
@@ -48,6 +56,7 @@
   let selectedTemplateId = $state<string | null>(null);
   let templateParams = $state<Record<string, string>>({});
   let templateParamDefs = $state<TemplateParam[]>([]);
+  let autoPrompt = $state(false);
   let storyPresetApplied = $state(false);
 
   // Derived: selected objects
@@ -80,11 +89,17 @@
       : null,
   );
 
+  const environmentSmartFields = $derived.by((): TemplateSmartFields => {
+    if (!selectedEnvironment) return {};
+    return buildEnvironmentSmartFields(selectedEnvironment);
+  });
+
   const templatePromptPreview = $derived.by(() => {
     if (!selectedTemplate) return "";
     return applyTemplateString(
       selectedTemplate.promptTemplate,
       templateParams,
+      environmentSmartFields,
     ).trim();
   });
 
@@ -94,10 +109,36 @@
     if (!storyId) return;
     const match = TASK_TEMPLATES.find((tpl) => tpl.id === storyId);
     if (!match) return;
-    const paramValues = buildDefaultParams(match.params);
+    const baseParams = buildDefaultParams(match.params);
+    const paramValues = applySmartDefaults(baseParams, environmentSmartFields);
     selectTemplate(match, paramValues);
-    taskInput = applyTemplateString(match.promptTemplate, paramValues).trim();
+    taskInput = applyTemplateString(
+      match.promptTemplate,
+      paramValues,
+      environmentSmartFields,
+    ).trim();
+    autoPrompt = true;
     storyPresetApplied = true;
+  });
+
+  $effect(() => {
+    if (!selectedTemplate) return;
+    const next = applySmartDefaults(templateParams, environmentSmartFields);
+    if (next === templateParams) return;
+    const keys = Object.keys(next);
+    const changed =
+      keys.length !== Object.keys(templateParams).length ||
+      keys.some((key) => next[key] !== templateParams[key]);
+    if (changed) {
+      templateParams = next;
+    }
+  });
+
+  $effect(() => {
+    if (!autoPrompt || !selectedTemplate) return;
+    if (!templatePromptPreview) return;
+    if (taskInput === templatePromptPreview) return;
+    taskInput = templatePromptPreview;
   });
 
   async function fetchData() {
@@ -113,7 +154,25 @@
       }
       if (envsRes.ok) {
         const data = await envsRes.json();
-        environments = data.environments ?? [];
+        environments = (data.environments ?? []).map(
+          (env: {
+            id: string;
+            name?: string;
+            repoUrl?: string | null;
+            repoOrg?: string | null;
+            repoName?: string | null;
+            repoBranch?: string | null;
+            workingDir?: string | null;
+          }) => ({
+            id: env.id,
+            name: env.name ?? "Unnamed",
+            repoUrl: env.repoUrl ?? null,
+            repoOrg: env.repoOrg ?? null,
+            repoName: env.repoName ?? null,
+            repoBranch: env.repoBranch ?? null,
+            workingDir: env.workingDir ?? null,
+          }),
+        );
       }
 
       // Auto-select if only one environment
@@ -200,6 +259,7 @@
   function useSuggestion(text: string) {
     if (!selectedNode || selectedNode.status !== "active") {
       taskInput = text;
+      autoPrompt = false;
       return;
     }
     void submitTask(text);
@@ -211,7 +271,8 @@
   ) {
     selectedTemplateId = tpl.id;
     templateParamDefs = tpl.params ?? [];
-    templateParams = presetValues ?? buildDefaultParams(tpl.params);
+    const baseParams = presetValues ?? buildDefaultParams(tpl.params);
+    templateParams = applySmartDefaults(baseParams, environmentSmartFields);
   }
 
   function updateTemplateParam(id: string, value: string) {
@@ -221,6 +282,7 @@
   function useTemplatePrompt() {
     if (!templatePromptPreview) return;
     taskInput = templatePromptPreview;
+    autoPrompt = true;
   }
 
   onMount(() => {
@@ -519,6 +581,9 @@
       >
         <textarea
           bind:value={taskInput}
+          on:input={() => {
+            if (autoPrompt) autoPrompt = false;
+          }}
           onkeydown={handleKeydown}
           rows="1"
           placeholder={selectedNode?.status === "active"

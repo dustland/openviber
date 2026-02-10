@@ -29,7 +29,7 @@ export const TASK_TEMPLATES: TaskTemplate[] = [
       {
         id: "targetRepo",
         label: "Target GitHub repo",
-        description: "Owner/name or full GitHub URL",
+        description: "Owner/name or full GitHub URL (defaults to environment repo)",
         type: "text",
         required: true,
         placeholder: "acme/website",

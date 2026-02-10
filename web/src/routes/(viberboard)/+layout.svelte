@@ -259,12 +259,12 @@
           <Sidebar.MenuItem>
             <Sidebar.MenuButton
               isActive={isStoriesRoute}
-              tooltipContent="Viber Stories"
+              tooltipContent="Stories"
             >
               <a href="/stories" class="w-full inline-flex items-center gap-2">
                 <Sparkles class="size-4 shrink-0" />
                 <span class="truncate group-data-[collapsible=icon]:hidden"
-                  >Viber Stories</span
+                  >Stories</span
                 >
               </a>
             </Sidebar.MenuButton>

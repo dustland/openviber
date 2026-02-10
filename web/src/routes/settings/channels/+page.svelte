@@ -208,28 +208,12 @@
       </div>
     {:else}
       <section class="mb-10">
-        <div class="flex items-center justify-between mb-4">
-          <div>
+          <div class="mb-4">
             <h2 class="text-lg font-semibold text-foreground">Channel integrations</h2>
             <p class="text-sm text-muted-foreground">
               {enabledCount} of {Object.keys(editChannels).length} channels enabled.
             </p>
           </div>
-          <button
-            type="button"
-            onclick={saveSettings}
-            disabled={saving || !hasChanges}
-            class="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {#if saving}
-              <Loader2 class="size-4 animate-spin" />
-              Saving...
-            {:else}
-              <Save class="size-4" />
-              Save Changes
-            {/if}
-          </button>
-        </div>
 
         <div class="space-y-3">
           {#each Object.entries(editChannels) as [key, edit] (key)}
@@ -246,6 +230,7 @@
                     onclick={() => toggleChannel(key)}
                     role="switch"
                     aria-checked={edit.enabled}
+                    aria-label="Toggle {meta.displayName}"
                     class="mt-0.5 relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background {edit.enabled
                       ? 'bg-primary'
                       : 'bg-input'}"
@@ -254,7 +239,7 @@
                       class="pointer-events-none inline-block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform duration-200 {edit.enabled
                         ? 'translate-x-5'
                         : 'translate-x-0'}"
-                    />
+                    ></span>
                   </button>
 
                   <div class="flex-1 min-w-0">
@@ -357,4 +342,37 @@
       </section>
     {/if}
   </div>
+
+  <!-- Floating save bar -->
+  {#if hasChanges}
+    <div
+      class="sticky bottom-0 border-t border-border bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/80 px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4 animate-in slide-in-from-bottom-2 duration-200"
+    >
+      <p class="text-sm text-muted-foreground">Unsaved changes</p>
+      <div class="flex items-center gap-3">
+        <button
+          type="button"
+          onclick={() => initEditState(channels)}
+          disabled={saving}
+          class="rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-50"
+        >
+          Discard
+        </button>
+        <button
+          type="button"
+          onclick={saveSettings}
+          disabled={saving}
+          class="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 shadow-sm"
+        >
+          {#if saving}
+            <Loader2 class="size-4 animate-spin" />
+            Saving…
+          {:else}
+            <Save class="size-4" />
+            Save Changes
+          {/if}
+        </button>
+      </div>
+    </div>
+  {/if}
 </div>

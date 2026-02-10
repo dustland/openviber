@@ -17,12 +17,22 @@ export interface ChannelIntegrationSetting {
   config?: Record<string, string>;
 }
 
+/** Per-provider AI configuration (API key + optional base URL). */
+export interface AiProviderSetting {
+  apiKey?: string;
+  baseUrl?: string;
+}
+
 export interface UserSettingsRow {
   id: string;
   user_id: string;
   skill_sources: Record<string, SkillSourceSetting>;
   channel_integrations?: Record<string, ChannelIntegrationSetting> | null;
   primary_coding_cli: string | null;
+  chat_model: string | null;
+  ai_providers: Record<string, AiProviderSetting>;
+  timezone: string | null;
+  onboarding_completed_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -31,6 +41,10 @@ export interface UserSettings {
   skillSources: Record<string, SkillSourceSetting>;
   channelIntegrations: Record<string, ChannelIntegrationSetting>;
   primaryCodingCli: string | null;
+  chatModel: string | null;
+  aiProviders: Record<string, AiProviderSetting>;
+  timezone: string | null;
+  onboardingCompletedAt: string | null;
 }
 
 const DEFAULT_SKILL_SOURCES: Record<string, SkillSourceSetting> = {
@@ -81,6 +95,37 @@ function normalizeChannelIntegrations(
   return normalized;
 }
 
+export interface Personalization {
+  soulMd: string;
+  userMd: string;
+  memoryMd: string;
+}
+
+/**
+ * Fetch personalization markdown files for a user.
+ */
+export async function getPersonalizationForUser(userId: string): Promise<Personalization> {
+  try {
+    const rows = await supabaseRequest<{ soul_md: string; user_md: string; memory_md: string }[]>(
+      "user_settings",
+      {
+        params: {
+          select: "soul_md,user_md,memory_md",
+          user_id: `eq.${userId}`,
+        },
+      },
+    );
+    const row = Array.isArray(rows) ? rows[0] : null;
+    return {
+      soulMd: row?.soul_md ?? "",
+      userMd: row?.user_md ?? "",
+      memoryMd: row?.memory_md ?? "",
+    };
+  } catch {
+    return { soulMd: "", userMd: "", memoryMd: "" };
+  }
+}
+
 /**
  * Fetch settings for a user from Supabase. Returns defaults if no row exists.
  */
@@ -88,7 +133,7 @@ export async function getSettingsForUser(userId: string): Promise<UserSettings> 
   try {
     const rows = await supabaseRequest<UserSettingsRow[]>("user_settings", {
       params: {
-        select: "skill_sources,primary_coding_cli,channel_integrations",
+        select: "skill_sources,primary_coding_cli,chat_model,channel_integrations,ai_providers,timezone,onboarding_completed_at",
         user_id: `eq.${userId}`,
       },
     });
@@ -98,6 +143,10 @@ export async function getSettingsForUser(userId: string): Promise<UserSettings> 
         skillSources: DEFAULT_SKILL_SOURCES,
         channelIntegrations: DEFAULT_CHANNEL_INTEGRATIONS,
         primaryCodingCli: null,
+        chatModel: null,
+        aiProviders: {},
+        timezone: null,
+        onboardingCompletedAt: null,
       };
     }
     return {
@@ -110,6 +159,19 @@ export async function getSettingsForUser(userId: string): Promise<UserSettings> 
         row.primary_coding_cli != null && row.primary_coding_cli !== ""
           ? row.primary_coding_cli
           : null,
+      chatModel:
+        row.chat_model != null && row.chat_model !== ""
+          ? row.chat_model
+          : null,
+      aiProviders:
+        row.ai_providers && typeof row.ai_providers === "object"
+          ? row.ai_providers
+          : {},
+      timezone:
+        row.timezone != null && row.timezone !== ""
+          ? row.timezone
+          : null,
+      onboardingCompletedAt: row.onboarding_completed_at ?? null,
     };
   } catch (err) {
     console.error("[user-settings] Failed to fetch from Supabase:", err);
@@ -117,6 +179,10 @@ export async function getSettingsForUser(userId: string): Promise<UserSettings> 
       skillSources: DEFAULT_SKILL_SOURCES,
       channelIntegrations: DEFAULT_CHANNEL_INTEGRATIONS,
       primaryCodingCli: null,
+      chatModel: null,
+      aiProviders: {},
+      timezone: null,
+      onboardingCompletedAt: null,
     };
   }
 }

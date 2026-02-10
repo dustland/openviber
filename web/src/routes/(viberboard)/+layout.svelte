@@ -15,7 +15,6 @@
     Puzzle,
     Server,
     Settings2,
-    Sparkles,
     Wifi,
     WifiOff,
   } from "@lucide/svelte";
@@ -98,9 +97,7 @@
   const isSkillsRoute = $derived(
     pathname === "/skills" || pathname.startsWith("/skills/"),
   );
-  const isStoriesRoute = $derived(
-    pathname === "/stories" || pathname.startsWith("/stories/"),
-  );
+  // Stories route removed — intents live inside /vibers/new and /settings/intents
 
   const archivingViberIds = $state<Set<string>>(new Set());
 
@@ -274,19 +271,6 @@
             </Sidebar.MenuButton>
           </Sidebar.MenuItem>
 
-          <Sidebar.MenuItem>
-            <Sidebar.MenuButton
-              isActive={isStoriesRoute}
-              tooltipContent="Viber Stories"
-            >
-              <a href="/stories" class="w-full inline-flex items-center gap-2">
-                <Sparkles class="size-4 shrink-0" />
-                <span class="truncate group-data-[collapsible=icon]:hidden"
-                  >Stories</span
-                >
-              </a>
-            </Sidebar.MenuButton>
-          </Sidebar.MenuItem>
         </Sidebar.Menu>
       </Sidebar.GroupContent>
     </Sidebar.Group>

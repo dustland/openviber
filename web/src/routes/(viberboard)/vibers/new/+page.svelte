@@ -9,23 +9,20 @@
     ChevronDown,
     Check,
     Code2,
+    FileText,
+    HeartPulse,
     MessageSquare,
+    Palette,
+    Search,
     Server,
+    ShieldCheck,
+    Sparkles,
+    TrainFront,
     FolderGit2,
     Package,
-    Search,
-    Sparkles,
-    Palette,
   } from "@lucide/svelte";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
-  import { TASK_TEMPLATES, type TaskTemplate } from "$lib/data/task-templates";
-  import TemplateParams from "$lib/components/template-params.svelte";
-  import {
-    applyTemplate as applyTemplateString,
-    buildDefaultParams,
-    type TemplateParam,
-  } from "$lib/data/template-utils";
-  import { Textarea } from "$lib/components/ui/textarea";
+  import type { Intent } from "$lib/data/intents";
 
   interface ViberNode {
     id: string;
@@ -46,6 +43,17 @@
     enabled: boolean;
   }
 
+  const INTENT_ICONS: Record<string, typeof Sparkles> = {
+    palette: Palette,
+    sparkles: Sparkles,
+    "heart-pulse": HeartPulse,
+    "shield-check": ShieldCheck,
+    "file-text": FileText,
+    "code-2": Code2,
+    bug: Bug,
+    "train-front": TrainFront,
+  };
+
   let nodes = $state<ViberNode[]>([]);
   let environments = $state<SidebarEnvironment[]>([]);
   let channelOptions = $state<ChannelOption[]>([]);
@@ -55,10 +63,12 @@
   let taskInput = $state("");
   let creating = $state(false);
   let error = $state<string | null>(null);
-  let selectedTemplateId = $state<string | null>(null);
-  let templateParams = $state<Record<string, string>>({});
-  let templateParamDefs = $state<TemplateParam[]>([]);
-  let storyPresetApplied = $state(false);
+
+  // Intents
+  let intents = $state<Intent[]>([]);
+  let intentsLoading = $state(true);
+  let selectedIntentId = $state<string | null>(null);
+  let intentPresetApplied = $state(false);
 
   // Derived: selected objects
   const selectedEnvironment = $derived(
@@ -66,6 +76,11 @@
   );
   const selectedNode = $derived(
     nodes.find((n) => n.id === selectedNodeId) ?? null,
+  );
+  const selectedIntent = $derived(
+    selectedIntentId
+      ? intents.find((i) => i.id === selectedIntentId) ?? null
+      : null,
   );
 
   // Only active nodes (with a daemon connected) can receive tasks
@@ -82,35 +97,15 @@
       !creating,
   );
 
-  const TEMPLATE_ICONS = {
-    palette: Palette,
-    sparkles: Sparkles,
-  } as const;
-
-  const selectedTemplate = $derived(
-    selectedTemplateId
-      ? TASK_TEMPLATES.find((tpl) => tpl.id === selectedTemplateId) ?? null
-      : null,
-  );
-
-  const templatePromptPreview = $derived.by(() => {
-    if (!selectedTemplate) return "";
-    return applyTemplateString(
-      selectedTemplate.promptTemplate,
-      templateParams,
-    ).trim();
-  });
-
+  // Apply intent from query param (e.g. /vibers/new?intent=beautify-homepage)
   $effect(() => {
-    if (storyPresetApplied) return;
-    const storyId = $page.url.searchParams.get("story");
-    if (!storyId) return;
-    const match = TASK_TEMPLATES.find((tpl) => tpl.id === storyId);
+    if (intentPresetApplied || intentsLoading) return;
+    const intentId = $page.url.searchParams.get("intent");
+    if (!intentId) return;
+    const match = intents.find((i) => i.id === intentId);
     if (!match) return;
-    const paramValues = buildDefaultParams(match.params);
-    selectTemplate(match, paramValues);
-    taskInput = applyTemplateString(match.promptTemplate, paramValues).trim();
-    storyPresetApplied = true;
+    selectIntent(match);
+    intentPresetApplied = true;
   });
 
   async function fetchData() {
@@ -134,9 +129,9 @@
         const channels = data.channels ?? {};
         channelOptions = Object.entries(channels).map(([id, channel]) => ({
           id,
-          label: channel.displayName ?? id,
-          description: channel.description ?? "",
-          enabled: channel.enabled ?? false,
+          label: (channel as Record<string, unknown>).displayName as string ?? id,
+          description: (channel as Record<string, unknown>).description as string ?? "",
+          enabled: ((channel as Record<string, unknown>).enabled as boolean) ?? false,
         }));
         if (selectedChannelIds.length === 0) {
           selectedChannelIds = channelOptions
@@ -159,6 +154,21 @@
     }
   }
 
+  async function fetchIntents() {
+    intentsLoading = true;
+    try {
+      const res = await fetch("/api/intents");
+      if (res.ok) {
+        const data = await res.json();
+        intents = data.intents ?? [];
+      }
+    } catch (err) {
+      console.error("Failed to fetch intents:", err);
+    } finally {
+      intentsLoading = false;
+    }
+  }
+
   function selectEnvironment(envId: string | null) {
     selectedEnvironmentId = envId;
   }
@@ -173,6 +183,15 @@
     } else {
       selectedChannelIds = [...selectedChannelIds, channelId];
     }
+  }
+
+  function selectIntent(intent: Intent) {
+    selectedIntentId = intent.id;
+    taskInput = intent.body;
+  }
+
+  function clearIntent() {
+    selectedIntentId = null;
   }
 
   async function submitTask(overrideContent?: string) {
@@ -243,26 +262,9 @@
     void submitTask(text);
   }
 
-  function selectTemplate(
-    tpl: TaskTemplate,
-    presetValues?: Record<string, string>,
-  ) {
-    selectedTemplateId = tpl.id;
-    templateParamDefs = tpl.params ?? [];
-    templateParams = presetValues ?? buildDefaultParams(tpl.params);
-  }
-
-  function updateTemplateParam(id: string, value: string) {
-    templateParams = { ...templateParams, [id]: value };
-  }
-
-  function useTemplatePrompt() {
-    if (!templatePromptPreview) return;
-    taskInput = templatePromptPreview;
-  }
-
   onMount(() => {
     fetchData();
+    fetchIntents();
   });
 </script>
 
@@ -274,7 +276,7 @@
   <!-- Main content area: hero + cards -->
   <div class="flex-1 overflow-y-auto">
     <div
-      class="mx-auto flex h-full w-full max-w-3xl flex-col items-center justify-center px-4 py-8"
+      class="mx-auto flex h-full w-full flex-col items-center justify-center px-4 py-8"
     >
       <!-- Hero -->
       <div class="mb-10 text-center">
@@ -403,7 +405,7 @@
       </div>
 
       <!-- Channel selection -->
-      <div class="mb-6 w-full max-w-2xl">
+      <div class="mb-6 w-full">
         <div class="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
           <MessageSquare class="size-3.5" />
           <span>Channels</span>
@@ -439,8 +441,8 @@
         {/if}
       </div>
 
-      <!-- Suggestion cards -->
-      <div class="grid w-full max-w-2xl grid-cols-3 gap-3">
+      <!-- Quick suggestion cards -->
+      <div class="grid w-full grid-cols-3 gap-3">
         <button
           type="button"
           class="suggestion-card group flex flex-col gap-2 rounded-xl border border-border bg-card p-4 text-left transition-all hover:border-primary/30 hover:bg-accent/40"
@@ -494,82 +496,80 @@
         </button>
       </div>
 
-      <!-- Viber stories -->
-      <div class="mt-10 w-full max-w-2xl">
+      <!-- Intent cards -->
+      <div class="mt-10 w-full">
         <div class="flex items-center justify-between mb-3">
           <h2
             class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
           >
-            Viber stories
+            Intents
           </h2>
-          {#if selectedTemplate}
-            <span class="text-[11px] text-muted-foreground">
-              Selected story: {selectedTemplate.label}
-            </span>
-          {/if}
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {#each TASK_TEMPLATES as tpl}
-            <button
-              type="button"
-              class={`rounded-xl border p-4 text-left transition-all ${
-                selectedTemplateId === tpl.id
-                  ? "border-primary/40 bg-primary/5"
-                  : "border-border bg-card hover:border-primary/30 hover:bg-accent/40"
-              }`}
-              onclick={() => selectTemplate(tpl)}
+          <div class="flex items-center gap-3">
+            {#if selectedIntent}
+              <button
+                type="button"
+                class="text-[11px] text-muted-foreground hover:text-foreground"
+                onclick={clearIntent}
+              >
+                Clear
+              </button>
+            {/if}
+            <a
+              href="/settings/intents"
+              class="text-[11px] text-muted-foreground hover:text-primary transition-colors"
             >
-              <div class="flex items-start gap-3">
-                <div
-                  class="size-8 rounded-lg bg-muted/60 flex items-center justify-center text-muted-foreground"
-                >
-                  <svelte:component
-                    this={TEMPLATE_ICONS[tpl.icon]}
-                    class="size-4"
-                  />
-                </div>
-                <div>
-                  <p class="text-sm font-medium text-foreground">
-                    {tpl.label}
-                  </p>
-                  <p class="text-xs text-muted-foreground">
-                    {tpl.description}
-                  </p>
-                </div>
-              </div>
-            </button>
-          {/each}
+              Manage intents
+            </a>
+          </div>
         </div>
 
-        {#if selectedTemplate}
-          <div class="mt-4 rounded-xl border border-border bg-muted/20 p-4">
-            <TemplateParams
-              params={templateParamDefs}
-              values={templateParams}
-              onChange={updateTemplateParam}
-              title="Story inputs"
-            />
-
-            <div class="mt-4 space-y-2">
-              <div class="flex items-center justify-between">
-                <p class="text-[11px] uppercase tracking-wide text-muted-foreground">
-                  Story prompt
-                </p>
-                <button
-                  type="button"
-                  class="text-[11px] font-medium text-primary hover:underline"
-                  onclick={useTemplatePrompt}
-                >
-                  Insert prompt
-                </button>
-              </div>
-              <Textarea
-                value={templatePromptPreview}
-                rows={6}
-                class="resize-y min-h-[120px] font-mono text-xs"
-                readonly
-              />
-            </div>
+        {#if intentsLoading}
+          <div class="text-center py-6 text-sm text-muted-foreground">
+            Loading intents...
+          </div>
+        {:else if intents.length === 0}
+          <div
+            class="rounded-xl border border-dashed border-border bg-card/40 px-4 py-6 text-center text-sm text-muted-foreground"
+          >
+            No intents found. <a href="/settings/intents" class="text-primary hover:underline">Create one</a> to get started.
+          </div>
+        {:else}
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {#each intents as intent (intent.id)}
+              {@const IconComponent = INTENT_ICONS[intent.icon] ?? Sparkles}
+              <button
+                type="button"
+                class={`rounded-xl border p-4 text-left transition-all ${
+                  selectedIntentId === intent.id
+                    ? "border-primary/40 bg-primary/5 ring-1 ring-primary/20"
+                    : "border-border bg-card hover:border-primary/30 hover:bg-accent/40"
+                }`}
+                onclick={() => selectIntent(intent)}
+              >
+                <div class="flex items-start gap-3">
+                  <div
+                    class="size-8 rounded-lg bg-muted/60 flex items-center justify-center text-muted-foreground shrink-0"
+                  >
+                    <IconComponent class="size-4" />
+                  </div>
+                  <div class="min-w-0">
+                    <p class="text-sm font-medium text-foreground">
+                      {intent.name}
+                    </p>
+                    <p class="text-xs text-muted-foreground line-clamp-2">
+                      {intent.description}
+                    </p>
+                    {#if intent.builtin}
+                      <span
+                        class="mt-1.5 inline-block rounded-full bg-muted/60 px-1.5 py-0.5 text-[10px] text-muted-foreground"
+                      >
+                        built-in
+                      </span>
+                    {/if}
+                  </div>
+                </div>
+              </button>
+            {/each}
           </div>
         {/if}
       </div>
@@ -578,7 +578,7 @@
 
   <!-- Bottom input bar -->
   <div class="shrink-0 p-3 sm:p-4">
-    <div class="mx-auto w-full max-w-3xl space-y-2">
+    <div class="mx-auto w-full space-y-2">
       {#if error}
         <div
           class="rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-2.5 text-sm text-destructive"
@@ -597,7 +597,7 @@
           onkeydown={handleKeydown}
           rows="1"
           placeholder={selectedNode?.status === "active"
-            ? "Describe what you want to build..."
+            ? "Describe what you want to build, or pick an intent above..."
             : "Select an active node first..."}
           class="min-h-[40px] max-h-36 flex-1 resize-none rounded-xl border border-transparent bg-transparent px-2 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
           disabled={!selectedNode ||

@@ -8,6 +8,7 @@
     FolderGit2,
     Server,
     Settings,
+    Puzzle,
     Sparkles,
     Zap,
   } from "@lucide/svelte";
@@ -36,10 +37,10 @@
       color: "primary",
     },
     {
-      icon: Sparkles,
-      title: "Viber Stories",
-      description: "Browse ready-made workflows",
-      href: "/stories",
+      icon: Puzzle,
+      title: "Skills",
+      description: "Installed skills & discovery",
+      href: "/skills",
       color: "primary",
     },
     {
@@ -75,7 +76,7 @@
 </svelte:head>
 
 <div class="flex-1 overflow-y-auto">
-  <div class="mx-auto max-w-5xl px-6 py-10 md:px-8 md:py-14">
+  <div class="px-6 py-10 md:px-8 md:py-14">
     <!-- Welcome -->
     <section class="mb-10">
       <div class="flex items-center gap-3 mb-2">

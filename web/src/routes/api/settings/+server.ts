@@ -5,6 +5,7 @@ import {
   type UserSettings,
   type SkillSourceSetting as ServerSkillSourceSetting,
   type ChannelIntegrationSetting as ServerChannelIntegrationSetting,
+  type AiProviderSetting as ServerAiProviderSetting,
 } from "$lib/server/user-settings";
 import { supabaseRequest } from "$lib/server/supabase-rest";
 
@@ -112,6 +113,69 @@ const PROVIDER_META: Record<
     apiKeyLabel: "",
     apiKeyEnvVar: "",
     docsUrl: "https://glama.ai/mcp/servers",
+  },
+};
+
+/** AI provider keys in display order */
+const ALL_AI_PROVIDERS = [
+  "openai",
+  "anthropic",
+  "google",
+  "deepseek",
+  "openrouter",
+] as const;
+
+/** Display metadata for AI providers */
+const AI_PROVIDER_META: Record<
+  string,
+  {
+    displayName: string;
+    description: string;
+    apiKeyPlaceholder: string;
+    apiKeyEnvVar: string;
+    docsUrl: string;
+    defaultBaseUrl: string;
+  }
+> = {
+  openai: {
+    displayName: "OpenAI",
+    description: "GPT-4o, o3, o4-mini and other OpenAI models",
+    apiKeyPlaceholder: "sk-...",
+    apiKeyEnvVar: "OPENAI_API_KEY",
+    docsUrl: "https://platform.openai.com/api-keys",
+    defaultBaseUrl: "https://api.openai.com/v1",
+  },
+  anthropic: {
+    displayName: "Anthropic",
+    description: "Claude Sonnet, Haiku, and Opus models",
+    apiKeyPlaceholder: "sk-ant-...",
+    apiKeyEnvVar: "ANTHROPIC_API_KEY",
+    docsUrl: "https://console.anthropic.com/settings/keys",
+    defaultBaseUrl: "https://api.anthropic.com",
+  },
+  google: {
+    displayName: "Google (Gemini)",
+    description: "Gemini 2.5 Pro, Flash and other Google AI models",
+    apiKeyPlaceholder: "AIza...",
+    apiKeyEnvVar: "GOOGLE_API_KEY",
+    docsUrl: "https://aistudio.google.com/apikey",
+    defaultBaseUrl: "https://generativelanguage.googleapis.com",
+  },
+  deepseek: {
+    displayName: "DeepSeek",
+    description: "DeepSeek V3, R1 reasoning model",
+    apiKeyPlaceholder: "sk-...",
+    apiKeyEnvVar: "DEEPSEEK_API_KEY",
+    docsUrl: "https://platform.deepseek.com/api_keys",
+    defaultBaseUrl: "https://api.deepseek.com",
+  },
+  openrouter: {
+    displayName: "OpenRouter",
+    description: "Unified gateway to 200+ models from multiple providers",
+    apiKeyPlaceholder: "sk-or-...",
+    apiKeyEnvVar: "OPENROUTER_API_KEY",
+    docsUrl: "https://openrouter.ai/keys",
+    defaultBaseUrl: "https://openrouter.ai/api/v1",
   },
 };
 
@@ -299,10 +363,38 @@ export const GET: RequestHandler = async ({ locals }) => {
     };
   }
 
+  // AI providers
+  const aiProviders: Record<
+    string,
+    {
+      apiKey: string;
+      baseUrl: string;
+      displayName: string;
+      description: string;
+      apiKeyPlaceholder: string;
+      apiKeyEnvVar: string;
+      docsUrl: string;
+      defaultBaseUrl: string;
+    }
+  > = {};
+
+  for (const key of ALL_AI_PROVIDERS) {
+    const saved = settings.aiProviders[key];
+    const meta = AI_PROVIDER_META[key];
+    aiProviders[key] = {
+      apiKey: saved?.apiKey ? MASKED_SECRET : "",
+      baseUrl: saved?.baseUrl || "",
+      ...meta,
+    };
+  }
+
   return json({
     sources,
     channels,
+    aiProviders,
     primaryCodingCli: settings.primaryCodingCli ?? null,
+    chatModel: settings.chatModel ?? null,
+    timezone: settings.timezone ?? null,
     codingCliOptions: CODING_CLI_OPTIONS,
   });
 };
@@ -313,6 +405,9 @@ interface UserSettingsRow {
   skill_sources: Record<string, SkillSourceSetting>;
   channel_integrations: Record<string, ServerChannelIntegrationSetting>;
   primary_coding_cli: string | null;
+  chat_model: string | null;
+  ai_providers: Record<string, ServerAiProviderSetting>;
+  timezone: string | null;
 }
 
 /**
@@ -329,9 +424,19 @@ export const PUT: RequestHandler = async ({ request, locals }) => {
     const payload = body as {
       sources?: Record<string, Partial<SkillSourceSetting>>;
       channels?: Record<string, Partial<ServerChannelIntegrationSetting>>;
+      aiProviders?: Record<string, Partial<ServerAiProviderSetting>>;
       primaryCodingCli?: string | null;
+      chatModel?: string | null;
+      timezone?: string | null;
     };
-    const { sources, channels, primaryCodingCli: primaryCodingCliPayload } = payload;
+    const {
+      sources,
+      channels,
+      aiProviders: aiProvidersPayload,
+      primaryCodingCli: primaryCodingCliPayload,
+      chatModel: chatModelPayload,
+      timezone: timezonePayload,
+    } = payload;
 
     const userId = locals.user.id;
 
@@ -339,7 +444,10 @@ export const PUT: RequestHandler = async ({ request, locals }) => {
     const current = await getSettingsForUser(userId);
     let skillSources = { ...current.skillSources };
     let channelIntegrations = { ...current.channelIntegrations };
+    let aiProviders = { ...current.aiProviders };
     let primaryCodingCli: string | null = current.primaryCodingCli;
+    let chatModel: string | null = current.chatModel;
+    let timezone: string | null = current.timezone;
 
     if (sources && typeof sources === "object") {
       for (const key of ALL_PROVIDERS) {
@@ -407,6 +515,45 @@ export const PUT: RequestHandler = async ({ request, locals }) => {
       }
     }
 
+    // AI providers
+    if (aiProvidersPayload && typeof aiProvidersPayload === "object") {
+      for (const key of ALL_AI_PROVIDERS) {
+        const update = aiProvidersPayload[key];
+        if (!update) continue;
+
+        if (!aiProviders[key]) {
+          aiProviders[key] = {};
+        }
+
+        // Only update apiKey if it changed (not the mask)
+        if (typeof update.apiKey === "string" && update.apiKey !== MASKED_SECRET) {
+          aiProviders[key] = {
+            ...aiProviders[key],
+            apiKey: update.apiKey.trim() || undefined,
+          };
+        }
+        if (typeof update.baseUrl === "string") {
+          aiProviders[key] = {
+            ...aiProviders[key],
+            baseUrl: update.baseUrl.trim() || undefined,
+          };
+        }
+
+        // Remove provider entry entirely if both fields are empty
+        if (!aiProviders[key].apiKey && !aiProviders[key].baseUrl) {
+          delete aiProviders[key];
+        }
+      }
+    }
+
+    // Timezone
+    if (timezonePayload !== undefined) {
+      timezone =
+        timezonePayload === "" || timezonePayload === null
+          ? null
+          : timezonePayload;
+    }
+
     if (primaryCodingCliPayload !== undefined) {
       if (
         primaryCodingCliPayload === null ||
@@ -419,6 +566,13 @@ export const PUT: RequestHandler = async ({ request, locals }) => {
             ? null
             : primaryCodingCliPayload;
       }
+    }
+
+    if (chatModelPayload !== undefined) {
+      chatModel =
+        chatModelPayload === "" || chatModelPayload === null
+          ? null
+          : chatModelPayload;
     }
 
     const existing = await supabaseRequest<UserSettingsRow[]>("user_settings", {
@@ -434,7 +588,10 @@ export const PUT: RequestHandler = async ({ request, locals }) => {
         body: {
           skill_sources: skillSources,
           channel_integrations: channelIntegrations,
+          ai_providers: aiProviders,
           primary_coding_cli: primaryCodingCli,
+          chat_model: chatModel,
+          timezone: timezone,
           updated_at: now,
         },
       });
@@ -446,7 +603,10 @@ export const PUT: RequestHandler = async ({ request, locals }) => {
           user_id: userId,
           skill_sources: skillSources,
           channel_integrations: channelIntegrations,
+          ai_providers: aiProviders,
           primary_coding_cli: primaryCodingCli,
+          chat_model: chatModel,
+          timezone: timezone,
           updated_at: now,
         },
       });

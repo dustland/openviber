@@ -803,7 +803,7 @@
           </div>
         {:else}
           <div class="px-3 py-6 sm:px-5">
-            <div class="mx-auto w-full max-w-4xl space-y-5">
+            <div class="w-full space-y-5">
               {#each displayMessages as message (message.id)}
                 <div
                   class="message-row flex {message.role === 'user'
@@ -899,7 +899,7 @@
       </div>
 
       <div class="chat-composer-wrap p-3 shrink-0 sm:p-4">
-        <div class="mx-auto w-full max-w-4xl space-y-3">
+        <div class="w-full space-y-3">
           <!-- Persistent session activity bar for long-running tasks -->
           {#if sending && sessionStartedAt}
             <SessionIndicator

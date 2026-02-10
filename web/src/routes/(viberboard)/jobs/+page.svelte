@@ -114,7 +114,7 @@
   let selectedTemplateId = $state<string | null>(null);
   let templateParams = $state<Record<string, string>>({});
   let templateParamDefs = $state<TemplateParam[]>([]);
-  let storyPresetApplied = $state(false);
+  let presetApplied = $state(false);
 
   let nodes = $state<NodeOption[]>([]);
 
@@ -217,14 +217,14 @@
   });
 
   $effect(() => {
-    if (storyPresetApplied) return;
-    const storyId = $page.url.searchParams.get("story");
-    if (!storyId) return;
-    const match = JOB_TEMPLATES.find((tpl) => tpl.id === storyId);
+    if (presetApplied) return;
+    const presetId = $page.url.searchParams.get("preset") ?? $page.url.searchParams.get("story");
+    if (!presetId) return;
+    const match = JOB_TEMPLATES.find((tpl) => tpl.id === presetId);
     if (!match) return;
     showCreateForm = true;
     applyTemplate(match);
-    storyPresetApplied = true;
+    presetApplied = true;
   });
 
   async function fetchJobs() {
@@ -365,7 +365,7 @@
 </svelte:head>
 
 <div class="p-6 h-full overflow-y-auto">
-  <div class="max-w-4xl mx-auto">
+  <div>
     <header class="mb-8">
       <h1 class="text-3xl font-bold text-foreground mb-2">Jobs</h1>
       <p class="text-muted-foreground">
@@ -767,17 +767,17 @@
             createJob();
           }}
         >
-          <!-- Viber stories -->
+          <!-- Job presets -->
           <div class="space-y-3">
             <div class="flex items-center justify-between">
               <h3
                 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
               >
-                Viber stories
+                Job presets
               </h3>
               {#if selectedTemplate}
                 <span class="text-[11px] text-muted-foreground">
-                  Selected story: {selectedTemplate.label}
+                  Selected: {selectedTemplate.label}
                 </span>
               {/if}
             </div>
@@ -823,7 +823,7 @@
                 params={templateParamDefs}
                 values={templateParams}
                 onChange={updateTemplateParam}
-                title="Story inputs"
+                title="Preset inputs"
               />
             </div>
           {/if}

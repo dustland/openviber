@@ -24,7 +24,7 @@
 </svelte:head>
 
 <div class="p-6 h-full overflow-y-auto">
-  <div class="max-w-4xl mx-auto">
+  <div>
     <header class="mb-8">
       <h1 class="text-3xl font-bold text-foreground mb-2">Scheduled Jobs</h1>
       <p class="text-muted-foreground">

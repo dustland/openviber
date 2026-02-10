@@ -408,7 +408,7 @@
 </svelte:head>
 
 <div class="flex-1 min-h-0 overflow-y-auto">
-  <div class="mx-auto w-full max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
+  <div class="w-full px-4 py-6 sm:px-6 lg:px-8">
     <header class="mb-6 flex flex-wrap items-center justify-between gap-3">
       <div>
         <p class="text-xs uppercase tracking-wide text-muted-foreground">

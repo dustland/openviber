@@ -2,6 +2,7 @@
   import { page } from "$app/stores";
   import * as Sidebar from "$lib/components/ui/sidebar";
   import {
+    Archive,
     BookOpen,
     Cable,
     MessageSquare,
@@ -36,6 +37,10 @@
   const isChannelsRoute = $derived(
     pathname === "/settings/channels" ||
       pathname.startsWith("/settings/channels/"),
+  );
+  const isArchivedRoute = $derived(
+    pathname === "/settings/archived" ||
+      pathname.startsWith("/settings/archived/"),
   );
 </script>
 
@@ -141,6 +146,23 @@
                 <MessageSquare class="size-4 shrink-0" />
                 <span class="truncate group-data-[collapsible=icon]:hidden"
                   >Channels</span
+                >
+              </a>
+            </Sidebar.MenuButton>
+          </Sidebar.MenuItem>
+
+          <Sidebar.MenuItem>
+            <Sidebar.MenuButton
+              isActive={isArchivedRoute}
+              tooltipContent="Archived vibers"
+            >
+              <a
+                href="/settings/archived"
+                class="w-full inline-flex items-center gap-2"
+              >
+                <Archive class="size-4 shrink-0" />
+                <span class="truncate group-data-[collapsible=icon]:hidden"
+                  >Archived vibers</span
                 >
               </a>
             </Sidebar.MenuButton>

@@ -1,7 +1,7 @@
 ---
 name: cursor-agent
-version: 3.0.0
-description: Use the Cursor CLI (agent) for software engineering tasks. Includes installation, auth, commands, tmux-based automation, and best practices for AI coding workflows.
+version: 4.0.0
+description: Use the Cursor CLI (agent) for software engineering tasks. Includes installation, auth, commands, tmux-based automation, intermediate progress reporting, and automated git workflows (branch creation, PR creation).
 author: Pushpinder Pal Singh
 playground:
   repo: dustland/openviber
@@ -108,14 +108,23 @@ Cursor agent supports MCP (Model Context Protocol) servers defined in `mcp.json`
 The `cursor_agent_run` tool:
 - Runs the Cursor agent in a tmux session with a specified prompt
 - **Polls for completion** instead of blindly waiting a fixed duration
+- **Reports intermediate progress** every 10 seconds during execution (essential for coding tasks)
 - Returns structured output with status, timing, and captured terminal output
 - Supports parallel runs via distinct `sessionName` values
+- **Automated git workflow**: Can create branches and PRs automatically
 
 **Parameters:**
 - `goal` (required): Detailed task prompt — be specific (see best practices above)
 - `cwd` (optional): Project root directory
 - `waitSeconds` (optional): Maximum wait time (default: 120s, polls every 3s)
 - `sessionName` (optional): Tmux session name for parallel runs (default: 'cursor-agent')
+- `createBranch` (optional): If true, create a new git branch before running (default: false). Recommended for coding tasks.
+- `branchName` (optional): Name for the git branch (auto-generated from goal if not provided)
+- `baseBranch` (optional): Base branch to create from (default: current branch or 'main')
+- `createPR` (optional): If true, create a pull request after successful completion (default: false). Requires `createBranch: true`.
+- `prTitle` (optional): PR title (auto-generated from goal if not provided)
+- `prBody` (optional): PR description/body (auto-generated if not provided)
+- `prBaseBranch` (optional): Target branch for the PR (default: repo default branch)
 
 **Return shape:**
 - `ok`: boolean — whether the agent completed within the time limit
@@ -124,7 +133,11 @@ The `cursor_agent_run` tool:
 - `outputTail`: last ~100 lines of terminal output (chat-friendly)
 - `output`: full captured output (truncated if very large)
 - `elapsed`: seconds spent
+- `progressSnapshots`: Array of intermediate progress updates (every 10s) showing elapsed time, output tail, and status
+- `branchName`: Name of created branch (if `createBranch` was true)
+- `prUrl`: URL of created PR (if `createPR` was true and successful)
 - `hint`: guidance when timed out or errored
+- `warning`: Warnings (e.g., PR creation failed but agent completed)
 
 ### Parallel Cursor Agent Runs
 
@@ -139,7 +152,32 @@ Check status of all sessions with `tmux_list`.
 
 ## Recommended Workflows
 
-### Issue Fix Workflow
+### Issue Fix Workflow (Automated)
+
+For coding tasks, use the automated git workflow built into `cursor_agent_run`:
+
+```javascript
+cursor_agent_run({
+  goal: "Fix issue #123: null pointer exception in user service",
+  cwd: "/path/to/repo",
+  createBranch: true,
+  branchName: "fix/issue-123",
+  createPR: true,
+  prTitle: "Fix: resolve null pointer in user service (#123)",
+  prBody: "Fixes #123\n\nAutomated fix from Cursor Agent CLI."
+})
+```
+
+This will:
+1. Create a new branch (`fix/issue-123`)
+2. Run the Cursor agent with your goal
+3. Report intermediate progress every 10 seconds
+4. Commit and push changes automatically
+5. Create a PR when complete
+
+### Issue Fix Workflow (Manual)
+
+For more control, use the manual workflow:
 
 1. `gh_get_issue` → Read the full issue
 2. `gh_clone_repo` → Clone (or pull latest)

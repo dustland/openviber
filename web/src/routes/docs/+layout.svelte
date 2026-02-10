@@ -324,9 +324,8 @@
       api.initialize({
         startOnLoad: false,
         securityLevel: "loose",
-        theme: document.documentElement.classList.contains("dark")
-          ? "dark"
-          : "default",
+        // Use a neutral Mermaid theme and style diagrams from global CSS tokens.
+        theme: "base",
       });
       mermaidApi = api;
       return mermaidApi;

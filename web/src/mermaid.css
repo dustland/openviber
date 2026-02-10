@@ -1,0 +1,63 @@
+/* Global Mermaid styling to align diagrams with app theme tokens. */
+:root {
+  --mermaid-font-family:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  --mermaid-text-color: hsl(var(--foreground));
+  --mermaid-muted-color: hsl(var(--muted-foreground));
+  --mermaid-line-color: hsl(var(--muted-foreground) / 0.6);
+  --mermaid-border-color: hsl(var(--border));
+  --mermaid-surface-color: hsl(var(--card));
+  --mermaid-surface-muted: hsl(var(--muted) / 0.45);
+  --mermaid-accent-color: hsl(var(--primary));
+}
+
+.mermaid,
+.mermaid svg {
+  font-family: var(--mermaid-font-family) !important;
+}
+
+.mermaid svg {
+  max-width: 100%;
+  height: auto;
+  color: var(--mermaid-text-color);
+}
+
+.mermaid :where(text, tspan, foreignObject, .label, .nodeLabel, .edgeLabel) {
+  fill: var(--mermaid-text-color) !important;
+  color: var(--mermaid-text-color) !important;
+  font-family: var(--mermaid-font-family) !important;
+}
+
+.mermaid :where(.node rect, .node circle, .node ellipse, .node polygon, .node path) {
+  fill: var(--mermaid-surface-color) !important;
+  stroke: var(--mermaid-border-color) !important;
+}
+
+.mermaid :where(.cluster rect) {
+  fill: var(--mermaid-surface-muted) !important;
+  stroke: var(--mermaid-border-color) !important;
+}
+
+.mermaid :where(.edgeLabel rect, .labelBkg) {
+  fill: hsl(var(--background)) !important;
+  opacity: 0.95;
+}
+
+.mermaid :where(.flowchart-link, .messageLine0, .messageLine1, .actor-line, .edgePath path, .relation, .dependency) {
+  stroke: var(--mermaid-line-color) !important;
+}
+
+.mermaid :where(.arrowheadPath, marker path) {
+  fill: var(--mermaid-line-color) !important;
+  stroke: var(--mermaid-line-color) !important;
+}
+
+.mermaid :where(.note rect, .note) {
+  fill: hsl(var(--muted) / 0.6) !important;
+  stroke: var(--mermaid-border-color) !important;
+}
+
+.mermaid :where(.active rect, .active circle, .active ellipse, .active polygon, .active path) {
+  stroke: var(--mermaid-accent-color) !important;
+}

@@ -28,6 +28,7 @@
   import { Button } from "$lib/components/ui/button";
   import ChatComposer from "$lib/components/chat-composer.svelte";
   import * as Resizable from "$lib/components/ui/resizable";
+  import * as Sheet from "$lib/components/ui/sheet";
   import {
     Collapsible,
     CollapsibleTrigger,
@@ -248,6 +249,7 @@
   let toolOutputContainer = $state<HTMLDivElement | null>(null);
   let toolOutputUserScrolledUp = $state(false);
   let selectedToolOutputId = $state<string | null>(null);
+  let showMobileToolOutput = $state(false);
 
   function scrollToBottom(behavior: ScrollBehavior = "smooth") {
     if (!messagesContainer || userScrolledUp) return;
@@ -680,10 +682,12 @@
   <title>{viber?.name || "Viber"} - OpenViber</title>
 </svelte:head>
 
-<div class="chat-shell flex-1 flex flex-col min-h-0 overflow-hidden">
+<div
+  class="chat-shell flex-1 flex w-full min-w-0 flex-col min-h-0 overflow-hidden"
+>
   <Resizable.PaneGroup
     direction="horizontal"
-    class="flex-1 min-h-0 min-w-0 overflow-hidden"
+    class="flex-1 min-h-0 min-w-0 w-full overflow-hidden"
   >
     <Resizable.Pane
       defaultSize={65}
@@ -900,6 +904,30 @@
       </div>
 
       <div class="chat-composer-wrap p-3 shrink-0 sm:p-4">
+        <!-- Mobile tool output toggle (visible < lg only) -->
+        {#if toolOutputEntries.length > 0}
+          <div class="flex lg:hidden mb-2">
+            <button
+              type="button"
+              class="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-muted/40 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              onclick={() => (showMobileToolOutput = true)}
+            >
+              <TerminalSquare class="size-3.5" />
+              Tool Output
+              <span
+                class="rounded-full bg-primary/10 text-primary px-1.5 py-0.5 text-[10px] font-semibold"
+              >
+                {toolOutputEntries.length}
+              </span>
+              {#if sending}
+                <span
+                  class="rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-500"
+                  >Live</span
+                >
+              {/if}
+            </button>
+          </div>
+        {/if}
         <ChatComposer
           bind:value={inputValue}
           bind:inputElement={inputEl}
@@ -921,7 +949,9 @@
               >
                 <AlertCircle class="size-4 text-destructive shrink-0 mt-0.5" />
                 <div class="flex-1 min-w-0">
-                  <p class="text-sm font-medium text-destructive">Task failed</p>
+                  <p class="text-sm font-medium text-destructive">
+                    Task failed
+                  </p>
                   <p class="text-xs text-destructive/80 mt-0.5 wrap-break-word">
                     {chatError}
                   </p>
@@ -991,109 +1021,132 @@
       defaultSize={35}
       minSize={20}
       maxSize={55}
-      class="hidden min-h-0 min-w-0 overflow-hidden lg:block"
+      class="hidden min-h-0 min-w-0 w-full overflow-hidden lg:block"
     >
-      <aside class="tool-pane flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-background/70">
-        <div class="border-b border-border/60 px-3 py-2.5 shrink-0">
-          <div class="flex items-center gap-2">
-            <TerminalSquare class="size-4 text-muted-foreground" />
-            <p class="text-sm font-medium text-foreground">Tool Output</p>
-            {#if sending}
-              <span
-                class="ml-auto rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-500"
-              >
-                Live
-              </span>
-            {/if}
-          </div>
-        </div>
-
-        {#if toolOutputEntries.length === 0}
-          <div class="flex flex-1 items-center justify-center px-4 text-center">
-            <p class="text-xs text-muted-foreground">
-              No tool output yet. Run a tool call to see live logs here.
-            </p>
-          </div>
-        {:else}
-          <div
-            bind:this={toolOutputContainer}
-            class="flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden p-1.5"
-            onscroll={handleToolOutputScroll}
-          >
-            <div class="space-y-1 min-w-0">
-              {#each toolOutputEntries as entry (entry.id)}
-                <Collapsible
-                  open={selectedToolOutputId === entry.id}
-                  class="min-w-0 w-full overflow-hidden"
-                >
-                  <CollapsibleTrigger
-                    class="flex w-full min-w-0 overflow-hidden items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-muted/60 {selectedToolOutputId ===
-                    entry.id
-                      ? 'bg-muted/50'
-                      : ''}"
-                    onclick={() => {
-                      selectedToolOutputId =
-                        selectedToolOutputId === entry.id ? null : entry.id;
-                    }}
-                  >
-                    <div class="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
-                      <ChevronRight
-                        class="size-3.5 shrink-0 text-muted-foreground transition-transform duration-200 {selectedToolOutputId ===
-                        entry.id
-                          ? 'rotate-90'
-                          : ''}"
-                      />
-                      {#if isToolStateRunning(entry.state)}
-                        <LoaderCircle
-                          class="size-3.5 shrink-0 animate-spin text-amber-500"
-                        />
-                      {:else if isToolStateError(entry.state)}
-                        <AlertCircle class="size-3.5 shrink-0 text-red-500" />
-                      {:else}
-                        <CheckCircle2
-                          class="size-3.5 shrink-0 text-emerald-500"
-                        />
-                      {/if}
-                      <div class="min-w-0 flex-1 overflow-hidden">
-                        <p
-                          class="overflow-hidden text-ellipsis whitespace-nowrap text-[12px] font-medium text-foreground"
-                        >
-                          {entry.toolName}
-                        </p>
-                        {#if entry.summary}
-                          <p
-                            class="max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-[10px] text-muted-foreground"
-                            title={entry.summary}
-                          >
-                            {entry.summary}
-                          </p>
-                        {/if}
-                      </div>
-                    </div>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent class="min-w-0 w-full overflow-hidden">
-                    <div
-                      class="mx-2 mb-1 box-border max-h-48 min-w-0 w-[calc(100%-1rem)] overflow-y-auto overflow-x-auto rounded-md border border-border/50 bg-black/[0.03] dark:bg-white/[0.03]"
-                    >
-                      {#if entry.output}
-                        <pre
-                          class="box-border w-full min-w-0 whitespace-pre-wrap break-all p-3 font-mono text-[11px] leading-relaxed text-foreground/85">{entry.output}</pre>
-                      {:else}
-                        <p class="p-3 text-[11px] text-muted-foreground">
-                          Waiting for output...
-                        </p>
-                      {/if}
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
-              {/each}
-            </div>
-          </div>
-        {/if}
+      <aside
+        class="tool-pane flex h-full w-full min-h-0 min-w-0 flex-col overflow-hidden bg-background/70"
+      >
+        {@render toolOutputContent()}
       </aside>
     </Resizable.Pane>
   </Resizable.PaneGroup>
 </div>
+
+<!-- Mobile Tool Output Sheet (< lg only) -->
+<Sheet.Root bind:open={showMobileToolOutput}>
+  <Sheet.Content side="right" class="w-[85%] sm:max-w-md p-0 flex flex-col">
+    <Sheet.Header class="sr-only">
+      <Sheet.Title>Tool Output</Sheet.Title>
+      <Sheet.Description
+        >View tool call outputs from the current session.</Sheet.Description
+      >
+    </Sheet.Header>
+    <div class="flex flex-1 flex-col min-h-0 overflow-hidden">
+      {@render toolOutputContent()}
+    </div>
+  </Sheet.Content>
+</Sheet.Root>
+
+{#snippet toolOutputContent()}
+  <div class="border-b border-border/60 px-3 py-2.5 shrink-0">
+    <div class="flex items-center gap-2">
+      <TerminalSquare class="size-4 text-muted-foreground" />
+      <p class="text-sm font-medium text-foreground">Tool Output</p>
+      {#if sending}
+        <span
+          class="ml-auto rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-500"
+        >
+          Live
+        </span>
+      {/if}
+    </div>
+  </div>
+
+  {#if toolOutputEntries.length === 0}
+    <div class="flex flex-1 items-center justify-center px-4 text-center">
+      <p class="text-xs text-muted-foreground">
+        No tool output yet. Run a tool call to see live logs here.
+      </p>
+    </div>
+  {:else}
+    <div
+      bind:this={toolOutputContainer}
+      class="flex-1 min-h-0 min-w-0 w-full overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable] p-1.5"
+      onscroll={handleToolOutputScroll}
+    >
+      <div class="space-y-1 min-w-0 w-full">
+        {#each toolOutputEntries as entry (entry.id)}
+          <Collapsible
+            open={selectedToolOutputId === entry.id}
+            class="min-w-0 w-full box-border overflow-hidden"
+          >
+            <CollapsibleTrigger
+              class="box-border flex w-full min-w-0 overflow-hidden items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-muted/60 {selectedToolOutputId ===
+              entry.id
+                ? 'bg-muted/50'
+                : ''}"
+              onclick={() => {
+                selectedToolOutputId =
+                  selectedToolOutputId === entry.id ? null : entry.id;
+              }}
+            >
+              <div
+                class="flex min-w-0 flex-1 items-center gap-2 overflow-hidden"
+              >
+                <ChevronRight
+                  class="size-3.5 shrink-0 text-muted-foreground transition-transform duration-200 {selectedToolOutputId ===
+                  entry.id
+                    ? 'rotate-90'
+                    : ''}"
+                />
+                {#if isToolStateRunning(entry.state)}
+                  <LoaderCircle
+                    class="size-3.5 shrink-0 animate-spin text-amber-500"
+                  />
+                {:else if isToolStateError(entry.state)}
+                  <AlertCircle class="size-3.5 shrink-0 text-red-500" />
+                {:else}
+                  <CheckCircle2 class="size-3.5 shrink-0 text-emerald-500" />
+                {/if}
+                <div class="min-w-0 flex-1 overflow-hidden">
+                  <p
+                    class="overflow-hidden text-ellipsis whitespace-nowrap text-[12px] font-medium text-foreground"
+                  >
+                    {entry.toolName}
+                  </p>
+                  {#if entry.summary}
+                    <p
+                      class="max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-[10px] text-muted-foreground"
+                      title={entry.summary}
+                    >
+                      {entry.summary}
+                    </p>
+                  {/if}
+                </div>
+              </div>
+            </CollapsibleTrigger>
+            <CollapsibleContent
+              class="min-w-0 w-full max-w-full overflow-hidden"
+            >
+              <div
+                class="mx-2 mb-1 box-border max-h-48 min-w-0 w-[calc(100%-1rem)] max-w-full overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable] rounded-md border border-border/50 bg-black/[0.03] dark:bg-white/[0.03]"
+              >
+                {#if entry.output}
+                  <pre
+                    class="block box-border w-full min-w-0 max-w-full whitespace-pre-wrap wrap-anywhere p-3 font-mono text-[11px] leading-relaxed text-foreground/85">{entry.output}</pre>
+                {:else}
+                  <p class="p-3 text-[11px] text-muted-foreground">
+                    Waiting for output...
+                  </p>
+                {/if}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        {/each}
+      </div>
+    </div>
+  {/if}
+{/snippet}
 
 <!-- Agent Config Dialog -->
 {#if showConfigDialog}
@@ -1232,6 +1285,16 @@
 
   .chat-scroll {
     scrollbar-width: thin;
+  }
+
+  /* Force paneforge-rendered pane divs to constrain width.
+     Paneforge sets width via flex-basis but never overflow:hidden
+     or min-width:0, so flex children keep their intrinsic min-width
+     (min-width:auto) and content like long tool names / output text
+     can push the pane wider than its allocated size. */
+  :global([data-pane]) {
+    overflow: hidden;
+    min-width: 0;
   }
 
   .chat-composer-wrap {

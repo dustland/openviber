@@ -101,69 +101,261 @@
     );
   }
 
-  function formatToolOutputValue(label: string, value: unknown): string | null {
+  type ToolOutputScenario = "terminal" | "structured" | "text";
+
+  interface ToolOutputSection {
+    label: string;
+    content: string;
+    tone?: "default" | "muted" | "error";
+  }
+
+  interface ToolOutputDisplay {
+    scenario: ToolOutputScenario;
+    sections: ToolOutputSection[];
+    command?: string;
+    exitCode?: string;
+  }
+
+  function stringifyToolOutputValue(value: unknown): string | null {
     if (value === undefined || value === null) {
       return null;
     }
     if (typeof value === "string") {
-      return value.trim().length > 0 ? `${label}\n${value}` : null;
+      return value.trim().length > 0 ? value : null;
     }
     try {
-      return `${label}\n${JSON.stringify(value, null, 2)}`;
+      return JSON.stringify(value, null, 2);
     } catch {
-      return `${label}\n${String(value)}`;
+      return String(value);
     }
   }
 
-  function extractToolOutputText(part: any): string {
-    const sections: string[] = [];
-    const inputSummary = getToolInputSummary(part);
-    if (inputSummary) {
-      sections.push(`Input\n${inputSummary}`);
+  function normalizeToolOutputLabel(label: string): string {
+    return label
+      .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+      .replace(/[_-]+/g, " ")
+      .replace(/^\w/, (c) => c.toUpperCase());
+  }
+
+  function formatToolOutputValue(
+    label: string,
+    value: unknown,
+    tone: ToolOutputSection["tone"] = "default",
+  ): ToolOutputSection | null {
+    const content = stringifyToolOutputValue(value);
+    if (!content) {
+      return null;
+    }
+    return {
+      label: normalizeToolOutputLabel(label),
+      content,
+      tone,
+    };
+  }
+
+  function isTerminalToolOutput(toolName: string, part: any): boolean {
+    const output = part?.output;
+    const input = part?.input;
+
+    if (typeof input?.command === "string" && input.command.trim().length > 0) {
+      return true;
+    }
+
+    if (output && typeof output === "object" && !Array.isArray(output)) {
+      const obj = output as Record<string, unknown>;
+      const terminalKeys = new Set([
+        "command",
+        "exitCode",
+        "stdout",
+        "stderr",
+        "stdoutTail",
+        "stderrTail",
+        "outputTail",
+        "timedOut",
+        "sessionName",
+      ]);
+      if (Object.keys(obj).some((key) => terminalKeys.has(key))) {
+        return true;
+      }
+    }
+
+    return /(shell|terminal|tmux|codex|cursor[_-]?agent|gemini|railway)/i.test(
+      toolName,
+    );
+  }
+
+  function buildTerminalToolOutputDisplay(part: any): ToolOutputDisplay {
+    const sections: ToolOutputSection[] = [];
+    const output = part?.output;
+    const input = part?.input;
+
+    let command: string | undefined =
+      typeof input?.command === "string" ? input.command : undefined;
+    let exitCode: string | undefined;
+
+    if (output && typeof output === "object" && !Array.isArray(output)) {
+      const obj = output as Record<string, unknown>;
+
+      if (typeof obj.command === "string" && obj.command.trim().length > 0) {
+        command = obj.command;
+      }
+
+      if (typeof obj.exitCode === "number" || typeof obj.exitCode === "string") {
+        exitCode = String(obj.exitCode);
+      }
+      if (obj.timedOut === true) {
+        exitCode = exitCode ? `${exitCode} (timed out)` : "timed out";
+      }
+
+      const summary = formatToolOutputValue("summary", obj.summary, "muted");
+      if (summary) sections.push(summary);
+
+      const stdoutSection =
+        formatToolOutputValue("stdoutTail", obj.stdoutTail) ||
+        formatToolOutputValue("stdout", obj.stdout) ||
+        formatToolOutputValue("outputTail", obj.outputTail);
+      if (stdoutSection) sections.push(stdoutSection);
+
+      const stderrSection =
+        formatToolOutputValue("stderrTail", obj.stderrTail, "error") ||
+        formatToolOutputValue("stderr", obj.stderr, "error");
+      if (stderrSection) sections.push(stderrSection);
+
+      const outputSection = formatToolOutputValue("output", obj.output);
+      if (outputSection && !stdoutSection) {
+        sections.push(outputSection);
+      }
+
+      const errorSection = formatToolOutputValue("error", obj.error, "error");
+      if (errorSection) sections.push(errorSection);
+
+      const hintSection = formatToolOutputValue("hint", obj.hint, "muted");
+      if (hintSection) sections.push(hintSection);
+
+      if (sections.length === 0) {
+        const fallback = formatToolOutputValue("result", output);
+        if (fallback) sections.push(fallback);
+      }
+    } else if (typeof output === "string") {
+      const section = formatToolOutputValue("output", output);
+      if (section) sections.push(section);
+    } else if (output !== undefined) {
+      const section = formatToolOutputValue("output", output);
+      if (section) sections.push(section);
     }
 
     if (part?.errorText) {
-      sections.push(`Error\n${String(part.errorText)}`);
+      const section = formatToolOutputValue("error", part.errorText, "error");
+      if (section) sections.push(section);
+    }
+
+    return {
+      scenario: "terminal",
+      sections,
+      command,
+      exitCode,
+    };
+  }
+
+  function buildStructuredToolOutputDisplay(part: any): ToolOutputDisplay {
+    const sections: ToolOutputSection[] = [];
+    const inputSummary = getToolInputSummary(part);
+    if (inputSummary) {
+      sections.push({
+        label: "Input",
+        content: inputSummary,
+        tone: "muted",
+      });
+    }
+
+    if (part?.errorText) {
+      const errorSection = formatToolOutputValue("error", part.errorText, "error");
+      if (errorSection) {
+        sections.push(errorSection);
+      }
     }
 
     const output = part?.output;
     if (typeof output === "string") {
-      if (output.trim().length > 0) {
-        sections.push(`Output\n${output}`);
+      const outputSection = formatToolOutputValue("output", output);
+      if (outputSection) {
+        sections.push(outputSection);
       }
-    } else if (output && typeof output === "object") {
+      return {
+        scenario: "text",
+        sections,
+      };
+    }
+
+    if (output && typeof output === "object" && !Array.isArray(output)) {
       const obj = output as Record<string, unknown>;
       const preferred = [
         "summary",
-        "stdoutTail",
-        "stderrTail",
-        "output",
-        "stderr",
-        "text",
         "result",
+        "text",
+        "output",
+        "items",
+        "data",
+        "stderr",
+        "error",
       ];
 
+      let outputSections = 0;
       for (const key of preferred) {
-        const section = formatToolOutputValue(key, obj[key]);
-        if (section) {
-          sections.push(section);
+        const section = formatToolOutputValue(
+          key,
+          obj[key],
+          key === "stderr" || key === "error" ? "error" : "default",
+        );
+        if (!section) continue;
+        sections.push(section);
+        outputSections++;
+      }
+
+      if (outputSections === 0) {
+        const fallback = formatToolOutputValue("output", output);
+        if (fallback) {
+          sections.push(fallback);
         }
       }
 
-      if (sections.length === 0) {
-        const section = formatToolOutputValue("Output", output);
-        if (section) {
-          sections.push(section);
-        }
-      }
-    } else if (output !== undefined) {
-      const section = formatToolOutputValue("Output", output);
-      if (section) {
-        sections.push(section);
+      return {
+        scenario: "structured",
+        sections,
+      };
+    }
+
+    if (output !== undefined) {
+      const outputSection = formatToolOutputValue("output", output);
+      if (outputSection) {
+        sections.push(outputSection);
       }
     }
 
-    return sections.join("\n\n").trim();
+    return {
+      scenario: "text",
+      sections,
+    };
+  }
+
+  function buildToolOutputDisplay(part: any, toolName: string): ToolOutputDisplay {
+    if (isTerminalToolOutput(toolName, part)) {
+      return buildTerminalToolOutputDisplay(part);
+    }
+    return buildStructuredToolOutputDisplay(part);
+  }
+
+  function flattenToolOutputDisplay(display: ToolOutputDisplay): string {
+    return display.sections
+      .map((section) => `${section.label}\n${section.content}`)
+      .join("\n\n")
+      .trim();
+  }
+
+  function extractToolOutputText(part: any, toolName?: string): string {
+    const resolvedToolName = toolName || getPartToolName(part) || "";
+    const display = buildToolOutputDisplay(part, resolvedToolName);
+    return flattenToolOutputDisplay(display);
   }
 
   interface ViberSkill {
@@ -203,8 +395,57 @@
     toolName: string;
     state: string;
     output: string;
+    scenario: ToolOutputScenario;
+    sections: ToolOutputSection[];
+    command?: string;
+    exitCode?: string;
     summary?: string;
     createdAt?: Date;
+  }
+
+  function getToolOutputContainerClass(entry: ToolOutputEntry): string {
+    if (entry.scenario === "terminal") {
+      return "ml-3 mr-1 mb-1 max-h-56 min-w-0 overflow-y-auto overflow-x-hidden rounded-md border border-zinc-800 bg-zinc-950";
+    }
+    return "ml-3 mr-1 mb-1 max-h-48 min-w-0 overflow-y-auto overflow-x-hidden rounded-md border border-border/50 bg-black/[0.03] dark:bg-white/[0.03]";
+  }
+
+  function getToolOutputSectionLabelClass(
+    entry: ToolOutputEntry,
+    section: ToolOutputSection,
+  ): string {
+    if (entry.scenario === "terminal") {
+      if (section.tone === "error") {
+        return "text-[10px] font-semibold uppercase tracking-wide text-rose-300";
+      }
+      if (section.tone === "muted") {
+        return "text-[10px] font-semibold uppercase tracking-wide text-zinc-500";
+      }
+      return "text-[10px] font-semibold uppercase tracking-wide text-zinc-400";
+    }
+    if (section.tone === "error") {
+      return "text-[10px] font-semibold uppercase tracking-wide text-red-500";
+    }
+    return "text-[10px] font-semibold uppercase tracking-wide text-muted-foreground";
+  }
+
+  function getToolOutputSectionContentClass(
+    entry: ToolOutputEntry,
+    section: ToolOutputSection,
+  ): string {
+    if (entry.scenario === "terminal") {
+      if (section.tone === "error") {
+        return "whitespace-pre-wrap break-all p-0 font-mono text-[11px] leading-relaxed text-rose-200";
+      }
+      if (section.tone === "muted") {
+        return "whitespace-pre-wrap break-all p-0 font-mono text-[11px] leading-relaxed text-zinc-300";
+      }
+      return "whitespace-pre-wrap break-all p-0 font-mono text-[11px] leading-relaxed text-zinc-100";
+    }
+    if (section.tone === "error") {
+      return "whitespace-pre-wrap break-all p-0 font-mono text-[11px] leading-relaxed text-red-500/90";
+    }
+    return "whitespace-pre-wrap break-all p-0 font-mono text-[11px] leading-relaxed text-foreground/85";
   }
 
   let viber = $state<Viber | null>(null);
@@ -616,12 +857,17 @@
       parts.forEach((part: any, index: number) => {
         const toolName = getPartToolName(part);
         if (!toolName) return;
+        const display = buildToolOutputDisplay(part, toolName);
         entries.push({
           id: `${message.id}:${index}:${toolName}`,
           messageId: message.id,
           toolName,
           state: part.state || "input-available",
-          output: extractToolOutputText(part),
+          output: flattenToolOutputDisplay(display),
+          scenario: display.scenario,
+          sections: display.sections,
+          command: display.command,
+          exitCode: display.exitCode,
           summary: getToolInputSummary(part),
           createdAt:
             (message.createdAt && new Date(message.createdAt)) || undefined,
@@ -1080,12 +1326,50 @@
                     </span>
                   </CollapsibleTrigger>
                   <CollapsibleContent>
-                    <div
-                      class="ml-3 mr-1 mb-1 max-h-48 min-w-0 overflow-y-auto overflow-x-hidden rounded-md border border-border/50 bg-black/[0.03] dark:bg-white/[0.03]"
-                    >
-                      {#if entry.output}
-                        <pre
-                          class="whitespace-pre-wrap break-all p-3 font-mono text-[11px] leading-relaxed text-foreground/85">{entry.output}</pre>
+                    <div class={getToolOutputContainerClass(entry)}>
+                      {#if entry.sections.length > 0 || entry.output}
+                        {#if entry.scenario === "terminal"}
+                          <div
+                            class="flex flex-wrap items-center gap-2 border-b border-zinc-800 px-3 py-2 text-[10px]"
+                          >
+                            <span class="font-semibold uppercase tracking-wide text-zinc-400">
+                              terminal
+                            </span>
+                            {#if entry.command}
+                              <code
+                                class="min-w-0 flex-1 truncate rounded bg-zinc-900 px-1.5 py-0.5 font-mono text-zinc-200"
+                                >$ {entry.command}</code
+                              >
+                            {/if}
+                            {#if entry.exitCode}
+                              <span
+                                class="rounded border border-zinc-700 px-1.5 py-0.5 text-zinc-300"
+                              >
+                                exit {entry.exitCode}
+                              </span>
+                            {/if}
+                          </div>
+                        {/if}
+                        <div class="space-y-2 p-3">
+                          {#if entry.sections.length > 0}
+                            {#each entry.sections as section}
+                              <div class="min-w-0 space-y-1">
+                                <p class={getToolOutputSectionLabelClass(entry, section)}>
+                                  {section.label}
+                                </p>
+                                <pre
+                                  class={getToolOutputSectionContentClass(entry, section)}
+                                  >{section.content}</pre
+                                >
+                              </div>
+                            {/each}
+                          {:else}
+                            <pre
+                              class="whitespace-pre-wrap break-all p-0 font-mono text-[11px] leading-relaxed text-foreground/85"
+                              >{entry.output}</pre
+                            >
+                          {/if}
+                        </div>
                       {:else}
                         <p class="p-3 text-[11px] text-muted-foreground">
                           Waiting for output...

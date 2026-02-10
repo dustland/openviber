@@ -12,6 +12,7 @@
     FolderGit2,
     LoaderCircle,
     Plus,
+    Puzzle,
     Server,
     Settings2,
     Sparkles,
@@ -93,6 +94,9 @@
   );
   const isJobsRoute = $derived(
     pathname === "/jobs" || pathname.startsWith("/jobs/"),
+  );
+  const isSkillsRoute = $derived(
+    pathname === "/skills" || pathname.startsWith("/skills/"),
   );
   const isStoriesRoute = $derived(
     pathname === "/stories" || pathname.startsWith("/stories/"),
@@ -258,13 +262,27 @@
 
           <Sidebar.MenuItem>
             <Sidebar.MenuButton
+              isActive={isSkillsRoute}
+              tooltipContent="Skills"
+            >
+              <a href="/skills" class="w-full inline-flex items-center gap-2">
+                <Puzzle class="size-4 shrink-0" />
+                <span class="truncate group-data-[collapsible=icon]:hidden"
+                  >Skills</span
+                >
+              </a>
+            </Sidebar.MenuButton>
+          </Sidebar.MenuItem>
+
+          <Sidebar.MenuItem>
+            <Sidebar.MenuButton
               isActive={isStoriesRoute}
               tooltipContent="Viber Stories"
             >
               <a href="/stories" class="w-full inline-flex items-center gap-2">
                 <Sparkles class="size-4 shrink-0" />
                 <span class="truncate group-data-[collapsible=icon]:hidden"
-                  >Viber Stories</span
+                  >Stories</span
                 >
               </a>
             </Sidebar.MenuButton>

@@ -8,13 +8,8 @@
 
   const pathname = $derived($page.url.pathname);
   const isGeneralRoute = $derived(pathname === "/settings");
-  const isHubRoute = $derived(
-    pathname === "/settings/skills/hub" ||
-      pathname.startsWith("/settings/skills/hub/"),
-  );
   const isSkillsRoute = $derived(
-    pathname === "/settings/skills" ||
-      (pathname.startsWith("/settings/skills/") && !isHubRoute),
+    pathname === "/settings/skills" || pathname.startsWith("/settings/skills/"),
   );
   const isChannelsRoute = $derived(
     pathname === "/settings/channels" ||
@@ -44,7 +39,7 @@
           <Sidebar.MenuItem>
             <Sidebar.MenuButton
               isActive={isSkillsRoute}
-              tooltipContent="Skills"
+              tooltipContent="Skill sources"
             >
               <a
                 href="/settings/skills"
@@ -52,7 +47,7 @@
               >
                 <Puzzle class="size-4 shrink-0" />
                 <span class="truncate group-data-[collapsible=icon]:hidden"
-                  >Skills</span
+                  >Skill sources</span
                 >
               </a>
             </Sidebar.MenuButton>

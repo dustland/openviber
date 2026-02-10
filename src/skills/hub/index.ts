@@ -32,6 +32,7 @@ export type {
   SkillSearchQuery,
   SkillSearchResult,
   SkillImportResult,
+  SkillHubProviderConfig,
   SkillHubProvider,
   SkillHubProviderType,
 } from "./types";

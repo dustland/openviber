@@ -112,6 +112,7 @@ export interface WeComConfig extends ChannelConfig {
   aesKey: string;
 }
 
+/** Discord channel configuration. */
 export interface DiscordConfig extends ChannelConfig {
   /** Discord bot token */
   botToken: string;
@@ -129,6 +130,7 @@ export interface DiscordConfig extends ChannelConfig {
   replyMode?: "reply" | "channel";
 }
 
+/** Feishu (Lark) channel configuration. */
 export interface FeishuConfig extends ChannelConfig {
   /** Feishu/Lark app ID */
   appId: string;

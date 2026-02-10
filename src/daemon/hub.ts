@@ -612,7 +612,12 @@ export class HubServer {
     const heartbeatAge =
       Date.now() - node.lastHeartbeat.getTime();
 
-    if (node.machineStatus && node.viberStatus && heartbeatAge < 60_000) {
+    if (
+      node.machineStatus &&
+      node.viberStatus &&
+      heartbeatAge < 60_000 &&
+      node.viberStatus.skillHealth
+    ) {
       // Return cached status from last heartbeat
       const status: NodeObservabilityStatus = {
         machine: node.machineStatus,

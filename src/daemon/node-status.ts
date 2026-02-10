@@ -11,6 +11,7 @@
 import * as os from "os";
 import * as fs from "fs/promises";
 import { execSync } from "child_process";
+import type { SkillHealthReport } from "../skills/health";
 
 // ==================== Types ====================
 
@@ -137,6 +138,8 @@ export interface ViberRunningStatus {
   skills: string[];
   /** Capabilities enabled */
   capabilities: string[];
+  /** Health status for installed skills (optional, on-demand) */
+  skillHealth?: SkillHealthReport;
   /** Total tasks executed since startup */
   totalTasksExecuted: number;
   /** Timestamp of last heartbeat sent */
@@ -362,6 +365,7 @@ export function collectViberRunningStatus(params: {
   runningTasks: RunningTaskInfo[];
   skills: string[];
   capabilities: string[];
+  skillHealth?: SkillHealthReport;
   totalTasksExecuted: number;
   lastHeartbeatAt?: string;
 }): ViberRunningStatus {
@@ -383,6 +387,7 @@ export function collectViberRunningStatus(params: {
     runningTasks: params.runningTasks,
     skills: params.skills,
     capabilities: params.capabilities,
+    skillHealth: params.skillHealth,
     totalTasksExecuted: params.totalTasksExecuted,
     lastHeartbeatAt: params.lastHeartbeatAt,
     collectedAt: new Date().toISOString(),
@@ -401,6 +406,7 @@ export function collectNodeStatus(params: {
   runningTasks: RunningTaskInfo[];
   skills: string[];
   capabilities: string[];
+  skillHealth?: SkillHealthReport;
   totalTasksExecuted: number;
   lastHeartbeatAt?: string;
 }): NodeObservabilityStatus {

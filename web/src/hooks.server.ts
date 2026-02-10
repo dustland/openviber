@@ -13,6 +13,7 @@ const PROTECTED_PATHS = [
   "/api/environments",
   "/api/threads",
   "/api/skills",
+  "/api/skill-hub",
   "/api/jobs",
 ];
 

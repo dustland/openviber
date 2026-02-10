@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS public.user_settings (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   skill_sources jsonb NOT NULL DEFAULT '{}',
+  channel_integrations jsonb NOT NULL DEFAULT '{}',
   primary_coding_cli text,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),

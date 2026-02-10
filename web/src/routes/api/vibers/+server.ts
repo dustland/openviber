@@ -99,7 +99,16 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       viberModel,
     );
     if (!result) {
-      return json({ error: "No node available or hub unreachable" }, { status: 503 });
+      const errMsg = "No node available or hub unreachable";
+      writeLog({
+        user_id: locals.user.id,
+        level: "error",
+        category: "activity",
+        component: "task",
+        message: errMsg,
+        metadata: { goal: goal.slice(0, 200) },
+      });
+      return json({ error: errMsg }, { status: 503 });
     }
 
     // Persist viber to Supabase so it survives hub restarts; set environment and node
@@ -138,8 +147,17 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
     return json(result, { status: 201 });
   } catch (error) {
+    const errMsg = error instanceof Error ? error.message : String(error);
     console.error("Failed to create viber:", error);
-    return json({ error: "Failed to create viber" }, { status: 500 });
+    writeLog({
+      user_id: locals.user.id,
+      level: "error",
+      category: "activity",
+      component: "task",
+      message: `Failed to create viber: ${errMsg}`,
+      metadata: { error: errMsg },
+    });
+    return json({ error: errMsg }, { status: 500 });
   }
 };
 

@@ -8,6 +8,7 @@ import {
   ensureDevNode,
 } from "$lib/server/viber-nodes";
 import { hubClient } from "$lib/server/hub-client";
+import { upsertSkillsBatch } from "$lib/server/environments";
 
 // GET /api/nodes - List user's viber nodes (with live hub status)
 export const GET: RequestHandler = async ({ locals }) => {
@@ -92,6 +93,32 @@ export const GET: RequestHandler = async ({ locals }) => {
           viber: daemon.viber,
         });
       }
+    }
+
+    // Backfill: sync node-reported skills into the account-level skills table
+    // so that pre-existing skills are registered even if never imported via hub.
+    try {
+      const allNodeSkills = hubData.nodes.flatMap((n) =>
+        (n.skills ?? []).map((s: { id?: string; name: string; description?: string }) => ({
+          skill_id: s.id || s.name,
+          name: s.name,
+          description: s.description || "",
+          source: "node" as const,
+        })),
+      );
+      if (allNodeSkills.length > 0) {
+        // Deduplicate by skill_id before upserting
+        const seen = new Set<string>();
+        const unique = allNodeSkills.filter((s) => {
+          if (seen.has(s.skill_id)) return false;
+          seen.add(s.skill_id);
+          return true;
+        });
+        void upsertSkillsBatch(locals.user.id, unique);
+      }
+    } catch (syncError) {
+      // Non-fatal: node listing succeeded, skill sync is best-effort
+      console.warn("[Nodes API] Failed to sync node skills to account:", syncError);
     }
 
     return json({ nodes: enrichedNodes });

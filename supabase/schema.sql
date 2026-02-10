@@ -417,3 +417,48 @@ DROP POLICY IF EXISTS "Users can delete own logs" ON public.activity_logs;
 CREATE POLICY "Users can delete own logs"
   ON public.activity_logs FOR DELETE
   USING ((user_id)::uuid = auth.uid());
+
+-- =============================================================================
+-- Skills (account-level skill registry)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS public.skills (
+  id         uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id    uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  skill_id   text NOT NULL,            -- e.g. "gmail", "github-pr"
+  name       text NOT NULL,            -- display name
+  description text DEFAULT '',
+  source     text,                     -- "openclaw", "github", "npm", etc.
+  version    text,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now(),
+  UNIQUE (user_id, skill_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_skills_user ON public.skills (user_id);
+ALTER TABLE public.skills ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view own skills" ON public.skills;
+CREATE POLICY "Users can view own skills"
+  ON public.skills FOR SELECT
+  USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can insert own skills" ON public.skills;
+CREATE POLICY "Users can insert own skills"
+  ON public.skills FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update own skills" ON public.skills;
+CREATE POLICY "Users can update own skills"
+  ON public.skills FOR UPDATE
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete own skills" ON public.skills;
+CREATE POLICY "Users can delete own skills"
+  ON public.skills FOR DELETE
+  USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Service role manages skills" ON public.skills;
+CREATE POLICY "Service role manages skills"
+  ON public.skills FOR ALL
+  USING (auth.role() = 'service_role');

@@ -828,3 +828,91 @@ export async function touchViberActivity(
     },
   });
 }
+
+// =============================================================================
+// Account-level skills helpers
+// =============================================================================
+
+export interface SkillRow {
+  id: string;
+  user_id: string;
+  skill_id: string;
+  name: string;
+  description: string;
+  source: string | null;
+  version: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SkillInput {
+  skill_id: string;
+  name: string;
+  description?: string;
+  source?: string;
+  version?: string;
+}
+
+/**
+ * List all skills registered for a user account.
+ */
+export async function listSkills(userId: string): Promise<SkillRow[]> {
+  try {
+    return await supabaseRequest<SkillRow[]>("skills", {
+      params: {
+        user_id: `eq.${userId}`,
+        order: "name.asc",
+      },
+    });
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Upsert a single skill for a user (insert or update on conflict).
+ */
+export async function upsertSkill(
+  userId: string,
+  skill: SkillInput,
+): Promise<void> {
+  const now = new Date().toISOString();
+  await supabaseRequest<unknown>("skills", {
+    method: "POST",
+    headers: { Prefer: "resolution=merge-duplicates" },
+    body: {
+      user_id: userId,
+      skill_id: skill.skill_id,
+      name: skill.name,
+      description: skill.description ?? "",
+      source: skill.source ?? null,
+      version: skill.version ?? null,
+      updated_at: now,
+    },
+  });
+}
+
+/**
+ * Batch-upsert multiple skills for a user (e.g. syncing from node-reported skills).
+ */
+export async function upsertSkillsBatch(
+  userId: string,
+  skills: SkillInput[],
+): Promise<void> {
+  if (skills.length === 0) return;
+  const now = new Date().toISOString();
+  const rows = skills.map((skill) => ({
+    user_id: userId,
+    skill_id: skill.skill_id,
+    name: skill.name,
+    description: skill.description ?? "",
+    source: skill.source ?? null,
+    version: skill.version ?? null,
+    updated_at: now,
+  }));
+  await supabaseRequest<unknown>("skills", {
+    method: "POST",
+    headers: { Prefer: "resolution=merge-duplicates" },
+    body: rows,
+  });
+}

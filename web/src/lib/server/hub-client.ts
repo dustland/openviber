@@ -47,6 +47,12 @@ export interface NodeSkillInfo {
   id: string;
   name: string;
   description: string;
+  /** Whether this skill is runnable on the node */
+  available: boolean;
+  /** Health check status */
+  status: "AVAILABLE" | "NOT_AVAILABLE" | "UNKNOWN";
+  /** Human-readable summary (e.g. "Missing: gh CLI") */
+  healthSummary?: string;
 }
 
 /** Summary machine resource metrics (from heartbeat) */
@@ -283,14 +289,18 @@ export const hubClient = {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || `Hub returned ${response.status}`);
+        const body = await response.json().catch(() => ({}));
+        const msg = body.error || `Hub returned ${response.status}`;
+        const err = new Error(msg) as Error & { statusCode?: number; hubError?: string };
+        err.statusCode = response.status;
+        err.hubError = body.error;
+        throw err;
       }
 
       return await response.json();
     } catch (error) {
       console.error("[HubClient] Failed to create viber:", error);
-      return null;
+      throw error;
     }
   },
 
@@ -326,14 +336,18 @@ export const hubClient = {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || `Hub returned ${response.status}`);
+        const body = await response.json().catch(() => ({}));
+        const msg = body.error || `Hub returned ${response.status}`;
+        const err = new Error(msg) as Error & { statusCode?: number; hubError?: string };
+        err.statusCode = response.status;
+        err.hubError = body.error;
+        throw err;
       }
 
       return await response.json();
     } catch (error) {
       console.error("[HubClient] Failed to send message:", error);
-      return null;
+      throw error;
     }
   },
 

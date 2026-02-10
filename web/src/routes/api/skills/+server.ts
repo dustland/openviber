@@ -1,18 +1,18 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { hubClient } from "$lib/server/hub-client";
+import { listSkills } from "$lib/server/environments";
 
 export interface SkillInfo {
   id: string;
   name: string;
   description: string;
-  usedByNodes: { id: string; name: string }[];
+  source: string | null;
+  version: string | null;
 }
 
 /**
  * GET /api/skills
- * Returns all available skills aggregated from connected nodes.
- * Each skill lists which nodes have it installed.
+ * Returns all account-level skills for the authenticated user.
  */
 export const GET: RequestHandler = async ({ locals }) => {
   if (!locals.user) {
@@ -20,33 +20,15 @@ export const GET: RequestHandler = async ({ locals }) => {
   }
 
   try {
-    const { nodes } = await hubClient.getNodes();
-    const skillMap = new Map<string, SkillInfo>();
+    const rows = await listSkills(locals.user.id);
 
-    for (const node of nodes) {
-      const nodeRef = { id: node.id, name: node.name };
-      const skills = node.skills ?? [];
-
-      for (const s of skills) {
-        const id = s.id || s.name || "unknown";
-        if (!skillMap.has(id)) {
-          skillMap.set(id, {
-            id,
-            name: s.name || id,
-            description: s.description || "",
-            usedByNodes: [],
-          });
-        }
-        const entry = skillMap.get(id)!;
-        if (!entry.usedByNodes.some((n) => n.id === node.id)) {
-          entry.usedByNodes.push(nodeRef);
-        }
-      }
-    }
-
-    const skills = Array.from(skillMap.values()).sort((a, b) =>
-      a.name.localeCompare(b.name),
-    );
+    const skills: SkillInfo[] = rows.map((row) => ({
+      id: row.skill_id,
+      name: row.name,
+      description: row.description || "",
+      source: row.source,
+      version: row.version,
+    }));
 
     return json({ skills, count: skills.length });
   } catch (error) {

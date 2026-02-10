@@ -28,6 +28,10 @@
     id: string;
     name: string;
     description: string;
+    /** Whether this skill is runnable on the node */
+    available?: boolean;
+    /** Human-readable health summary (e.g. "Missing: gh CLI") */
+    healthSummary?: string;
   }
 
   export const MODEL_OPTIONS = [
@@ -74,8 +78,6 @@
     selectedNodeId?: string | null;
     selectedEnvironmentId?: string | null;
     selectedModelId?: string;
-    /** Whether to show the node/env/model selectors row */
-    showSelectors?: boolean;
 
     // -- Snippet props --
     /** Content rendered above the input card (e.g. skills chips, session indicator) */
@@ -103,7 +105,6 @@
     selectedNodeId = $bindable(null),
     selectedEnvironmentId = $bindable(null),
     selectedModelId = $bindable(""),
-    showSelectors = true,
 
     beforeInput,
     leftAction,
@@ -124,11 +125,17 @@
   const selectedSkillCount = $derived(
     selectedSkillIds.filter((id) => skills.some((s) => s.id === id)).length,
   );
+  const hasNodeSelector = $derived(nodes.length > 0);
+  const hasEnvSelector = $derived(environments.length > 0);
   const canSend = $derived(
     !!value.trim() && !sending && !disabled,
   );
 
   function toggleSkill(skillId: string) {
+    // Prevent toggling unavailable skills
+    const skill = skills.find((s) => s.id === skillId);
+    if (skill && skill.available === false) return;
+
     if (selectedSkillIds.includes(skillId)) {
       selectedSkillIds = selectedSkillIds.filter((id) => id !== skillId);
     } else {
@@ -183,14 +190,123 @@
 
     <!-- Toolbar row (inside card) -->
     <div class="flex items-center justify-between gap-2 px-3 pb-2.5 pt-0.5">
-      <div class="flex items-center gap-0.5">
-        <!-- Model selector (always visible) -->
+      <div class="flex items-center gap-0.5 min-w-0 overflow-x-auto">
+        <!-- Node selector -->
+        {#if hasNodeSelector}
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger
+              class="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer shrink-0"
+            >
+              {#if selectedNode}
+                <span
+                  class="size-1.5 shrink-0 rounded-full"
+                  class:bg-emerald-500={selectedNode.status === "active"}
+                  class:bg-amber-500={selectedNode.status === "pending"}
+                  class:bg-zinc-400={selectedNode.status === "offline"}
+                ></span>
+                <span class="truncate max-w-[100px]">{selectedNode.name}</span>
+              {:else}
+                <Laptop class="size-3.5" />
+                <span>Node</span>
+              {/if}
+              <ChevronDown class="size-3 opacity-50" />
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Content align="start" class="w-64">
+              <DropdownMenu.Label>Select node</DropdownMenu.Label>
+              <DropdownMenu.Separator />
+              {#if nodes.length === 0}
+                <div class="px-2 py-3 text-center text-xs text-muted-foreground">
+                  No nodes registered. Go to
+                  <a href="/nodes" class="underline">Nodes</a> to add one.
+                </div>
+              {:else}
+                {#each nodes as node (node.id)}
+                  <DropdownMenu.Item
+                    onclick={() => (selectedNodeId = node.id)}
+                    class="flex items-center justify-between"
+                    disabled={node.status !== "active"}
+                  >
+                    <span class="flex items-center gap-2">
+                      <span
+                        class="size-2 shrink-0 rounded-full"
+                        class:bg-emerald-500={node.status === "active"}
+                        class:bg-amber-500={node.status === "pending"}
+                        class:bg-zinc-400={node.status === "offline"}
+                      ></span>
+                      {node.name}
+                      {#if node.status !== "active"}
+                        <span class="text-xs text-muted-foreground">({node.status})</span>
+                      {/if}
+                    </span>
+                    {#if selectedNodeId === node.id}
+                      <Check class="size-3.5 text-primary" />
+                    {/if}
+                  </DropdownMenu.Item>
+                {/each}
+              {/if}
+            </DropdownMenu.Content>
+          </DropdownMenu.Root>
+        {/if}
+
+        <!-- Environment selector -->
+        {#if hasEnvSelector}
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger
+              class="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer shrink-0"
+            >
+              <FolderGit2 class="size-3.5" />
+              {#if selectedEnvironment}
+                <span class="truncate max-w-[100px]">{selectedEnvironment.name}</span>
+              {:else}
+                <span>Env</span>
+              {/if}
+              <ChevronDown class="size-3 opacity-50" />
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Content align="start" class="w-56">
+              <DropdownMenu.Label>Select environment</DropdownMenu.Label>
+              <DropdownMenu.Separator />
+              <DropdownMenu.Item
+                onclick={() => (selectedEnvironmentId = null)}
+                class="flex items-center justify-between"
+              >
+                <span class="flex items-center gap-2">
+                  <Package class="size-4 opacity-60" />
+                  All environments
+                </span>
+                {#if selectedEnvironmentId === null}
+                  <Check class="size-3.5 text-primary" />
+                {/if}
+              </DropdownMenu.Item>
+              {#each environments as env (env.id)}
+                <DropdownMenu.Item
+                  onclick={() => (selectedEnvironmentId = env.id)}
+                  class="flex items-center justify-between"
+                >
+                  <span class="flex items-center gap-2">
+                    <FolderGit2 class="size-4 opacity-60" />
+                    {env.name}
+                  </span>
+                  {#if selectedEnvironmentId === env.id}
+                    <Check class="size-3.5 text-primary" />
+                  {/if}
+                </DropdownMenu.Item>
+              {/each}
+            </DropdownMenu.Content>
+          </DropdownMenu.Root>
+        {/if}
+
+        <!-- Separator between context selectors and model/skills -->
+        {#if hasNodeSelector || hasEnvSelector}
+          <div class="mx-0.5 h-4 w-px bg-border/60 shrink-0"></div>
+        {/if}
+
+        <!-- Model selector -->
         <DropdownMenu.Root>
           <DropdownMenu.Trigger
-            class="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer"
+            class="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer shrink-0"
           >
             <Cpu class="size-3.5" />
-            <span>{selectedModel.label}</span>
+            <span class="truncate max-w-[120px]">{selectedModel.label}</span>
             <ChevronDown class="size-3 opacity-50" />
           </DropdownMenu.Trigger>
           <DropdownMenu.Content align="start" class="w-64">
@@ -221,7 +337,7 @@
         {#if skills.length > 0}
           <DropdownMenu.Root>
             <DropdownMenu.Trigger
-              class="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer"
+              class="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer shrink-0"
             >
               <Sparkles class="size-3.5" />
               <span>Skills</span>
@@ -238,11 +354,14 @@
                 <DropdownMenu.CheckboxItem
                   checked={selectedSkillIds.includes(skill.id)}
                   onCheckedChange={() => toggleSkill(skill.id)}
+                  disabled={skill.available === false}
                   class="flex items-center gap-2"
                 >
                   <div class="min-w-0 flex-1">
-                    <span class="text-sm font-medium">{skill.name}</span>
-                    {#if skill.description}
+                    <span class="text-sm font-medium {skill.available === false ? 'opacity-50' : ''}">{skill.name}</span>
+                    {#if skill.available === false && skill.healthSummary}
+                      <p class="text-[11px] text-destructive line-clamp-1">{skill.healthSummary}</p>
+                    {:else if skill.description}
                       <p class="text-[11px] text-muted-foreground line-clamp-1">{skill.description}</p>
                     {/if}
                   </div>
@@ -256,7 +375,7 @@
       <!-- Send button -->
       <button
         type="button"
-        class="inline-flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity disabled:opacity-30"
+        class="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity disabled:opacity-30"
         onclick={() => onsubmit?.()}
         disabled={!canSend}
         title="Send"
@@ -265,123 +384,6 @@
       </button>
     </div>
   </div>
-
-  <!-- Bottom selectors row (outside card) -->
-  {#if showSelectors}
-    <div class="flex items-center justify-between gap-2 px-1">
-      <div class="flex items-center gap-0.5">
-        <!-- Node selector -->
-        <DropdownMenu.Root>
-          <DropdownMenu.Trigger
-            class="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground cursor-pointer"
-          >
-            {#if selectedNode}
-              <span
-                class="size-1.5 shrink-0 rounded-full"
-                class:bg-emerald-500={selectedNode.status === "active"}
-                class:bg-amber-500={selectedNode.status === "pending"}
-                class:bg-zinc-400={selectedNode.status === "offline"}
-              ></span>
-              <span>{selectedNode.name}</span>
-            {:else}
-              <Laptop class="size-3 opacity-50" />
-              <span>Node</span>
-            {/if}
-            <ChevronDown class="size-2.5 opacity-40" />
-          </DropdownMenu.Trigger>
-          <DropdownMenu.Content align="start" class="w-64">
-            <DropdownMenu.Label>Select node</DropdownMenu.Label>
-            <DropdownMenu.Separator />
-            {#if nodes.length === 0}
-              <div class="px-2 py-3 text-center text-xs text-muted-foreground">
-                No nodes registered. Go to
-                <a href="/nodes" class="underline">Nodes</a> to add one.
-              </div>
-            {:else}
-              {#each nodes as node (node.id)}
-                <DropdownMenu.Item
-                  onclick={() => (selectedNodeId = node.id)}
-                  class="flex items-center justify-between"
-                  disabled={node.status !== "active"}
-                >
-                  <span class="flex items-center gap-2">
-                    <span
-                      class="size-2 shrink-0 rounded-full"
-                      class:bg-emerald-500={node.status === "active"}
-                      class:bg-amber-500={node.status === "pending"}
-                      class:bg-zinc-400={node.status === "offline"}
-                    ></span>
-                    {node.name}
-                    {#if node.status !== "active"}
-                      <span class="text-xs text-muted-foreground">({node.status})</span>
-                    {/if}
-                  </span>
-                  {#if selectedNodeId === node.id}
-                    <Check class="size-3.5 text-primary" />
-                  {/if}
-                </DropdownMenu.Item>
-              {/each}
-            {/if}
-          </DropdownMenu.Content>
-        </DropdownMenu.Root>
-
-        <!-- Environment selector -->
-        <DropdownMenu.Root>
-          <DropdownMenu.Trigger
-            class="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground cursor-pointer"
-          >
-            {#if selectedEnvironment}
-              <FolderGit2 class="size-3 opacity-50" />
-              <span>{selectedEnvironment.name}</span>
-            {:else}
-              <FolderGit2 class="size-3 opacity-50" />
-              <span>Environment</span>
-            {/if}
-            <ChevronDown class="size-2.5 opacity-40" />
-          </DropdownMenu.Trigger>
-          <DropdownMenu.Content align="start" class="w-56">
-            <DropdownMenu.Label>Select environment</DropdownMenu.Label>
-            <DropdownMenu.Separator />
-            <DropdownMenu.Item
-              onclick={() => (selectedEnvironmentId = null)}
-              class="flex items-center justify-between"
-            >
-              <span class="flex items-center gap-2">
-                <Package class="size-4 opacity-60" />
-                All environments
-              </span>
-              {#if selectedEnvironmentId === null}
-                <Check class="size-3.5 text-primary" />
-              {/if}
-            </DropdownMenu.Item>
-            {#each environments as env (env.id)}
-              <DropdownMenu.Item
-                onclick={() => (selectedEnvironmentId = env.id)}
-                class="flex items-center justify-between"
-              >
-                <span class="flex items-center gap-2">
-                  <FolderGit2 class="size-4 opacity-60" />
-                  {env.name}
-                </span>
-                {#if selectedEnvironmentId === env.id}
-                  <Check class="size-3.5 text-primary" />
-                {/if}
-              </DropdownMenu.Item>
-            {/each}
-          </DropdownMenu.Content>
-        </DropdownMenu.Root>
-      </div>
-
-      <!-- Status hint -->
-      <div class="text-[11px] text-muted-foreground/50">
-        {#if !selectedNode && nodes.length > 0}
-          <span class="italic">pick a node</span>
-        {:else if selectedNode && selectedNode.status !== "active"}
-          <span class="italic text-amber-500/70">{selectedNode.status}</span>
-        {/if}
-      </div>
-    </div>
-  {/if}
 </div>
 
 <style>

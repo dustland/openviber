@@ -136,8 +136,11 @@ function eventMessage(e: HubEvent): string {
       return `Tool result: ${e.event?.toolName || "unknown"}`;
     case "text-delta":
       return "Streaming text...";
-    case "error":
-      return `Error: ${e.event?.message || e.event?.error || "unknown"}`;
+    case "error": {
+      const errMsg = (e.event?.message as string) || (e.event?.error as string) || "unknown";
+      const errModel = e.event?.model as string | undefined;
+      return errModel ? `Error [${errModel}]: ${errMsg}` : `Error: ${errMsg}`;
+    }
     default:
       return `Event: ${kind || "unknown"}`;
   }

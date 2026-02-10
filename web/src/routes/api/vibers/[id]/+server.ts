@@ -2,7 +2,7 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { hubClient } from "$lib/server/hub-client";
 import { getSettingsForUser } from "$lib/server/user-settings";
-import { getViberSkills } from "$lib/server/environments";
+import { getViberSkills, listSkills } from "$lib/server/environments";
 import { supabaseRequest } from "$lib/server/supabase-rest";
 import { writeLog } from "$lib/server/logs";
 
@@ -13,10 +13,10 @@ export const GET: RequestHandler = async ({ params, locals }) => {
   }
 
   try {
-    const [viber, { nodes }, enabledSkills] = await Promise.all([
+    const [viber, enabledSkills, accountSkillRows] = await Promise.all([
       hubClient.getViber(params.id),
-      hubClient.getNodes(),
       getViberSkills(params.id),
+      listSkills(locals.user.id),
     ]);
 
     if (!viber) {
@@ -29,12 +29,11 @@ export const GET: RequestHandler = async ({ params, locals }) => {
       });
     }
 
-    // Resolve available skills from the node hosting this viber
-    const node = nodes.find((n) => n.nodeId === viber.nodeId);
-    const skills = (node?.skills ?? []).map((s) => ({
-      id: s.id || s.name,
-      name: s.name,
-      description: s.description,
+    // Use account-level skills as the full available list
+    const skills = accountSkillRows.map((row) => ({
+      id: row.skill_id,
+      name: row.name,
+      description: row.description || "",
     }));
 
     return json({
@@ -78,13 +77,33 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
     });
 
     if (!result) {
-      return json({ error: "Failed to create viber" }, { status: 500 });
+      const errMsg = "Failed to create viber (no response from hub)";
+      writeLog({
+        user_id: locals.user.id,
+        level: "error",
+        category: "activity",
+        component: "task",
+        message: errMsg,
+        viber_id: params.id,
+        metadata: { goal: goal.slice(0, 200) },
+      });
+      return json({ error: errMsg }, { status: 500 });
     }
 
     return json(result, { status: 201 });
   } catch (error) {
+    const errMsg = error instanceof Error ? error.message : String(error);
     console.error("Failed to submit to viber:", error);
-    return json({ error: "Failed to submit to viber" }, { status: 500 });
+    writeLog({
+      user_id: locals.user.id,
+      level: "error",
+      category: "activity",
+      component: "task",
+      message: `Failed to submit to viber: ${errMsg}`,
+      viber_id: params.id,
+      metadata: { error: errMsg },
+    });
+    return json({ error: errMsg }, { status: 500 });
   }
 };
 

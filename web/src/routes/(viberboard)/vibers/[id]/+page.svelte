@@ -364,15 +364,19 @@
     id: string;
     name: string;
     description: string;
+    available?: boolean;
+    healthSummary?: string;
   }
 
   interface Viber {
     id: string;
     name: string;
+    nodeId?: string | null;
+    nodeName?: string | null;
     platform: string | null;
     version: string | null;
     capabilities: string[] | null;
-    /** All skills available on the node */
+    /** All skills available in the account */
     skills?: ViberSkill[] | null;
     /** Skills currently enabled for this viber (persisted in DB) */
     enabledSkills?: string[] | null;
@@ -384,6 +388,18 @@
       runningTasks: number;
     };
     environmentId?: string | null;
+  }
+
+  interface ComposerNodeInfo {
+    id: string;
+    name: string;
+    node_id: string | null;
+    status: "pending" | "active" | "offline";
+  }
+
+  interface ComposerEnvInfo {
+    id: string;
+    name: string;
   }
 
   interface Message {
@@ -459,6 +475,10 @@
   let inputValue = $state("");
   let selectedModelId = $state("");
   let selectedSkillIds = $state<string[]>([]);
+  let composerNodes = $state<ComposerNodeInfo[]>([]);
+  let composerEnvironments = $state<ComposerEnvInfo[]>([]);
+  let selectedNodeId = $state<string | null>(null);
+  let selectedEnvironmentId = $state<string | null>(null);
   let sending = $state(false);
   let messagesContainer = $state<HTMLDivElement | null>(null);
   let inputEl = $state<HTMLTextAreaElement | null>(null);
@@ -609,6 +629,15 @@
         // Initialize selected skills from persisted enabled skills (only on first load)
         if (data.enabledSkills && selectedSkillIds.length === 0) {
           selectedSkillIds = data.enabledSkills;
+        }
+        // Sync node/environment selection from viber data (first load)
+        if (data.nodeId && !selectedNodeId) {
+          // Match by node_id (daemon ID) since the viber's nodeId is the daemon's ID
+          const match = composerNodes.find((n) => n.node_id === data.nodeId || n.id === data.nodeId);
+          if (match) selectedNodeId = match.id;
+        }
+        if (data.environmentId && !selectedEnvironmentId) {
+          selectedEnvironmentId = data.environmentId;
         }
         // Surface task-level errors from the hub/daemon
         if (data.status === "error" && data.error) {
@@ -826,17 +855,44 @@
     void sendMessage(pendingTask);
   });
 
-  onMount(() => {
-    fetchViber();
-    // Load user's default model preference
-    fetch("/api/settings")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
+  async function fetchComposerContext() {
+    try {
+      const [nodesRes, envsRes, settingsRes] = await Promise.all([
+        fetch("/api/nodes"),
+        fetch("/api/environments"),
+        fetch("/api/settings"),
+      ]);
+
+      if (nodesRes.ok) {
+        const data = await nodesRes.json();
+        composerNodes = (data.nodes ?? []).map((n: any) => ({
+          id: n.id,
+          name: n.name,
+          node_id: n.node_id ?? n.id,
+          status: n.status ?? "offline",
+        }));
+      }
+      if (envsRes.ok) {
+        const data = await envsRes.json();
+        composerEnvironments = (data.environments ?? []).map((e: any) => ({
+          id: e.id,
+          name: e.name,
+        }));
+      }
+      if (settingsRes.ok) {
+        const data = await settingsRes.json();
         if (data?.chatModel && !selectedModelId) {
           selectedModelId = data.chatModel;
         }
-      })
-      .catch(() => {});
+      }
+    } catch (_) {
+      /* ignore */
+    }
+  }
+
+  onMount(() => {
+    fetchViber();
+    fetchComposerContext();
     const interval = setInterval(fetchViber, 5000);
     return () => clearInterval(interval);
   });
@@ -1109,12 +1165,15 @@
           bind:value={inputValue}
           bind:inputElement={inputEl}
           bind:selectedModelId
+          bind:selectedNodeId
+          bind:selectedEnvironmentId
           placeholder={viber?.nodeConnected === true
             ? "Send a task or command..."
             : "Node is offline"}
           disabled={viber?.nodeConnected !== true}
           {sending}
-          showSelectors={false}
+          nodes={composerNodes}
+          environments={composerEnvironments}
           skills={viber?.skills ?? []}
           bind:selectedSkillIds
           onsubmit={() => sendMessage()}

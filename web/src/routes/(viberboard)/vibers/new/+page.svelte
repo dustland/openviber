@@ -4,19 +4,13 @@
   import { goto } from "$app/navigation";
   import { getVibersStore } from "$lib/stores/vibers";
   import {
-    Check,
-    ChevronDown,
-    FolderGit2,
-    GitBranch,
-    Laptop,
     Sparkles,
   } from "@lucide/svelte";
   import * as Dialog from "$lib/components/ui/dialog";
-  import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import ChatComposer from "$lib/components/chat-composer.svelte";
   import type { Intent } from "$lib/data/intents";
 
-  interface NodeSkill {
+  interface AccountSkill {
     id: string;
     name: string;
     description: string;
@@ -27,7 +21,6 @@
     name: string;
     node_id: string | null;
     status: "pending" | "active" | "offline";
-    skills?: NodeSkill[];
   }
 
   interface SidebarEnvironment {
@@ -49,6 +42,7 @@
 
   let nodes = $state<ViberNode[]>([]);
   let environments = $state<SidebarEnvironment[]>([]);
+  let accountSkills = $state<AccountSkill[]>([]);
   let channelOptions = $state<ChannelOption[]>([]);
   let selectedChannelIds = $state<string[]>([]);
   let selectedEnvironmentId = $state<string | null>(null);
@@ -71,9 +65,6 @@
   const previewIntents = $derived(intents.slice(0, 3));
 
   // Derived: selected objects
-  const selectedEnvironment = $derived(
-    environments.find((e) => e.id === selectedEnvironmentId) ?? null,
-  );
   const selectedNode = $derived(
     nodes.find((n) => n.id === selectedNodeId) ?? null,
   );
@@ -81,15 +72,6 @@
     selectedIntentId
       ? intents.find((i) => i.id === selectedIntentId) ?? null
       : null,
-  );
-
-  // Skills from the selected node (for the skill picker in ChatComposer)
-  const nodeSkills = $derived(
-    (selectedNode?.skills ?? []).map((s) => ({
-      id: s.id || s.name,
-      name: s.name,
-      description: s.description,
-    })),
   );
 
   // Only active nodes (with a daemon connected) can receive tasks
@@ -111,10 +93,11 @@
 
   async function fetchData() {
     try {
-      const [nodesRes, envsRes, settingsRes] = await Promise.all([
+      const [nodesRes, envsRes, settingsRes, skillsRes] = await Promise.all([
         fetch("/api/nodes"),
         fetch("/api/environments"),
         fetch("/api/settings"),
+        fetch("/api/skills"),
       ]);
 
       if (nodesRes.ok) {
@@ -124,6 +107,14 @@
       if (envsRes.ok) {
         const data = await envsRes.json();
         environments = data.environments ?? [];
+      }
+      if (skillsRes.ok) {
+        const data = await skillsRes.json();
+        accountSkills = (data.skills ?? []).map((s: { id: string; name: string; description?: string }) => ({
+          id: s.id,
+          name: s.name,
+          description: s.description || "",
+        }));
       }
       if (settingsRes.ok) {
         const data = await settingsRes.json();
@@ -287,145 +278,6 @@
         </p>
       </div>
 
-      <!-- Environment & Node selector -->
-      <div class="mb-8 grid w-full grid-cols-2 gap-3">
-        <!-- Environment card -->
-        <DropdownMenu.Root>
-          <DropdownMenu.Trigger
-            class="flex w-full cursor-pointer items-start gap-3 rounded-xl border p-4 text-left transition-all hover:border-primary/30 hover:bg-accent/40 {selectedEnvironment ? 'border-border bg-card' : 'border-dashed border-border/60 bg-card/50'}"
-          >
-            <div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground">
-              <FolderGit2 class="size-5" />
-            </div>
-            <div class="min-w-0 flex-1">
-              <p class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                Environment
-              </p>
-              {#if selectedEnvironment}
-                <p class="mt-0.5 text-sm font-medium text-foreground truncate">
-                  {selectedEnvironment.name}
-                </p>
-                {#if selectedEnvironment.repoOrg && selectedEnvironment.repoName}
-                  <p class="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground truncate">
-                    <GitBranch class="size-3 shrink-0" />
-                    {selectedEnvironment.repoOrg}/{selectedEnvironment.repoName}{#if selectedEnvironment.repoBranch}:{selectedEnvironment.repoBranch}{/if}
-                  </p>
-                {:else if selectedEnvironment.description}
-                  <p class="mt-0.5 text-xs text-muted-foreground truncate">
-                    {selectedEnvironment.description}
-                  </p>
-                {/if}
-              {:else}
-                <p class="mt-0.5 text-sm text-muted-foreground/70">
-                  All environments
-                </p>
-              {/if}
-            </div>
-            <ChevronDown class="mt-1 size-4 shrink-0 text-muted-foreground/50" />
-          </DropdownMenu.Trigger>
-          <DropdownMenu.Content align="start" class="w-72">
-            <DropdownMenu.Label>Select environment</DropdownMenu.Label>
-            <DropdownMenu.Separator />
-            <DropdownMenu.Item
-              onclick={() => (selectedEnvironmentId = null)}
-              class="flex items-center justify-between"
-            >
-              <span class="text-sm">All environments</span>
-              {#if selectedEnvironmentId === null}
-                <Check class="size-3.5 text-primary" />
-              {/if}
-            </DropdownMenu.Item>
-            {#each environments as env (env.id)}
-              <DropdownMenu.Item
-                onclick={() => (selectedEnvironmentId = env.id)}
-                class="flex items-center justify-between"
-              >
-                <div class="min-w-0">
-                  <p class="text-sm truncate">{env.name}</p>
-                  {#if env.repoOrg && env.repoName}
-                    <p class="text-[11px] text-muted-foreground truncate">
-                      {env.repoOrg}/{env.repoName}
-                    </p>
-                  {/if}
-                </div>
-                {#if selectedEnvironmentId === env.id}
-                  <Check class="size-3.5 shrink-0 text-primary" />
-                {/if}
-              </DropdownMenu.Item>
-            {/each}
-          </DropdownMenu.Content>
-        </DropdownMenu.Root>
-
-        <!-- Node card -->
-        <DropdownMenu.Root>
-          <DropdownMenu.Trigger
-            class="flex w-full cursor-pointer items-start gap-3 rounded-xl border p-4 text-left transition-all hover:border-primary/30 hover:bg-accent/40 {selectedNode ? 'border-border bg-card' : 'border-dashed border-border/60 bg-card/50'}"
-          >
-            <div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground">
-              <Laptop class="size-5" />
-            </div>
-            <div class="min-w-0 flex-1">
-              <p class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                Node
-              </p>
-              {#if selectedNode}
-                <p class="mt-0.5 flex items-center gap-1.5 text-sm font-medium text-foreground truncate">
-                  <span
-                    class="size-2 shrink-0 rounded-full"
-                    class:bg-emerald-500={selectedNode.status === "active"}
-                    class:bg-amber-500={selectedNode.status === "pending"}
-                    class:bg-zinc-400={selectedNode.status === "offline"}
-                  ></span>
-                  {selectedNode.name}
-                </p>
-                <p class="mt-0.5 text-xs text-muted-foreground capitalize">
-                  {selectedNode.status}
-                </p>
-              {:else}
-                <p class="mt-0.5 text-sm text-muted-foreground/70">
-                  Select a node...
-                </p>
-              {/if}
-            </div>
-            <ChevronDown class="mt-1 size-4 shrink-0 text-muted-foreground/50" />
-          </DropdownMenu.Trigger>
-          <DropdownMenu.Content align="start" class="w-72">
-            <DropdownMenu.Label>Select node</DropdownMenu.Label>
-            <DropdownMenu.Separator />
-            {#if nodes.length === 0}
-              <div class="px-2 py-3 text-center text-xs text-muted-foreground">
-                No nodes registered. Go to
-                <a href="/nodes" class="underline">Nodes</a> to add one.
-              </div>
-            {:else}
-              {#each nodes as node (node.id)}
-                <DropdownMenu.Item
-                  onclick={() => (selectedNodeId = node.id)}
-                  class="flex items-center justify-between"
-                  disabled={node.status !== "active"}
-                >
-                  <span class="flex items-center gap-2">
-                    <span
-                      class="size-2 shrink-0 rounded-full"
-                      class:bg-emerald-500={node.status === "active"}
-                      class:bg-amber-500={node.status === "pending"}
-                      class:bg-zinc-400={node.status === "offline"}
-                    ></span>
-                    {node.name}
-                    {#if node.status !== "active"}
-                      <span class="text-xs text-muted-foreground">({node.status})</span>
-                    {/if}
-                  </span>
-                  {#if selectedNodeId === node.id}
-                    <Check class="size-3.5 text-primary" />
-                  {/if}
-                </DropdownMenu.Item>
-              {/each}
-            {/if}
-          </DropdownMenu.Content>
-        </DropdownMenu.Root>
-      </div>
-
       <!-- Start with Intents -->
       <div class="w-full">
         <div class="flex items-center justify-between mb-4">
@@ -513,9 +365,8 @@
         sending={creating}
         {nodes}
         {environments}
-        skills={nodeSkills}
+        skills={accountSkills}
         bind:selectedSkillIds
-        showSelectors={true}
         onsubmit={() => void submitTask()}
       />
     </div>

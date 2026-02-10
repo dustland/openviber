@@ -12,6 +12,7 @@ import {
   scoreForRelevance,
   slugifyCategory,
 } from "$lib/server/openclaw-curated";
+import { upsertSkill } from "$lib/server/environments";
 
 const PROVIDERS = [
   "openclaw",
@@ -271,6 +272,25 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         { error: result.message, details: result.error },
         { status: 502 },
       );
+    }
+
+    // Register the imported skill in the account-level skills table
+    try {
+      // Try to get metadata from the curated list
+      const curated = await loadCuratedOpenClawSkills();
+      const match = curated.find(
+        (s) => s.id === skillId || s.importId === skillId || s.name?.toLowerCase() === skillId.toLowerCase(),
+      );
+      await upsertSkill(locals.user.id, {
+        skill_id: result.skillId || skillId,
+        name: match?.name || result.skillId || skillId,
+        description: match?.description || "",
+        source: source,
+        version: match?.version,
+      });
+    } catch (syncError) {
+      // Non-fatal: import succeeded, but skill table sync failed
+      console.warn("[Skill Hub API] Failed to sync skill to account:", syncError);
     }
 
     return json({

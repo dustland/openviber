@@ -52,6 +52,12 @@ export interface ViberSkillInfo {
   id: string;
   name: string;
   description: string;
+  /** Whether this skill is runnable on this node */
+  available: boolean;
+  /** Health check status */
+  status: "AVAILABLE" | "NOT_AVAILABLE" | "UNKNOWN";
+  /** Human-readable summary of health check results (e.g. "Missing: gh CLI") */
+  healthSummary?: string;
 }
 
 export interface ViberInfo {
@@ -74,6 +80,8 @@ export interface ViberStatus {
   machine?: MachineResourceStatus;
   /** Viber daemon running status (tasks, skills, process info) */
   viberStatus?: ViberNodeRunningStatus;
+  /** Extended skill info with availability (updated periodically) */
+  skills?: ViberSkillInfo[];
 }
 
 // Server -> Viber messages (messages = full chat history from Viber Board for context)
@@ -328,16 +336,37 @@ export class ViberController extends EventEmitter {
       capabilities.push("desktop");
     }
 
-    let skills: { id: string; name: string; description: string }[] = [];
+    let skills: ViberSkillInfo[] = [];
     try {
       const { defaultRegistry } = await import("../skills/registry");
       await defaultRegistry.loadAll();
       const all = defaultRegistry.getAllSkills();
-      skills = all.map((s) => ({
+
+      // Run health checks to determine skill availability
+      const { checkSkillsHealth } = await import("../skills/health");
+      const skillInfos = all.map((s) => ({
         id: s.id,
         name: s.metadata.name || s.id,
         description: s.metadata.description || "",
       }));
+      const healthReport = await checkSkillsHealth(skillInfos);
+      // Cache the report so heartbeat can reuse it
+      this.skillHealthCache = healthReport;
+      this.skillHealthCachedAt = Date.now();
+
+      const healthMap = new Map(healthReport.skills.map((r) => [r.id, r]));
+
+      skills = all.map((s) => {
+        const health = healthMap.get(s.id);
+        return {
+          id: s.id,
+          name: s.metadata.name || s.id,
+          description: s.metadata.description || "",
+          available: health?.available ?? false,
+          status: health?.status ?? "UNKNOWN",
+          healthSummary: health?.summary,
+        };
+      });
     } catch (err) {
       this.log.warn("Could not load skills for capabilities", { error: String(err) });
     }
@@ -562,14 +591,16 @@ export class ViberController extends EventEmitter {
           taskId, goal, outcome: "stopped",
         });
       } else {
-        taskLog.error("Task execution error", { error: error.message });
+        const model = (runtime as any)._resolvedModel || options?.model || "default";
+        taskLog.error("Task execution error", { error: error.message, model });
         this.send({
           type: "task:error",
           taskId,
           error: error.message,
+          model,
         });
         await appendDailyMemory(this.config.viberId, {
-          taskId, goal, outcome: "error", details: error.message,
+          taskId, goal, outcome: "error", details: `[model: ${model}] ${error.message}`,
         });
       }
     } finally {
@@ -609,10 +640,19 @@ export class ViberController extends EventEmitter {
       runtime.messageHistory
     );
 
+    // Store the resolved model on the runtime so error handlers can reference it
+    (runtime as any)._resolvedModel = `${agent.provider}/${agent.model}`;
+
     // Pipe the AI SDK UIMessageStream SSE bytes through to the hub,
     // so the frontend can consume them with @ai-sdk/svelte Chat class.
     const response = streamResult.toUIMessageStreamResponse();
     const body = response.body;
+
+    // Capture any stream-level error from the AI SDK (e.g. APICallError).
+    // The SDK embeds these as `{"type":"error","errorText":"..."}` SSE chunks
+    // before closing the stream, which means `streamResult.text` rejects with
+    // a generic "No output generated" error and the real message is lost.
+    let streamErrorText: string | undefined;
 
     if (body) {
       const reader = body.getReader();
@@ -623,6 +663,14 @@ export class ViberController extends EventEmitter {
           if (done) break;
           const chunk = decoder.decode(value, { stream: true });
           if (chunk) {
+            // Detect error chunks from the AI SDK UI message stream
+            // Format: data: {"type":"error","errorText":"..."}
+            if (!streamErrorText) {
+              const errorMatch = chunk.match(/"type"\s*:\s*"error"\s*,\s*"errorText"\s*:\s*"([^"]*)"/);
+              if (errorMatch) {
+                streamErrorText = errorMatch[1];
+              }
+            }
             this.send({
               type: "task:stream-chunk",
               taskId: runtime.taskId,
@@ -638,8 +686,21 @@ export class ViberController extends EventEmitter {
       }
     }
 
-    // Await the final text for persistence in message history
-    const finalText = await streamResult.text;
+    // Await the final text for persistence in message history.
+    // If the stream contained an error, `streamResult.text` will reject with
+    // a generic NoOutputGeneratedError. In that case, re-throw with the
+    // actual error captured from the stream so callers see the real reason.
+    let finalText: string;
+    try {
+      finalText = await streamResult.text;
+    } catch (textError: any) {
+      if (streamErrorText) {
+        const enriched = new Error(streamErrorText);
+        enriched.name = textError?.name || "StreamError";
+        throw enriched;
+      }
+      throw textError;
+    }
 
     runtime.running = false;
     runtime.messageHistory.push({ role: "assistant", content: finalText });
@@ -732,6 +793,36 @@ export class ViberController extends EventEmitter {
       status.viber.skillHealth = report;
     }
     this.send({ type: "status:report", status });
+  }
+
+  /**
+   * Build extended skill info array with availability from the cached health report.
+   * Uses the cached report (refreshes if stale) to annotate each loaded skill.
+   */
+  private async buildSkillsWithHealth(): Promise<ViberSkillInfo[]> {
+    try {
+      const { defaultRegistry } = await import("../skills/registry");
+      const all = defaultRegistry.getAllSkills();
+      const report = await this.getSkillHealthReport();
+      const healthMap = report
+        ? new Map(report.skills.map((r) => [r.id, r]))
+        : new Map();
+
+      return all.map((s) => {
+        const health = healthMap.get(s.id);
+        return {
+          id: s.id,
+          name: s.metadata.name || s.id,
+          description: s.metadata.description || "",
+          available: health?.available ?? false,
+          status: (health?.status ?? "UNKNOWN") as ViberSkillInfo["status"],
+          healthSummary: health?.summary,
+        };
+      });
+    } catch (err) {
+      this.log.warn("Could not build skills with health info", { error: String(err) });
+      return [];
+    }
   }
 
   private async getSkillHealthReport(): Promise<SkillHealthReport | undefined> {
@@ -848,7 +939,7 @@ export class ViberController extends EventEmitter {
 
   private startHeartbeat(): void {
     const interval = this.config.heartbeatInterval || 30000;
-    this.heartbeatTimer = setInterval(() => {
+    this.heartbeatTimer = setInterval(async () => {
       const machineStatus = collectMachineResourceStatus();
       const viberStatus = collectViberRunningStatus({
         viberId: this.config.viberId,
@@ -863,6 +954,9 @@ export class ViberController extends EventEmitter {
         lastHeartbeatAt: this.lastHeartbeatAt,
       });
 
+      // Build extended skill info from cached health report
+      const skillsWithHealth = await this.buildSkillsWithHealth();
+
       const status: ViberStatus = {
         platform: process.platform,
         uptime: process.uptime(),
@@ -870,6 +964,7 @@ export class ViberController extends EventEmitter {
         runningTasks: this.runningTasks.size,
         machine: machineStatus,
         viberStatus,
+        skills: skillsWithHealth.length > 0 ? skillsWithHealth : undefined,
       };
 
       this.lastHeartbeatAt = new Date().toISOString();

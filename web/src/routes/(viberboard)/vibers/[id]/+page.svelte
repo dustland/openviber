@@ -13,20 +13,17 @@
   import {
     AlertCircle,
     CheckCircle2,
-    ChevronDown,
     ChevronRight,
     CornerDownLeft,
     Cpu,
     LoaderCircle,
     MessageSquare,
     RefreshCw,
-    Settings2,
     Sparkles,
     TerminalSquare,
     X,
   } from "@lucide/svelte";
   import { marked } from "marked";
-  import { Button } from "$lib/components/ui/button";
   import ChatComposer from "$lib/components/chat-composer.svelte";
   import * as Resizable from "$lib/components/ui/resizable";
   import * as Sheet from "$lib/components/ui/sheet";
@@ -375,7 +372,10 @@
     platform: string | null;
     version: string | null;
     capabilities: string[] | null;
+    /** All skills available on the node */
     skills?: ViberSkill[] | null;
+    /** Skills currently enabled for this viber (persisted in DB) */
+    enabledSkills?: string[] | null;
     /** Connection status of the node hosting this viber; null if no node */
     nodeConnected: boolean | null;
     runningTasks: string[];
@@ -458,24 +458,10 @@
   let loading = $state(true);
   let inputValue = $state("");
   let selectedModelId = $state("");
+  let selectedSkillIds = $state<string[]>([]);
   let sending = $state(false);
   let messagesContainer = $state<HTMLDivElement | null>(null);
   let inputEl = $state<HTMLTextAreaElement | null>(null);
-  let configLoading = $state(true);
-  let configSaving = $state(false);
-  let configError = $state<string | null>(null);
-  let configFile = $state<string | null>(null);
-  let configuredSkills = $state<string[]>([]);
-  let skillOptions = $state<string[]>([]);
-  let showConfigDialog = $state(false);
-
-  // Open config panel when navigating with ?config=1 (e.g. from sidebar "Configure")
-  $effect(() => {
-    if ($page.url.searchParams.get("config") === "1" && $page.params.id) {
-      showConfigDialog = true;
-    }
-  });
-
   // Error feedback for failed tasks / API errors
   let chatError = $state<string | null>(null);
 
@@ -620,6 +606,10 @@
       if (response.ok) {
         const data = await response.json();
         viber = data;
+        // Initialize selected skills from persisted enabled skills (only on first load)
+        if (data.enabledSkills && selectedSkillIds.length === 0) {
+          selectedSkillIds = data.enabledSkills;
+        }
         // Surface task-level errors from the hub/daemon
         if (data.status === "error" && data.error) {
           chatError = data.error;
@@ -637,62 +627,6 @@
       goto("/");
     } finally {
       loading = false;
-    }
-  }
-
-  async function fetchAgentConfig(viberId: string) {
-    configLoading = true;
-    configError = null;
-    try {
-      const response = await fetch(`/api/vibers/${viberId}/config`);
-      const payload = await response.json();
-      if (!response.ok) {
-        configError = payload.error || "Failed to load agent config.";
-        return;
-      }
-      configFile = payload.configFile ?? null;
-      configuredSkills = payload.skills ?? [];
-      skillOptions = payload.skillOptions ?? [];
-    } catch (error) {
-      console.error("Failed to fetch agent config:", error);
-      configError = "Failed to load agent config.";
-    } finally {
-      configLoading = false;
-    }
-  }
-
-  function toggleConfiguredSkill(skillId: string) {
-    if (configuredSkills.includes(skillId)) {
-      configuredSkills = configuredSkills.filter((skill) => skill !== skillId);
-      return;
-    }
-    configuredSkills = [...configuredSkills, skillId];
-  }
-
-  async function saveAgentConfig() {
-    if (!viber) return;
-    configSaving = true;
-    configError = null;
-    try {
-      const response = await fetch(`/api/vibers/${viber.id}/config`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          skills: configuredSkills,
-        }),
-      });
-
-      const payload = await response.json();
-      if (!response.ok || !payload.ok) {
-        throw new Error(payload.error || "Failed to save agent config.");
-      }
-
-      configuredSkills = payload.skills ?? configuredSkills;
-    } catch (error) {
-      configError =
-        error instanceof Error ? error.message : "Failed to save agent config.";
-    } finally {
-      configSaving = false;
     }
   }
 
@@ -721,7 +655,10 @@
       chat = new Chat({
         transport: new DefaultChatTransport({
           api: `/api/vibers/${viber.id}/chat`,
-          ...(selectedModelId ? { body: { model: selectedModelId } } : {}),
+          body: {
+            ...(selectedModelId ? { model: selectedModelId } : {}),
+            ...(selectedSkillIds.length > 0 ? { skills: selectedSkillIds } : {}),
+          },
         }),
         // Seed with existing DB messages as initial messages
         messages: dbMessages.map((m) => ({
@@ -791,10 +728,6 @@
     }
   }
 
-  function insertSkillTemplate(skill: ViberSkill) {
-    inputValue = `Use ${skill.name} to `;
-    inputEl?.focus();
-  }
 
   // Derived: build activity steps from tool calls in the message stream
   let activitySteps = $derived.by((): ActivityStep[] => {
@@ -895,9 +828,6 @@
 
   onMount(() => {
     fetchViber();
-    if ($page.params.id) {
-      fetchAgentConfig($page.params.id);
-    }
     // Load user's default model preference
     fetch("/api/settings")
       .then((res) => (res.ok ? res.json() : null))
@@ -935,12 +865,13 @@
 <div
   class="chat-shell flex-1 flex w-full min-w-0 flex-col min-h-0 overflow-hidden"
 >
+  {#key toolOutputEntries.length > 0}
   <Resizable.PaneGroup
     direction="horizontal"
     class="flex-1 min-h-0 min-w-0 w-full overflow-hidden"
   >
     <Resizable.Pane
-      defaultSize={55}
+      defaultSize={toolOutputEntries.length > 0 ? 55 : 100}
       minSize={35}
       class="min-h-0 min-w-0 overflow-hidden flex flex-col"
     >
@@ -1048,25 +979,6 @@
                 </div>
               </button>
 
-              {#if viber.skills && viber.skills.length > 0}
-                <div class="mt-2 pt-2 border-t border-border/50">
-                  <p class="text-xs text-muted-foreground mb-2 px-1">
-                    Available skills:
-                  </p>
-                  <div class="flex flex-wrap gap-1.5">
-                    {#each viber.skills as skill}
-                      <button
-                        type="button"
-                        class="rounded-full border border-border bg-muted/40 px-2.5 py-1 text-[11px] text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                        onclick={() => insertSkillTemplate(skill)}
-                        title={skill.description}
-                      >
-                        {skill.name}
-                      </button>
-                    {/each}
-                  </div>
-                </div>
-              {/if}
             </div>
           </div>
         {:else}
@@ -1092,7 +1004,7 @@
                       <RefreshCw class="size-3.5" />
                     </button>
                     <div
-                      class="user-bubble min-w-0 max-w-[85%] sm:max-w-[75%] rounded-2xl px-4 py-3 text-foreground"
+                      class="user-bubble min-w-0 max-w-[95%] sm:max-w-[90%] rounded-2xl px-4 py-3 text-foreground"
                     >
                       {#each message.parts as part}
                         {#if part.type === "text" && (part as any).text}
@@ -1197,16 +1109,14 @@
           bind:value={inputValue}
           bind:inputElement={inputEl}
           bind:selectedModelId
-          placeholder={configError
-            ? "Agent config missing — run openviber onboard first"
-            : viber?.nodeConnected === true
-              ? "Send a task or command..."
-              : "Node is offline"}
-          disabled={viber?.nodeConnected !== true || !!configError}
+          placeholder={viber?.nodeConnected === true
+            ? "Send a task or command..."
+            : "Node is offline"}
+          disabled={viber?.nodeConnected !== true}
           {sending}
           showSelectors={false}
           skills={viber?.skills ?? []}
-          onskillclick={(skill) => insertSkillTemplate(skill)}
+          bind:selectedSkillIds
           onsubmit={() => sendMessage()}
         >
           {#snippet beforeInput()}
@@ -1244,19 +1154,6 @@
             {/if}
 
           {/snippet}
-
-          {#snippet leftAction()}
-            <button
-              type="button"
-              class="size-10 shrink-0 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors {configError
-                ? 'text-amber-500'
-                : ''}"
-              onclick={() => (showConfigDialog = true)}
-              title="Agent config"
-            >
-              <Settings2 class="size-4" />
-            </button>
-          {/snippet}
         </ChatComposer>
         <p
           class="flex items-center gap-1.5 px-1 mt-2 text-[11px] text-muted-foreground"
@@ -1267,6 +1164,7 @@
       </div>
     </Resizable.Pane>
 
+    {#if toolOutputEntries.length > 0}
     <Resizable.Handle class="hidden lg:flex" />
 
     <Resizable.Pane
@@ -1281,7 +1179,9 @@
         {@render toolOutputContent()}
       </aside>
     </Resizable.Pane>
+    {/if}
   </Resizable.PaneGroup>
+  {/key}
 </div>
 
 <!-- Mobile Tool Output Sheet (< lg only) -->
@@ -1399,122 +1299,6 @@
     </div>
   {/if}
 {/snippet}
-
-<!-- Agent Config Dialog -->
-{#if showConfigDialog}
-  <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-    onclick={(e) => {
-      if (e.target === e.currentTarget) showConfigDialog = false;
-    }}
-    onkeydown={(e) => {
-      if (e.key === "Escape") showConfigDialog = false;
-    }}
-  >
-    <div
-      class="bg-background rounded-xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden border border-border"
-    >
-      <!-- Header -->
-      <div class="flex items-center justify-between p-4 pb-3">
-        <div class="flex items-center gap-2">
-          <Settings2 class="size-4 text-muted-foreground" />
-          <h2 class="text-sm font-semibold">Agent Config</h2>
-          {#if configFile}
-            <span class="text-[11px] text-muted-foreground">{configFile}</span>
-          {/if}
-        </div>
-        <button
-          type="button"
-          class="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-          onclick={() => (showConfigDialog = false)}
-        >
-          <X class="size-4" />
-        </button>
-      </div>
-
-      <!-- Content -->
-      <div class="px-4 pb-4 space-y-4">
-        {#if configLoading}
-          <p class="text-xs text-muted-foreground">Loading skills…</p>
-        {:else if configError}
-          <div
-            class="rounded-lg border border-destructive/30 bg-destructive/5 p-3"
-          >
-            <p class="text-sm font-medium text-destructive">
-              {configError}
-            </p>
-            <p class="mt-1.5 text-xs text-muted-foreground">
-              Run <code class="px-1 py-0.5 rounded bg-muted text-foreground"
-                >openviber onboard</code
-              >
-              to create
-              <code class="px-1 py-0.5 rounded bg-muted text-foreground"
-                >~/.openviber/vibers/default.yaml</code
-              >. Chat is disabled until config is available.
-            </p>
-          </div>
-        {:else}
-          <div class="space-y-3">
-            <div>
-              <p
-                class="mb-1.5 text-[11px] uppercase tracking-wide text-muted-foreground"
-              >
-                Skills
-              </p>
-              {#if skillOptions.length > 0}
-                <div class="flex flex-wrap gap-1.5">
-                  {#each skillOptions as skill}
-                    <button
-                      type="button"
-                      class="rounded-full border px-2.5 py-1 text-[11px] transition-colors {configuredSkills.includes(
-                        skill,
-                      )
-                        ? 'border-primary/40 bg-primary/10 text-primary'
-                        : 'border-border bg-muted/30 text-muted-foreground hover:text-foreground'}"
-                      onclick={() => toggleConfiguredSkill(skill)}
-                    >
-                      {skill}
-                    </button>
-                  {/each}
-                </div>
-              {:else}
-                <p class="text-xs text-muted-foreground">
-                  No skills discovered from connected nodes.
-                </p>
-              {/if}
-            </div>
-          </div>
-        {/if}
-      </div>
-
-      <!-- Footer -->
-      {#if !configLoading && !configError}
-        <div
-          class="flex items-center justify-end gap-2 px-4 py-3 border-t border-border bg-muted/30"
-        >
-          <Button
-            variant="outline"
-            size="sm"
-            onclick={() => (showConfigDialog = false)}
-          >
-            Cancel
-          </Button>
-          <Button
-            size="sm"
-            onclick={() => {
-              saveAgentConfig();
-              showConfigDialog = false;
-            }}
-            disabled={configSaving}
-          >
-            {configSaving ? "Saving..." : "Save config"}
-          </Button>
-        </div>
-      {/if}
-    </div>
-  </div>
-{/if}
 
 <style>
   .chat-shell {

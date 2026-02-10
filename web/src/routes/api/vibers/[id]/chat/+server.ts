@@ -24,7 +24,7 @@ const HUB_URL = process.env.VIBER_HUB_URL || "http://localhost:6007";
 export const POST: RequestHandler = async ({ params, request, locals }) => {
   try {
     const body = await request.json();
-    const { messages, model } = body;
+    const { messages, model, skills: requestSkills } = body;
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return json({ error: "Missing messages" }, { status: 400 });
@@ -97,14 +97,17 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
         ? await getSettingsForUser(locals.user.id)
         : { primaryCodingCli: null as string | null };
 
-    // Fetch extra skills attached to this viber (from intent at creation)
-    const viberSkills = await getViberSkills(params.id);
+    // Use skills from the request (user's current selection) if provided,
+    // otherwise fall back to the DB-persisted skills (from intent at creation)
+    const activeSkills = Array.isArray(requestSkills) && requestSkills.length > 0
+      ? requestSkills.filter((s: unknown) => typeof s === "string" && s)
+      : await getViberSkills(params.id);
 
     const settingsPayload: Record<string, unknown> = {
       primaryCodingCli: settings.primaryCodingCli ?? undefined,
     };
-    if (viberSkills.length > 0) {
-      settingsPayload.skills = viberSkills;
+    if (activeSkills.length > 0) {
+      settingsPayload.skills = activeSkills;
     }
 
     // Look up OAuth tokens for this user (for skills like Gmail)

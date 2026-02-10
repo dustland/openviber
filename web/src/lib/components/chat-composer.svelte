@@ -69,13 +69,13 @@
     nodes?: ComposerNode[];
     environments?: ComposerEnvironment[];
     skills?: ComposerSkill[];
+    /** Bindable set of enabled skill IDs for this viber */
+    selectedSkillIds?: string[];
     selectedNodeId?: string | null;
     selectedEnvironmentId?: string | null;
     selectedModelId?: string;
     /** Whether to show the node/env/model selectors row */
     showSelectors?: boolean;
-    /** Called when a skill is clicked in the picker */
-    onskillclick?: (skill: ComposerSkill) => void;
 
     // -- Snippet props --
     /** Content rendered above the input card (e.g. skills chips, session indicator) */
@@ -99,11 +99,11 @@
     nodes = [],
     environments = [],
     skills = [],
+    selectedSkillIds = $bindable([]),
     selectedNodeId = $bindable(null),
     selectedEnvironmentId = $bindable(null),
     selectedModelId = $bindable(""),
     showSelectors = true,
-    onskillclick,
 
     beforeInput,
     leftAction,
@@ -121,9 +121,20 @@
   const selectedModel = $derived(
     MODEL_OPTIONS.find((m) => m.id === selectedModelId) ?? MODEL_OPTIONS[0],
   );
+  const selectedSkillCount = $derived(
+    selectedSkillIds.filter((id) => skills.some((s) => s.id === id)).length,
+  );
   const canSend = $derived(
     !!value.trim() && !sending && !disabled,
   );
+
+  function toggleSkill(skillId: string) {
+    if (selectedSkillIds.includes(skillId)) {
+      selectedSkillIds = selectedSkillIds.filter((id) => id !== skillId);
+    } else {
+      selectedSkillIds = [...selectedSkillIds, skillId];
+    }
+  }
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -206,7 +217,7 @@
           </DropdownMenu.Content>
         </DropdownMenu.Root>
 
-        <!-- Skill picker -->
+        <!-- Skill selector (multi-toggle) -->
         {#if skills.length > 0}
           <DropdownMenu.Root>
             <DropdownMenu.Trigger
@@ -214,21 +225,28 @@
             >
               <Sparkles class="size-3.5" />
               <span>Skills</span>
-              <span class="rounded-full bg-muted/60 px-1.5 py-0.5 text-[10px] tabular-nums">{skills.length}</span>
+              {#if selectedSkillCount > 0}
+                <span class="rounded-full bg-primary/15 text-primary px-1.5 py-0.5 text-[10px] font-semibold tabular-nums">{selectedSkillCount}</span>
+              {:else}
+                <span class="rounded-full bg-muted/60 px-1.5 py-0.5 text-[10px] tabular-nums">{skills.length}</span>
+              {/if}
             </DropdownMenu.Trigger>
-            <DropdownMenu.Content align="start" class="w-64">
-              <DropdownMenu.Label>Use a skill</DropdownMenu.Label>
+            <DropdownMenu.Content align="start" class="w-72">
+              <DropdownMenu.Label>Enable skills for this viber</DropdownMenu.Label>
               <DropdownMenu.Separator />
               {#each skills as skill (skill.id)}
-                <DropdownMenu.Item
-                  onclick={() => onskillclick?.(skill)}
-                  class="flex flex-col items-start gap-0.5"
+                <DropdownMenu.CheckboxItem
+                  checked={selectedSkillIds.includes(skill.id)}
+                  onCheckedChange={() => toggleSkill(skill.id)}
+                  class="flex items-center gap-2"
                 >
-                  <span class="text-sm font-medium">{skill.name}</span>
-                  {#if skill.description}
-                    <span class="text-[11px] text-muted-foreground line-clamp-1">{skill.description}</span>
-                  {/if}
-                </DropdownMenu.Item>
+                  <div class="min-w-0 flex-1">
+                    <span class="text-sm font-medium">{skill.name}</span>
+                    {#if skill.description}
+                      <p class="text-[11px] text-muted-foreground line-clamp-1">{skill.description}</p>
+                    {/if}
+                  </div>
+                </DropdownMenu.CheckboxItem>
               {/each}
             </DropdownMenu.Content>
           </DropdownMenu.Root>

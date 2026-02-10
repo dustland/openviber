@@ -54,6 +54,7 @@
   let selectedEnvironmentId = $state<string | null>(null);
   let selectedNodeId = $state<string | null>(null);
   let selectedModelId = $state("");
+  let selectedSkillIds = $state<string[]>([]);
   let taskInput = $state("");
   let creating = $state(false);
   let error = $state<string | null>(null);
@@ -184,6 +185,12 @@
   function selectIntent(intent: Intent) {
     selectedIntentId = intent.id;
     taskInput = intent.body;
+    // Auto-enable skills required by this intent
+    if (intent.skills && intent.skills.length > 0) {
+      const merged = new Set(selectedSkillIds);
+      for (const s of intent.skills) merged.add(s);
+      selectedSkillIds = [...merged];
+    }
     // Auto-submit the task when an intent is selected
     // submitTask will handle validation (node selection, active status, etc.)
     if (intent.body.trim()) {
@@ -193,10 +200,6 @@
 
   function clearIntent() {
     selectedIntentId = null;
-  }
-
-  function insertSkillTemplate(skill: { id: string; name: string; description: string }) {
-    taskInput = `Use ${skill.name} to `;
   }
 
   async function submitTask(overrideContent?: string) {
@@ -212,9 +215,6 @@
       const nodeId = node.node_id;
 
       // Create a new viber via POST /api/vibers
-      // Collect skills required by the selected intent (if any)
-      const intentSkills = selectedIntent?.skills;
-
       // Use the intent name as the viber display title (not the full body)
       const title = selectedIntent?.name ?? undefined;
 
@@ -228,7 +228,7 @@
           environmentId: selectedEnvironmentId ?? undefined,
           channelIds: selectedChannelIds.length > 0 ? selectedChannelIds : undefined,
           model: selectedModelId || undefined,
-          skills: intentSkills && intentSkills.length > 0 ? intentSkills : undefined,
+          skills: selectedSkillIds.length > 0 ? selectedSkillIds : undefined,
         }),
       });
 
@@ -514,7 +514,7 @@
         {nodes}
         {environments}
         skills={nodeSkills}
-        onskillclick={(skill) => insertSkillTemplate(skill)}
+        bind:selectedSkillIds
         showSelectors={true}
         onsubmit={() => void submitTask()}
       />

@@ -2,6 +2,7 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { hubClient } from "$lib/server/hub-client";
 import { getSettingsForUser } from "$lib/server/user-settings";
+import { getViberSkills } from "$lib/server/environments";
 import { supabaseRequest } from "$lib/server/supabase-rest";
 import { writeLog } from "$lib/server/logs";
 
@@ -12,9 +13,10 @@ export const GET: RequestHandler = async ({ params, locals }) => {
   }
 
   try {
-    const [viber, { nodes }] = await Promise.all([
+    const [viber, { nodes }, enabledSkills] = await Promise.all([
       hubClient.getViber(params.id),
       hubClient.getNodes(),
+      getViberSkills(params.id),
     ]);
 
     if (!viber) {
@@ -27,7 +29,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
       });
     }
 
-    // Resolve skills from the node hosting this viber
+    // Resolve available skills from the node hosting this viber
     const node = nodes.find((n) => n.nodeId === viber.nodeId);
     const skills = (node?.skills ?? []).map((s) => ({
       id: s.id || s.name,
@@ -46,6 +48,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
       createdAt: viber.createdAt,
       completedAt: viber.completedAt,
       skills,
+      enabledSkills,
     });
   } catch (error) {
     console.error("Failed to fetch viber:", error);

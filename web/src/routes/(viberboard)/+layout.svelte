@@ -15,7 +15,6 @@
     Puzzle,
     ScrollText,
     Laptop,
-    Settings2,
     Wifi,
     WifiOff,
   } from "@lucide/svelte";
@@ -426,13 +425,6 @@
                                 >
                                   <CalendarClock class="size-3.5" />
                                   Jobs
-                                </a>
-                                <a
-                                  href={`/vibers/${viber.id}?config=1`}
-                                  class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                                >
-                                  <Settings2 class="size-3.5" />
-                                  Config
                                 </a>
                               </div>
                             </HoverCard.Content>

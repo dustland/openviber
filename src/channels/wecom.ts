@@ -10,10 +10,12 @@
 import crypto from "crypto";
 import {
   Channel,
+  ChannelRuntimeContext,
   InboundMessage,
   AgentStreamEvent,
   WeComConfig,
 } from "./channel";
+import type { ChannelWebhookRoute, GatewayRequest } from "./webhook";
 
 // ==================== WeCom Types ====================
 
@@ -128,13 +130,15 @@ export class WeComChannel implements Channel {
 
   private config: WeComConfig;
   private crypto: WeComCrypto;
+  private context: ChannelRuntimeContext;
   private accessToken: string | null = null;
   private tokenExpiry: number = 0;
   private responseBuffers = new Map<string, string>();
 
-  constructor(config: WeComConfig) {
+  constructor(config: WeComConfig, context: ChannelRuntimeContext) {
     this.config = config;
     this.crypto = new WeComCrypto(config.token, config.aesKey, config.corpId);
+    this.context = context;
   }
 
   async start(): Promise<void> {
@@ -215,6 +219,62 @@ export class WeComChannel implements Channel {
     }
   }
 
+  getWebhookRoutes(): ChannelWebhookRoute[] {
+    return [
+      {
+        method: "GET",
+        path: "/webhook/wecom",
+        handler: async (req) => this.handleWebhookVerify(req),
+      },
+      {
+        method: "POST",
+        path: "/webhook/wecom",
+        handler: async (req) => this.handleWebhookMessage(req),
+      },
+    ];
+  }
+
+  private async handleWebhookVerify(req: GatewayRequest) {
+    const signature = req.query.get("msg_signature") || "";
+    const timestamp = req.query.get("timestamp") || "";
+    const nonce = req.query.get("nonce") || "";
+    const echostr = req.query.get("echostr") || "";
+
+    if (!signature || !timestamp || !nonce || !echostr) {
+      return { status: 400, json: { error: "Missing verification parameters" } };
+    }
+
+    const decrypted = this.verifyUrl(signature, timestamp, nonce, echostr);
+    if (!decrypted) {
+      return { status: 401, json: { error: "Invalid signature" } };
+    }
+
+    return { status: 200, body: decrypted };
+  }
+
+  private async handleWebhookMessage(req: GatewayRequest) {
+    const signature = req.query.get("msg_signature") || "";
+    const timestamp = req.query.get("timestamp") || "";
+    const nonce = req.query.get("nonce") || "";
+
+    const encrypted = extractXmlTag(req.body, "Encrypt");
+    if (!encrypted) {
+      return { status: 400, json: { error: "Missing encrypted payload" } };
+    }
+
+    if (!this.crypto.verifySignature(signature, timestamp, nonce, encrypted)) {
+      return { status: 401, json: { error: "Invalid signature" } };
+    }
+
+    const inbound = this.parseWebhook(req.body, encrypted);
+    if (inbound) {
+      await this.handleMessage(inbound);
+      await this.context.routeMessage(inbound);
+    }
+
+    return { status: 200, body: "success" };
+  }
+
   /**
    * Send message via WeCom API
    */
@@ -275,4 +335,9 @@ export class WeComChannel implements Channel {
       console.error("[WeCom] Get token error:", error);
     }
   }
+}
+
+function extractXmlTag(xml: string, tag: string): string | null {
+  const match = xml.match(new RegExp(`<${tag}><\\!\\[CDATA\\[(.+?)\\]\\]></${tag}>`));
+  return match ? match[1] : null;
 }

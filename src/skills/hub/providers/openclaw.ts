@@ -14,22 +14,36 @@ import type {
   SkillSearchResult,
   ExternalSkillInfo,
   SkillImportResult,
+  SkillHubProviderConfig,
 } from "../types";
 import * as fs from "fs/promises";
 import * as path from "path";
 
 const DEFAULT_HUB_URL = "https://hub.openclaw.org/api/v1";
 
-function getHubUrl(): string {
-  return (process.env.OPENCLAW_HUB_URL || DEFAULT_HUB_URL).replace(/\/$/, "");
-}
-
 export class OpenClawProvider implements SkillHubProvider {
   readonly type = "openclaw" as const;
   readonly displayName = "OpenClaw Skill Hub";
+  private config: SkillHubProviderConfig;
+
+  constructor(config?: SkillHubProviderConfig) {
+    this.config = config ?? {};
+  }
+
+  setConfig(config?: SkillHubProviderConfig): void {
+    this.config = config ?? {};
+  }
+
+  private getHubUrl(): string {
+    return (
+      this.config.url ||
+      process.env.OPENCLAW_HUB_URL ||
+      DEFAULT_HUB_URL
+    ).replace(/\/$/, "");
+  }
 
   async search(query: SkillSearchQuery): Promise<SkillSearchResult> {
-    const hubUrl = getHubUrl();
+    const hubUrl = this.getHubUrl();
     const params = new URLSearchParams();
 
     if (query.query) params.set("q", query.query);
@@ -65,7 +79,7 @@ export class OpenClawProvider implements SkillHubProvider {
   }
 
   async getSkillInfo(skillId: string): Promise<ExternalSkillInfo | null> {
-    const hubUrl = getHubUrl();
+    const hubUrl = this.getHubUrl();
 
     try {
       const res = await fetch(`${hubUrl}/skills/${encodeURIComponent(skillId)}`, {
@@ -83,7 +97,7 @@ export class OpenClawProvider implements SkillHubProvider {
   }
 
   async importSkill(skillId: string, targetDir: string): Promise<SkillImportResult> {
-    const hubUrl = getHubUrl();
+    const hubUrl = this.getHubUrl();
 
     try {
       // Fetch the skill tarball / archive from OpenClaw hub

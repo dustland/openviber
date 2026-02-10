@@ -4,6 +4,7 @@ import {
   getSettingsForUser,
   type UserSettings,
   type SkillSourceSetting as ServerSkillSourceSetting,
+  type ChannelIntegrationSetting as ServerChannelIntegrationSetting,
 } from "$lib/server/user-settings";
 import { supabaseRequest } from "$lib/server/supabase-rest";
 
@@ -16,6 +17,8 @@ const CODING_CLI_OPTIONS: { id: string; label: string }[] = [
   { id: "cursor-agent", label: "Cursor Agent" },
   { id: "gemini-cli", label: "Gemini CLI" },
 ];
+
+const MASKED_SECRET = "••••••";
 
 /** All known skill source provider keys */
 const ALL_PROVIDERS = [
@@ -112,6 +115,88 @@ const PROVIDER_META: Record<
   },
 };
 
+const ALL_CHANNELS = ["discord", "feishu"] as const;
+
+interface ChannelFieldMeta {
+  key: string;
+  label: string;
+  placeholder?: string;
+  help?: string;
+  secret?: boolean;
+  type?: "text" | "password" | "url";
+}
+
+const CHANNEL_META: Record<
+  string,
+  {
+    displayName: string;
+    description: string;
+    docsUrl: string;
+    fields: ChannelFieldMeta[];
+  }
+> = {
+  discord: {
+    displayName: "Discord",
+    description:
+      "Connect a Discord bot to receive tasks and send agent responses.",
+    docsUrl: "https://discord.com/developers/docs/intro",
+    fields: [
+      {
+        key: "botToken",
+        label: "Bot token",
+        placeholder: "Paste your Discord bot token",
+        secret: true,
+        type: "password",
+      },
+      {
+        key: "guildId",
+        label: "Server (guild) ID",
+        placeholder: "123456789012345678",
+      },
+      {
+        key: "channelId",
+        label: "Default channel ID",
+        placeholder: "123456789012345678",
+        help: "Where new viber conversations should post by default.",
+      },
+    ],
+  },
+  feishu: {
+    displayName: "Feishu (Lark)",
+    description:
+      "Connect a Feishu app to sync conversations with Feishu group chats.",
+    docsUrl: "https://open.feishu.cn/document/home/index",
+    fields: [
+      {
+        key: "appId",
+        label: "App ID",
+        placeholder: "cli_9f0bxxxx",
+      },
+      {
+        key: "appSecret",
+        label: "App secret",
+        placeholder: "Paste your app secret",
+        secret: true,
+        type: "password",
+      },
+      {
+        key: "verificationToken",
+        label: "Verification token",
+        placeholder: "Paste the verification token",
+        secret: true,
+        type: "password",
+      },
+      {
+        key: "encryptKey",
+        label: "Encrypt key",
+        placeholder: "Paste the encrypt key",
+        secret: true,
+        type: "password",
+      },
+    ],
+  },
+};
+
 interface SkillSourceSetting {
   enabled: boolean;
   url?: string;
@@ -172,13 +257,51 @@ export const GET: RequestHandler = async ({ locals }) => {
     sources[key] = {
       enabled: saved?.enabled ?? def.enabled,
       url: saved?.url || undefined,
-      apiKey: saved?.apiKey ? "••••••" : undefined, // Mask API key
+      apiKey: saved?.apiKey ? MASKED_SECRET : undefined, // Mask API key
+      ...meta,
+    };
+  }
+
+  const channels: Record<
+    string,
+    ServerChannelIntegrationSetting & {
+      displayName: string;
+      description: string;
+      docsUrl: string;
+      fields: ChannelFieldMeta[];
+      config: Record<string, string>;
+    }
+  > = {};
+
+  for (const channelId of ALL_CHANNELS) {
+    const saved = settings.channelIntegrations[channelId];
+    const meta = CHANNEL_META[channelId] || {
+      displayName: channelId,
+      description: "",
+      docsUrl: "",
+      fields: [],
+    };
+    const config: Record<string, string> = {};
+
+    for (const field of meta.fields) {
+      const storedValue = saved?.config?.[field.key];
+      if (storedValue) {
+        config[field.key] = field.secret ? MASKED_SECRET : storedValue;
+      } else {
+        config[field.key] = "";
+      }
+    }
+
+    channels[channelId] = {
+      enabled: saved?.enabled ?? false,
+      config,
       ...meta,
     };
   }
 
   return json({
     sources,
+    channels,
     primaryCodingCli: settings.primaryCodingCli ?? null,
     codingCliOptions: CODING_CLI_OPTIONS,
   });
@@ -188,6 +311,7 @@ interface UserSettingsRow {
   id: string;
   user_id: string;
   skill_sources: Record<string, SkillSourceSetting>;
+  channel_integrations: Record<string, ServerChannelIntegrationSetting>;
   primary_coding_cli: string | null;
 }
 
@@ -204,19 +328,20 @@ export const PUT: RequestHandler = async ({ request, locals }) => {
     const body = await request.json();
     const payload = body as {
       sources?: Record<string, Partial<SkillSourceSetting>>;
+      channels?: Record<string, Partial<ServerChannelIntegrationSetting>>;
       primaryCodingCli?: string | null;
     };
-    const { sources, primaryCodingCli: primaryCodingCliPayload } = payload;
+    const { sources, channels, primaryCodingCli: primaryCodingCliPayload } = payload;
 
     const userId = locals.user.id;
 
     // Load current from Supabase
     const current = await getSettingsForUser(userId);
     let skillSources = { ...current.skillSources };
+    let channelIntegrations = { ...current.channelIntegrations };
     let primaryCodingCli: string | null = current.primaryCodingCli;
 
     if (sources && typeof sources === "object") {
-      const defaults = getDefaultSources();
       for (const key of ALL_PROVIDERS) {
         const update = sources[key];
         if (!update) continue;
@@ -231,8 +356,53 @@ export const PUT: RequestHandler = async ({ request, locals }) => {
         if (typeof update.url === "string") {
           skillSources[key] = { ...skillSources[key], url: update.url || undefined };
         }
-        if (typeof update.apiKey === "string" && update.apiKey !== "••••••") {
+        if (typeof update.apiKey === "string" && update.apiKey !== MASKED_SECRET) {
           skillSources[key] = { ...skillSources[key], apiKey: update.apiKey || undefined };
+        }
+      }
+    }
+
+    if (channels && typeof channels === "object") {
+      for (const channelId of ALL_CHANNELS) {
+        const update = channels[channelId];
+        if (!update) continue;
+
+        if (!channelIntegrations[channelId]) {
+          channelIntegrations[channelId] = { enabled: false };
+        }
+
+        if (typeof update.enabled === "boolean") {
+          channelIntegrations[channelId] = {
+            ...channelIntegrations[channelId],
+            enabled: update.enabled,
+          };
+        }
+
+        if (update.config && typeof update.config === "object") {
+          const meta = CHANNEL_META[channelId];
+          const allowedKeys = new Set(meta?.fields.map((field) => field.key) ?? []);
+          const currentConfig = {
+            ...(channelIntegrations[channelId].config || {}),
+          };
+
+          for (const [configKey, configValue] of Object.entries(update.config)) {
+            if (allowedKeys.size > 0 && !allowedKeys.has(configKey)) continue;
+            if (typeof configValue !== "string") continue;
+            if (configValue === MASKED_SECRET) continue;
+
+            if (configValue.trim().length === 0) {
+              delete currentConfig[configKey];
+            } else {
+              currentConfig[configKey] = configValue;
+            }
+          }
+
+          channelIntegrations[channelId] = {
+            ...channelIntegrations[channelId],
+            ...(Object.keys(currentConfig).length > 0
+              ? { config: currentConfig }
+              : {}),
+          };
         }
       }
     }
@@ -263,6 +433,7 @@ export const PUT: RequestHandler = async ({ request, locals }) => {
         params: { user_id: `eq.${userId}` },
         body: {
           skill_sources: skillSources,
+          channel_integrations: channelIntegrations,
           primary_coding_cli: primaryCodingCli,
           updated_at: now,
         },
@@ -274,6 +445,7 @@ export const PUT: RequestHandler = async ({ request, locals }) => {
         body: {
           user_id: userId,
           skill_sources: skillSources,
+          channel_integrations: channelIntegrations,
           primary_coding_cli: primaryCodingCli,
           updated_at: now,
         },

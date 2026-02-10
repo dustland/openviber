@@ -18,7 +18,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
   try {
     const body = await request.json();
-    const { goal, nodeId, environmentId } = body;
+    const { goal, nodeId, environmentId, channelIds } = body;
 
     if (!goal) {
       return json({ error: "Missing goal" }, { status: 400 });
@@ -59,8 +59,14 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     }
 
     const settings = await getSettingsForUser(locals.user.id);
+    const selectedChannels = Array.isArray(channelIds)
+      ? channelIds.filter((id) => typeof id === "string" && id.length > 0)
+      : undefined;
     const result = await hubClient.createViber(goal, nodeId, undefined, environment, {
       primaryCodingCli: settings.primaryCodingCli ?? undefined,
+      ...(selectedChannels && selectedChannels.length > 0
+        ? { channelIds: selectedChannels }
+        : {}),
     });
     if (!result) {
       return json({ error: "No node available or hub unreachable" }, { status: 503 });

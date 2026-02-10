@@ -33,6 +33,7 @@ export const ViberPaths = {
   config: () => getViberPath("config"),
   spaces: () => getViberPath("spaces"),
   defaults: () => getViberPath("defaults"),
+  playgrounds: () => getViberPath("playgrounds"),
 
   // MCP server organization
   mcpServers: () => getViberPath("mcp-servers"),

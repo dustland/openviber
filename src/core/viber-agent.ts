@@ -24,7 +24,7 @@ export interface ViberOptions {
   spaceId?: string; // Explicit space ID
   singleAgentId?: string; // If set, route directly to this agent ID
   /** User settings from Supabase (primary coding CLI etc.); node uses and caches locally */
-  settings?: { primaryCodingCli?: string };
+  settings?: { primaryCodingCli?: string; channelIds?: string[] };
 }
 
 export interface ViberStreamOptions {

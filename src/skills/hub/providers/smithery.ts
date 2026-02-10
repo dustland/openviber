@@ -14,22 +14,36 @@ import type {
   SkillSearchResult,
   ExternalSkillInfo,
   SkillImportResult,
+  SkillHubProviderConfig,
 } from "../types";
 import * as fs from "fs/promises";
 import * as path from "path";
 
 const DEFAULT_REGISTRY_URL = "https://registry.smithery.ai";
 
-function getRegistryUrl(): string {
-  return (process.env.SMITHERY_REGISTRY_URL || DEFAULT_REGISTRY_URL).replace(/\/$/, "");
-}
-
 export class SmitheryProvider implements SkillHubProvider {
   readonly type = "smithery" as const;
   readonly displayName = "Smithery (MCP)";
+  private config: SkillHubProviderConfig;
+
+  constructor(config?: SkillHubProviderConfig) {
+    this.config = config ?? {};
+  }
+
+  setConfig(config?: SkillHubProviderConfig): void {
+    this.config = config ?? {};
+  }
+
+  private getRegistryUrl(): string {
+    return (
+      this.config.url ||
+      process.env.SMITHERY_REGISTRY_URL ||
+      DEFAULT_REGISTRY_URL
+    ).replace(/\/$/, "");
+  }
 
   async search(query: SkillSearchQuery): Promise<SkillSearchResult> {
-    const registryUrl = getRegistryUrl();
+    const registryUrl = this.getRegistryUrl();
     const page = query.page ?? 1;
     const limit = Math.min(query.limit ?? 20, 100);
 
@@ -82,7 +96,7 @@ export class SmitheryProvider implements SkillHubProvider {
   }
 
   async getSkillInfo(skillId: string): Promise<ExternalSkillInfo | null> {
-    const registryUrl = getRegistryUrl();
+    const registryUrl = this.getRegistryUrl();
 
     try {
       const res = await fetch(
@@ -118,7 +132,7 @@ export class SmitheryProvider implements SkillHubProvider {
   }
 
   async importSkill(skillId: string, targetDir: string): Promise<SkillImportResult> {
-    const registryUrl = getRegistryUrl();
+    const registryUrl = this.getRegistryUrl();
     const safeName = skillId.replace(/[^a-zA-Z0-9_-]/g, "-").replace(/-+/g, "-");
     const installPath = path.join(targetDir, safeName);
 

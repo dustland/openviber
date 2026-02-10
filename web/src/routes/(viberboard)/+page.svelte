@@ -36,6 +36,13 @@
       color: "primary",
     },
     {
+      icon: Sparkles,
+      title: "Viber Stories",
+      description: "Browse ready-made workflows",
+      href: "/stories",
+      color: "primary",
+    },
+    {
       icon: Server,
       title: "Nodes",
       description: "Connected daemon instances",

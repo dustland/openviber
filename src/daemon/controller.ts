@@ -27,6 +27,7 @@ import {
   type RunningTaskInfo,
   type NodeObservabilityStatus,
 } from "./node-status";
+import type { SkillHealthReport } from "../skills/health";
 
 // ==================== Types ====================
 
@@ -98,7 +99,7 @@ export type ControllerServerMessage =
       repoBranch?: string;
       variables?: { key: string; value: string }[];
     };
-    settings?: { primaryCodingCli?: string };
+    settings?: { primaryCodingCli?: string; channelIds?: string[] };
   }
   | { type: "task:stop"; taskId: string }
   | { type: "viber:stop"; viberId: string }
@@ -200,6 +201,9 @@ export class ViberController extends EventEmitter {
   private loadedCapabilities: string[] = [];
   /** Timestamp of last heartbeat sent */
   private lastHeartbeatAt?: string;
+  private skillHealthCache?: SkillHealthReport;
+  private skillHealthCachedAt?: number;
+  private skillHealthInFlight?: Promise<SkillHealthReport>;
   private log = createLogger("controller");
 
   constructor(private config: ViberControllerConfig) {
@@ -444,7 +448,7 @@ export class ViberController extends EventEmitter {
           break;
 
         case "status:request":
-          this.handleStatusRequest();
+          await this.handleStatusRequest();
           break;
       }
     } catch (error) {
@@ -704,9 +708,63 @@ export class ViberController extends EventEmitter {
 
   // ==================== Status Reporting ====================
 
-  private handleStatusRequest(): void {
+  private async handleStatusRequest(): Promise<void> {
     const status = this.getNodeObservabilityStatus();
+    const report = await this.getSkillHealthReport();
+    if (report && status.viber) {
+      status.viber.skillHealth = report;
+    }
     this.send({ type: "status:report", status });
+  }
+
+  private async getSkillHealthReport(): Promise<SkillHealthReport | undefined> {
+    const now = Date.now();
+    const maxAgeMs = 60_000;
+    if (
+      this.skillHealthCache &&
+      this.skillHealthCachedAt &&
+      now - this.skillHealthCachedAt < maxAgeMs
+    ) {
+      return this.skillHealthCache;
+    }
+
+    const refresh = this.refreshSkillHealth();
+    const timeout = new Promise<undefined>((resolve) => {
+      setTimeout(() => resolve(undefined), 4000);
+    });
+
+    try {
+      const result = await Promise.race([refresh, timeout]);
+      if (result) {
+        return result;
+      }
+    } catch (err: any) {
+      this.log.warn("Failed to collect skill health report", {
+        error: String(err?.message || err),
+      });
+    }
+
+    return this.skillHealthCache;
+  }
+
+  private async refreshSkillHealth(): Promise<SkillHealthReport> {
+    if (this.skillHealthInFlight) {
+      return this.skillHealthInFlight;
+    }
+
+    this.skillHealthInFlight = (async () => {
+      const { getSkillHealthReport } = await import("../skills/health");
+      const report = await getSkillHealthReport();
+      this.skillHealthCache = report;
+      this.skillHealthCachedAt = Date.now();
+      return report;
+    })();
+
+    try {
+      return await this.skillHealthInFlight;
+    } finally {
+      this.skillHealthInFlight = undefined;
+    }
   }
 
   // ==================== Terminal Streaming ====================

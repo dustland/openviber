@@ -22,10 +22,33 @@ import * as readline from "readline";
 import WebSocket from "ws";
 import YAML from "yaml";
 import { getOpenViberVersion } from "../utils/version";
+import type { ChannelRuntimeContext, InboundMessage, InterruptSignal } from "../channels/channel";
 
 const VERSION = getOpenViberVersion();
 const OPENVIBER_DIR = path.join(os.homedir(), ".openviber");
 const CONFIG_FILE = path.join(OPENVIBER_DIR, "config.yaml");
+
+type SkillHealthCheck = {
+  label: string;
+  ok: boolean;
+  required?: boolean;
+  message?: string;
+  hint?: string;
+};
+
+type SkillHealthResult = {
+  id: string;
+  name: string;
+  status: string;
+  available: boolean;
+  checks: SkillHealthCheck[];
+  summary: string;
+};
+
+type SkillHealthReport = {
+  generatedAt: string;
+  skills: SkillHealthResult[];
+};
 
 function getCliName(): string {
   const invokedPath = process.argv[1];
@@ -727,6 +750,18 @@ program
       formatUptime,
     } = await import("../daemon/node-status");
 
+    let skillHealthReport: SkillHealthReport | null = null;
+    try {
+      const { getSkillHealthReport } = await import("../skills/health");
+      skillHealthReport = await getSkillHealthReport();
+    } catch (err: any) {
+      if (!options.json) {
+        console.warn(
+          `[status] Skill health check failed: ${err?.message || String(err)}`,
+        );
+      }
+    }
+
     // Always show config status
     if (!options.json) {
       console.log(`
@@ -771,6 +806,7 @@ Viber Status
               openRouter: hasOpenRouter,
               configDir: path.join(os.homedir(), ".openviber"),
             },
+            skills: skillHealthReport,
             machine: machineStatus,
             hub: hubNodeStatus,
           },
@@ -779,6 +815,13 @@ Viber Status
         ),
       );
       return;
+    }
+
+    if (skillHealthReport) {
+      const lines = formatSkillHealthReport(skillHealthReport);
+      if (lines.length > 0) {
+        console.log(lines.join("\n"));
+      }
     }
 
     // Display machine resources
@@ -1041,6 +1084,19 @@ workingMode: viber-decides
     // Generate viber ID
     const viberId = await getViberId();
 
+    try {
+      const { getSkillHealthReport } = await import("../skills/health");
+      const report = await getSkillHealthReport();
+      const lines = formatSkillHealthReport(report);
+      if (lines.length > 0) {
+        console.log(lines.join("\n"));
+      }
+    } catch (err: any) {
+      console.warn(
+        `[onboard] Skill health check failed: ${err?.message || String(err)}`,
+      );
+    }
+
     if (options.token) {
       console.log(`
 ────────────────────────────────────────────────────────────
@@ -1116,6 +1172,7 @@ Examples:
   openviber skill import smithery:@anthropic/mcp-server-filesystem
   openviber skill list
   openviber skill remove my-skill
+  openviber skill verify cursor-agent
 `,
   );
 
@@ -1318,6 +1375,66 @@ skillCommand
     }
   });
 
+skillCommand
+  .command("verify <skillId>")
+  .description("Run a skill playground scenario to verify a skill works")
+  .option("-w, --wait <seconds>", "Max seconds to wait for verification", "120")
+  .option("--no-refresh", "Skip updating the playground repo before running")
+  .action(async (skillId, options) => {
+    // Ensure skill tools are pre-registered
+    await import("../skills");
+    const { getTools } = await import("../skills/playground");
+    const tool = getTools().skill_playground_verify;
+
+    const waitSeconds = parseInt(options.wait, 10);
+    const payload = {
+      skillId,
+      waitSeconds: Number.isNaN(waitSeconds) ? undefined : waitSeconds,
+      refreshRepo: options.refresh,
+    };
+
+    console.log(`\nRunning playground for '${skillId}'...\n`);
+    const result = await tool.execute(payload);
+
+    if (result.ok) {
+      console.log(`✓ Playground completed for '${skillId}'`);
+    } else {
+      console.error(`✗ Playground failed for '${skillId}'`);
+      if (result.error) {
+        console.error(`  Error: ${result.error}`);
+      }
+    }
+
+    if (result.playground) {
+      console.log(`\nRepo: ${result.playground.repo}`);
+      console.log(`File: ${result.playground.file}`);
+      if (result.playground.repoPath) {
+        console.log(`Path: ${result.playground.repoPath}`);
+      }
+      if (result.playground.repoStatus) {
+        console.log(`Repo status: ${result.playground.repoStatus}`);
+      }
+    }
+
+    if (result.run?.summary) {
+      console.log(`\nSummary: ${result.run.summary}`);
+    }
+    if (result.run?.outputTail) {
+      console.log(`\n--- Output tail ---\n${result.run.outputTail}`);
+    }
+    if (result.verification) {
+      const markerStatus = result.verification.markerFound ? "found" : "missing";
+      console.log(`\nMarker: ${result.verification.marker} (${markerStatus})`);
+      if (result.verification.warning) {
+        console.log(`Warning: ${result.verification.warning}`);
+      }
+    }
+
+    if (!result.ok) {
+      process.exit(1);
+    }
+  });
+
 // ==================== viber gateway ====================
 
 program
@@ -1326,8 +1443,12 @@ program
   .option("-p, --port <port>", "Gateway port", "6009")
   .action(async (options) => {
     const { channelManager } = await import("../channels/manager");
-    const { DingTalkChannel } = await import("../channels/dingtalk");
-    const { WeComChannel } = await import("../channels/wecom");
+    const { ChannelGateway } = await import("../channels/gateway");
+    const { loadGatewayBootstrapConfig } = await import("../channels/config");
+    const {
+      registerBuiltinChannels,
+      createChannelsFromConfig,
+    } = await import("../channels/builtin");
 
     console.log(`
 ╔═══════════════════════════════════════════════════════════╗
@@ -1335,42 +1456,21 @@ program
 ╚═══════════════════════════════════════════════════════════╝
 `);
 
-    // Register channels based on environment
-    const channels: string[] = [];
+    const bootstrap = await loadGatewayBootstrapConfig({
+      port: parseInt(options.port, 10),
+    });
 
-    if (process.env.DINGTALK_APP_KEY && process.env.DINGTALK_APP_SECRET) {
-      channelManager.register(
-        new DingTalkChannel({
-          enabled: true,
-          appKey: process.env.DINGTALK_APP_KEY,
-          appSecret: process.env.DINGTALK_APP_SECRET,
-          robotCode: process.env.DINGTALK_ROBOT_CODE,
-        })
-      );
-      channels.push("DingTalk");
-    }
+    registerBuiltinChannels();
 
-    if (
-      process.env.WECOM_CORP_ID &&
-      process.env.WECOM_AGENT_SECRET &&
-      process.env.WECOM_TOKEN &&
-      process.env.WECOM_ENCODING_AES_KEY
-    ) {
-      channelManager.register(
-        new WeComChannel({
-          enabled: true,
-          corpId: process.env.WECOM_CORP_ID,
-          agentId: process.env.WECOM_AGENT_ID || "0",
-          secret: process.env.WECOM_AGENT_SECRET,
-          token: process.env.WECOM_TOKEN,
-          aesKey: process.env.WECOM_ENCODING_AES_KEY,
-        })
-      );
-      channels.push("WeCom");
-    }
+    const context: ChannelRuntimeContext = {
+      routeMessage: (message: InboundMessage) => channelManager.routeMessage(message),
+      handleInterrupt: (signal: InterruptSignal) => channelManager.handleInterrupt(signal),
+    };
 
+    const channelInstances = createChannelsFromConfig(bootstrap.channels, context);
+    const channelNames = channelInstances.map((channel) => channel.id);
 
-    if (channels.length === 0) {
+    if (channelInstances.length === 0) {
       console.log(`
 No channels configured. Set environment variables to enable channels:
 
@@ -1381,32 +1481,42 @@ WeCom:
   WECOM_CORP_ID, WECOM_AGENT_ID, WECOM_AGENT_SECRET
   WECOM_TOKEN, WECOM_ENCODING_AES_KEY (optional)
 
-Run 'openviber gateway' again after setting environment variables.
+Discord:
+  DISCORD_BOT_TOKEN (optional: DISCORD_APP_ID, DISCORD_ALLOW_GUILDS, DISCORD_ALLOW_CHANNELS)
+
+Feishu:
+  FEISHU_APP_ID, FEISHU_APP_SECRET (optional: FEISHU_VERIFICATION_TOKEN, FEISHU_DOMAIN)
+
+Or configure channels from the OpenViber web and re-run gateway.
 `);
       process.exit(1);
     }
 
-    // Start all channels
-    await channelManager.startAll();
+    const gateway = new ChannelGateway(bootstrap.gateway, channelInstances, channelManager);
+
+    await gateway.start();
 
     // Handle graceful shutdown
     process.on("SIGINT", async () => {
       console.log("\n[Gateway] Shutting down...");
-      await channelManager.stopAll();
+      await gateway.stop();
       process.exit(0);
     });
 
     process.on("SIGTERM", async () => {
       console.log("\n[Gateway] Shutting down...");
-      await channelManager.stopAll();
+      await gateway.stop();
       process.exit(0);
     });
+
+    const basePath = bootstrap.gateway.basePath || "/";
 
     console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║                   GATEWAY RUNNING                         ║
 ╠═══════════════════════════════════════════════════════════╣
-║  Channels:     ${channels.join(", ").padEnd(41)}║
+║  Channels:     ${channelNames.join(", ").padEnd(41)}║
+║  Webhooks:     ${`${bootstrap.gateway.host}:${bootstrap.gateway.port}${basePath}`.slice(0, 41).padEnd(41)}║
 ║  Status:       ● Ready                                    ║
 ╚═══════════════════════════════════════════════════════════╝
 
@@ -1416,6 +1526,55 @@ Press Ctrl+C to stop.
   });
 
 // ==================== Helpers ====================
+
+function formatSkillHealthReport(report: SkillHealthReport): string[] {
+  if (!report || report.skills.length === 0) {
+    return [];
+  }
+
+  const statusLabel = (status: string) => {
+    switch (status) {
+      case "AVAILABLE":
+        return "OK";
+      case "NOT_AVAILABLE":
+        return "MISSING";
+      case "UNKNOWN":
+        return "UNKNOWN";
+      default:
+        return status || "UNKNOWN";
+    }
+  };
+
+  const lines: string[] = [];
+  lines.push("");
+  lines.push("Skill Health");
+  lines.push("────────────────────────────────────");
+
+  for (const skill of report.skills) {
+    const name = (skill.name || skill.id).slice(0, 22);
+    const status = statusLabel(skill.status);
+    lines.push(`  ${name.padEnd(22)} ${status}`);
+
+    if (skill.status !== "AVAILABLE") {
+      const failed = skill.checks.filter(
+        (check) => (check.required ?? true) && !check.ok,
+      );
+      if (failed.length === 0) {
+        if (skill.summary) {
+          lines.push(`    - ${skill.summary}`);
+        }
+      } else {
+        for (const check of failed) {
+          const detail = check.hint || check.message || "missing";
+          lines.push(`    - ${check.label}: ${detail}`);
+        }
+      }
+    }
+  }
+
+  lines.push("────────────────────────────────────");
+  return lines;
+}
 
 async function getViberId(): Promise<string> {
   const configDir = path.join(os.homedir(), ".openviber");

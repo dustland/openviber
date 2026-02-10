@@ -20,6 +20,7 @@
     LayoutDashboard,
     Home,
     BookOpen,
+    Sparkles,
   } from "@lucide/svelte";
 
   let { children, data } = $props();
@@ -142,6 +143,15 @@
                 >
                   <LayoutDashboard class="size-4" />
                   Go to Dashboard
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  class="w-full rounded px-2.5 py-2 text-left text-sm hover:bg-accent flex items-center gap-2.5 outline-none cursor-pointer"
+                  onSelect={() => {
+                    window.location.href = "/hub";
+                  }}
+                >
+                  <Sparkles class="size-4" />
+                  Hub
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -287,6 +297,15 @@
                   <p class="text-sm font-medium">{data.user.name}</p>
                   <p class="text-xs text-muted-foreground">{data.user.email}</p>
                 </div>
+                <DropdownMenuItem
+                  class="w-full rounded px-2.5 py-2 text-left text-sm hover:bg-accent flex items-center gap-2.5 outline-none cursor-pointer"
+                  onSelect={() => {
+                    window.location.href = "/hub";
+                  }}
+                >
+                  <Sparkles class="size-4" />
+                  Hub
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   class="w-full rounded px-2.5 py-2 text-left text-sm hover:bg-accent flex items-center gap-2.5 outline-none cursor-pointer text-destructive"
                   onSelect={() => {

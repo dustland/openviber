@@ -18,6 +18,7 @@
     Moon,
     Sun,
     Settings,
+    Sparkles,
   } from "@lucide/svelte";
   import { themeStore, type Theme } from "$lib/stores/theme";
 
@@ -109,6 +110,13 @@
                   <p class="text-sm font-medium">{user.name}</p>
                   <p class="text-xs text-muted-foreground">{user.email}</p>
                 </div>
+                <DropdownMenuItem
+                  class="w-full rounded px-2.5 py-2 text-left text-sm hover:bg-accent flex items-center gap-2.5 outline-none cursor-pointer"
+                  onSelect={() => goto("/hub")}
+                >
+                  <Sparkles class="size-4" />
+                  Hub
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   class="w-full rounded px-2.5 py-2 text-left text-sm hover:bg-accent flex items-center gap-2.5 outline-none cursor-pointer"
                   onSelect={() => goto("/docs")}

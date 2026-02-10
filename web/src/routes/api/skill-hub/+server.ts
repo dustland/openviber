@@ -7,8 +7,10 @@ import {
 } from "../../../../../src/skills/hub";
 import { getSettingsForUser } from "$lib/server/user-settings";
 import {
+  extractCuratedCategories,
   loadCuratedOpenClawSkills,
   scoreForRelevance,
+  slugifyCategory,
 } from "$lib/server/openclaw-curated";
 
 const PROVIDERS = [
@@ -95,6 +97,7 @@ export const GET: RequestHandler = async ({ url, locals }) => {
     const limitParam = Number(url.searchParams.get("limit") || "20");
     const tagsParam = url.searchParams.get("tags")?.trim();
     const authorParam = url.searchParams.get("author")?.trim().toLowerCase();
+    const categoryParam = url.searchParams.get("category")?.trim().toLowerCase();
 
     const rawRequestedSources = [
       ...(sourcesParam ? sourcesParam.split(",") : []),
@@ -158,6 +161,11 @@ export const GET: RequestHandler = async ({ url, locals }) => {
     const limit = Number.isFinite(limitParam) && limitParam > 0 ? limitParam : 20;
 
     const curatedSkills = await loadCuratedOpenClawSkills();
+    const categories = extractCuratedCategories(curatedSkills);
+
+    const manager = new SkillHubManager(sourcesConfig);
+    const installedSkills = await manager.listInstalled();
+    const installedNames = new Set(installedSkills.map((s) => s.name.toLowerCase()));
     const filtered = curatedSkills.filter((skill) => {
       const haystack = `${skill.id} ${skill.name} ${skill.description} ${skill.category || ""}`.toLowerCase();
       if (normalizedQuery && !haystack.includes(normalizedQuery)) {
@@ -174,6 +182,10 @@ export const GET: RequestHandler = async ({ url, locals }) => {
         );
         if (!matched) return false;
       }
+      if (categoryParam) {
+        const categoryTag = slugifyCategory(skill.category || "");
+        if (categoryTag !== categoryParam) return false;
+      }
       return true;
     });
 
@@ -189,6 +201,8 @@ export const GET: RequestHandler = async ({ url, locals }) => {
       page,
       totalPages,
       sources: selectedSources,
+      categories,
+      installed: Array.from(installedNames),
     });
   } catch (error: any) {
     console.error("[Skill Hub API] Search failed:", error);
@@ -232,9 +246,25 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     }
 
     const manager = new SkillHubManager(sourcesConfig);
-    const result = await manager.importSkill(skillId, {
-      source: source as SkillHubProviderType,
-    });
+    const attempts = [skillId];
+    if (skillId.includes("/")) {
+      const slug = skillId.split("/").pop();
+      if (slug && slug !== skillId) attempts.push(slug);
+    }
+
+    let result = null as Awaited<
+      ReturnType<typeof manager.importSkill>
+    > | null;
+    for (const attemptId of attempts) {
+      result = await manager.importSkill(attemptId, {
+        source: source as SkillHubProviderType,
+      });
+      if (result.ok) break;
+    }
+
+    if (!result) {
+      return json({ error: "Failed to import skill" }, { status: 500 });
+    }
 
     if (!result.ok) {
       return json(

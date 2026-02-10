@@ -44,6 +44,7 @@
 
   interface DiscoverSkill {
     id: string;
+    importId?: string;
     name: string;
     description: string;
     author: string;
@@ -207,7 +208,10 @@
       const res = await fetch("/api/skill-hub", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ skillId: skill.id, source: skill.source }),
+        body: JSON.stringify({
+          skillId: skill.importId || skill.id,
+          source: skill.source,
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Failed to import");

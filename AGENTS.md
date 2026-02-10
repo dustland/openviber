@@ -13,6 +13,12 @@ Guidelines for AI agents working on the OpenViber codebase.
 - Use meaningful variable and function names
 - Add JSDoc comments for public APIs
 
+## UI Components (Web)
+
+- **Always use [shadcn-svelte](https://next.shadcn-svelte.com/) components** for the web UI. Install new components via the CLI: `pnpm dlx shadcn-svelte@latest add <component>` (run from the `web/` directory).
+- **Prefer DropdownMenu over native `<select>`** for all selection/filter controls. Native `<select>` elements should be avoided in favor of the styled DropdownMenu component from shadcn-svelte.
+- Before building a custom component, check if shadcn-svelte already provides one (e.g., Dialog, Pagination, DropdownMenu, Tabs, etc.).
+
 ## Project Structure
 
 ```

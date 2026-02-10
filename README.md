@@ -193,6 +193,10 @@ Maintain control with approval gates. Vibers can be configured to pause and ask 
 
 We welcome contributions! See [CONTRIBUTING.md](./CONTRIBUTING.md) for details.
 
+## Thanks
+
+Special thanks to the maintainers and contributors of [awesome-openclaw-skills][awesome-openclaw-skills] for curating a high-quality OpenClaw skill catalog that helps power skill discovery in OpenViber.
+
 ## 📄 License
 
 Licensed under the [Apache License 2.0](./LICENSE).
@@ -216,6 +220,7 @@ If you find Viber helpful, please ⭐ star us on GitHub!
 [docs-site]: https://viber.dustland.ai/docs
 [github-issues]: https://github.com/dustland/openviber/issues
 [license-link]: https://github.com/dustland/openviber/blob/main/LICENSE
+[awesome-openclaw-skills]: https://github.com/VoltAgent/awesome-openclaw-skills
 
 <!-- SHIELDS -->
 [download-shield]: https://img.shields.io/badge/Download-Viber-blue?style=flat-square

@@ -28,6 +28,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
       nodeName: viber.nodeName ?? viber.nodeId,
       goal: viber.goal,
       status: viber.status,
+      error: viber.error ?? null,
       nodeConnected: viber.isNodeConnected !== false,
       createdAt: viber.createdAt,
       completedAt: viber.completedAt,

@@ -233,6 +233,9 @@
     }
   });
 
+  // Error feedback for failed tasks / API errors
+  let chatError = $state<string | null>(null);
+
   // Session activity tracking for long-running AI tasks
   let sessionStartedAt = $state<number | null>(null);
   let bootstrapTaskHandledViberId = $state<string | null>(null);
@@ -371,7 +374,15 @@
     try {
       const response = await fetch(`/api/vibers/${id}`);
       if (response.ok) {
-        viber = await response.json();
+        const data = await response.json();
+        viber = data;
+        // Surface task-level errors from the hub/daemon
+        if (data.status === "error" && data.error) {
+          chatError = data.error;
+        } else if (data.status !== "error") {
+          // Clear stale error when status recovers (e.g. retry)
+          if (chatError) chatError = null;
+        }
         // Only reload messages when NOT actively sending (prevents duplicates)
         if (id && !sending) await fetchMessages(id);
       } else {
@@ -454,6 +465,7 @@
     const content = (overrideContent ?? inputValue).trim();
     if (!content || sending || viber?.nodeConnected !== true) return;
 
+    chatError = null; // Clear previous error on retry
     inputValue = "";
     sending = true;
     sessionStartedAt = Date.now();
@@ -520,6 +532,7 @@
         },
         onError: (error: Error) => {
           console.error("Chat error:", error);
+          chatError = error.message || "An error occurred during the chat session.";
           sending = false;
           sessionStartedAt = null;
         },
@@ -534,6 +547,7 @@
       }
     } catch (error) {
       console.error("Failed to send message:", error);
+      chatError = error instanceof Error ? error.message : "Failed to send message.";
       sending = false;
       sessionStartedAt = null;
     }
@@ -900,6 +914,29 @@
 
       <div class="chat-composer-wrap p-3 shrink-0 sm:p-4">
         <div class="w-full space-y-3">
+          <!-- Error banner -->
+          {#if chatError}
+            <div
+              class="flex items-start gap-3 rounded-xl border border-destructive/40 bg-destructive/5 px-4 py-3 animate-in fade-in slide-in-from-bottom-1 duration-200"
+            >
+              <AlertCircle class="size-4 text-destructive shrink-0 mt-0.5" />
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-destructive">Task failed</p>
+                <p class="text-xs text-destructive/80 mt-0.5 wrap-break-word">
+                  {chatError}
+                </p>
+              </div>
+              <button
+                type="button"
+                class="shrink-0 p-0.5 text-destructive/60 hover:text-destructive transition-colors"
+                onclick={() => (chatError = null)}
+                aria-label="Dismiss error"
+              >
+                <X class="size-3.5" />
+              </button>
+            </div>
+          {/if}
+
           <!-- Persistent session activity bar for long-running tasks -->
           {#if sending && sessionStartedAt}
             <SessionIndicator

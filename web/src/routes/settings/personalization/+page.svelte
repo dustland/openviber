@@ -198,8 +198,7 @@
   <!-- Header -->
   <div class="shrink-0 border-b border-border/50 bg-background/95 backdrop-blur px-6 py-5">
     <div>
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-3">
+      <div class="flex items-center gap-3">
           <div
             class="flex items-center justify-center size-10 rounded-lg bg-primary/10"
           >
@@ -215,21 +214,6 @@
             </p>
           </div>
         </div>
-        <button
-          type="button"
-          onclick={save}
-          disabled={saving || !hasChanges}
-          class="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {#if saving}
-            <Loader2 class="size-4 animate-spin" />
-            Saving...
-          {:else}
-            <Save class="size-4" />
-            Save
-          {/if}
-        </button>
-      </div>
 
       {#if error}
         <div
@@ -368,6 +352,39 @@
             </p>
           </div>
         </div>
+      </div>
+    </div>
+  {/if}
+
+  <!-- Floating save bar -->
+  {#if hasChanges}
+    <div
+      class="shrink-0 border-t border-border bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/80 px-6 py-3 flex items-center justify-between gap-4 animate-in slide-in-from-bottom-2 duration-200"
+    >
+      <p class="text-sm text-muted-foreground">Unsaved changes</p>
+      <div class="flex items-center gap-3">
+        <button
+          type="button"
+          onclick={() => { draft = { ...stored }; }}
+          disabled={saving}
+          class="rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-50"
+        >
+          Discard
+        </button>
+        <button
+          type="button"
+          onclick={save}
+          disabled={saving}
+          class="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 shadow-sm"
+        >
+          {#if saving}
+            <Loader2 class="size-4 animate-spin" />
+            Saving…
+          {:else}
+            <Save class="size-4" />
+            Save
+          {/if}
+        </button>
       </div>
     </div>
   {/if}

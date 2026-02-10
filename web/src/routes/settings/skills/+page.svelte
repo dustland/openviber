@@ -178,25 +178,9 @@
       </div>
     {:else}
       <section class="mb-10">
-        <div class="flex items-center justify-between mb-4">
-          <p class="text-sm text-muted-foreground">
+        <p class="text-sm text-muted-foreground mb-4">
             {enabledCount} of {Object.keys(editSources).length} sources enabled. These are used when you search on the Skills page.
           </p>
-          <button
-            type="button"
-            onclick={saveSettings}
-            disabled={saving || !hasChanges}
-            class="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {#if saving}
-              <Loader2 class="size-4 animate-spin" />
-              Saving...
-            {:else}
-              <Save class="size-4" />
-              Save changes
-            {/if}
-          </button>
-        </div>
 
         <div class="space-y-3">
           {#each Object.entries(editSources) as [key, edit] (key)}
@@ -340,9 +324,42 @@
         </div>
       </section>
 
-      <p class="text-sm text-muted-foreground">
+      <p class="text-sm text-muted-foreground pb-4">
         <a href="/skills" class="text-primary hover:underline">Open Skills</a> to discover and import skills from these sources.
       </p>
     {/if}
   </div>
+
+  <!-- Floating save bar -->
+  {#if hasChanges}
+    <div
+      class="sticky bottom-0 border-t border-border bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/80 px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4 animate-in slide-in-from-bottom-2 duration-200"
+    >
+      <p class="text-sm text-muted-foreground">Unsaved changes</p>
+      <div class="flex items-center gap-3">
+        <button
+          type="button"
+          onclick={() => initEditState(sources)}
+          disabled={saving}
+          class="rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-50"
+        >
+          Discard
+        </button>
+        <button
+          type="button"
+          onclick={saveSettings}
+          disabled={saving}
+          class="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 shadow-sm"
+        >
+          {#if saving}
+            <Loader2 class="size-4 animate-spin" />
+            Saving…
+          {:else}
+            <Save class="size-4" />
+            Save Changes
+          {/if}
+        </button>
+      </div>
+    </div>
+  {/if}
 </div>

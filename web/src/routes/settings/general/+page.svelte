@@ -48,15 +48,21 @@
 
   const MODEL_OPTIONS = [
     { id: "", label: "Default (let agent choose)" },
-    { id: "openai/gpt-4o", label: "GPT-4o" },
-    { id: "openai/gpt-4o-mini", label: "GPT-4o Mini" },
-    { id: "openai/o3-mini", label: "o3-mini" },
-    { id: "anthropic/claude-sonnet-4-20250514", label: "Claude Sonnet 4" },
-    { id: "anthropic/claude-3.5-haiku", label: "Claude 3.5 Haiku" },
-    { id: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro" },
-    { id: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash" },
-    { id: "deepseek/deepseek-chat", label: "DeepSeek V3" },
-    { id: "deepseek/deepseek-reasoner", label: "DeepSeek R1" },
+    // Flagship
+    { id: "anthropic/claude-opus-4.6", label: "Claude Opus 4.6" },
+    { id: "openai/gpt-5.3", label: "GPT-5.3" },
+    { id: "google/gemini-3.0-pro", label: "Gemini 3.0 Pro" },
+    // Fast
+    { id: "anthropic/claude-sonnet-4.6", label: "Claude Sonnet 4.6" },
+    { id: "google/gemini-3.0-flash", label: "Gemini 3.0 Flash" },
+    { id: "openai/gpt-5.3-mini", label: "GPT-5.3 Mini" },
+    // Value (Chinese)
+    { id: "deepseek/deepseek-v3.2", label: "DeepSeek 3.2" },
+    { id: "zhipu/glm-4.7", label: "GLM-4.7" },
+    { id: "qwen/qwen-3.5-max", label: "Qwen 3.5 Max" },
+    // Reasoning
+    { id: "deepseek/deepseek-r2", label: "DeepSeek R2" },
+    { id: "openai/o4-pro", label: "o4 Pro" },
   ];
 
   // ── Primary coding CLI ────────────────────────────────────────────────
@@ -241,7 +247,6 @@
 <div class="flex-1 min-h-0 overflow-y-auto">
   <div class="w-full px-4 py-6 sm:px-6 lg:px-8">
     <header class="mb-8">
-      <div class="flex items-center justify-between">
         <div class="flex items-center gap-3">
           <div
             class="flex items-center justify-center size-10 rounded-lg bg-primary/10"
@@ -255,21 +260,6 @@
             </p>
           </div>
         </div>
-        <button
-          type="button"
-          onclick={saveSettings}
-          disabled={saving || !hasChanges}
-          class="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {#if saving}
-            <Loader2 class="size-4 animate-spin" />
-            Saving...
-          {:else}
-            <Save class="size-4" />
-            Save Changes
-          {/if}
-        </button>
-      </div>
     </header>
 
     {#if error}
@@ -560,4 +550,37 @@
       </div>
     {/if}
   </div>
+
+  <!-- Floating save bar -->
+  {#if hasChanges}
+    <div
+      class="sticky bottom-0 border-t border-border bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/80 px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4 animate-in slide-in-from-bottom-2 duration-200"
+    >
+      <p class="text-sm text-muted-foreground">Unsaved changes</p>
+      <div class="flex items-center gap-3">
+        <button
+          type="button"
+          onclick={() => fetchSettings()}
+          disabled={saving}
+          class="rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-50"
+        >
+          Discard
+        </button>
+        <button
+          type="button"
+          onclick={saveSettings}
+          disabled={saving}
+          class="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 shadow-sm"
+        >
+          {#if saving}
+            <Loader2 class="size-4 animate-spin" />
+            Saving…
+          {:else}
+            <Save class="size-4" />
+            Save Changes
+          {/if}
+        </button>
+      </div>
+    </div>
+  {/if}
 </div>

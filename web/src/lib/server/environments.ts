@@ -371,10 +371,17 @@ export async function setViberEnvironmentForUser(
     return null;
   }
 
+  const MAX_VIBER_NAME_LENGTH = 80;
+  const rawName = goal?.trim() || viberId;
+  const name =
+    rawName.length > MAX_VIBER_NAME_LENGTH
+      ? rawName.slice(0, MAX_VIBER_NAME_LENGTH).trimEnd() + "…"
+      : rawName;
+
   const now = new Date().toISOString();
   const body: Record<string, unknown> = {
     id: viberId,
-    name: goal?.trim() || viberId,
+    name,
     environment_id: normalizedEnvironmentId,
     created_at: now,
     updated_at: now,

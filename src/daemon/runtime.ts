@@ -41,6 +41,13 @@ export interface DaemonRunTaskOptions {
     google?: { accessToken: string; refreshToken?: string | null };
     [provider: string]: { accessToken: string; refreshToken?: string | null } | undefined;
   };
+  /** Progress callback for tools to emit intermediate updates */
+  onProgress?: (event: {
+    kind: string;
+    phase?: string;
+    message?: string;
+    data?: any;
+  }) => void;
 }
 
 const __filename = fileURLToPath(import.meta.url);
@@ -506,7 +513,11 @@ export async function runTask(
 
   const streamResult = await agent.streamText({
     messages: viberMessages,
-    metadata: { taskId, oauthTokens: options.oauthTokens },
+    metadata: { 
+      taskId, 
+      oauthTokens: options.oauthTokens,
+      onProgress: options.onProgress,
+    },
     ...(signal && { abortSignal: signal }),
   });
 

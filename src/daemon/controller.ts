@@ -584,6 +584,16 @@ export class ViberController extends EventEmitter {
     runtime.controller = new AbortController();
     runtime.running = true;
 
+    // Create progress callback for tools to emit intermediate updates
+    const onProgress = (event: {
+      kind: string;
+      phase?: string;
+      message?: string;
+      data?: any;
+    }) => {
+      this.emitTaskProgress(runtime, event);
+    };
+
     const { streamResult, agent } = await runTask(
       runtime.goal,
       {
@@ -594,6 +604,7 @@ export class ViberController extends EventEmitter {
         environment: runtime.environment,
         settingsOverride: runtime.options?.settings,
         oauthTokens: runtime.oauthTokens,
+        onProgress,
       },
       runtime.messageHistory
     );

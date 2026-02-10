@@ -4,25 +4,18 @@
   import { goto } from "$app/navigation";
   import { getVibersStore } from "$lib/stores/vibers";
   import {
-    ArrowUp,
     Bug,
-    ChevronDown,
-    Check,
     Code2,
-    Cpu,
     FileText,
     HeartPulse,
     MoreHorizontal,
     Palette,
-    Server,
     ShieldCheck,
     Sparkles,
     TrainFront,
-    FolderGit2,
-    Package,
   } from "@lucide/svelte";
-  import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import * as Dialog from "$lib/components/ui/dialog";
+  import ChatComposer from "$lib/components/chat-composer.svelte";
   import type { Intent } from "$lib/data/intents";
 
   interface ViberNode {
@@ -54,25 +47,6 @@
     bug: Bug,
     "train-front": TrainFront,
   };
-
-  const MODEL_OPTIONS = [
-    { id: "", label: "Default", badge: "" },
-    // Flagship
-    { id: "anthropic/claude-opus-4.6", label: "Claude Opus 4.6", badge: "Flagship" },
-    { id: "openai/gpt-5.3", label: "GPT-5.3", badge: "Flagship" },
-    { id: "google/gemini-3.0-pro", label: "Gemini 3.0 Pro", badge: "Flagship" },
-    // Fast
-    { id: "anthropic/claude-sonnet-4.6", label: "Claude Sonnet 4.6", badge: "Fast" },
-    { id: "google/gemini-3.0-flash", label: "Gemini 3.0 Flash", badge: "Fast" },
-    { id: "openai/gpt-5.3-mini", label: "GPT-5.3 Mini", badge: "Fast" },
-    // Value
-    { id: "deepseek/deepseek-v3.2", label: "DeepSeek 3.2", badge: "Value" },
-    { id: "zhipu/glm-4.7", label: "GLM-4.7", badge: "Value" },
-    { id: "qwen/qwen-3.5-max", label: "Qwen 3.5 Max", badge: "Value" },
-    // Reasoning
-    { id: "deepseek/deepseek-r2", label: "DeepSeek R2", badge: "Reasoning" },
-    { id: "openai/o4-pro", label: "o4 Pro", badge: "Reasoning" },
-  ];
 
   let nodes = $state<ViberNode[]>([]);
   let environments = $state<SidebarEnvironment[]>([]);
@@ -222,6 +196,11 @@
   function selectIntent(intent: Intent) {
     selectedIntentId = intent.id;
     taskInput = intent.body;
+    // Auto-submit the task when an intent is selected
+    // submitTask will handle validation (node selection, active status, etc.)
+    if (intent.body.trim()) {
+      void submitTask(intent.body);
+    }
   }
 
   function clearIntent() {
@@ -376,14 +355,19 @@
                     <IconComponent class="size-4" />
                   </div>
                   <div class="min-w-0">
-                    <p class="text-sm font-medium text-foreground truncate">
+                    <p class="text-sm font-medium text-foreground">
                       {intent.name}
                     </p>
-                    <p class="text-xs text-muted-foreground line-clamp-1">
+                    <p class="text-xs text-muted-foreground mt-0.5">
                       {intent.description}
                     </p>
                   </div>
                 </div>
+                {#if intent.body}
+                  <p class="mt-2.5 text-[11px] leading-relaxed text-muted-foreground/70 line-clamp-3 whitespace-pre-line">
+                    {intent.body.split('\n').filter(Boolean).slice(0, 3).join('\n')}
+                  </p>
+                {/if}
               </button>
             {/each}
 
@@ -415,12 +399,41 @@
         </div>
       {/if}
 
-      <!-- Compact selectors row -->
-      <div class="flex items-center gap-2 px-1">
+      <!-- Input bar -->
+      <div
+        class="flex items-end gap-2 rounded-2xl border border-border bg-background/95 px-3 py-2.5 shadow-sm backdrop-blur transition-colors"
+        class:opacity-60={!canSend && !taskInput.trim()}
+      >
+        <textarea
+          bind:value={taskInput}
+          onkeydown={handleKeydown}
+          rows="1"
+          placeholder={selectedNode?.status === "active"
+            ? "Describe what you want to build, or pick an intent above..."
+            : "Select an active node first..."}
+          class="min-h-[40px] max-h-36 flex-1 resize-none rounded-xl border border-transparent bg-transparent px-2 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
+          disabled={!selectedNode ||
+            selectedNode.status !== "active" ||
+            creating}
+        ></textarea>
+
+        <button
+          type="button"
+          class="inline-flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-opacity disabled:opacity-30"
+          onclick={() => void submitTask()}
+          disabled={!canSend}
+          title="Create viber and send task"
+        >
+          <ArrowUp class="size-4" />
+        </button>
+      </div>
+
+      <!-- Selectors row -->
+      <div class="flex items-center gap-1 px-1">
         <!-- Node selector -->
         <DropdownMenu.Root>
           <DropdownMenu.Trigger
-            class="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs transition-colors hover:bg-accent/50 cursor-pointer"
+            class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground cursor-pointer"
           >
             {#if selectedNode}
               <span
@@ -429,13 +442,12 @@
                 class:bg-amber-500={selectedNode.status === "pending"}
                 class:bg-zinc-400={selectedNode.status === "offline"}
               ></span>
-              <Server class="size-3 opacity-60" />
-              <span class="font-medium text-foreground">{selectedNode.name}</span>
+              <span>{selectedNode.name}</span>
             {:else}
               <Server class="size-3 opacity-40" />
-              <span class="text-muted-foreground">Choose node</span>
+              <span>Node</span>
             {/if}
-            <ChevronDown class="size-3 opacity-50" />
+            <ChevronDown class="size-2.5 opacity-40" />
           </DropdownMenu.Trigger>
           <DropdownMenu.Content align="start" class="w-64">
             <DropdownMenu.Label>Select node</DropdownMenu.Label>
@@ -473,19 +485,20 @@
           </DropdownMenu.Content>
         </DropdownMenu.Root>
 
+        <span class="text-muted-foreground/30">·</span>
         <!-- Environment selector -->
         <DropdownMenu.Root>
           <DropdownMenu.Trigger
-            class="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs transition-colors hover:bg-accent/50 cursor-pointer"
+            class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground cursor-pointer"
           >
             {#if selectedEnvironment}
-              <FolderGit2 class="size-3 opacity-60" />
-              <span class="font-medium text-foreground">{selectedEnvironment.name}</span>
+              <FolderGit2 class="size-3 opacity-50" />
+              <span>{selectedEnvironment.name}</span>
             {:else}
               <FolderGit2 class="size-3 opacity-40" />
-              <span class="text-muted-foreground">All environments</span>
+              <span>Environment</span>
             {/if}
-            <ChevronDown class="size-3 opacity-50" />
+            <ChevronDown class="size-2.5 opacity-40" />
           </DropdownMenu.Trigger>
           <DropdownMenu.Content align="start" class="w-56">
             <DropdownMenu.Label>Select environment</DropdownMenu.Label>
@@ -519,16 +532,15 @@
           </DropdownMenu.Content>
         </DropdownMenu.Root>
 
+        <span class="text-muted-foreground/30">·</span>
         <!-- Model selector -->
         <DropdownMenu.Root>
           <DropdownMenu.Trigger
-            class="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs transition-colors hover:bg-accent/50 cursor-pointer"
+            class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground cursor-pointer"
           >
-            <Cpu class="size-3 opacity-60" />
-            <span class={selectedModelId ? "font-medium text-foreground" : "text-muted-foreground"}>
-              {selectedModel.label}
-            </span>
-            <ChevronDown class="size-3 opacity-50" />
+            <Cpu class="size-3 opacity-40" />
+            <span>{selectedModel.label}</span>
+            <ChevronDown class="size-2.5 opacity-40" />
           </DropdownMenu.Trigger>
           <DropdownMenu.Content align="start" class="w-64">
             <DropdownMenu.Label>Select model</DropdownMenu.Label>
@@ -555,39 +567,10 @@
         </DropdownMenu.Root>
 
         {#if !selectedNode}
-          <span class="text-[11px] italic text-muted-foreground">Choose a node to get started</span>
+          <span class="text-[11px] italic text-muted-foreground/50">— pick a node</span>
         {:else if selectedNode.status !== "active"}
-          <span class="text-[11px] italic text-amber-500">Node is {selectedNode.status} — start the daemon</span>
+          <span class="text-[11px] italic text-amber-500/70">{selectedNode.status}</span>
         {/if}
-      </div>
-
-      <!-- Input bar -->
-      <div
-        class="flex items-end gap-2 rounded-2xl border border-border bg-background/95 px-3 py-2.5 shadow-sm backdrop-blur transition-colors"
-        class:opacity-60={!canSend && !taskInput.trim()}
-      >
-        <textarea
-          bind:value={taskInput}
-          onkeydown={handleKeydown}
-          rows="1"
-          placeholder={selectedNode?.status === "active"
-            ? "Describe what you want to build, or pick an intent above..."
-            : "Select an active node first..."}
-          class="min-h-[40px] max-h-36 flex-1 resize-none rounded-xl border border-transparent bg-transparent px-2 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
-          disabled={!selectedNode ||
-            selectedNode.status !== "active" ||
-            creating}
-        ></textarea>
-
-        <button
-          type="button"
-          class="inline-flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-opacity disabled:opacity-30"
-          onclick={() => void submitTask()}
-          disabled={!canSend}
-          title="Create viber and send task"
-        >
-          <ArrowUp class="size-4" />
-        </button>
       </div>
     </div>
   </div>

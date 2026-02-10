@@ -192,6 +192,16 @@
   </Sidebar.Root>
 
   <Sidebar.Inset class="flex flex-col h-full min-h-0 bg-muted/40">
+    <!-- Mobile header: sidebar trigger (visible < md only) -->
+    <header
+      class="flex md:hidden items-center gap-2 h-11 shrink-0 border-b border-border/40 px-3"
+    >
+      <Sidebar.Trigger class="size-7" />
+      <a href="/" class="inline-flex items-center gap-1.5">
+        <img src="/favicon.png" alt="OpenViber" class="size-4" />
+        <span class="text-sm font-medium">OpenViber</span>
+      </a>
+    </header>
     {@render children()}
   </Sidebar.Inset>
 </Sidebar.Provider>

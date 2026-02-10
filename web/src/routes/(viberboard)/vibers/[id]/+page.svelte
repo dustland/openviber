@@ -19,7 +19,6 @@
     Cpu,
     LoaderCircle,
     MessageSquare,
-    Send,
     Settings2,
     Sparkles,
     TerminalSquare,
@@ -27,7 +26,9 @@
   } from "@lucide/svelte";
   import { marked } from "marked";
   import { Button } from "$lib/components/ui/button";
+  import ChatComposer from "$lib/components/chat-composer.svelte";
   import * as Resizable from "$lib/components/ui/resizable";
+  import * as Sheet from "$lib/components/ui/sheet";
   import {
     Collapsible,
     CollapsibleTrigger,
@@ -459,10 +460,8 @@
   let configSaving = $state(false);
   let configError = $state<string | null>(null);
   let configFile = $state<string | null>(null);
-  let configuredTools = $state<string[]>([]);
   let configuredSkills = $state<string[]>([]);
-  let toolOptions = $state<string[]>([]);
-  let skillsInput = $state("");
+  let skillOptions = $state<string[]>([]);
   let showConfigDialog = $state(false);
 
   // Open config panel when navigating with ?config=1 (e.g. from sidebar "Configure")
@@ -489,6 +488,7 @@
   let toolOutputContainer = $state<HTMLDivElement | null>(null);
   let toolOutputUserScrolledUp = $state(false);
   let selectedToolOutputId = $state<string | null>(null);
+  let showMobileToolOutput = $state(false);
 
   function scrollToBottom(behavior: ScrollBehavior = "smooth") {
     if (!messagesContainer || userScrolledUp) return;
@@ -646,10 +646,8 @@
         return;
       }
       configFile = payload.configFile ?? null;
-      configuredTools = payload.tools ?? [];
       configuredSkills = payload.skills ?? [];
-      toolOptions = payload.toolOptions ?? [];
-      skillsInput = configuredSkills.join(", ");
+      skillOptions = payload.skillOptions ?? [];
     } catch (error) {
       console.error("Failed to fetch agent config:", error);
       configError = "Failed to load agent config.";
@@ -658,12 +656,12 @@
     }
   }
 
-  function toggleConfiguredTool(toolId: string) {
-    if (configuredTools.includes(toolId)) {
-      configuredTools = configuredTools.filter((tool) => tool !== toolId);
+  function toggleConfiguredSkill(skillId: string) {
+    if (configuredSkills.includes(skillId)) {
+      configuredSkills = configuredSkills.filter((skill) => skill !== skillId);
       return;
     }
-    configuredTools = [...configuredTools, toolId];
+    configuredSkills = [...configuredSkills, skillId];
   }
 
   async function saveAgentConfig() {
@@ -671,17 +669,11 @@
     configSaving = true;
     configError = null;
     try {
-      const skills = skillsInput
-        .split(",")
-        .map((skill) => skill.trim())
-        .filter(Boolean);
-
       const response = await fetch(`/api/vibers/${viber.id}/config`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          tools: configuredTools,
-          skills,
+          skills: configuredSkills,
         }),
       });
 
@@ -690,8 +682,7 @@
         throw new Error(payload.error || "Failed to save agent config.");
       }
 
-      configuredSkills = payload.skills ?? skills;
-      skillsInput = configuredSkills.join(", ");
+      configuredSkills = payload.skills ?? configuredSkills;
     } catch (error) {
       configError =
         error instanceof Error ? error.message : "Failed to save agent config.";
@@ -791,13 +782,6 @@
         error instanceof Error ? error.message : "Failed to send message.";
       sending = false;
       sessionStartedAt = null;
-    }
-  }
-
-  function handleKeydown(e: KeyboardEvent) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
     }
   }
 
@@ -933,13 +917,22 @@
   <title>{viber?.name || "Viber"} - OpenViber</title>
 </svelte:head>
 
-<div class="chat-shell flex-1 flex flex-col min-h-0 overflow-hidden">
-  <Resizable.PaneGroup direction="horizontal" class="flex-1 min-h-0">
-    <Resizable.Pane defaultSize={65} minSize={35} class="min-h-0 flex flex-col">
+<div
+  class="chat-shell flex-1 flex w-full min-w-0 flex-col min-h-0 overflow-hidden"
+>
+  <Resizable.PaneGroup
+    direction="horizontal"
+    class="flex-1 min-h-0 min-w-0 w-full overflow-hidden"
+  >
+    <Resizable.Pane
+      defaultSize={65}
+      minSize={35}
+      class="min-h-0 min-w-0 overflow-hidden flex flex-col"
+    >
       <!-- Messages -->
       <div
         bind:this={messagesContainer}
-        class="chat-scroll flex-1 min-h-0 overflow-y-auto"
+        class="chat-scroll flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden"
         onscroll={handleScroll}
       >
         {#if loading}
@@ -1146,58 +1139,96 @@
       </div>
 
       <div class="chat-composer-wrap p-3 shrink-0 sm:p-4">
-        <div class="w-full space-y-3">
-          <!-- Error banner -->
-          {#if chatError}
-            <div
-              class="flex items-start gap-3 rounded-xl border border-destructive/40 bg-destructive/5 px-4 py-3 animate-in fade-in slide-in-from-bottom-1 duration-200"
+        <!-- Mobile tool output toggle (visible < lg only) -->
+        {#if toolOutputEntries.length > 0}
+          <div class="flex lg:hidden mb-2">
+            <button
+              type="button"
+              class="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-muted/40 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              onclick={() => (showMobileToolOutput = true)}
             >
-              <AlertCircle class="size-4 text-destructive shrink-0 mt-0.5" />
-              <div class="flex-1 min-w-0">
-                <p class="text-sm font-medium text-destructive">Task failed</p>
-                <p class="text-xs text-destructive/80 mt-0.5 wrap-break-word">
-                  {chatError}
-                </p>
-              </div>
-              <button
-                type="button"
-                class="shrink-0 p-0.5 text-destructive/60 hover:text-destructive transition-colors"
-                onclick={() => (chatError = null)}
-                aria-label="Dismiss error"
+              <TerminalSquare class="size-3.5" />
+              Tool Output
+              <span
+                class="rounded-full bg-primary/10 text-primary px-1.5 py-0.5 text-[10px] font-semibold"
               >
-                <X class="size-3.5" />
-              </button>
-            </div>
-          {/if}
-
-          <!-- Persistent session activity bar for long-running tasks -->
-          {#if sending && sessionStartedAt}
-            <SessionIndicator
-              startedAt={sessionStartedAt}
-              steps={activitySteps}
-            />
-          {/if}
-
-          {#if viber?.skills && viber.skills.length > 0 && displayMessages.length > 0}
-            <div class="overflow-x-auto pb-0.5">
-              <div class="flex items-center gap-1.5 flex-wrap">
-                {#each viber.skills as skill}
-                  <button
-                    type="button"
-                    class="rounded-full border border-border bg-muted/40 px-2.5 py-1 text-[11px] text-muted-foreground hover:text-foreground hover:bg-muted transition-colors whitespace-nowrap"
-                    onclick={() => insertSkillTemplate(skill)}
-                    title={skill.description}
-                  >
-                    Use {skill.name}...
-                  </button>
-                {/each}
+                {toolOutputEntries.length}
+              </span>
+              {#if sending}
+                <span
+                  class="rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-500"
+                  >Live</span
+                >
+              {/if}
+            </button>
+          </div>
+        {/if}
+        <ChatComposer
+          bind:value={inputValue}
+          bind:inputElement={inputEl}
+          placeholder={configError
+            ? "Agent config missing — run openviber onboard first"
+            : viber?.nodeConnected === true
+              ? "Send a task or command..."
+              : "Node is offline"}
+          disabled={viber?.nodeConnected !== true || !!configError}
+          {sending}
+          showSelectors={false}
+          onsubmit={() => sendMessage()}
+        >
+          {#snippet beforeInput()}
+            <!-- Error banner -->
+            {#if chatError}
+              <div
+                class="flex items-start gap-3 rounded-xl border border-destructive/40 bg-destructive/5 px-4 py-3 animate-in fade-in slide-in-from-bottom-1 duration-200"
+              >
+                <AlertCircle class="size-4 text-destructive shrink-0 mt-0.5" />
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-medium text-destructive">
+                    Task failed
+                  </p>
+                  <p class="text-xs text-destructive/80 mt-0.5 wrap-break-word">
+                    {chatError}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  class="shrink-0 p-0.5 text-destructive/60 hover:text-destructive transition-colors"
+                  onclick={() => (chatError = null)}
+                  aria-label="Dismiss error"
+                >
+                  <X class="size-3.5" />
+                </button>
               </div>
-            </div>
-          {/if}
+            {/if}
 
-          <div
-            class="composer-card flex gap-2.5 items-end rounded-2xl border border-border bg-background/95 px-3 py-2.5 shadow-sm backdrop-blur"
-          >
+            <!-- Persistent session activity bar for long-running tasks -->
+            {#if sending && sessionStartedAt}
+              <SessionIndicator
+                startedAt={sessionStartedAt}
+                steps={activitySteps}
+              />
+            {/if}
+
+            {#if viber?.skills && viber.skills.length > 0 && displayMessages.length > 0}
+              <div class="overflow-x-auto pb-0.5">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  {#each viber.skills as skill}
+                    <button
+                      type="button"
+                      class="rounded-full border border-border bg-muted/40 px-2.5 py-1 text-[11px] text-muted-foreground hover:text-foreground hover:bg-muted transition-colors whitespace-nowrap"
+                      onclick={() => insertSkillTemplate(skill)}
+                      title={skill.description}
+                    >
+                      Use {skill.name}...
+                    </button>
+                  {/each}
+                </div>
+              </div>
+            {/if}
+          {/snippet}
+
+          {#snippet leftAction()}
             <button
               type="button"
               class="size-10 shrink-0 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors {configError
@@ -1208,39 +1239,14 @@
             >
               <Settings2 class="size-4" />
             </button>
-            <textarea
-              bind:this={inputEl}
-              bind:value={inputValue}
-              onkeydown={handleKeydown}
-              placeholder={configError
-                ? "Agent config missing — run openviber onboard first"
-                : viber?.nodeConnected === true
-                  ? "Send a task or command..."
-                  : "Node is offline"}
-              class="composer-input flex-1 min-h-[40px] max-h-36 resize-none rounded-xl border border-transparent bg-transparent px-2 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
-              rows="1"
-              disabled={sending ||
-                viber?.nodeConnected !== true ||
-                !!configError}
-            ></textarea>
-            <Button
-              onclick={() => sendMessage()}
-              disabled={sending ||
-                !inputValue.trim() ||
-                viber?.nodeConnected !== true ||
-                !!configError}
-              class="size-10 shrink-0 rounded-xl"
-            >
-              <Send class="size-4" />
-            </Button>
-          </div>
-          <p
-            class="flex items-center gap-1.5 px-1 text-[11px] text-muted-foreground"
-          >
-            <CornerDownLeft class="size-3" />
-            Press Enter to send, Shift + Enter for a new line.
-          </p>
-        </div>
+          {/snippet}
+        </ChatComposer>
+        <p
+          class="flex items-center gap-1.5 px-1 mt-2 text-[11px] text-muted-foreground"
+        >
+          <CornerDownLeft class="size-3" />
+          Press Enter to send, Shift + Enter for a new line.
+        </p>
       </div>
     </Resizable.Pane>
 
@@ -1250,142 +1256,132 @@
       defaultSize={35}
       minSize={20}
       maxSize={55}
-      class="hidden min-h-0 min-w-0 overflow-hidden lg:block"
+      class="hidden min-h-0 min-w-0 w-full overflow-hidden lg:block"
     >
-      <aside class="tool-pane flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-background/70">
-        <div class="border-b border-border/60 px-3 py-2.5 shrink-0">
-          <div class="flex items-center gap-2">
-            <TerminalSquare class="size-4 text-muted-foreground" />
-            <p class="text-sm font-medium text-foreground">Tool Output</p>
-            {#if sending}
-              <span
-                class="ml-auto rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-500"
-              >
-                Live
-              </span>
-            {/if}
-          </div>
-        </div>
-
-        {#if toolOutputEntries.length === 0}
-          <div class="flex flex-1 items-center justify-center px-4 text-center">
-            <p class="text-xs text-muted-foreground">
-              No tool output yet. Run a tool call to see live logs here.
-            </p>
-          </div>
-        {:else}
-          <div
-            bind:this={toolOutputContainer}
-            class="flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden p-1.5"
-            onscroll={handleToolOutputScroll}
-          >
-            <div class="space-y-1 min-w-0">
-              {#each toolOutputEntries as entry (entry.id)}
-                <Collapsible open={selectedToolOutputId === entry.id} class="min-w-0 w-full overflow-hidden">
-                  <CollapsibleTrigger
-                    class="flex w-full min-w-0 overflow-hidden items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-muted/60 {selectedToolOutputId ===
-                    entry.id
-                      ? 'bg-muted/50'
-                      : ''}"
-                    onclick={() => {
-                      selectedToolOutputId =
-                        selectedToolOutputId === entry.id ? null : entry.id;
-                    }}
-                  >
-                    <ChevronRight
-                      class="size-3.5 shrink-0 text-muted-foreground transition-transform duration-200 {selectedToolOutputId ===
-                      entry.id
-                        ? 'rotate-90'
-                        : ''}"
-                    />
-                    {#if isToolStateRunning(entry.state)}
-                      <LoaderCircle
-                        class="size-3.5 shrink-0 animate-spin text-amber-500"
-                      />
-                    {:else if isToolStateError(entry.state)}
-                      <AlertCircle class="size-3.5 shrink-0 text-red-500" />
-                    {:else}
-                      <CheckCircle2
-                        class="size-3.5 shrink-0 text-emerald-500"
-                      />
-                    {/if}
-                    <div class="min-w-0 flex-1">
-                      <p
-                        class="truncate text-[12px] font-medium text-foreground"
-                      >
-                        {entry.toolName}
-                      </p>
-                      {#if entry.summary}
-                        <p class="truncate text-[10px] text-muted-foreground">
-                          {entry.summary}
-                        </p>
-                      {/if}
-                    </div>
-                    <span class="shrink-0 text-[10px] text-muted-foreground">
-                      {getToolStateLabel(entry.state)}
-                    </span>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <div class={getToolOutputContainerClass(entry)}>
-                      {#if entry.sections.length > 0 || entry.output}
-                        {#if entry.scenario === "terminal"}
-                          <div
-                            class="flex flex-wrap items-center gap-2 border-b border-zinc-800 px-3 py-2 text-[10px]"
-                          >
-                            <span class="font-semibold uppercase tracking-wide text-zinc-400">
-                              terminal
-                            </span>
-                            {#if entry.command}
-                              <code
-                                class="min-w-0 flex-1 truncate rounded bg-zinc-900 px-1.5 py-0.5 font-mono text-zinc-200"
-                                >$ {entry.command}</code
-                              >
-                            {/if}
-                            {#if entry.exitCode}
-                              <span
-                                class="rounded border border-zinc-700 px-1.5 py-0.5 text-zinc-300"
-                              >
-                                exit {entry.exitCode}
-                              </span>
-                            {/if}
-                          </div>
-                        {/if}
-                        <div class="space-y-2 p-3">
-                          {#if entry.sections.length > 0}
-                            {#each entry.sections as section}
-                              <div class="min-w-0 space-y-1">
-                                <p class={getToolOutputSectionLabelClass(entry, section)}>
-                                  {section.label}
-                                </p>
-                                <pre
-                                  class={getToolOutputSectionContentClass(entry, section)}
-                                  >{section.content}</pre
-                                >
-                              </div>
-                            {/each}
-                          {:else}
-                            <pre
-                              class="whitespace-pre-wrap break-all p-0 font-mono text-[11px] leading-relaxed text-foreground/85"
-                              >{entry.output}</pre
-                            >
-                          {/if}
-                        </div>
-                      {:else}
-                        <p class="p-3 text-[11px] text-muted-foreground">
-                          Waiting for output...
-                        </p>
-                      {/if}
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
-              {/each}
-            </div>
-          </div>
-        {/if}
+      <aside
+        class="tool-pane flex h-full w-full min-h-0 min-w-0 flex-col overflow-hidden bg-background/70"
+      >
+        {@render toolOutputContent()}
       </aside>
     </Resizable.Pane>
   </Resizable.PaneGroup>
 </div>
+
+<!-- Mobile Tool Output Sheet (< lg only) -->
+<Sheet.Root bind:open={showMobileToolOutput}>
+  <Sheet.Content side="right" class="w-[85%] sm:max-w-md p-0 flex flex-col">
+    <Sheet.Header class="sr-only">
+      <Sheet.Title>Tool Output</Sheet.Title>
+      <Sheet.Description
+        >View tool call outputs from the current session.</Sheet.Description
+      >
+    </Sheet.Header>
+    <div class="flex flex-1 flex-col min-h-0 overflow-hidden">
+      {@render toolOutputContent()}
+    </div>
+  </Sheet.Content>
+</Sheet.Root>
+
+{#snippet toolOutputContent()}
+  <div class="border-b border-border/60 px-3 py-2.5 shrink-0">
+    <div class="flex items-center gap-2">
+      <TerminalSquare class="size-4 text-muted-foreground" />
+      <p class="text-sm font-medium text-foreground">Tool Output</p>
+      {#if sending}
+        <span
+          class="ml-auto rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-500"
+        >
+          Live
+        </span>
+      {/if}
+    </div>
+  </div>
+
+  {#if toolOutputEntries.length === 0}
+    <div class="flex flex-1 items-center justify-center px-4 text-center">
+      <p class="text-xs text-muted-foreground">
+        No tool output yet. Run a tool call to see live logs here.
+      </p>
+    </div>
+  {:else}
+    <div
+      bind:this={toolOutputContainer}
+      class="flex-1 min-h-0 min-w-0 w-full overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable] p-1.5"
+      onscroll={handleToolOutputScroll}
+    >
+      <div class="space-y-1 min-w-0 w-full">
+        {#each toolOutputEntries as entry (entry.id)}
+          <Collapsible
+            open={selectedToolOutputId === entry.id}
+            class="min-w-0 w-full box-border overflow-hidden"
+          >
+            <CollapsibleTrigger
+              class="box-border flex w-full min-w-0 overflow-hidden items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-muted/60 {selectedToolOutputId ===
+              entry.id
+                ? 'bg-muted/50'
+                : ''}"
+              onclick={() => {
+                selectedToolOutputId =
+                  selectedToolOutputId === entry.id ? null : entry.id;
+              }}
+            >
+              <div
+                class="flex min-w-0 flex-1 items-center gap-2 overflow-hidden"
+              >
+                <ChevronRight
+                  class="size-3.5 shrink-0 text-muted-foreground transition-transform duration-200 {selectedToolOutputId ===
+                  entry.id
+                    ? 'rotate-90'
+                    : ''}"
+                />
+                {#if isToolStateRunning(entry.state)}
+                  <LoaderCircle
+                    class="size-3.5 shrink-0 animate-spin text-amber-500"
+                  />
+                {:else if isToolStateError(entry.state)}
+                  <AlertCircle class="size-3.5 shrink-0 text-red-500" />
+                {:else}
+                  <CheckCircle2 class="size-3.5 shrink-0 text-emerald-500" />
+                {/if}
+                <div class="min-w-0 flex-1 overflow-hidden">
+                  <p
+                    class="overflow-hidden text-ellipsis whitespace-nowrap text-[12px] font-medium text-foreground"
+                  >
+                    {entry.toolName}
+                  </p>
+                  {#if entry.summary}
+                    <p
+                      class="max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-[10px] text-muted-foreground"
+                      title={entry.summary}
+                    >
+                      {entry.summary}
+                    </p>
+                  {/if}
+                </div>
+              </div>
+            </CollapsibleTrigger>
+            <CollapsibleContent
+              class="min-w-0 w-full max-w-full overflow-hidden"
+            >
+              <div
+                class="mx-2 mb-1 box-border max-h-48 min-w-0 w-[calc(100%-1rem)] max-w-full overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable] rounded-md border border-border/50 bg-black/[0.03] dark:bg-white/[0.03]"
+              >
+                {#if entry.output}
+                  <pre
+                    class="block box-border w-full min-w-0 max-w-full whitespace-pre-wrap wrap-anywhere p-3 font-mono text-[11px] leading-relaxed text-foreground/85">{entry.output}</pre>
+                {:else}
+                  <p class="p-3 text-[11px] text-muted-foreground">
+                    Waiting for output...
+                  </p>
+                {/if}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        {/each}
+      </div>
+    </div>
+  {/if}
+{/snippet}
 
 <!-- Agent Config Dialog -->
 {#if showConfigDialog}
@@ -1423,7 +1419,7 @@
       <!-- Content -->
       <div class="px-4 pb-4 space-y-4">
         {#if configLoading}
-          <p class="text-xs text-muted-foreground">Loading tools and skills…</p>
+          <p class="text-xs text-muted-foreground">Loading skills…</p>
         {:else if configError}
           <div
             class="rounded-lg border border-destructive/30 bg-destructive/5 p-3"
@@ -1447,39 +1443,29 @@
               <p
                 class="mb-1.5 text-[11px] uppercase tracking-wide text-muted-foreground"
               >
-                Tools
+                Skills
               </p>
-              <div class="flex flex-wrap gap-1.5">
-                {#each toolOptions as tool}
-                  <button
-                    type="button"
-                    class="rounded-full border px-2.5 py-1 text-[11px] transition-colors {configuredTools.includes(
-                      tool,
-                    )
-                      ? 'border-primary/40 bg-primary/10 text-primary'
-                      : 'border-border bg-muted/30 text-muted-foreground hover:text-foreground'}"
-                    onclick={() => toggleConfiguredTool(tool)}
-                  >
-                    {tool}
-                  </button>
-                {/each}
-              </div>
-            </div>
-
-            <div>
-              <label
-                class="block text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5"
-                for="dialog-skill-input"
-              >
-                Skills (comma-separated)
-              </label>
-              <input
-                id="dialog-skill-input"
-                type="text"
-                bind:value={skillsInput}
-                placeholder="tmux, cursor-agent"
-                class="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground"
-              />
+              {#if skillOptions.length > 0}
+                <div class="flex flex-wrap gap-1.5">
+                  {#each skillOptions as skill}
+                    <button
+                      type="button"
+                      class="rounded-full border px-2.5 py-1 text-[11px] transition-colors {configuredSkills.includes(
+                        skill,
+                      )
+                        ? 'border-primary/40 bg-primary/10 text-primary'
+                        : 'border-border bg-muted/30 text-muted-foreground hover:text-foreground'}"
+                      onclick={() => toggleConfiguredSkill(skill)}
+                    >
+                      {skill}
+                    </button>
+                  {/each}
+                </div>
+              {:else}
+                <p class="text-xs text-muted-foreground">
+                  No skills discovered from connected nodes.
+                </p>
+              {/if}
             </div>
           </div>
         {/if}
@@ -1526,6 +1512,16 @@
     scrollbar-width: thin;
   }
 
+  /* Force paneforge-rendered pane divs to constrain width.
+     Paneforge sets width via flex-basis but never overflow:hidden
+     or min-width:0, so flex children keep their intrinsic min-width
+     (min-width:auto) and content like long tool names / output text
+     can push the pane wider than its allocated size. */
+  :global([data-pane]) {
+    overflow: hidden;
+    min-width: 0;
+  }
+
   .chat-composer-wrap {
     background: linear-gradient(
       to top,
@@ -1538,11 +1534,6 @@
     background: hsl(var(--muted));
     border: 1px solid hsl(var(--border) / 0.6);
     border-top-right-radius: 0.55rem;
-  }
-
-  .composer-card:focus-within {
-    border-color: hsl(var(--ring));
-    box-shadow: 0 0 0 2px hsl(var(--ring) / 0.2);
   }
 
   :global(.message-markdown) {

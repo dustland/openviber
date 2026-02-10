@@ -116,4 +116,30 @@ export const BUILTIN_INTENTS: Intent[] = [
 - Suggest concrete fixes or next steps for each failure
 - If all deployments are healthy, confirm the current status`,
   },
+  {
+    id: "gmail-deployment-errors",
+    name: "Gmail Deployment Error Triage",
+    description: "Scan Gmail alerts and summarize deployment failures",
+    icon: "bug",
+    builtin: true,
+    body: `Check my Gmail for recent deployment failure alerts and summarize what is broken.
+
+- Use gmail_search with targeted queries like:
+  - newer_than:7d (subject:(deploy OR deployment OR build OR failed OR error OR crashed) OR from:(noreply@railway.app OR notifications@github.com OR alerts@))
+  - Add is:unread when needed to focus on new incidents
+- Read the most relevant messages with gmail_read (prioritize newest and clearly failed runs)
+- Extract key details for each incident:
+  - service/app name
+  - environment (prod/staging/dev)
+  - timestamp
+  - error signature and likely root cause
+  - direct links or IDs (run/deploy/build) if present
+- Group duplicate alerts for the same failure chain to avoid noise
+- Produce a concise triage report with:
+  - active failures
+  - probable causes
+  - immediate next actions
+  - what appears resolved or stale
+- If no deployment errors are found, state that clearly and include which query windows were checked`,
+  },
 ];

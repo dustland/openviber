@@ -72,6 +72,9 @@
     beforeInput?: Snippet;
     /** Content rendered on the left side inside the input card (e.g. settings gear) */
     leftAction?: Snippet;
+
+    /** Bindable ref to the underlying textarea element (for focus management) */
+    inputElement?: HTMLTextAreaElement | null;
   }
 
   let {
@@ -92,6 +95,8 @@
 
     beforeInput,
     leftAction,
+
+    inputElement = $bindable(null),
   }: Props = $props();
 
   // Derived
@@ -139,6 +144,7 @@
     {/if}
 
     <textarea
+      bind:this={inputElement}
       bind:value
       onkeydown={handleKeydown}
       rows="1"

@@ -32,7 +32,11 @@
     class: className = "",
   }: Props = $props();
 
-  let isOpen = $state(defaultOpen);
+  let isOpen = $state(false);
+
+  $effect(() => {
+    isOpen = defaultOpen;
+  });
 
   const stepStyles: Record<string, string> = {
     complete: "text-muted-foreground",

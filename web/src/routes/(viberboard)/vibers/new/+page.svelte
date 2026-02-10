@@ -5,16 +5,22 @@
   import { getVibersStore } from "$lib/stores/vibers";
   import {
     Bug,
+    Check,
+    ChevronDown,
     Code2,
     FileText,
+    FolderGit2,
+    GitBranch,
     HeartPulse,
     MoreHorizontal,
     Palette,
+    Server,
     ShieldCheck,
     Sparkles,
     TrainFront,
   } from "@lucide/svelte";
   import * as Dialog from "$lib/components/ui/dialog";
+  import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import ChatComposer from "$lib/components/chat-composer.svelte";
   import type { Intent } from "$lib/data/intents";
 
@@ -28,6 +34,11 @@
   interface SidebarEnvironment {
     id: string;
     name: string;
+    description?: string | null;
+    type?: string | null;
+    repoOrg?: string | null;
+    repoName?: string | null;
+    repoBranch?: string | null;
   }
 
   interface ChannelOption {
@@ -83,22 +94,11 @@
       ? intents.find((i) => i.id === selectedIntentId) ?? null
       : null,
   );
-  const selectedModel = $derived(
-    MODEL_OPTIONS.find((m) => m.id === selectedModelId) ?? MODEL_OPTIONS[0],
-  );
 
   // Only active nodes (with a daemon connected) can receive tasks
   const activeNodes = $derived(nodes.filter((n) => n.status === "active"));
   const enabledChannels = $derived(
     channelOptions.filter((channel) => channel.enabled),
-  );
-
-  // Can we send?
-  const canSend = $derived(
-    !!selectedNode &&
-      selectedNode.status === "active" &&
-      !!taskInput.trim() &&
-      !creating,
   );
 
   // Apply intent from query param (e.g. /vibers/new?intent=beautify-homepage)
@@ -177,14 +177,6 @@
     }
   }
 
-  function selectEnvironment(envId: string | null) {
-    selectedEnvironmentId = envId;
-  }
-
-  function selectNode(nodeId: string) {
-    selectedNodeId = nodeId;
-  }
-
   function toggleChannel(channelId: string) {
     if (selectedChannelIds.includes(channelId)) {
       selectedChannelIds = selectedChannelIds.filter((id) => id !== channelId);
@@ -209,20 +201,15 @@
 
   async function submitTask(overrideContent?: string) {
     const content = (overrideContent ?? taskInput).trim();
-    if (
-      !content ||
-      !selectedNode ||
-      selectedNode.status !== "active" ||
-      creating
-    )
-      return;
+    const node = nodes.find((n) => n.id === selectedNodeId);
+    if (!content || !node || node.status !== "active" || creating) return;
 
     creating = true;
     error = null;
 
     try {
       // The node's node_id is the daemon's ID on the hub
-      const nodeId = selectedNode.node_id;
+      const nodeId = node.node_id;
 
       // Create a new viber via POST /api/vibers
       const response = await fetch("/api/vibers", {
@@ -261,13 +248,6 @@
     }
   }
 
-  function handleKeydown(e: KeyboardEvent) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      if (canSend) void submitTask();
-    }
-  }
-
   onMount(() => {
     fetchData();
     fetchIntents();
@@ -297,6 +277,145 @@
         <p class="mt-2 text-base text-muted-foreground">
           Pick an intent to get started, or describe your own task below.
         </p>
+      </div>
+
+      <!-- Environment & Node selector -->
+      <div class="mb-8 grid w-full grid-cols-2 gap-3">
+        <!-- Environment card -->
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger
+            class="flex w-full cursor-pointer items-start gap-3 rounded-xl border p-4 text-left transition-all hover:border-primary/30 hover:bg-accent/40 {selectedEnvironment ? 'border-border bg-card' : 'border-dashed border-border/60 bg-card/50'}"
+          >
+            <div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground">
+              <FolderGit2 class="size-5" />
+            </div>
+            <div class="min-w-0 flex-1">
+              <p class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                Environment
+              </p>
+              {#if selectedEnvironment}
+                <p class="mt-0.5 text-sm font-medium text-foreground truncate">
+                  {selectedEnvironment.name}
+                </p>
+                {#if selectedEnvironment.repoOrg && selectedEnvironment.repoName}
+                  <p class="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground truncate">
+                    <GitBranch class="size-3 shrink-0" />
+                    {selectedEnvironment.repoOrg}/{selectedEnvironment.repoName}{#if selectedEnvironment.repoBranch}:{selectedEnvironment.repoBranch}{/if}
+                  </p>
+                {:else if selectedEnvironment.description}
+                  <p class="mt-0.5 text-xs text-muted-foreground truncate">
+                    {selectedEnvironment.description}
+                  </p>
+                {/if}
+              {:else}
+                <p class="mt-0.5 text-sm text-muted-foreground/70">
+                  All environments
+                </p>
+              {/if}
+            </div>
+            <ChevronDown class="mt-1 size-4 shrink-0 text-muted-foreground/50" />
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Content align="start" class="w-72">
+            <DropdownMenu.Label>Select environment</DropdownMenu.Label>
+            <DropdownMenu.Separator />
+            <DropdownMenu.Item
+              onclick={() => (selectedEnvironmentId = null)}
+              class="flex items-center justify-between"
+            >
+              <span class="text-sm">All environments</span>
+              {#if selectedEnvironmentId === null}
+                <Check class="size-3.5 text-primary" />
+              {/if}
+            </DropdownMenu.Item>
+            {#each environments as env (env.id)}
+              <DropdownMenu.Item
+                onclick={() => (selectedEnvironmentId = env.id)}
+                class="flex items-center justify-between"
+              >
+                <div class="min-w-0">
+                  <p class="text-sm truncate">{env.name}</p>
+                  {#if env.repoOrg && env.repoName}
+                    <p class="text-[11px] text-muted-foreground truncate">
+                      {env.repoOrg}/{env.repoName}
+                    </p>
+                  {/if}
+                </div>
+                {#if selectedEnvironmentId === env.id}
+                  <Check class="size-3.5 shrink-0 text-primary" />
+                {/if}
+              </DropdownMenu.Item>
+            {/each}
+          </DropdownMenu.Content>
+        </DropdownMenu.Root>
+
+        <!-- Node card -->
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger
+            class="flex w-full cursor-pointer items-start gap-3 rounded-xl border p-4 text-left transition-all hover:border-primary/30 hover:bg-accent/40 {selectedNode ? 'border-border bg-card' : 'border-dashed border-border/60 bg-card/50'}"
+          >
+            <div class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground">
+              <Server class="size-5" />
+            </div>
+            <div class="min-w-0 flex-1">
+              <p class="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                Node
+              </p>
+              {#if selectedNode}
+                <p class="mt-0.5 flex items-center gap-1.5 text-sm font-medium text-foreground truncate">
+                  <span
+                    class="size-2 shrink-0 rounded-full"
+                    class:bg-emerald-500={selectedNode.status === "active"}
+                    class:bg-amber-500={selectedNode.status === "pending"}
+                    class:bg-zinc-400={selectedNode.status === "offline"}
+                  ></span>
+                  {selectedNode.name}
+                </p>
+                <p class="mt-0.5 text-xs text-muted-foreground capitalize">
+                  {selectedNode.status}
+                </p>
+              {:else}
+                <p class="mt-0.5 text-sm text-muted-foreground/70">
+                  Select a node...
+                </p>
+              {/if}
+            </div>
+            <ChevronDown class="mt-1 size-4 shrink-0 text-muted-foreground/50" />
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Content align="start" class="w-72">
+            <DropdownMenu.Label>Select node</DropdownMenu.Label>
+            <DropdownMenu.Separator />
+            {#if nodes.length === 0}
+              <div class="px-2 py-3 text-center text-xs text-muted-foreground">
+                No nodes registered. Go to
+                <a href="/nodes" class="underline">Nodes</a> to add one.
+              </div>
+            {:else}
+              {#each nodes as node (node.id)}
+                <DropdownMenu.Item
+                  onclick={() => (selectedNodeId = node.id)}
+                  class="flex items-center justify-between"
+                  disabled={node.status !== "active"}
+                >
+                  <span class="flex items-center gap-2">
+                    <span
+                      class="size-2 shrink-0 rounded-full"
+                      class:bg-emerald-500={node.status === "active"}
+                      class:bg-amber-500={node.status === "pending"}
+                      class:bg-zinc-400={node.status === "offline"}
+                    ></span>
+                    {node.name}
+                    {#if node.status !== "active"}
+                      <span class="text-xs text-muted-foreground">({node.status})</span>
+                    {/if}
+                  </span>
+                  {#if selectedNodeId === node.id}
+                    <Check class="size-3.5 text-primary" />
+                  {/if}
+                </DropdownMenu.Item>
+              {/each}
+            {/if}
+          </DropdownMenu.Content>
+        </DropdownMenu.Root>
       </div>
 
       <!-- Start with Intents -->
@@ -390,188 +509,21 @@
 
   <!-- Bottom input bar -->
   <div class="shrink-0 p-3 sm:p-4">
-    <div class="mx-auto w-full max-w-3xl space-y-2">
-      {#if error}
-        <div
-          class="rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-2.5 text-sm text-destructive"
-        >
-          {error}
-        </div>
-      {/if}
-
-      <!-- Input bar -->
-      <div
-        class="flex items-end gap-2 rounded-2xl border border-border bg-background/95 px-3 py-2.5 shadow-sm backdrop-blur transition-colors"
-        class:opacity-60={!canSend && !taskInput.trim()}
-      >
-        <textarea
-          bind:value={taskInput}
-          onkeydown={handleKeydown}
-          rows="1"
-          placeholder={selectedNode?.status === "active"
-            ? "Describe what you want to build, or pick an intent above..."
-            : "Select an active node first..."}
-          class="min-h-[40px] max-h-36 flex-1 resize-none rounded-xl border border-transparent bg-transparent px-2 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
-          disabled={!selectedNode ||
-            selectedNode.status !== "active" ||
-            creating}
-        ></textarea>
-
-        <button
-          type="button"
-          class="inline-flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-opacity disabled:opacity-30"
-          onclick={() => void submitTask()}
-          disabled={!canSend}
-          title="Create viber and send task"
-        >
-          <ArrowUp class="size-4" />
-        </button>
-      </div>
-
-      <!-- Selectors row -->
-      <div class="flex items-center gap-1 px-1">
-        <!-- Node selector -->
-        <DropdownMenu.Root>
-          <DropdownMenu.Trigger
-            class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground cursor-pointer"
-          >
-            {#if selectedNode}
-              <span
-                class="size-1.5 shrink-0 rounded-full"
-                class:bg-emerald-500={selectedNode.status === "active"}
-                class:bg-amber-500={selectedNode.status === "pending"}
-                class:bg-zinc-400={selectedNode.status === "offline"}
-              ></span>
-              <span>{selectedNode.name}</span>
-            {:else}
-              <Server class="size-3 opacity-40" />
-              <span>Node</span>
-            {/if}
-            <ChevronDown class="size-2.5 opacity-40" />
-          </DropdownMenu.Trigger>
-          <DropdownMenu.Content align="start" class="w-64">
-            <DropdownMenu.Label>Select node</DropdownMenu.Label>
-            <DropdownMenu.Separator />
-            {#if nodes.length === 0}
-              <div class="px-2 py-3 text-center text-xs text-muted-foreground">
-                No nodes registered. Go to
-                <a href="/nodes" class="underline">Nodes</a> to add one.
-              </div>
-            {:else}
-              {#each nodes as node (node.id)}
-                <DropdownMenu.Item
-                  onclick={() => selectNode(node.id)}
-                  class="flex items-center justify-between"
-                  disabled={node.status !== "active"}
-                >
-                  <span class="flex items-center gap-2">
-                    <span
-                      class="size-2 shrink-0 rounded-full"
-                      class:bg-emerald-500={node.status === "active"}
-                      class:bg-amber-500={node.status === "pending"}
-                      class:bg-zinc-400={node.status === "offline"}
-                    ></span>
-                    {node.name}
-                    {#if node.status !== "active"}
-                      <span class="text-xs text-muted-foreground">({node.status})</span>
-                    {/if}
-                  </span>
-                  {#if selectedNodeId === node.id}
-                    <Check class="size-3.5 text-primary" />
-                  {/if}
-                </DropdownMenu.Item>
-              {/each}
-            {/if}
-          </DropdownMenu.Content>
-        </DropdownMenu.Root>
-
-        <span class="text-muted-foreground/30">·</span>
-        <!-- Environment selector -->
-        <DropdownMenu.Root>
-          <DropdownMenu.Trigger
-            class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground cursor-pointer"
-          >
-            {#if selectedEnvironment}
-              <FolderGit2 class="size-3 opacity-50" />
-              <span>{selectedEnvironment.name}</span>
-            {:else}
-              <FolderGit2 class="size-3 opacity-40" />
-              <span>Environment</span>
-            {/if}
-            <ChevronDown class="size-2.5 opacity-40" />
-          </DropdownMenu.Trigger>
-          <DropdownMenu.Content align="start" class="w-56">
-            <DropdownMenu.Label>Select environment</DropdownMenu.Label>
-            <DropdownMenu.Separator />
-            <DropdownMenu.Item
-              onclick={() => selectEnvironment(null)}
-              class="flex items-center justify-between"
-            >
-              <span class="flex items-center gap-2">
-                <Package class="size-4 opacity-60" />
-                All environments
-              </span>
-              {#if selectedEnvironmentId === null}
-                <Check class="size-3.5 text-primary" />
-              {/if}
-            </DropdownMenu.Item>
-            {#each environments as env (env.id)}
-              <DropdownMenu.Item
-                onclick={() => selectEnvironment(env.id)}
-                class="flex items-center justify-between"
-              >
-                <span class="flex items-center gap-2">
-                  <FolderGit2 class="size-4 opacity-60" />
-                  {env.name}
-                </span>
-                {#if selectedEnvironmentId === env.id}
-                  <Check class="size-3.5 text-primary" />
-                {/if}
-              </DropdownMenu.Item>
-            {/each}
-          </DropdownMenu.Content>
-        </DropdownMenu.Root>
-
-        <span class="text-muted-foreground/30">·</span>
-        <!-- Model selector -->
-        <DropdownMenu.Root>
-          <DropdownMenu.Trigger
-            class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground cursor-pointer"
-          >
-            <Cpu class="size-3 opacity-40" />
-            <span>{selectedModel.label}</span>
-            <ChevronDown class="size-2.5 opacity-40" />
-          </DropdownMenu.Trigger>
-          <DropdownMenu.Content align="start" class="w-64">
-            <DropdownMenu.Label>Select model</DropdownMenu.Label>
-            <DropdownMenu.Separator />
-            {#each MODEL_OPTIONS as opt (opt.id)}
-              <DropdownMenu.Item
-                onclick={() => (selectedModelId = opt.id)}
-                class="flex items-center justify-between"
-              >
-                <span class="flex items-center gap-2">
-                  {opt.label}
-                  {#if opt.badge}
-                    <span class="rounded-full bg-muted/60 px-1.5 py-0.5 text-[10px] text-muted-foreground">
-                      {opt.badge}
-                    </span>
-                  {/if}
-                </span>
-                {#if selectedModelId === opt.id}
-                  <Check class="size-3.5 text-primary" />
-                {/if}
-              </DropdownMenu.Item>
-            {/each}
-          </DropdownMenu.Content>
-        </DropdownMenu.Root>
-
-        {#if !selectedNode}
-          <span class="text-[11px] italic text-muted-foreground/50">— pick a node</span>
-        {:else if selectedNode.status !== "active"}
-          <span class="text-[11px] italic text-amber-500/70">{selectedNode.status}</span>
-        {/if}
-      </div>
+    <div class="mx-auto w-full max-w-3xl">
+      <ChatComposer
+        bind:value={taskInput}
+        bind:error
+        bind:selectedNodeId
+        bind:selectedEnvironmentId
+        bind:selectedModelId
+        placeholder="Describe what you want to build, or pick an intent above..."
+        disabled={creating}
+        sending={creating}
+        {nodes}
+        {environments}
+        showSelectors={true}
+        onsubmit={() => void submitTask()}
+      />
     </div>
   </div>
 </div>

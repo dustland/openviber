@@ -3,7 +3,10 @@
   import {
     ArrowLeft,
     Bug,
+    ChevronDown,
+    ChevronUp,
     Code2,
+    Copy,
     FileText,
     HeartPulse,
     Loader2,
@@ -54,6 +57,7 @@
   let formDescription = $state("");
   let formIcon = $state("sparkles");
   let formBody = $state("");
+  let expandedIntentIds = $state<string[]>([]);
 
   const customIntents = $derived(intents.filter((i) => !i.builtin));
   const builtinIntents = $derived(intents.filter((i) => i.builtin));
@@ -94,6 +98,27 @@
   function closeForm() {
     showForm = false;
     editingId = null;
+  }
+
+  function isExpanded(intentId: string) {
+    return expandedIntentIds.includes(intentId);
+  }
+
+  function toggleExpanded(intentId: string) {
+    if (isExpanded(intentId)) {
+      expandedIntentIds = expandedIntentIds.filter((id) => id !== intentId);
+    } else {
+      expandedIntentIds = [...expandedIntentIds, intentId];
+    }
+  }
+
+  function replicateIntent(intent: Intent) {
+    editingId = null;
+    formName = `${intent.name} (Copy)`;
+    formDescription = intent.description;
+    formIcon = intent.icon;
+    formBody = intent.body;
+    showForm = true;
   }
 
   async function saveIntent() {
@@ -187,7 +212,7 @@
         </div>
         <button
           type="button"
-          class="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:brightness-110"
+          class="inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:brightness-110"
           onclick={openNewForm}
         >
           <Plus class="size-4" />
@@ -359,13 +384,42 @@
                     <p class="text-xs text-muted-foreground mt-0.5">
                       {intent.description}
                     </p>
-                    <p
-                      class="text-xs text-muted-foreground/70 mt-2 line-clamp-2 font-mono"
-                    >
-                      {intent.body.slice(0, 120)}{intent.body.length > 120
-                        ? "..."
-                        : ""}
-                    </p>
+                    {#if isExpanded(intent.id)}
+                      <pre
+                        class="text-xs text-muted-foreground/80 mt-2 whitespace-pre-wrap wrap-break-word font-mono"
+                      >{intent.body}</pre>
+                    {:else}
+                      <p
+                        class="text-xs text-muted-foreground/70 mt-2 line-clamp-2 font-mono"
+                      >
+                        {intent.body.slice(0, 120)}{intent.body.length > 120
+                          ? "..."
+                          : ""}
+                      </p>
+                    {/if}
+                    <div class="mt-2 flex items-center gap-3">
+                      <button
+                        type="button"
+                        class="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                        onclick={() => toggleExpanded(intent.id)}
+                      >
+                        {#if isExpanded(intent.id)}
+                          <ChevronUp class="size-3.5" />
+                          Collapse
+                        {:else}
+                          <ChevronDown class="size-3.5" />
+                          Expand
+                        {/if}
+                      </button>
+                      <button
+                        type="button"
+                        class="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                        onclick={() => replicateIntent(intent)}
+                      >
+                        <Copy class="size-3.5" />
+                        Replicate
+                      </button>
+                    </div>
                   </div>
                 </div>
                 <div
@@ -439,6 +493,40 @@
                   <p class="text-xs text-muted-foreground mt-0.5">
                     {intent.description}
                   </p>
+                  {#if isExpanded(intent.id)}
+                    <pre
+                      class="text-xs text-muted-foreground/80 mt-2 whitespace-pre-wrap wrap-break-word font-mono"
+                    >{intent.body}</pre>
+                  {:else}
+                    <p class="text-xs text-muted-foreground/70 mt-2 line-clamp-2 font-mono">
+                      {intent.body.slice(0, 120)}{intent.body.length > 120
+                        ? "..."
+                        : ""}
+                    </p>
+                  {/if}
+                  <div class="mt-2 flex items-center gap-3">
+                    <button
+                      type="button"
+                      class="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                      onclick={() => toggleExpanded(intent.id)}
+                    >
+                      {#if isExpanded(intent.id)}
+                        <ChevronUp class="size-3.5" />
+                        Collapse
+                      {:else}
+                        <ChevronDown class="size-3.5" />
+                        Expand
+                      {/if}
+                    </button>
+                    <button
+                      type="button"
+                      class="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                      onclick={() => replicateIntent(intent)}
+                    >
+                      <Copy class="size-3.5" />
+                      Replicate as user intent
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

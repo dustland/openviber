@@ -783,6 +783,7 @@
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
               {#each JOB_TEMPLATES as tpl}
+                {@const TemplateIcon = TEMPLATE_ICONS[tpl.icon]}
                 <button
                   type="button"
                   class={`rounded-lg border p-3 text-left transition-colors ${
@@ -796,10 +797,7 @@
                     <div
                       class="size-8 rounded-md bg-muted/60 flex items-center justify-center text-muted-foreground"
                     >
-                      <svelte:component
-                        this={TEMPLATE_ICONS[tpl.icon]}
-                        class="size-4"
-                      />
+                      <TemplateIcon class="size-4" />
                     </div>
                     <div>
                       <p class="text-sm font-medium text-foreground">

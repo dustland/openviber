@@ -16,6 +16,7 @@ import type {
   SkillSearchResult,
   ExternalSkillInfo,
   SkillImportResult,
+  SkillHubProviderConfig,
 } from "./types";
 import {
   OpenClawProvider,
@@ -63,18 +64,31 @@ export class SkillHubManager {
     this.sourcesConfig = sourcesConfig || getDefaultSourcesConfig();
 
     // Register all providers
-    this.registerProvider(new OpenClawProvider());
-    this.registerProvider(new GitHubProvider());
-    this.registerProvider(new NpmProvider());
-    this.registerProvider(new HuggingFaceProvider());
-    this.registerProvider(new SmitheryProvider());
-    this.registerProvider(new ComposioProvider());
-    this.registerProvider(new GlamaProvider());
+    this.registerProvider(
+      new OpenClawProvider(this.getProviderConfig("openclaw")),
+    );
+    this.registerProvider(
+      new GitHubProvider(this.getProviderConfig("github")),
+    );
+    this.registerProvider(new NpmProvider(this.getProviderConfig("npm")));
+    this.registerProvider(
+      new HuggingFaceProvider(this.getProviderConfig("huggingface")),
+    );
+    this.registerProvider(
+      new SmitheryProvider(this.getProviderConfig("smithery")),
+    );
+    this.registerProvider(
+      new ComposioProvider(this.getProviderConfig("composio")),
+    );
+    this.registerProvider(new GlamaProvider(this.getProviderConfig("glama")));
   }
 
   /** Update source settings at runtime */
   updateSourcesConfig(config: SkillSourcesConfig): void {
     this.sourcesConfig = config;
+    for (const provider of this.providers.values()) {
+      provider.setConfig?.(this.getProviderConfig(provider.type));
+    }
   }
 
   /** Get current sources config */
@@ -98,6 +112,7 @@ export class SkillHubManager {
 
   /** Register a custom provider */
   registerProvider(provider: SkillHubProvider): void {
+    provider.setConfig?.(this.getProviderConfig(provider.type));
     this.providers.set(provider.type, provider);
   }
 
@@ -109,6 +124,16 @@ export class SkillHubManager {
   /** List available provider types */
   getProviderTypes(): SkillHubProviderType[] {
     return Array.from(this.providers.keys());
+  }
+
+  private getProviderConfig(
+    type: SkillHubProviderType,
+  ): SkillHubProviderConfig | undefined {
+    const config = this.sourcesConfig[type];
+    if (!config) return undefined;
+    const { url, apiKey } = config;
+    if (!url && !apiKey) return undefined;
+    return { url, apiKey };
   }
 
   /**

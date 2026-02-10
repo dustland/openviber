@@ -16,34 +16,48 @@ import type {
   SkillSearchResult,
   ExternalSkillInfo,
   SkillImportResult,
+  SkillHubProviderConfig,
 } from "../types";
 import * as fs from "fs/promises";
 import * as path from "path";
 
 const DEFAULT_API_URL = "https://backend.composio.dev/api/v2";
 
-function getApiUrl(): string {
-  return (process.env.COMPOSIO_API_URL || DEFAULT_API_URL).replace(/\/$/, "");
-}
-
-function getApiHeaders(): Record<string, string> {
-  const headers: Record<string, string> = {
-    Accept: "application/json",
-    "User-Agent": "OpenViber-SkillHub/1.0",
-  };
-  const key = process.env.COMPOSIO_API_KEY;
-  if (key) {
-    headers["x-api-key"] = key;
-  }
-  return headers;
-}
-
 export class ComposioProvider implements SkillHubProvider {
   readonly type = "composio" as const;
   readonly displayName = "Composio";
+  private config: SkillHubProviderConfig;
+
+  constructor(config?: SkillHubProviderConfig) {
+    this.config = config ?? {};
+  }
+
+  setConfig(config?: SkillHubProviderConfig): void {
+    this.config = config ?? {};
+  }
+
+  private getApiUrl(): string {
+    return (
+      this.config.url ||
+      process.env.COMPOSIO_API_URL ||
+      DEFAULT_API_URL
+    ).replace(/\/$/, "");
+  }
+
+  private getApiHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+      Accept: "application/json",
+      "User-Agent": "OpenViber-SkillHub/1.0",
+    };
+    const key = this.config.apiKey || process.env.COMPOSIO_API_KEY;
+    if (key) {
+      headers["x-api-key"] = key;
+    }
+    return headers;
+  }
 
   async search(query: SkillSearchQuery): Promise<SkillSearchResult> {
-    const apiUrl = getApiUrl();
+    const apiUrl = this.getApiUrl();
     const page = query.page ?? 1;
     const limit = Math.min(query.limit ?? 20, 100);
 
@@ -56,7 +70,7 @@ export class ComposioProvider implements SkillHubProvider {
       }
 
       const res = await fetch(`${apiUrl}/apps?${params.toString()}`, {
-        headers: getApiHeaders(),
+        headers: this.getApiHeaders(),
         signal: AbortSignal.timeout(15000),
       });
 
@@ -109,11 +123,11 @@ export class ComposioProvider implements SkillHubProvider {
   }
 
   async getSkillInfo(skillId: string): Promise<ExternalSkillInfo | null> {
-    const apiUrl = getApiUrl();
+    const apiUrl = this.getApiUrl();
 
     try {
       const res = await fetch(`${apiUrl}/apps/${encodeURIComponent(skillId)}`, {
-        headers: getApiHeaders(),
+        headers: this.getApiHeaders(),
         signal: AbortSignal.timeout(15000),
       });
 
@@ -127,7 +141,7 @@ export class ComposioProvider implements SkillHubProvider {
         const actionsRes = await fetch(
           `${apiUrl}/actions?appNames=${encodeURIComponent(skillId)}&limit=50`,
           {
-            headers: getApiHeaders(),
+            headers: this.getApiHeaders(),
             signal: AbortSignal.timeout(10000),
           },
         );
@@ -163,14 +177,14 @@ export class ComposioProvider implements SkillHubProvider {
   }
 
   async importSkill(skillId: string, targetDir: string): Promise<SkillImportResult> {
-    const apiUrl = getApiUrl();
+    const apiUrl = this.getApiUrl();
     const safeName = `composio-${skillId}`.replace(/[^a-zA-Z0-9_-]/g, "-");
     const installPath = path.join(targetDir, safeName);
 
     try {
       // Fetch app info
       const res = await fetch(`${apiUrl}/apps/${encodeURIComponent(skillId)}`, {
-        headers: getApiHeaders(),
+        headers: this.getApiHeaders(),
         signal: AbortSignal.timeout(15000),
       });
 
@@ -192,7 +206,7 @@ export class ComposioProvider implements SkillHubProvider {
         const actionsRes = await fetch(
           `${apiUrl}/actions?appNames=${encodeURIComponent(skillId)}&limit=100`,
           {
-            headers: getApiHeaders(),
+            headers: this.getApiHeaders(),
             signal: AbortSignal.timeout(10000),
           },
         );

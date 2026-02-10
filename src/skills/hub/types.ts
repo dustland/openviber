@@ -70,6 +70,14 @@ export interface SkillImportResult {
   error?: string;
 }
 
+/** Provider-specific config overrides */
+export interface SkillHubProviderConfig {
+  /** Custom API/registry URL override */
+  url?: string;
+  /** API key / token */
+  apiKey?: string;
+}
+
 /** Provider type identifier */
 export type SkillHubProviderType =
   | "openclaw"
@@ -89,6 +97,8 @@ export interface SkillHubProvider {
   readonly type: SkillHubProviderType;
   /** Human-readable name */
   readonly displayName: string;
+  /** Update provider config overrides at runtime */
+  setConfig?(config?: SkillHubProviderConfig): void;
   /** Search for skills */
   search(query: SkillSearchQuery): Promise<SkillSearchResult>;
   /** Get detailed info about a specific skill */

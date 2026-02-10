@@ -1,18 +1,24 @@
 <script lang="ts">
   import { page } from "$app/stores";
   import * as Sidebar from "$lib/components/ui/sidebar";
-  import { MessageSquare, Puzzle, Settings as SettingsIcon } from "@lucide/svelte";
+  import { Puzzle, Settings as SettingsIcon } from "@lucide/svelte";
   import AppSidebar from "$lib/components/layout/app-sidebar.svelte";
 
   let { children } = $props();
 
   const pathname = $derived($page.url.pathname);
   const isGeneralRoute = $derived(pathname === "/settings");
+  const isHubRoute = $derived(
+    pathname === "/settings/skills/hub" ||
+      pathname.startsWith("/settings/skills/hub/"),
+  );
   const isSkillsRoute = $derived(
-    pathname === "/settings/skills" || pathname.startsWith("/settings/skills/"),
+    pathname === "/settings/skills" ||
+      (pathname.startsWith("/settings/skills/") && !isHubRoute),
   );
   const isChannelsRoute = $derived(
-    pathname === "/settings/channels" || pathname.startsWith("/settings/channels/"),
+    pathname === "/settings/channels" ||
+      pathname.startsWith("/settings/channels/"),
   );
 </script>
 
@@ -26,10 +32,7 @@
               isActive={isGeneralRoute}
               tooltipContent="General"
             >
-              <a
-                href="/settings"
-                class="w-full inline-flex items-center gap-2"
-              >
+              <a href="/settings" class="w-full inline-flex items-center gap-2">
                 <SettingsIcon class="size-4 shrink-0" />
                 <span class="truncate group-data-[collapsible=icon]:hidden"
                   >General</span
@@ -50,23 +53,6 @@
                 <Puzzle class="size-4 shrink-0" />
                 <span class="truncate group-data-[collapsible=icon]:hidden"
                   >Skills</span
-                >
-              </a>
-            </Sidebar.MenuButton>
-          </Sidebar.MenuItem>
-
-          <Sidebar.MenuItem>
-            <Sidebar.MenuButton
-              isActive={isChannelsRoute}
-              tooltipContent="Channels"
-            >
-              <a
-                href="/settings/channels"
-                class="w-full inline-flex items-center gap-2"
-              >
-                <MessageSquare class="size-4 shrink-0" />
-                <span class="truncate group-data-[collapsible=icon]:hidden"
-                  >Channels</span
                 >
               </a>
             </Sidebar.MenuButton>

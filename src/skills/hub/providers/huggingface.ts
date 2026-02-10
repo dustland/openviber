@@ -17,29 +17,51 @@ import type {
   SkillSearchResult,
   ExternalSkillInfo,
   SkillImportResult,
+  SkillHubProviderConfig,
 } from "../types";
 import * as fs from "fs/promises";
 import * as path from "path";
 
-const HF_API = "https://huggingface.co/api";
-
-function getHfHeaders(): Record<string, string> {
-  const headers: Record<string, string> = {
-    Accept: "application/json",
-    "User-Agent": "OpenViber-SkillHub/1.0",
-  };
-  const token = process.env.HUGGINGFACE_TOKEN || process.env.HF_TOKEN;
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-  return headers;
-}
+const DEFAULT_HF_API = "https://huggingface.co/api";
 
 export class HuggingFaceProvider implements SkillHubProvider {
   readonly type = "huggingface" as const;
   readonly displayName = "Hugging Face";
+  private config: SkillHubProviderConfig;
+
+  constructor(config?: SkillHubProviderConfig) {
+    this.config = config ?? {};
+  }
+
+  setConfig(config?: SkillHubProviderConfig): void {
+    this.config = config ?? {};
+  }
+
+  private getApiBase(): string {
+    return (
+      this.config.url ||
+      process.env.HUGGINGFACE_API_URL ||
+      DEFAULT_HF_API
+    ).replace(/\/$/, "");
+  }
+
+  private getHfHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+      Accept: "application/json",
+      "User-Agent": "OpenViber-SkillHub/1.0",
+    };
+    const token =
+      this.config.apiKey ||
+      process.env.HUGGINGFACE_TOKEN ||
+      process.env.HF_TOKEN;
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    return headers;
+  }
 
   async search(query: SkillSearchQuery): Promise<SkillSearchResult> {
+    const apiBase = this.getApiBase();
     const limit = Math.min(query.limit ?? 20, 100);
     const page = query.page ?? 1;
     const offset = (page - 1) * limit;
@@ -69,8 +91,8 @@ export class HuggingFaceProvider implements SkillHubProvider {
     }
 
     try {
-      const res = await fetch(`${HF_API}/models?${params.toString()}`, {
-        headers: getHfHeaders(),
+      const res = await fetch(`${apiBase}/models?${params.toString()}`, {
+        headers: this.getHfHeaders(),
         signal: AbortSignal.timeout(15000),
       });
 
@@ -110,8 +132,9 @@ export class HuggingFaceProvider implements SkillHubProvider {
 
   async getSkillInfo(skillId: string): Promise<ExternalSkillInfo | null> {
     try {
-      const res = await fetch(`${HF_API}/models/${encodeURIComponent(skillId)}`, {
-        headers: getHfHeaders(),
+      const apiBase = this.getApiBase();
+      const res = await fetch(`${apiBase}/models/${encodeURIComponent(skillId)}`, {
+        headers: this.getHfHeaders(),
         signal: AbortSignal.timeout(15000),
       });
 

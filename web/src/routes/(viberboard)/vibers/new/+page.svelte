@@ -19,8 +19,8 @@
     Sparkles,
     TrainFront,
   } from "@lucide/svelte";
-  import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import * as Dialog from "$lib/components/ui/dialog";
+  import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import ChatComposer from "$lib/components/chat-composer.svelte";
   import type { Intent } from "$lib/data/intents";
 
@@ -188,6 +188,11 @@
   function selectIntent(intent: Intent) {
     selectedIntentId = intent.id;
     taskInput = intent.body;
+    // Auto-submit the task when an intent is selected
+    // submitTask will handle validation (node selection, active status, etc.)
+    if (intent.body.trim()) {
+      void submitTask(intent.body);
+    }
   }
 
   function clearIntent() {

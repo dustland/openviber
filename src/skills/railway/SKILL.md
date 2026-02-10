@@ -47,6 +47,7 @@ railway link
 ### railway_logs
 - `service` (optional): Service name to get logs for
 - `lines` (optional): Number of log lines (default: 50, max: 500)
+- `deploymentId` (optional): Deployment ID to fetch logs for (if omitted, uses latest deployment)
 
 ### railway_deploy
 - `service` (optional): Service to redeploy
@@ -82,3 +83,14 @@ railway_deployments({})
 railway_build_logs({ deploymentId: "abc-123..." })
 railway_run({ command: "variables list" })
 ```
+
+## Auto-Discovery Behavior
+
+When a directory is not Railway-linked or linked to the wrong project, this skill will:
+
+1. List accessible Railway projects via `railway list --json`
+2. Score candidates using repository hints (cwd name + git remote URL)
+3. Iterate candidate project/service contexts and retry commands
+4. Return the first successful match, including discovery metadata in the summary
+
+This allows the agent to keep trying across org/project/service combinations instead of failing on the first context mismatch.

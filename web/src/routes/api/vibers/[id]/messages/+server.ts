@@ -5,7 +5,7 @@ import {
   listMessagesForViber,
   type MessageInsertInput,
 } from "$lib/server/messages";
-import { touchThreadActivity } from "$lib/server/environments";
+import { touchViberActivity } from "$lib/server/environments";
 
 // GET /api/vibers/[id]/messages - Load chat history for this viber
 export const GET: RequestHandler = async ({ params, url, locals }) => {
@@ -81,14 +81,8 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 
     const createdRows = await appendMessagesForViber(viberId, inputs);
 
-    const touchedThreadIds = new Set(
-      createdRows
-        .map((row) => row.threadId)
-        .filter((threadId): threadId is string => Boolean(threadId)),
-    );
-
-    for (const threadId of touchedThreadIds) {
-      await touchThreadActivity(threadId, viberId);
+    if (createdRows.length > 0) {
+      await touchViberActivity(viberId);
     }
 
     const created = createdRows.map((row) => ({

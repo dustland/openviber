@@ -66,7 +66,13 @@ The quality of the Cursor agent's output depends heavily on the prompt. Follow t
    - "The function should handle null inputs gracefully"
    - "Follow the existing code style (no semicolons, 2-space indent)"
 
-4. **For multi-step tasks, break them down:**
+4. **Git workflow is automatic for coding tasks:**
+   - The tool automatically detects if you're in a git repository
+   - For coding tasks, it automatically adds instructions to create a branch, commit, push, and create a PR
+   - You don't need to include these steps in your prompt — just focus on the actual coding task
+   - Example: "In src/auth/login.ts, add proper error handling to the loginUser() function" — the tool will automatically add branch/PR instructions
+
+5. **For multi-step tasks, break them down:**
    - Run one focused prompt per logical change
    - Verify after each step before proceeding
    - Use `agent -p` (non-interactive) for automated workflows
@@ -143,10 +149,12 @@ Check status of all sessions with `tmux_list`.
 
 1. `gh_get_issue` → Read the full issue
 2. `gh_clone_repo` → Clone (or pull latest)
-3. `gh_create_branch` → Create fix branch
-4. `cursor_agent_run` → Fix the issue (provide issue details in prompt)
-5. `gh_commit_and_push` → Commit and push
-6. `gh_create_pr` → Create PR referencing the issue
+3. `cursor_agent_run` → Fix the issue with a prompt describing the issue and requirements
+   - Example: "Fix the bug described in issue #123: [issue details]. Ensure all tests pass."
+   - The tool automatically adds branch creation, commit, push, and PR creation instructions
+   - No need to manually include git workflow steps in your prompt
+
+**Note:** The Cursor agent can execute git commands directly. The `cursor_agent_run` tool automatically enhances your prompt with git workflow instructions for coding tasks in git repositories, so you can focus on describing what needs to be done rather than how to manage branches and PRs.
 
 ### Code Review Workflow
 

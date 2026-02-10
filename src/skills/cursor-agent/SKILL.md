@@ -108,14 +108,20 @@ Cursor agent supports MCP (Model Context Protocol) servers defined in `mcp.json`
 The `cursor_agent_run` tool:
 - Runs the Cursor agent in a tmux session with a specified prompt
 - **Polls for completion** instead of blindly waiting a fixed duration
+- **Collects intermediate progress updates** during execution (every 10 seconds)
 - Returns structured output with status, timing, and captured terminal output
 - Supports parallel runs via distinct `sessionName` values
+- **Automatically creates git branches and PRs** for coding tasks (optional)
 
 **Parameters:**
 - `goal` (required): Detailed task prompt — be specific (see best practices above)
 - `cwd` (optional): Project root directory
 - `waitSeconds` (optional): Maximum wait time (default: 120s, polls every 3s)
 - `sessionName` (optional): Tmux session name for parallel runs (default: 'cursor-agent')
+- `autoCreateBranch` (optional): If true, automatically create a git branch before running (default: false)
+- `autoCreatePR` (optional): If true, automatically create a PR after successful completion (default: false, requires `autoCreateBranch`)
+- `prTitle` (optional): Custom PR title (auto-generated from goal if not provided)
+- `prBody` (optional): Custom PR body/description (auto-generated if not provided)
 
 **Return shape:**
 - `ok`: boolean — whether the agent completed within the time limit
@@ -124,6 +130,9 @@ The `cursor_agent_run` tool:
 - `outputTail`: last ~100 lines of terminal output (chat-friendly)
 - `output`: full captured output (truncated if very large)
 - `elapsed`: seconds spent
+- `progressUpdates`: array of intermediate progress snapshots (collected every 10 seconds)
+- `branch`: branch name if `autoCreateBranch` was used
+- `prUrl`: PR URL if `autoCreatePR` was used and PR was created successfully
 - `hint`: guidance when timed out or errored
 
 ### Parallel Cursor Agent Runs
@@ -141,12 +150,20 @@ Check status of all sessions with `tmux_list`.
 
 ### Issue Fix Workflow
 
+**Manual workflow:**
 1. `gh_get_issue` → Read the full issue
 2. `gh_clone_repo` → Clone (or pull latest)
 3. `gh_create_branch` → Create fix branch
 4. `cursor_agent_run` → Fix the issue (provide issue details in prompt)
 5. `gh_commit_and_push` → Commit and push
 6. `gh_create_pr` → Create PR referencing the issue
+
+**Automated workflow (recommended for coding tasks):**
+1. `gh_get_issue` → Read the full issue
+2. `gh_clone_repo` → Clone (or pull latest)
+3. `cursor_agent_run({ goal: "...", autoCreateBranch: true, autoCreatePR: true })` → Fix the issue and automatically create branch + PR
+
+The automated workflow creates the branch, runs the agent, commits changes, pushes, and creates a PR all in one step. Progress updates are collected during execution and included in the result.
 
 ### Code Review Workflow
 
@@ -165,6 +182,38 @@ agent -p 'Refactor src/utils.ts to reduce complexity and improve type safety. En
 ```
 agent -p 'Analyze the following error and suggest a fix: [paste error]. The error occurs in src/api/handler.ts.'
 ```
+
+## Progress Reporting
+
+The `cursor_agent_run` tool collects intermediate progress updates during execution:
+- Progress snapshots are captured every 10 seconds
+- Each snapshot includes elapsed time and the last 30 lines of output
+- Progress updates are returned in the `progressUpdates` field of the result
+- The agent should report these updates to provide visibility into long-running tasks
+
+**Note:** For real-time streaming progress, the tool would need runtime support for progress callbacks. Currently, progress is collected and returned in the final result.
+
+## Automatic Branch and PR Creation
+
+For coding tasks, you can enable automatic branch and PR creation:
+
+```typescript
+cursor_agent_run({
+  goal: "Add user authentication to the API",
+  cwd: "/path/to/repo",
+  autoCreateBranch: true,  // Creates branch like "cursor-agent/add-user-auth-123456"
+  autoCreatePR: true,       // Creates PR after successful completion
+  prTitle: "feat: Add user authentication",  // Optional custom title
+  prBody: "Implements JWT-based authentication..."  // Optional custom body
+})
+```
+
+**Requirements:**
+- Repository must be a git repo
+- GitHub skill must be available (for PR creation)
+- Changes must be made for PR to be created (if no changes, PR is skipped)
+
+**Branch naming:** `cursor-agent/{sanitized-goal}-{timestamp}`
 
 ## Rules & MCP
 

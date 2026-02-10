@@ -92,6 +92,15 @@ function getTailLines(raw: string, maxLines: number = DEFAULT_TAIL_LINES): strin
 }
 
 /**
+ * Progress update callback type
+ */
+type ProgressCallback = (update: {
+  elapsed: number;
+  output: string;
+  status: "running" | "completed" | "timed_out";
+}) => void;
+
+/**
  * Run Cursor CLI (agent) inside tmux so it gets a PTY.
  *
  * Improvements over v1:
@@ -99,14 +108,17 @@ function getTailLines(raw: string, maxLines: number = DEFAULT_TAIL_LINES): strin
  * - Configurable session names for parallel runs
  * - Better output capture and parsing
  * - Handles workspace trust prompt automatically
+ * - Supports progress callbacks for intermediate updates
  */
 function runInTmux(
   goal: string,
   cwd: string,
   waitSeconds: number,
   sessionName: string,
-): { output: string; completed: boolean; elapsed: number } {
+  onProgress?: ProgressCallback,
+): { output: string; completed: boolean; elapsed: number; progressUpdates: string[] } {
   const session = safeSession(sessionName);
+  const progressUpdates: string[] = [];
 
   // Ensure tmux session exists (create or reuse)
   execSync(
@@ -147,17 +159,40 @@ function runInTmux(
   let lastOutput = "";
   let stableCount = 0;
   let completed = false;
+  let lastProgressTime = startTime;
+  const PROGRESS_UPDATE_INTERVAL_MS = 10000; // Emit progress every 10 seconds
 
   // Initial wait before first poll (let the agent start)
   execSync("sleep 5", { encoding: "utf8", stdio: "pipe" });
 
   while (Date.now() - startTime < maxWaitMs) {
     const output = captureTmuxPane(session);
+    const elapsed = Math.round((Date.now() - startTime) / 1000);
+
+    // Emit progress updates periodically
+    if (onProgress && Date.now() - lastProgressTime >= PROGRESS_UPDATE_INTERVAL_MS) {
+      const tail = getTailLines(output, 30); // Show last 30 lines for progress
+      const update = `[Progress ${elapsed}s] ${tail}`;
+      progressUpdates.push(update);
+      onProgress({
+        elapsed,
+        output: tail,
+        status: "running",
+      });
+      lastProgressTime = Date.now();
+    }
 
     // Check for completion patterns
     const detection = detectCompletion(output);
     if (detection.completed) {
       completed = true;
+      if (onProgress) {
+        onProgress({
+          elapsed,
+          output: getTailLines(output, 30),
+          status: "completed",
+        });
+      }
       break;
     }
 
@@ -167,6 +202,13 @@ function runInTmux(
       // If output hasn't changed for ~15 seconds, likely done
       if (stableCount >= 5) {
         completed = true;
+        if (onProgress) {
+          onProgress({
+            elapsed,
+            output: getTailLines(output, 30),
+            status: "completed",
+          });
+        }
         break;
       }
     } else {
@@ -184,14 +226,22 @@ function runInTmux(
   const elapsed = Math.round((Date.now() - startTime) / 1000);
   const finalOutput = captureTmuxPane(session);
 
-  return { output: finalOutput, completed, elapsed };
+  if (!completed && onProgress) {
+    onProgress({
+      elapsed,
+      output: getTailLines(finalOutput, 30),
+      status: "timed_out",
+    });
+  }
+
+  return { output: finalOutput, completed, elapsed, progressUpdates };
 }
 
 export function getTools(): Record<string, import("../../core/tool").CoreTool> {
   return {
     cursor_agent_run: {
       description:
-        "Run the Cursor CLI (agent) with the given prompt for AI-powered coding tasks. Call this whenever the user says 'use cursor-agent', 'cursor agent', 'run the Cursor CLI', or asks to delegate a coding task to Cursor. Provide a detailed, specific goal with context about the codebase. Runs in tmux (TTY required). Requires tmux and Cursor CLI installed.",
+        "Run the Cursor CLI (agent) with the given prompt for AI-powered coding tasks. Call this whenever the user says 'use cursor-agent', 'cursor agent', 'run the Cursor CLI', or asks to delegate a coding task to Cursor. Provide a detailed, specific goal with context about the codebase. Runs in tmux (TTY required). Requires tmux and Cursor CLI installed. The tool collects intermediate progress updates during execution and returns them in the result. For coding tasks, set autoCreateBranch and autoCreatePR to automatically create a branch and PR after completion.",
       inputSchema: z.object({
         goal: z
           .string()
@@ -222,24 +272,112 @@ export function getTools(): Record<string, import("../../core/tool").CoreTool> {
           .describe(
             "Tmux session name (default: 'cursor-agent'). Use distinct names for parallel runs (e.g. 'cursor-1', 'cursor-2').",
           ),
+        autoCreateBranch: z
+          .boolean()
+          .optional()
+          .default(false)
+          .describe(
+            "If true, automatically create a git branch before running the agent. Branch name will be auto-generated from the goal. Requires the repository to be a git repo.",
+          ),
+        autoCreatePR: z
+          .boolean()
+          .optional()
+          .default(false)
+          .describe(
+            "If true, automatically create a pull request after the agent completes successfully. Requires autoCreateBranch to be true and the github skill to be available. PR title and body will be auto-generated from the goal and changes.",
+          ),
+        prTitle: z
+          .string()
+          .optional()
+          .describe(
+            "Custom PR title (only used if autoCreatePR is true). If not provided, will be auto-generated from the goal.",
+          ),
+        prBody: z
+          .string()
+          .optional()
+          .describe(
+            "Custom PR body/description (only used if autoCreatePR is true). If not provided, will be auto-generated.",
+          ),
       }),
       execute: async (args: {
         goal: string;
         cwd?: string;
         waitSeconds?: number;
         sessionName?: string;
-      }) => {
+        autoCreateBranch?: boolean;
+        autoCreatePR?: boolean;
+        prTitle?: string;
+        prBody?: string;
+      }, context?: any) => {
         const cwd = args.cwd ? path.resolve(args.cwd) : process.cwd();
         const waitSeconds = args.waitSeconds ?? DEFAULT_WAIT_SECONDS;
         const sessionName = args.sessionName ?? DEFAULT_SESSION;
+        const autoCreateBranch = args.autoCreateBranch ?? false;
+        const autoCreatePR = args.autoCreatePR ?? false;
+
+        let branchName: string | undefined;
+        let prUrl: string | undefined;
 
         try {
-          const { output, completed, elapsed } = runInTmux(
+          // Create branch if requested
+          if (autoCreateBranch || autoCreatePR) {
+            try {
+              // Check if it's a git repo
+              execSync("git rev-parse --git-dir", {
+                encoding: "utf8",
+                stdio: "pipe",
+                cwd,
+              });
+
+              // Generate branch name from goal (sanitize and make it git-friendly)
+              const sanitized = args.goal
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, "-")
+                .replace(/^-+|-+$/g, "")
+                .slice(0, 50);
+              branchName = `cursor-agent/${sanitized}-${Date.now().toString().slice(-6)}`;
+
+              // Get current branch
+              let currentBranch: string;
+              try {
+                currentBranch = execSync("git rev-parse --abbrev-ref HEAD", {
+                  encoding: "utf8",
+                  stdio: "pipe",
+                  cwd,
+                }).trim();
+              } catch {
+                currentBranch = "main";
+              }
+
+              // Create and checkout branch
+              execSync(`git checkout -b ${branchName}`, {
+                encoding: "utf8",
+                stdio: "pipe",
+                cwd,
+              });
+            } catch (err: any) {
+              // If git operations fail, continue without branch creation
+              console.warn(`[cursor-agent] Failed to create branch: ${err?.message}`);
+            }
+          }
+
+          // Progress callback that collects updates
+          const progressUpdates: string[] = [];
+          const onProgress: ProgressCallback = (update) => {
+            const updateText = `[${update.status}] ${update.elapsed}s elapsed\n${update.output}`;
+            progressUpdates.push(updateText);
+          };
+
+          const { output, completed, elapsed, progressUpdates: collectedUpdates } = runInTmux(
             args.goal,
             cwd,
             waitSeconds,
             sessionName,
+            onProgress,
           );
+
+          // Merge collected updates
+          progressUpdates.push(...collectedUpdates);
 
           const outputTail = getTailLines(output);
 
@@ -249,7 +387,64 @@ export function getTools(): Record<string, import("../../core/tool").CoreTool> {
             `cwd=${cwd}`,
             `elapsed=${elapsed}s`,
             `session=${safeSession(sessionName)}`,
+            ...(branchName ? [`branch=${branchName}`] : []),
           ].join(" | ");
+
+          // Create PR if requested and completed successfully
+          if (autoCreatePR && completed && branchName) {
+            try {
+              // Check if github tools are available
+              const { defaultRegistry } = await import("../index");
+              const githubTools = await defaultRegistry.getTools("github");
+              
+              if (githubTools?.gh_commit_and_push && githubTools?.gh_create_pr) {
+                // Stage and commit changes
+                try {
+                  execSync("git add -A", { encoding: "utf8", stdio: "pipe", cwd });
+                  
+                  // Check if there are changes
+                  try {
+                    execSync("git diff --cached --quiet", { encoding: "utf8", stdio: "pipe", cwd });
+                    // No changes
+                  } catch {
+                    // There are changes, commit them
+                    const commitMessage = args.prTitle || `feat: ${args.goal.slice(0, 72)}`;
+                    execSync(`git commit -m ${JSON.stringify(commitMessage)}`, {
+                      encoding: "utf8",
+                      stdio: "pipe",
+                      cwd,
+                    });
+
+                    // Push branch
+                    execSync(`git push -u origin ${branchName}`, {
+                      encoding: "utf8",
+                      stdio: "pipe",
+                      cwd,
+                    });
+
+                    // Create PR
+                    const prTitle = args.prTitle || `feat: ${args.goal.slice(0, 100)}`;
+                    const prBodyText = args.prBody || 
+                      `## Changes\n\n${args.goal}\n\n## Generated by Cursor Agent\n\nThis PR was automatically created after running cursor-agent.`;
+                    
+                    const prResult = await githubTools.gh_create_pr.execute({
+                      cwd,
+                      title: prTitle,
+                      body: prBodyText,
+                    });
+
+                    if (prResult.ok && prResult.url) {
+                      prUrl = prResult.url;
+                    }
+                  }
+                } catch (err: any) {
+                  console.warn(`[cursor-agent] Failed to create PR: ${err?.message}`);
+                }
+              }
+            } catch (err: any) {
+              console.warn(`[cursor-agent] GitHub tools not available: ${err?.message}`);
+            }
+          }
 
           return {
             ok: completed,
@@ -262,6 +457,9 @@ export function getTools(): Record<string, import("../../core/tool").CoreTool> {
             cwd,
             elapsed,
             sessionName: safeSession(sessionName),
+            progressUpdates: progressUpdates.length > 0 ? progressUpdates : undefined,
+            ...(branchName ? { branch: branchName } : {}),
+            ...(prUrl ? { prUrl } : {}),
             ...(completed ? {} : {
               error: `Agent did not complete within ${waitSeconds}s (may still be running).`,
               hint: "Check with tmux_list or increase waitSeconds.",
@@ -274,6 +472,7 @@ export function getTools(): Record<string, import("../../core/tool").CoreTool> {
             error: err?.message || String(err),
             cwd,
             sessionName: safeSession(sessionName),
+            ...(branchName ? { branch: branchName } : {}),
             hint: "Ensure tmux is installed (tmux_install_check) and Cursor CLI is in PATH (agent --version).",
           };
         }

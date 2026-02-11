@@ -10,9 +10,33 @@ send tasks, and monitor your viber remotely.
 ### Step 1: Create a Viber Node on the Web
 
 1. Log in to [OpenViber Web](http://localhost:6006) (or your deployed URL)
-2. Go to **Vibers** → Click **"New Viber Node"**
-3. Give your viber a name
+2. Go to **Vibers** → Click **"Add Node"**
+3. Give your node a name
 4. Copy the generated command
+
+### Optional: Create a viber from an intent
+
+After the node is online, open **Vibers → New Viber** and choose an intent template (for example, _Build a Feature_ or _Code Review_).
+
+The launch flow is:
+
+1. Select an active node
+2. Select an intent template (or paste your own goal)
+3. OpenViber infers required skills from template metadata, `skills:` blocks, and keywords
+4. If the selected node is missing required skills, OpenViber starts guided provisioning before launch
+5. After prerequisites are ready, the task launches automatically with the selected intent body
+
+Supported proactive skill provisioning currently covers:
+
+- `cursor-agent`
+- `codex-cli`
+- `gemini-cli`
+- `github`
+- `gmail`
+- `railway`
+- `tmux` (terminal backing skill)
+
+You can manage templates in **Settings → Intents**.
 
 ### Step 2: Run the Onboard Command
 
@@ -23,6 +47,7 @@ npx openviber onboard --token <token>
 ```
 
 This will:
+
 - Install/update OpenViber
 - Create `~/.openviber/` configuration directory
 - Connect your machine to the web dashboard
@@ -93,14 +118,14 @@ After onboarding, your `~/.openviber/` directory looks like:
 
 ## Commands Reference
 
-| Command | Description |
-|---------|-------------|
-| `npx openviber onboard` | Set up standalone mode |
+| Command                             | Description              |
+| ----------------------------------- | ------------------------ |
+| `npx openviber onboard`             | Set up standalone mode   |
 | `npx openviber onboard --token <t>` | Connect to OpenViber Web |
-| `npx openviber start` | Start the viber daemon |
-| `npx openviber run "<task>"` | Run a one-off task |
-| `npx openviber chat` | Interactive chat mode |
-| `npx openviber status` | Check viber status |
+| `npx openviber start`               | Start the viber daemon   |
+| `npx openviber run "<task>"`        | Run a one-off task       |
+| `npx openviber chat`                | Interactive chat mode    |
+| `npx openviber status`              | Check viber status       |
 
 ---
 
@@ -109,6 +134,10 @@ After onboarding, your `~/.openviber/` directory looks like:
 **Token expired?** Create a new viber node on the web and run `npx openviber onboard --token` again.
 
 **Can't connect?** Make sure OpenViber Web is running. By default: `http://localhost:6006`
+
+**Intent launch says a skill is missing?** Keep the target node selected and use the guided setup dialog to provision prerequisites, then retry launch.
+
+**Node not selectable in New Viber?** Only active (connected) nodes can receive launches. Start your local daemon with `npx openviber start` and refresh the page.
 
 **Need to switch modes?** You can always re-run `npx openviber onboard --token <token>` to switch
 from standalone to connected mode.

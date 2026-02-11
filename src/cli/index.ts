@@ -26,6 +26,7 @@ import YAML from "yaml";
 import { getOpenViberVersion } from "../utils/version";
 import type { ChannelRuntimeContext, InboundMessage, InterruptSignal } from "../channels/channel";
 import { loadSettings, saveSettings } from "../skills/hub/settings";
+import { collectOauthReadySkillIds } from "./skill-auto-enable";
 
 const VERSION = getOpenViberVersion();
 const OPENVIBER_DIR = path.join(os.homedir(), ".openviber");
@@ -122,6 +123,10 @@ program
         .map((s: string) => s.trim())
         .filter((s: string) => s.length > 0)
       : [];
+    const oauthTokensUpdated =
+      typeof options.googleAccessToken === "string" &&
+      options.googleAccessToken.trim().length > 0;
+
     if (
       cliSkills.length > 0 ||
       options.primaryCodingCli ||
@@ -149,6 +154,18 @@ program
         };
       }
       await saveSettings(settings);
+
+      if (oauthTokensUpdated) {
+        const { getSkillHealthReport } = await import("../skills/health");
+        const report = await getSkillHealthReport();
+        const oauthReadySkillIds = collectOauthReadySkillIds(report);
+        if (oauthReadySkillIds.length > 0) {
+          settings.standaloneSkills = Array.from(
+            new Set([...(settings.standaloneSkills || []), ...oauthReadySkillIds]),
+          );
+          await saveSettings(settings);
+        }
+      }
     }
 
     if (isInteractiveTerminal()) {

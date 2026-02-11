@@ -11,13 +11,13 @@
 
 import * as fs from "fs/promises";
 import * as path from "path";
-import { fileURLToPath } from "url";
 import * as yaml from "yaml";
 import { getViberPath, getViberRoot } from "../config";
 import type { AgentConfig } from "../core/config";
 import { Agent } from "../core/agent";
 import { loadSettings, saveSettings } from "../skills/hub/settings";
 import type { ViberMessage } from "../core/message";
+import { getModuleDirname } from "../utils/module-path";
 
 export interface ViberEnvironmentInfo {
   name: string;
@@ -50,8 +50,7 @@ export interface DaemonRunTaskOptions {
   }) => void;
 }
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __dirname = getModuleDirname();
 
 const DEFAULTS_VIBERS_DIR = path.join(
   path.dirname(__dirname),

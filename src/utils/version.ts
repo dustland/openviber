@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "fs";
 import path from "path";
-import { fileURLToPath } from "url";
+import { getModuleDirname } from "./module-path";
 
 interface PackageJsonVersion {
   name?: string;
@@ -17,8 +17,7 @@ export function getOpenViberVersion(): string {
     return cachedVersion;
   }
 
-  const currentFile = fileURLToPath(import.meta.url);
-  let currentDir = path.dirname(currentFile);
+  let currentDir = getModuleDirname();
 
   while (true) {
     const packageJsonPath = path.join(currentDir, "package.json");

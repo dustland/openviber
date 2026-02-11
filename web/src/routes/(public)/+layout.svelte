@@ -54,13 +54,15 @@
         <Home class="size-4 shrink-0" />
         <span class="hidden sm:inline text-sm">Home</span>
       </a>
-      <a
-        href="/"
-        class="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors shrink-0 px-2.5 py-1.5 rounded-md hover:bg-accent"
-      >
-        <LayoutDashboard class="size-4 shrink-0" />
-        <span class="hidden sm:inline text-sm">Dashboard</span>
-      </a>
+      {#if data.user}
+        <a
+          href="/"
+          class="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors shrink-0 px-2.5 py-1.5 rounded-md hover:bg-accent"
+        >
+          <LayoutDashboard class="size-4 shrink-0" />
+          <span class="hidden sm:inline text-sm">Dashboard</span>
+        </a>
+      {/if}
       <a
         href="/hub"
         class="flex items-center gap-1.5 transition-colors shrink-0 px-2.5 py-1.5 rounded-md {isHub

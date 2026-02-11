@@ -1014,35 +1014,104 @@ export class ViberController extends EventEmitter {
   }
 
   /**
+   * Get web API base URL from gateway URL or environment variable.
+   */
+  private getWebApiUrl(): string | null {
+    // Try environment variable first
+    if (process.env.OPENVIBER_WEB_API_URL) {
+      return process.env.OPENVIBER_WEB_API_URL;
+    }
+
+    // Derive from gateway URL if available
+    if (this.config.serverUrl) {
+      try {
+        const gatewayUrl = new URL(this.config.serverUrl);
+        // Replace ws:// with http:// or wss:// with https://
+        const protocol = gatewayUrl.protocol === "wss:" ? "https:" : "http:";
+        // Default web port is 6006 (gateway is 6007)
+        const port = gatewayUrl.port === "6007" ? "6006" : gatewayUrl.port;
+        return `${protocol}//${gatewayUrl.hostname}${port ? `:${port}` : ""}`;
+      } catch {
+        // Invalid URL, return null
+      }
+    }
+
+    return null;
+  }
+
+  /**
    * Handle config:push message from gateway.
    * Pulls latest config, validates it, and sends config:ack.
    */
   private async handleConfigPush(): Promise<void> {
     this.log.info("Received config:push, pulling latest config");
     try {
-      // TODO: In Step 4, this will call the web API to pull config
-      // For now, we'll use a placeholder that validates what we can
       const now = new Date().toISOString();
-      
-      // Placeholder: we'll implement actual config pull in Step 4
-      // For now, validate environment variables and any available config
       const validations: ConfigValidation[] = [];
 
-      // Validate LLM keys from environment (if available)
-      // In Step 4, this will come from the pulled config
-      const envLlmKeys: Record<string, { apiKey?: string; baseUrl?: string }> = {};
-      if (process.env.ANTHROPIC_API_KEY) {
-        envLlmKeys.anthropic = { apiKey: process.env.ANTHROPIC_API_KEY };
-      }
-      if (process.env.OPENAI_API_KEY) {
-        envLlmKeys.openai = { apiKey: process.env.OPENAI_API_KEY };
-      }
-      if (process.env.OPENROUTER_API_KEY) {
-        envLlmKeys.openrouter = { apiKey: process.env.OPENROUTER_API_KEY };
+      // Pull config from web API
+      const webApiUrl = this.getWebApiUrl();
+      if (!webApiUrl || !this.config.token) {
+        this.log.warn("Cannot pull config: web API URL or auth token not available");
+        // Fall back to validating environment variables
+        const envLlmKeys: Record<string, { apiKey?: string; baseUrl?: string }> = {};
+        if (process.env.ANTHROPIC_API_KEY) {
+          envLlmKeys.anthropic = { apiKey: process.env.ANTHROPIC_API_KEY };
+        }
+        if (process.env.OPENAI_API_KEY) {
+          envLlmKeys.openai = { apiKey: process.env.OPENAI_API_KEY };
+        }
+        if (process.env.OPENROUTER_API_KEY) {
+          envLlmKeys.openrouter = { apiKey: process.env.OPENROUTER_API_KEY };
+        }
+
+        if (Object.keys(envLlmKeys).length > 0) {
+          const llmResults = await validateAllLlmKeys(envLlmKeys);
+          validations.push(
+            ...llmResults.map((r) => ({
+              ...r,
+              checkedAt: now,
+            })),
+          );
+        }
+
+        const configVersion = this.configState?.configVersion || this.computeConfigVersion(envLlmKeys);
+        this.configState = {
+          configVersion,
+          lastConfigPullAt: now,
+          validations,
+        };
+
+        this.send({
+          type: "config:ack",
+          configVersion,
+          validations,
+        });
+        return;
       }
 
-      if (Object.keys(envLlmKeys).length > 0) {
-        const llmResults = await validateAllLlmKeys(envLlmKeys);
+      // Call web API to get config
+      const configUrl = `${webApiUrl}/api/nodes/${encodeURIComponent(this.config.viberId)}/config`;
+      const response = await fetch(configUrl, {
+        headers: {
+          Authorization: `Bearer ${this.config.token}`,
+          "Content-Type": "application/json",
+        },
+        signal: AbortSignal.timeout(10000), // 10s timeout
+      });
+
+      if (!response.ok) {
+        throw new Error(`Config API returned ${response.status}: ${response.statusText}`);
+      }
+
+      const configData = await response.json();
+      const pulledConfig = configData.config || {};
+      const aiProviders = configData.globalSettings?.aiProviders || {};
+      const oauthConnections = configData.oauthConnections || [];
+
+      // Validate LLM keys
+      if (Object.keys(aiProviders).length > 0) {
+        const llmResults = await validateAllLlmKeys(aiProviders);
         validations.push(
           ...llmResults.map((r) => ({
             ...r,
@@ -1051,8 +1120,26 @@ export class ViberController extends EventEmitter {
         );
       }
 
-      // Compute config version (placeholder - will use actual config in Step 4)
-      const configVersion = this.configState?.configVersion || this.computeConfigVersion(envLlmKeys);
+      // Validate OAuth tokens
+      if (oauthConnections.length > 0) {
+        const oauthResults = await validateAllOAuthTokens(oauthConnections);
+        validations.push(
+          ...oauthResults.map((r) => ({
+            ...r,
+            checkedAt: now,
+          })),
+        );
+      }
+
+      // Compute config version from pulled config
+      const configVersion = this.computeConfigVersion({
+        config: pulledConfig,
+        aiProviders,
+        oauthConnections: oauthConnections.map((c: any) => ({
+          provider: c.provider,
+          expiresAt: c.expiresAt,
+        })),
+      });
 
       this.configState = {
         configVersion,
@@ -1065,6 +1152,11 @@ export class ViberController extends EventEmitter {
         type: "config:ack",
         configVersion,
         validations,
+      });
+
+      this.log.info("Config pulled and validated", {
+        configVersion,
+        validationCount: validations.length,
       });
     } catch (error) {
       this.log.error("Failed to handle config push", { error: String(error) });

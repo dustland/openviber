@@ -26,8 +26,11 @@ import {
   type ViberRunningStatus as ViberNodeRunningStatus,
   type RunningTaskInfo,
   type NodeObservabilityStatus,
+  type ConfigState,
+  type ConfigValidation,
 } from "./node-status";
 import type { SkillHealthReport } from "../skills/health";
+import { createHash } from "crypto";
 
 // ==================== Types ====================
 
@@ -82,6 +85,8 @@ export interface ViberStatus {
   viberStatus?: ViberNodeRunningStatus;
   /** Extended skill info with availability (updated periodically) */
   skills?: ViberSkillInfo[];
+  /** Config sync state (version, last pull, validations) */
+  configState?: import("./node-status").ConfigState;
 }
 
 // Server -> Viber messages (messages = full chat history from Viber Board for context)
@@ -120,6 +125,7 @@ export type ControllerServerMessage =
   }
   | { type: "ping" }
   | { type: "config:update"; config: Partial<ViberControllerConfig> }
+  | { type: "config:push" }
   // Terminal streaming messages
   | { type: "terminal:list" }
   | { type: "terminal:attach"; target: string; appId?: string }
@@ -144,7 +150,7 @@ export type ControllerClientMessage =
   | { type: "task:progress"; taskId: string; event: any }
   | { type: "task:stream-chunk"; taskId: string; chunk: string }
   | { type: "task:completed"; taskId: string; result: any }
-  | { type: "task:error"; taskId: string; error: string }
+  | { type: "task:error"; taskId: string; error: string; model?: string }
   | { type: "heartbeat"; status: ViberStatus }
   | { type: "pong" }
   // Terminal streaming messages
@@ -154,6 +160,7 @@ export type ControllerClientMessage =
   | { type: "terminal:output"; target: string; appId?: string; data: string }
   | { type: "terminal:resized"; target: string; appId?: string; ok: boolean }
   | { type: "status:report"; status: NodeObservabilityStatus }
+  | { type: "config:ack"; configVersion: string; validations: import("./node-status").ConfigValidation[] }
   // Job reporting
   | { type: "jobs:list"; jobs: Array<{ name: string; schedule: string; prompt: string; description?: string; model?: string; nodeId?: string }> };
 
@@ -214,6 +221,8 @@ export class ViberController extends EventEmitter {
   private skillHealthCache?: SkillHealthReport;
   private skillHealthCachedAt?: number;
   private skillHealthInFlight?: Promise<SkillHealthReport>;
+  /** Current config state (version, last pull, validations) */
+  private configState?: ConfigState;
   private log = createLogger("controller");
 
   constructor(private config: ViberControllerConfig) {
@@ -286,7 +295,7 @@ export class ViberController extends EventEmitter {
    * Get full node observability status including machine resources and viber running status.
    */
   getNodeObservabilityStatus(): NodeObservabilityStatus {
-    return collectNodeStatus({
+    const status = collectNodeStatus({
       viberId: this.config.viberId,
       viberName: this.config.viberName || this.config.viberId,
       version: getOpenViberVersion(),
@@ -298,6 +307,11 @@ export class ViberController extends EventEmitter {
       totalTasksExecuted: this.totalTasksExecuted,
       lastHeartbeatAt: this.lastHeartbeatAt,
     });
+    // Include config state if available
+    if (this.configState) {
+      status.configState = this.configState;
+    }
+    return status;
   }
 
   /**
@@ -477,6 +491,10 @@ export class ViberController extends EventEmitter {
         case "config:update":
           Object.assign(this.config, message.config);
           this.emit("config:update", message.config);
+          break;
+
+        case "config:push":
+          await this.handleConfigPush();
           break;
 
         // Terminal streaming
@@ -952,6 +970,71 @@ export class ViberController extends EventEmitter {
     this.send({ type: "jobs:list", jobs });
   }
 
+  // ==================== Config Sync ====================
+
+  /**
+   * Compute a hash of the current config for version tracking.
+   */
+  private computeConfigVersion(config: Record<string, unknown>): string {
+    const json = JSON.stringify(config, Object.keys(config).sort());
+    return createHash("sha256").update(json).digest("hex").slice(0, 16);
+  }
+
+  /**
+   * Collect current config state (version, last pull, validations).
+   * This will be populated when config is pulled and validated.
+   */
+  private getConfigState(): ConfigState | undefined {
+    return this.configState;
+  }
+
+  /**
+   * Handle config:push message from gateway.
+   * Pulls latest config, validates it, and sends config:ack.
+   */
+  private async handleConfigPush(): Promise<void> {
+    this.log.info("Received config:push, pulling latest config");
+    try {
+      // TODO: In Step 4, this will call the web API to pull config
+      // For now, we'll use a placeholder that acknowledges with current state
+      const now = new Date().toISOString();
+      
+      // Placeholder: we'll implement actual config pull in Step 4
+      // For now, create a basic config state
+      const configVersion = this.configState?.configVersion || this.computeConfigVersion({});
+      const validations: ConfigValidation[] = this.configState?.validations || [];
+
+      this.configState = {
+        configVersion,
+        lastConfigPullAt: now,
+        validations,
+      };
+
+      // Send acknowledgment
+      this.send({
+        type: "config:ack",
+        configVersion,
+        validations,
+      });
+    } catch (error) {
+      this.log.error("Failed to handle config push", { error: String(error) });
+      // Send ack with failed status
+      const validations: ConfigValidation[] = [
+        {
+          category: "llm_keys",
+          status: "failed",
+          message: `Config pull failed: ${error instanceof Error ? error.message : String(error)}`,
+          checkedAt: new Date().toISOString(),
+        },
+      ];
+      this.send({
+        type: "config:ack",
+        configVersion: this.configState?.configVersion || "unknown",
+        validations,
+      });
+    }
+  }
+
   // ==================== Communication ====================
 
   private send(message: ControllerClientMessage): void {
@@ -990,6 +1073,7 @@ export class ViberController extends EventEmitter {
         machine: machineStatus,
         viberStatus,
         skills: skillsWithHealth.length > 0 ? skillsWithHealth : undefined,
+        configState: this.getConfigState(),
       };
 
       this.lastHeartbeatAt = new Date().toISOString();

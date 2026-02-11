@@ -15,6 +15,21 @@ import type { SkillHealthReport } from "../skills/health";
 
 // ==================== Types ====================
 
+/** Config validation result for a specific category */
+export interface ConfigValidation {
+  category: "llm_keys" | "oauth" | "env_secrets" | "skills" | "binary_deps";
+  status: "verified" | "failed" | "unchecked";
+  message?: string;
+  checkedAt: string;
+}
+
+/** Config sync state reported by the node */
+export interface ConfigState {
+  configVersion: string;       // hash of current config
+  lastConfigPullAt: string;    // ISO timestamp
+  validations: ConfigValidation[];
+}
+
 /** CPU usage snapshot (percentage-based) */
 export interface CpuStatus {
   /** Number of logical CPU cores */
@@ -152,6 +167,7 @@ export interface ViberRunningStatus {
 export interface NodeObservabilityStatus {
   machine: MachineResourceStatus;
   viber: ViberRunningStatus;
+  configState?: ConfigState;
 }
 
 // ==================== CPU Usage Tracking ====================

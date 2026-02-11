@@ -226,9 +226,9 @@ program
 +${"-".repeat(w + 2)}+
 ${line(isStandaloneMode ? "Mode:         Standalone" : "Mode:         Connected")}
 ${line("Viber ID:     " + viberId.slice(0, 42))}
-${line("Server:       " + serverUrl.slice(0, 42))}
+${line("Server:       " + (serverUrl ? serverUrl.slice(0, 42) : "(standalone)"))}
 ${line("Local WS:     ws://localhost:6008")}
-${line("Status:       * Connected")}
+${line("Status:       " + (isConnectedMode ? "* Connected" : "* Running"))}
 +${"-".repeat(w + 2)}+
 
 Waiting for tasks...

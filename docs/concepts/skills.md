@@ -227,7 +227,7 @@ The github skill provides a complete workflow chain for autonomous issue fixing:
 
 | | |
 |---|---|
-| **Tools** | `tmux_install_check`, `tmux_new_session`, `tmux_new_window`, `tmux_split_pane`, `tmux_send_keys`, `tmux_list`, `tmux_run` |
+| **Tools** | `tmux_install_check`, `tmux_prepare_skill_prerequisites`, `tmux_new_session`, `tmux_new_window`, `tmux_split_pane`, `tmux_send_keys`, `tmux_list`, `tmux_run` |
 | **Use case** | Multi-terminal layouts, running CLIs that need a PTY |
 | **Depends on** | tmux installed on the system |
 

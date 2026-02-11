@@ -34,12 +34,23 @@ sudo dnf install tmux
 ## Tools (use these from the agent)
 
 - **tmux_install_check** — Check if tmux is installed; call before any other tmux tool.
+- **tmux_prepare_skill_prerequisites** — Plan/apply prerequisite setup for built-in skills (install missing CLIs + run interactive auth in tmux).
 - **tmux_new_session** — Create a detached session (e.g. `coding`). Optionally name the first window and set start directory.
 - **tmux_new_window** — Create a new window in a session. Use to add Cursor Agent, Claude Code, Codex CLI, or dev server terminals. Optionally run a command in the new window.
 - **tmux_split_pane** — Split a pane (horizontal or vertical). Use to add a dev server pane next to a coding window. Optionally run a command in the new pane.
 - **tmux_send_keys** — Send keys or a command to a target: `session`, `session:window`, or `session:window.pane`.
 - **tmux_list** — List sessions, or list windows/panes for a session. Use when the user asks "what is my tmux layout" or "list my terminals."
 - **tmux_run** — Run one command in a session and return captured output (for TTY-requiring CLIs). Use when the user wants a single run and capture; for multi-terminal layouts use the tools above.
+
+## Automated skill prerequisite setup
+
+When users ask to "set up skill prerequisites automatically" (instead of copy/paste docs), use:
+
+1. `tmux_prepare_skill_prerequisites({ skillId: "<skill>", mode: "plan" })` to preview actions.
+2. `tmux_prepare_skill_prerequisites({ skillId: "<skill>", mode: "apply" })` to execute installs and auth flows.
+3. If auth is pending, continue in tmux with `tmux_send_keys` (the tool returns `authTarget`).
+
+Supported skills: `cursor-agent`, `codex-cli`, `gemini-cli`, `github`, `railway`, `tmux`.
 
 ## Target format
 

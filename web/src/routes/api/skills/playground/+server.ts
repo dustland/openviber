@@ -5,6 +5,7 @@ import { gatewayClient } from "$lib/server/gateway-client";
 interface PlaygroundRequestBody {
   skillId?: string;
   nodeId?: string;
+  scenario?: string;
 }
 
 interface PollResult {
@@ -81,16 +82,23 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     const body = (await request.json()) as PlaygroundRequestBody;
     const skillId = body.skillId?.trim();
     const nodeId = body.nodeId?.trim();
+    const scenario = body.scenario?.trim();
 
     if (!skillId) {
       return json({ error: "Missing skillId" }, { status: 400 });
     }
 
-    const prompt = [
+    const promptSections = [
       `Playground verification for skill: ${skillId}`,
       "Run the skill's built-in playground verification workflow (for example, call skill_playground_verify when available).",
       "Then summarize whether it worked, what checks were performed, and any setup issues found.",
-    ].join("\n\n");
+    ];
+
+    if (scenario) {
+      promptSections.push(`Scenario to execute:\n${scenario}`);
+    }
+
+    const prompt = promptSections.join("\n\n");
 
     const created = await gatewayClient.createViber(prompt, nodeId || undefined);
     if (!created?.viberId) {

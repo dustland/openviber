@@ -75,19 +75,21 @@ async function readFileIfExists(filePath: string): Promise<string | null> {
 /**
  * Load the three-file personalization context (soul.md, user.md, memory.md).
  *
- * - soul.md is per-viber: ~/.openviber/vibers/{viberId}/soul.md
+ * - soul.md is per-viber: ~/.openviber/tasks/{viberId}/soul.md
  * - user.md is shared:    ~/.openviber/user.md
- * - memory.md is per-viber: ~/.openviber/vibers/{viberId}/memory.md
+ * - memory.md is per-viber: ~/.openviber/tasks/{viberId}/memory.md
  *
  * Falls back to root-level soul.md/memory.md if per-viber files don't exist.
  */
 export async function loadPersonalization(viberId: string = "default"): Promise<string> {
   const root = getViberRoot();
-  const viberDir = path.join(root, "vibers", viberId);
+  const taskScopedDir = path.join(root, "tasks", viberId);
+  const legacyViberDir = path.join(root, "vibers", viberId);
 
   // soul.md: per-viber first, then root fallback
   const soul =
-    (await readFileIfExists(path.join(viberDir, "soul.md"))) ??
+    (await readFileIfExists(path.join(taskScopedDir, "soul.md"))) ??
+    (await readFileIfExists(path.join(legacyViberDir, "soul.md"))) ??
     (await readFileIfExists(path.join(root, "soul.md")));
 
   // user.md: always shared at root level
@@ -95,7 +97,8 @@ export async function loadPersonalization(viberId: string = "default"): Promise<
 
   // memory.md: per-viber first, then root fallback
   const memory =
-    (await readFileIfExists(path.join(viberDir, "memory.md"))) ??
+    (await readFileIfExists(path.join(taskScopedDir, "memory.md"))) ??
+    (await readFileIfExists(path.join(legacyViberDir, "memory.md"))) ??
     (await readFileIfExists(path.join(root, "memory.md")));
 
   const sections: string[] = [];
@@ -123,12 +126,12 @@ export async function loadPersonalization(viberId: string = "default"): Promise<
 
 /**
  * Get the path for today's daily memory log.
- * Format: ~/.openviber/vibers/{viberId}/memory/YYYY-MM-DD.md
+ * Format: ~/.openviber/tasks/{viberId}/memory/YYYY-MM-DD.md
  */
 function getDailyLogPath(viberId: string): string {
   const root = getViberRoot();
   const date = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-  return path.join(root, "vibers", viberId, "memory", `${date}.md`);
+  return path.join(root, "tasks", viberId, "memory", `${date}.md`);
 }
 
 /**
@@ -184,7 +187,13 @@ export async function loadRecentDailyLogs(
   days: number = 3
 ): Promise<string | null> {
   const root = getViberRoot();
-  const memoryDir = path.join(root, "vibers", viberId, "memory");
+  let memoryDir = path.join(root, "tasks", viberId, "memory");
+
+  try {
+    await fs.access(memoryDir);
+  } catch {
+    memoryDir = path.join(root, "vibers", viberId, "memory");
+  }
 
   try {
     await fs.access(memoryDir);
@@ -289,7 +298,8 @@ Follow this systematic approach for every coding task:
 
 /**
  * Load agent config from file (no DataAdapter).
- * Tries built-in defaults then ~/.openviber/vibers/{id}.yaml
+ * Tries built-in defaults then ~/.openviber/viber.yaml (single-machine mode)
+ * and finally legacy ~/.openviber/vibers/{id}.yaml.
  */
 export async function loadAgentConfig(
   agentId: string
@@ -313,6 +323,13 @@ export async function loadAgentConfig(
   }
 
   const root = getViberPath();
+  for (const fileName of ["viber.yaml", "viber.yml"]) {
+    const singleMachineConfig = await tryRead(path.join(root, fileName));
+    if (singleMachineConfig) {
+      return { ...singleMachineConfig, id: agentId } as AgentConfig;
+    }
+  }
+
   for (const ext of ["yaml", "yml"]) {
     const fromUser = await tryRead(
       path.join(root, "vibers", `${agentId}.${ext}`)
@@ -476,7 +493,7 @@ export async function runTask(
   let config = overrideConfig ?? (await loadAgentConfig(singleAgentId));
   if (!config) {
     throw new Error(
-      `Agent '${singleAgentId}' not found. Add ~/.openviber/vibers/${singleAgentId}.yaml or use built-in default.`
+      `Agent '${singleAgentId}' not found. Add ~/.openviber/viber.yaml (or legacy ~/.openviber/vibers/${singleAgentId}.yaml) or use built-in default.`
     );
   }
 

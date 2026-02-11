@@ -62,20 +62,27 @@ export class LocalDataAdapter implements DataAdapter {
       // No built-in vibers
     }
 
-    // Load user vibers from ~/.openviber/vibers/
+    // Load user viber config from ~/.openviber/viber.yaml (single-machine mode)
+    // and legacy ~/.openviber/vibers/ for backward compatibility
+    const singleMachineViber =
+      (await this.readYamlFile(rootStorage, "viber.yaml")) ??
+      (await this.readYamlFile(rootStorage, "viber.yml"));
+    if (singleMachineViber) {
+      agents.push({ ...singleMachineViber, isCustom: true });
+    }
+
     try {
       const files = await rootStorage.list("vibers");
       for (const file of files.filter(
         (f) => f.endsWith(".yaml") || f.endsWith(".yml"),
       )) {
-        0;
         const agent = await this.readYamlFile(rootStorage, `vibers/${file}`);
         if (agent) {
           agents.push({ ...agent, isCustom: true });
         }
       }
     } catch {
-      // No user vibers
+      // No legacy user vibers
     }
 
     return agents;
@@ -95,7 +102,13 @@ export class LocalDataAdapter implements DataAdapter {
       if (agent) return { ...agent, id, isCustom: false };
     }
 
-    // Try user vibers
+    // Try single-machine config first
+    for (const ext of ["yaml", "yml"]) {
+      const agent = await this.readYamlFile(rootStorage, `viber.${ext}`);
+      if (agent) return { ...agent, id, isCustom: true };
+    }
+
+    // Try legacy user vibers
     for (const ext of ["yaml", "yml"]) {
       const agent = await this.readYamlFile(rootStorage, `vibers/${id}.${ext}`);
       if (agent) return { ...agent, id, isCustom: true };
@@ -107,16 +120,16 @@ export class LocalDataAdapter implements DataAdapter {
   async saveAgent(agent: Agent): Promise<Agent> {
     const rootStorage = new BaseStorage(getViberRoot());
     const content = yaml.stringify(agent);
-    await rootStorage.writeFile(`vibers/${agent.id}.yaml`, content);
+    await rootStorage.writeFile("viber.yaml", content);
     return agent;
   }
 
   async deleteAgent(id: string): Promise<void> {
     const rootStorage = new BaseStorage(getViberRoot());
     try {
-      await rootStorage.delete(`vibers/${id}.yaml`);
+      await rootStorage.delete("viber.yaml");
     } catch {
-      await rootStorage.delete(`vibers/${id}.yml`);
+      await rootStorage.delete("viber.yml");
     }
   }
 

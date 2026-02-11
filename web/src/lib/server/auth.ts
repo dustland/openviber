@@ -13,6 +13,42 @@ const SUPABASE_URL = env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = env.SUPABASE_ANON_KEY;
 const SUPABASE_SERVICE_ROLE_KEY = env.SUPABASE_SERVICE_ROLE_KEY;
 
+/**
+ * E2E test mode — set E2E_TEST_MODE=true in .env to enable.
+ *
+ * When active, unauthenticated requests to protected routes receive a synthetic
+ * test user instead of being redirected to the OAuth flow. This allows AI agents
+ * (Cursor, Codex, Playwright scripts, etc.) to exercise the full UI without
+ * needing real GitHub credentials.
+ *
+ * Safety: the flag is ignored when NODE_ENV === "production".
+ */
+const E2E_TEST_MODE =
+  env.E2E_TEST_MODE === "true" && process.env.NODE_ENV !== "production";
+
+/** Synthetic user returned in E2E test mode when no real session exists. */
+const E2E_TEST_USER: AuthUser = {
+  id: "e2e-test-user-00000000-0000-0000-0000-000000000000",
+  email: "e2e-test@openviber.local",
+  name: "E2E Test User",
+  avatarUrl: null,
+  githubToken: null,
+};
+
+/**
+ * Returns true when E2E test mode is active.
+ */
+export function isE2ETestMode(): boolean {
+  return E2E_TEST_MODE;
+}
+
+/**
+ * Returns the synthetic test user (for use in hooks / test-session endpoint).
+ */
+export function getE2ETestUser(): AuthUser {
+  return { ...E2E_TEST_USER };
+}
+
 export interface AuthUser {
   id: string;
   email: string;

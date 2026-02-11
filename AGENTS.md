@@ -97,6 +97,26 @@ The daemon (`viber start`) is the main runtime path:
 - Type check with `pnpm tsc --noEmit`
 - Integration tests are in `*.integration.test.ts` files
 
+### E2E Test Mode (AI Agent Testing)
+
+The web app supports an **E2E test mode** that bypasses OAuth and onboarding, allowing AI agents (Cursor, Codex, Playwright, etc.) to test the full UI without real GitHub credentials.
+
+**How to enable:**
+1. Set `E2E_TEST_MODE=true` in `web/.env`
+2. Restart the dev server (`pnpm dev` in `web/`)
+
+**What it does:**
+- Injects a synthetic test user (`E2E Test User`) for all unauthenticated requests to protected routes
+- Skips the onboarding completion gate entirely
+- Shows a small amber banner at the top of every page: "E2E Test Mode"
+- The test-session status can be verified: `GET /auth/test-session`
+
+**Safety:** The flag is ignored when `NODE_ENV=production`.
+
+**For AI agents — before running browser tests:**
+1. Verify test mode is active: `curl http://localhost:6006/auth/test-session`
+2. Navigate directly to any protected route (e.g., `/vibers`, `/settings`) — no login needed
+
 ### Local Dev URLs (Do Not Guess)
 
 - Web app default: `http://localhost:6006`

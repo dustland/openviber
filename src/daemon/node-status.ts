@@ -461,7 +461,7 @@ export function formatNodeStatus(status: NodeObservabilityStatus): string {
   const lines: string[] = [];
 
   lines.push(border);
-  lines.push(line("NODE OBSERVABILITY".padStart(Math.floor((w + 18) / 2)));
+  lines.push(line("NODE OBSERVABILITY".padStart(Math.floor((w + 18) / 2))));
   lines.push(border);
 
   // Machine section

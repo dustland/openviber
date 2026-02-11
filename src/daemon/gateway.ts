@@ -968,7 +968,7 @@ export class GatewayServer {
     const viber = this.vibers.get(viberId);
     if (viber) {
       viber.status = "running";
-      console.log(`[Gateway] Viber started: ${viberId}`);
+      console.log(`[Gateway] Task started: ${viberId}`);
     }
   }
 
@@ -981,7 +981,7 @@ export class GatewayServer {
       if (typeof result?.text === "string") {
         viber.partialText = result.text;
       }
-      console.log(`[Gateway] Viber completed: ${viberId}`);
+      console.log(`[Gateway] Task completed: ${viberId}`);
 
       // Close SSE stream subscribers
       this.closeStreamSubscribers(viberId);
@@ -1041,7 +1041,7 @@ export class GatewayServer {
       viber.status = "error";
       viber.error = error;
       viber.completedAt = new Date();
-      console.log(`[Gateway] Viber error: ${viberId} - ${error}${model ? ` (model: ${model})` : ""}`);
+      console.log(`[Gateway] Task error: ${viberId} - ${error}${model ? ` (model: ${model})` : ""}`);
 
       // Push an error event so it appears in the /api/events stream (and Logs page)
       const now = new Date().toISOString();

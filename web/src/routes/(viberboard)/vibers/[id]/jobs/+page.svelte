@@ -28,7 +28,7 @@
     <header class="mb-8">
       <h1 class="text-3xl font-bold text-foreground mb-2">Scheduled Jobs</h1>
       <p class="text-muted-foreground">
-        Automated tasks that run on a schedule for this Viber.
+        Automated tasks that run on a schedule for this task.
       </p>
     </header>
 
@@ -48,7 +48,7 @@
           No jobs configured
         </h2>
         <p class="text-muted-foreground text-sm max-w-md mx-auto mb-6">
-          Ask the Viber to schedule a job for you, or create a YAML file
+          Ask the task to schedule a job for you, or create a YAML file
           manually.
         </p>
         <a

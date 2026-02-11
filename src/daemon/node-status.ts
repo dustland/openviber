@@ -1,9 +1,9 @@
 /**
- * Node Status Collector - Machine Resource & Viber Running Status
+ * Node Status Collector - Machine Resource & Task Runtime Status
  *
- * Collects comprehensive observability data for a viber node including:
+ * Collects comprehensive observability data for a Viber runtime including:
  * - Machine resources: CPU, memory, disk, load, network
- * - Viber running status: tasks, uptime, connection health
+ * - Task runtime status: tasks, uptime, connection health
  *
  * Uses only Node.js built-in modules (os, fs, child_process) — no extra deps.
  */
@@ -112,7 +112,7 @@ export interface MachineResourceStatus {
   collectedAt: string;
 }
 
-/** Information about a running task on this viber */
+/** Information about a running task on this Viber runtime */
 export interface RunningTaskInfo {
   /** Task ID */
   taskId: string;
@@ -507,9 +507,9 @@ export function formatNodeStatus(status: NodeObservabilityStatus): string {
 
   // Viber section
   lines.push(border);
-  lines.push(line("VIBER RUNNING STATUS"));
+  lines.push(line("TASK RUNTIME STATUS"));
   lines.push(border);
-  lines.push(line("Viber ID:    " + v.viberId.slice(0, 42)));
+  lines.push(line("Runtime ID:  " + v.viberId.slice(0, 42)));
   lines.push(line("Name:        " + v.viberName.slice(0, 42)));
   lines.push(line("Version:     " + v.version.slice(0, 42)));
   lines.push(line("Connected:   " + (v.connected ? "* Yes" : "o No")));

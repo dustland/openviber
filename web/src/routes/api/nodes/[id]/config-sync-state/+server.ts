@@ -5,7 +5,7 @@
  * Authenticated via gateway API token or service role.
  */
 
-import { json, type RequestHandler } from "./$types";
+import { json, type RequestHandler } from "@sveltejs/kit";
 import { env } from "$env/dynamic/private";
 import { updateConfigSyncState } from "$lib/server/viber-nodes";
 

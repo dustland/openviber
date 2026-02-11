@@ -22,10 +22,13 @@ import {
   collectMachineResourceStatus,
   collectViberRunningStatus,
   collectNodeStatus,
+  collectConfigState,
   type MachineResourceStatus,
   type ViberRunningStatus as ViberNodeRunningStatus,
   type RunningTaskInfo,
   type NodeObservabilityStatus,
+  type ConfigState,
+  type ConfigValidation,
 } from "./node-status";
 import type { SkillHealthReport } from "../skills/health";
 
@@ -82,6 +85,8 @@ export interface ViberStatus {
   viberStatus?: ViberNodeRunningStatus;
   /** Extended skill info with availability (updated periodically) */
   skills?: ViberSkillInfo[];
+  /** Config sync state (version, last pull, validations) */
+  configState?: ConfigState;
 }
 
 // Server -> Viber messages (messages = full chat history from Viber Board for context)
@@ -120,6 +125,7 @@ export type ControllerServerMessage =
   }
   | { type: "ping" }
   | { type: "config:update"; config: Partial<ViberControllerConfig> }
+  | { type: "config:push" }
   // Terminal streaming messages
   | { type: "terminal:list" }
   | { type: "terminal:attach"; target: string; appId?: string }
@@ -144,9 +150,10 @@ export type ControllerClientMessage =
   | { type: "task:progress"; taskId: string; event: any }
   | { type: "task:stream-chunk"; taskId: string; chunk: string }
   | { type: "task:completed"; taskId: string; result: any }
-  | { type: "task:error"; taskId: string; error: string }
+  | { type: "task:error"; taskId: string; error: string; model?: string }
   | { type: "heartbeat"; status: ViberStatus }
   | { type: "pong" }
+  | { type: "config:ack"; configVersion: string; validations: ConfigValidation[] }
   // Terminal streaming messages
   | { type: "terminal:list"; apps: any[]; sessions: any[]; panes: any[] }
   | { type: "terminal:attached"; target: string; appId?: string; ok: boolean; error?: string }
@@ -214,6 +221,8 @@ export class ViberController extends EventEmitter {
   private skillHealthCache?: SkillHealthReport;
   private skillHealthCachedAt?: number;
   private skillHealthInFlight?: Promise<SkillHealthReport>;
+  /** Config sync state */
+  private configState?: ConfigState;
   private log = createLogger("controller");
 
   constructor(private config: ViberControllerConfig) {
@@ -477,6 +486,10 @@ export class ViberController extends EventEmitter {
         case "config:update":
           Object.assign(this.config, message.config);
           this.emit("config:update", message.config);
+          break;
+
+        case "config:push":
+          await this.handleConfigPush();
           break;
 
         // Terminal streaming
@@ -990,6 +1003,7 @@ export class ViberController extends EventEmitter {
         machine: machineStatus,
         viberStatus,
         skills: skillsWithHealth.length > 0 ? skillsWithHealth : undefined,
+        configState: this.configState,
       };
 
       this.lastHeartbeatAt = new Date().toISOString();
@@ -1002,6 +1016,104 @@ export class ViberController extends EventEmitter {
       clearInterval(this.heartbeatTimer);
       this.heartbeatTimer = null;
     }
+  }
+
+  // ==================== Config Management ====================
+
+  /**
+   * Handle config:push message - pull latest config from web API and validate it.
+   */
+  private async handleConfigPush(): Promise<void> {
+    this.log.info("Received config:push, pulling latest config");
+    try {
+      // Pull config from web API
+      const configUrl = this.config.serverUrl?.replace("/ws", "") || "";
+      if (!configUrl) {
+        this.log.warn("No server URL configured, cannot pull config");
+        return;
+      }
+
+      const authToken = this.config.token;
+      if (!authToken) {
+        this.log.warn("No auth token configured, cannot pull config");
+        return;
+      }
+
+      const response = await fetch(`${configUrl}/api/nodes/${this.config.viberId}/config`, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to pull config: ${response.status}`);
+      }
+
+      const configData = await response.json();
+      const configHash = this.computeConfigHash(configData);
+
+      // Validate config (placeholder - will be implemented in Step 2)
+      const validations: ConfigValidation[] = [];
+      const now = new Date().toISOString();
+
+      // For now, just mark as unchecked - Step 2 will add real validation
+      if (configData.globalSettings?.aiProviders) {
+        const providers = Object.keys(configData.globalSettings.aiProviders);
+        for (const provider of providers) {
+          validations.push({
+            category: "llm_keys",
+            status: "unchecked",
+            checkedAt: now,
+          });
+        }
+      }
+
+      // Update config state
+      this.configState = collectConfigState({
+        configVersion: configHash,
+        lastConfigPullAt: now,
+        validations,
+      });
+
+      // Send ack to gateway
+      this.send({
+        type: "config:ack",
+        configVersion: configHash,
+        validations,
+      });
+
+      this.log.info("Config pulled and validated", { configVersion: configHash });
+    } catch (error) {
+      this.log.error("Failed to pull/validate config", { error: String(error) });
+      // Send ack with failed validation
+      const now = new Date().toISOString();
+      this.send({
+        type: "config:ack",
+        configVersion: "",
+        validations: [{
+          category: "llm_keys",
+          status: "failed",
+          message: error instanceof Error ? error.message : "Config pull failed",
+          checkedAt: now,
+        }],
+      });
+    }
+  }
+
+  /**
+   * Compute a hash of the config for version tracking.
+   */
+  private computeConfigHash(config: any): string {
+    // Simple hash based on JSON stringification
+    // In production, use a proper hash function like SHA-256
+    const str = JSON.stringify(config);
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return Math.abs(hash).toString(36);
   }
 
   // ==================== Reconnection ====================

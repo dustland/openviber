@@ -148,6 +148,21 @@ export interface ViberRunningStatus {
   collectedAt: string;
 }
 
+/** Config validation result */
+export interface ConfigValidation {
+  category: "llm_keys" | "oauth" | "env_secrets" | "skills" | "binary_deps";
+  status: "verified" | "failed" | "unchecked";
+  message?: string;
+  checkedAt: string;
+}
+
+/** Config sync state */
+export interface ConfigState {
+  configVersion: string;       // hash of current config
+  lastConfigPullAt: string;    // ISO timestamp
+  validations: ConfigValidation[];
+}
+
 /** Combined node observability snapshot */
 export interface NodeObservabilityStatus {
   machine: MachineResourceStatus;
@@ -391,6 +406,21 @@ export function collectViberRunningStatus(params: {
     totalTasksExecuted: params.totalTasksExecuted,
     lastHeartbeatAt: params.lastHeartbeatAt,
     collectedAt: new Date().toISOString(),
+  };
+}
+
+/**
+ * Collect config sync state. Returns default state if no config has been pulled yet.
+ */
+export function collectConfigState(params: {
+  configVersion?: string;
+  lastConfigPullAt?: string;
+  validations?: ConfigValidation[];
+}): ConfigState {
+  return {
+    configVersion: params.configVersion || "",
+    lastConfigPullAt: params.lastConfigPullAt || new Date(0).toISOString(),
+    validations: params.validations || [],
   };
 }
 

@@ -82,6 +82,16 @@
       lastHeartbeatAt?: string;
       collectedAt: string;
     };
+    configSyncState?: {
+      configVersion: string;
+      lastConfigPullAt: string;
+      validations: Array<{
+        category: string;
+        status: string;
+        message?: string;
+        checkedAt: string;
+      }>;
+    };
   }
 
   interface SkillHealthCheck {
@@ -91,6 +101,7 @@
     required?: boolean;
     message?: string;
     hint?: string;
+    actionType?: "env" | "oauth" | "binary" | "auth_cli" | "manual";
   }
 
   interface SkillHealthResult {
@@ -127,6 +138,19 @@
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     const value = bytes / Math.pow(k, i);
     return `${value.toFixed(1)} ${units[i]}`;
+  }
+
+  function formatTimeAgo(isoString: string): string {
+    const date = new Date(isoString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return "just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    return `${diffDays}d ago`;
   }
 
   function formatUptime(seconds: number): string {
@@ -543,6 +567,64 @@
                 </div>
               {/if}
 
+              <!-- Config Sync State -->
+              {#if status.configSyncState}
+                {@const configState = status.configSyncState}
+                {@const hasFailures = configState.validations.some((v) => v.status === "failed")}
+                {@const allVerified = configState.validations.every((v) => v.status === "verified")}
+                <div class="rounded-lg border border-border p-4 mb-3">
+                  <div class="flex items-center gap-2 text-sm font-medium text-foreground mb-3">
+                    <Zap class="size-4" />
+                    Config Sync Status
+                  </div>
+                  <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                      <span class="text-xs text-muted-foreground">Config Version</span>
+                      <span class="text-xs font-mono text-foreground">{configState.configVersion.slice(0, 8)}...</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                      <span class="text-xs text-muted-foreground">Last Verified</span>
+                      <span class="text-xs text-foreground">
+                        {formatTimeAgo(configState.lastConfigPullAt)}
+                      </span>
+                    </div>
+                    {#if configState.validations.length > 0}
+                      <div class="mt-3 space-y-1.5">
+                        {#each configState.validations as validation}
+                          <div class="flex items-center justify-between text-xs">
+                            <span class="text-muted-foreground capitalize">{validation.category.replace(/_/g, " ")}</span>
+                            <span class={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-medium ${
+                              validation.status === "verified"
+                                ? "bg-emerald-500/10 text-emerald-600"
+                                : validation.status === "failed"
+                                  ? "bg-rose-500/10 text-rose-600"
+                                  : "bg-amber-500/10 text-amber-600"
+                            }`}>
+                              {validation.status === "verified" ? "Verified" : validation.status === "failed" ? "Failed" : "Unchecked"}
+                            </span>
+                          </div>
+                          {#if validation.message && validation.status !== "verified"}
+                            <div class="text-[11px] text-muted-foreground ml-2">
+                              {validation.message}
+                            </div>
+                          {/if}
+                        {/each}
+                      </div>
+                    {/if}
+                  </div>
+                </div>
+              {:else if !status.viber.connected}
+                <div class="rounded-lg border border-amber-500/50 bg-amber-500/10 p-4 mb-3">
+                  <div class="flex items-center gap-2 text-sm font-medium text-amber-600">
+                    <X class="size-4" />
+                    Node Offline
+                  </div>
+                  <p class="text-xs text-amber-600/80 mt-1">
+                    Config sync status unavailable. Node must be connected to verify configuration.
+                  </p>
+                </div>
+              {/if}
+
               <!-- Skill Health -->
               {#if status.viber.skillHealth?.skills && status.viber.skillHealth.skills.length > 0}
                 <div class="rounded-lg border border-border p-4 mb-3">
@@ -568,8 +650,42 @@
                               <div>{skill.summary}</div>
                             {:else}
                               {#each missingChecks as check}
-                                <div>
-                                  - {check.label}: {check.hint || check.message || "missing"}
+                                <div class="flex items-center justify-between">
+                                  <span>
+                                    - {check.label}: {check.hint || check.message || "missing"}
+                                  </span>
+                                  {#if check.actionType === "oauth"}
+                                    <button
+                                      class="text-[10px] px-2 py-0.5 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                                      onclick={() => {
+                                        // TODO: Implement OAuth connection flow
+                                        alert(`Connect ${skill.name} OAuth`);
+                                      }}
+                                    >
+                                      Connect
+                                    </button>
+                                  {:else if check.actionType === "binary"}
+                                    <button
+                                      class="text-[10px] px-2 py-0.5 rounded bg-muted text-foreground hover:bg-muted/80 transition-colors"
+                                      onclick={() => {
+                                        if (check.hint) {
+                                          navigator.clipboard.writeText(check.hint);
+                                          alert("Install command copied to clipboard");
+                                        }
+                                      }}
+                                    >
+                                      Copy Cmd
+                                    </button>
+                                  {:else if check.actionType === "env"}
+                                    <button
+                                      class="text-[10px] px-2 py-0.5 rounded bg-muted text-foreground hover:bg-muted/80 transition-colors"
+                                      onclick={() => {
+                                        alert(`Set environment variable: ${check.label}`);
+                                      }}
+                                    >
+                                      Set Env
+                                    </button>
+                                  {/if}
                                 </div>
                               {/each}
                             {/if}

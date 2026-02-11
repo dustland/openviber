@@ -744,10 +744,13 @@ export class GatewayServer {
       node.viberStatus.skillHealth
     ) {
       // Return cached status from last heartbeat
-      const status: NodeObservabilityStatus = {
+      const status: NodeObservabilityStatus & { configState?: typeof node.configState } = {
         machine: node.machineStatus,
         viber: node.viberStatus,
       };
+      if (node.configState) {
+        (status as any).configState = node.configState;
+      }
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ nodeId, status, source: "heartbeat-cache" }));
       return;
@@ -786,8 +789,12 @@ export class GatewayServer {
 
     const resolver = (status: NodeObservabilityStatus) => {
       clearTimeout(timeout);
+      const statusWithConfig: NodeObservabilityStatus & { configState?: typeof node.configState } = status;
+      if (node.configState) {
+        (statusWithConfig as any).configState = node.configState;
+      }
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ nodeId, status, source: "live" }));
+      res.end(JSON.stringify({ nodeId, status: statusWithConfig, source: "live" }));
     };
 
     node.pendingStatusResolvers.push(resolver);

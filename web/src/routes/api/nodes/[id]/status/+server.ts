@@ -26,6 +26,12 @@ export const GET: RequestHandler = async ({ params, locals }) => {
       );
     }
 
+    // Include configState from gateway result if available
+    const status = result.status as any;
+    if (status && (status as any).configState) {
+      // configState is already included from gateway
+    }
+
     return json(result);
   } catch (error) {
     console.error("Failed to get node status:", error);

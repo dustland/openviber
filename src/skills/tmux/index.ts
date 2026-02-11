@@ -4,23 +4,53 @@ import * as path from "path";
 
 const SAFE_RE = /[^a-zA-Z0-9_.:-]/g;
 
+/**
+ * Sanitize a tmux target string to prevent shell injection.
+ */
 function safeTarget(t: string): string {
   return t.replace(SAFE_RE, "-");
+}
+
+/**
+ * Sleep for a given number of seconds using a non-blocking timer.
+ */
+function sleep(seconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, Math.max(1, seconds) * 1000));
+}
+
+/**
+ * Capture the current contents of a tmux pane.
+ * Tries ANSI-aware capture first, falls back to plain capture.
+ */
+function capturePaneOutput(target: string, lines = 200): string {
+  const cmds = [
+    `tmux capture-pane -t '${target}' -pae -S -${lines}`,
+    `tmux capture-pane -t '${target}' -pe -S -${lines}`,
+    `tmux capture-pane -t '${target}' -p -S -${lines}`,
+  ];
+  for (const cmd of cmds) {
+    try {
+      return execSync(cmd, { encoding: "utf8", stdio: "pipe" });
+    } catch {
+      // try next fallback
+    }
+  }
+  return "";
 }
 
 /**
  * Run a command inside a tmux session and capture pane output.
  * Use for CLIs that require a TTY (e.g. Cursor agent, interactive REPLs).
  */
-function runInTmux(
+async function runInTmux(
   sessionName: string,
   command: string,
   cwd: string,
   waitSeconds: number,
-): string {
-  const safeSession = sessionName.replace(SAFE_RE, "-");
+): Promise<string> {
+  const safeSession = safeTarget(sessionName);
   execSync(
-    `tmux has-session -t ${safeSession} 2>/dev/null || tmux new-session -d -s ${safeSession}`,
+    `tmux has-session -t '${safeSession}' 2>/dev/null || tmux new-session -d -s '${safeSession}'`,
     { encoding: "utf8", stdio: "pipe" },
   );
 
@@ -37,23 +67,18 @@ function runInTmux(
     stdio: "pipe",
   });
 
-  execSync(`sleep ${Math.max(1, waitSeconds)}`, {
-    encoding: "utf8",
-    stdio: "pipe",
-  });
+  await sleep(waitSeconds);
 
-  const out = execSync(`tmux capture-pane -t ${safeSession} -p -S -200`, {
-    encoding: "utf8",
-    stdio: "pipe",
-  });
-  return out;
+  return capturePaneOutput(safeSession);
 }
 
 export function getTools(): Record<string, import("../../core/tool").CoreTool> {
   return {
+    // ==================== Discovery & health ====================
+
     tmux_install_check: {
       description:
-        "Check if tmux is installed and return its version. Call when the user says 'use tmux' or before using any tmux_* tool; if not installed, tell the user to install (e.g. brew install tmux on macOS).",
+        "Check if tmux is installed and return its version. Call before using any tmux_* tool. If not installed, tell the user how to install it.",
       inputSchema: z.object({}),
       execute: async () => {
         try {
@@ -70,9 +95,12 @@ export function getTools(): Record<string, import("../../core/tool").CoreTool> {
         }
       },
     },
+
+    // ==================== Session management ====================
+
     tmux_new_session: {
       description:
-        "Create a new detached tmux session. Use when the user asks to set up a coding session or create a new tmux session. Optionally set the first window name and/or start directory.",
+        "Create a new detached tmux session. Use when the user asks to set up a coding session or workspace. Optionally set the first window name and/or start directory.",
       inputSchema: z.object({
         sessionName: z.string().describe("Session name (e.g. 'coding')"),
         firstWindowName: z
@@ -98,10 +126,7 @@ export function getTools(): Record<string, import("../../core/tool").CoreTool> {
           if (args.startDirectory) {
             cmd.push("-c", path.resolve(args.startDirectory));
           }
-          execSync(`tmux ${cmd.map((c) => `'${c}'`).join(" ")}`, {
-            encoding: "utf8",
-            stdio: "pipe",
-          });
+          spawnSync("tmux", cmd, { encoding: "utf8", stdio: "pipe" });
           return {
             ok: true,
             sessionName: target,
@@ -112,6 +137,67 @@ export function getTools(): Record<string, import("../../core/tool").CoreTool> {
         }
       },
     },
+
+    tmux_kill_session: {
+      description:
+        "Kill (destroy) a tmux session and all its windows/panes. Use to clean up after a task completes or when the user asks to remove a session.",
+      inputSchema: z.object({
+        sessionName: z
+          .string()
+          .describe("Session name to kill (e.g. 'coding')"),
+      }),
+      execute: async (args: { sessionName: string }) => {
+        const session = safeTarget(args.sessionName);
+        try {
+          spawnSync("tmux", ["kill-session", "-t", session], {
+            encoding: "utf8",
+            stdio: "pipe",
+          });
+          return {
+            ok: true,
+            sessionName: session,
+            message: `Session '${session}' killed.`,
+          };
+        } catch (err: any) {
+          return { ok: false, error: err?.message || String(err), sessionName: session };
+        }
+      },
+    },
+
+    tmux_rename_session: {
+      description:
+        "Rename an existing tmux session. Use when the user wants to reorganize sessions or give a session a more meaningful name.",
+      inputSchema: z.object({
+        oldName: z.string().describe("Current session name"),
+        newName: z.string().describe("New session name"),
+      }),
+      execute: async (args: { oldName: string; newName: string }) => {
+        const oldSession = safeTarget(args.oldName);
+        const newSession = safeTarget(args.newName);
+        try {
+          spawnSync("tmux", ["rename-session", "-t", oldSession, newSession], {
+            encoding: "utf8",
+            stdio: "pipe",
+          });
+          return {
+            ok: true,
+            oldName: oldSession,
+            newName: newSession,
+            message: `Session renamed from '${oldSession}' to '${newSession}'.`,
+          };
+        } catch (err: any) {
+          return {
+            ok: false,
+            error: err?.message || String(err),
+            oldName: oldSession,
+            newName: newSession,
+          };
+        }
+      },
+    },
+
+    // ==================== Window management ====================
+
     tmux_new_window: {
       description:
         "Create a new window in an existing tmux session. Use to add Cursor Agent, Claude Code, Codex CLI, or dev server terminals. Optionally set window name and command to run.",
@@ -167,6 +253,68 @@ export function getTools(): Record<string, import("../../core/tool").CoreTool> {
         }
       },
     },
+
+    tmux_kill_window: {
+      description:
+        "Kill (close) a specific window in a tmux session. Use to clean up windows that are no longer needed.",
+      inputSchema: z.object({
+        target: z
+          .string()
+          .describe(
+            "Window target: session:window (e.g. 'coding:1' or 'coding:cursor-1')",
+          ),
+      }),
+      execute: async (args: { target: string }) => {
+        const t = safeTarget(args.target);
+        try {
+          spawnSync("tmux", ["kill-window", "-t", t], {
+            encoding: "utf8",
+            stdio: "pipe",
+          });
+          return {
+            ok: true,
+            target: t,
+            message: `Window '${t}' killed.`,
+          };
+        } catch (err: any) {
+          return { ok: false, error: err?.message || String(err), target: t };
+        }
+      },
+    },
+
+    tmux_rename_window: {
+      description:
+        "Rename a window in a tmux session. Use to give a window a meaningful name (e.g. 'dev-server', 'cursor-3').",
+      inputSchema: z.object({
+        target: z
+          .string()
+          .describe(
+            "Window target: session:window (e.g. 'coding:1' or 'coding:old-name')",
+          ),
+        newName: z.string().describe("New window name (e.g. 'cursor-3')"),
+      }),
+      execute: async (args: { target: string; newName: string }) => {
+        const t = safeTarget(args.target);
+        const name = safeTarget(args.newName);
+        try {
+          spawnSync("tmux", ["rename-window", "-t", t, name], {
+            encoding: "utf8",
+            stdio: "pipe",
+          });
+          return {
+            ok: true,
+            target: t,
+            newName: name,
+            message: `Window '${t}' renamed to '${name}'.`,
+          };
+        } catch (err: any) {
+          return { ok: false, error: err?.message || String(err), target: t };
+        }
+      },
+    },
+
+    // ==================== Pane management ====================
+
     tmux_split_pane: {
       description:
         "Split the current pane in a tmux window (horizontal or vertical). Use to add a dev server pane next to a Cursor window, or to run a command in a new pane.",
@@ -220,6 +368,9 @@ export function getTools(): Record<string, import("../../core/tool").CoreTool> {
         }
       },
     },
+
+    // ==================== Input / output ====================
+
     tmux_send_keys: {
       description:
         "Send keys (or a command) to a specific tmux target: session, session:window, or session:window.pane. Use to run a command in an existing pane or to type into a specific terminal.",
@@ -253,6 +404,44 @@ export function getTools(): Record<string, import("../../core/tool").CoreTool> {
         }
       },
     },
+
+    tmux_capture_pane: {
+      description:
+        "Capture and return the current visible content of a tmux pane. Use to read what is currently displayed in a terminal without sending any command — ideal for monitoring long-running processes, checking build output, or reading interactive CLI state.",
+      inputSchema: z.object({
+        target: z
+          .string()
+          .describe(
+            "Tmux target: session (e.g. 'coding'), session:window ('coding:1'), or session:window.pane ('coding:1.0')",
+          ),
+        lines: z
+          .number()
+          .int()
+          .min(1)
+          .max(2000)
+          .optional()
+          .default(200)
+          .describe("Number of scrollback lines to capture (default: 200, max: 2000)"),
+      }),
+      execute: async (args: { target: string; lines?: number }) => {
+        const t = safeTarget(args.target);
+        const lines = args.lines ?? 200;
+        try {
+          const output = capturePaneOutput(t, lines);
+          return {
+            ok: true,
+            target: t,
+            lines,
+            output,
+          };
+        } catch (err: any) {
+          return { ok: false, error: err?.message || String(err), target: t };
+        }
+      },
+    },
+
+    // ==================== Listing & discovery ====================
+
     tmux_list: {
       description:
         "List tmux sessions, or list windows and panes for a session. Use when the user asks 'what is my tmux layout' or 'list my terminals' so you can describe the layout or choose where to open the next window.",
@@ -268,11 +457,11 @@ export function getTools(): Record<string, import("../../core/tool").CoreTool> {
         try {
           if (args.sessionName) {
             const session = safeTarget(args.sessionName);
-            const windows = execSync(`tmux list-windows -t ${session} -F '#{window_index} #{window_name}' 2>/dev/null || true`, {
+            const windows = execSync(`tmux list-windows -t '${session}' -F '#{window_index} #{window_name}' 2>/dev/null || true`, {
               encoding: "utf8",
               stdio: "pipe",
             }).trim();
-            const panes = execSync(`tmux list-panes -t ${session} -F '#{window_index}.#{pane_index} #{pane_current_command}' 2>/dev/null || true`, {
+            const panes = execSync(`tmux list-panes -t '${session}' -F '#{window_index}.#{pane_index} #{pane_current_command}' 2>/dev/null || true`, {
               encoding: "utf8",
               stdio: "pipe",
             }).trim();
@@ -296,9 +485,12 @@ export function getTools(): Record<string, import("../../core/tool").CoreTool> {
         }
       },
     },
+
+    // ==================== Run & capture ====================
+
     tmux_run: {
       description:
-        "Run a shell command inside a tmux session and return the pane output. Call when the user says 'use tmux' or asks to run a command in a terminal/tmux. Use for CLIs that require a TTY. Requires tmux installed (use tmux_install_check first).",
+        "Run a shell command inside a tmux session and return the pane output after waiting. Use for CLIs that require a TTY (e.g. Cursor agent, interactive REPLs). Creates the session if it does not exist. For reading existing output without sending a command, use tmux_capture_pane instead.",
       inputSchema: z.object({
         sessionName: z
           .string()
@@ -316,7 +508,7 @@ export function getTools(): Record<string, import("../../core/tool").CoreTool> {
           .number()
           .optional()
           .default(15)
-          .describe("Seconds to wait before capturing output"),
+          .describe("Seconds to wait before capturing output (default: 15)"),
       }),
       execute: async (args: {
         sessionName: string;
@@ -327,7 +519,7 @@ export function getTools(): Record<string, import("../../core/tool").CoreTool> {
         const cwd = args.cwd ? path.resolve(args.cwd) : process.cwd();
         const waitSeconds = args.waitSeconds ?? 15;
         try {
-          const output = runInTmux(
+          const output = await runInTmux(
             args.sessionName,
             args.command,
             cwd,
@@ -346,3 +538,6 @@ export function getTools(): Record<string, import("../../core/tool").CoreTool> {
     },
   };
 }
+
+/** Exported for testing */
+export const __private = { safeTarget, capturePaneOutput, sleep };

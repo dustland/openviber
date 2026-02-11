@@ -223,18 +223,21 @@ The github skill provides a complete workflow chain for autonomous issue fixing:
 
 ### tmux
 
-**Purpose:** Terminal multiplexing for TTY-dependent CLIs and persistent terminal sessions.
+**Purpose:** Terminal multiplexing for TTY-dependent CLIs, persistent terminal sessions, and process monitoring.
 
 | | |
 |---|---|
-| **Tools** | `tmux_install_check`, `tmux_new_session`, `tmux_new_window`, `tmux_split_pane`, `tmux_send_keys`, `tmux_list`, `tmux_run` |
-| **Use case** | Multi-terminal layouts, running CLIs that need a PTY |
+| **Tools** | `tmux_install_check`, `tmux_new_session`, `tmux_kill_session`, `tmux_rename_session`, `tmux_new_window`, `tmux_kill_window`, `tmux_rename_window`, `tmux_split_pane`, `tmux_send_keys`, `tmux_capture_pane`, `tmux_list`, `tmux_run` |
+| **Use case** | Multi-terminal layouts, running CLIs that need a PTY, monitoring long-running processes |
 | **Depends on** | tmux installed on the system |
 
-The tmux skill supports two modes:
+The tmux skill supports three modes:
 
 - **Single command** — Use `tmux_run` to run a command and capture output
 - **Multi-terminal layout** — Use `tmux_new_session`, `tmux_new_window`, `tmux_split_pane`, `tmux_send_keys`, and `tmux_list` to build complex terminal layouts (e.g., 3 Cursor agents + 2 dev servers)
+- **Process monitoring** — Use `tmux_capture_pane` to read pane content without sending commands, ideal for monitoring builds, dev servers, or AI agents
+
+Full session lifecycle: create → populate → operate → reorganize → clean up, with `tmux_kill_session`/`tmux_kill_window` for cleanup and `tmux_rename_session`/`tmux_rename_window` for reorganization.
 
 **Target format:** `session` → `session:window` → `session:window.pane`
 

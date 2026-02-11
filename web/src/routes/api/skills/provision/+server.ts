@@ -14,6 +14,7 @@ const SUPPORTED_SKILLS = new Set([
   "codex-cli",
   "gemini-cli",
   "github",
+  "gmail",
   "railway",
   "tmux",
 ]);

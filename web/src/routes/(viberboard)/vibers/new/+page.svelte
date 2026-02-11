@@ -6,7 +6,7 @@
   import { Sparkles } from "@lucide/svelte";
   import * as Dialog from "$lib/components/ui/dialog";
   import ChatComposer from "$lib/components/chat-composer.svelte";
-  import type { Intent } from "$lib/data/intents";
+  import { inferIntentSkills, type Intent } from "$lib/data/intents";
 
   interface AccountSkill {
     id: string;
@@ -75,6 +75,8 @@
   let setupSkillError = $state<string | null>(null);
   let setupAuthAction = $state<"copy" | "start">("copy");
   let setupAuthCommand = $state<string | null>(null);
+  let pendingIntentBody = $state<string | null>(null);
+  let pendingIntentRequiredSkills = $state<string[]>([]);
 
   // Show first 3 intents inline, rest in dialog
   const previewIntents = $derived(intents.slice(0, 3));
@@ -143,6 +145,28 @@
     if (!match) return;
     selectIntent(match);
     intentPresetApplied = true;
+  });
+
+  $effect(() => {
+    if (!pendingIntentBody) return;
+    if (showSkillSetupDialog || settingUpSkill || creating) return;
+
+    const node = nodes.find((n) => n.id === selectedNodeId);
+    if (!node || node.status !== "active") return;
+
+    const missing = getUnavailableSkills(pendingIntentRequiredSkills);
+    if (missing.length > 0) {
+      openSkillSetupDialog(
+        missing[0],
+        `${missing[0].name} is required before auto-launching this intent.`,
+      );
+      return;
+    }
+
+    const autoLaunchBody = pendingIntentBody;
+    pendingIntentBody = null;
+    pendingIntentRequiredSkills = [];
+    void submitTask(autoLaunchBody);
   });
 
   async function fetchData() {
@@ -273,32 +297,74 @@
     }
   }
 
+  function getUnavailableSkills(skillIds: string[]): AccountSkill[] {
+    if (skillIds.length === 0) return [];
+    const byId = new Map(composerSkills.map((skill) => [skill.id, skill]));
+    const out: AccountSkill[] = [];
+    for (const skillId of skillIds) {
+      const skill = byId.get(skillId);
+      if (!skill) {
+        out.push({
+          id: skillId,
+          name: skillId,
+          description: "",
+          available: false,
+          status: "UNKNOWN",
+          healthSummary: "Required by intent but not available on this node.",
+        });
+        continue;
+      }
+      if (skill.available === false) {
+        out.push(skill);
+      }
+    }
+    return out;
+  }
+
+  function openSkillSetupDialog(skill: AccountSkill, reason?: string) {
+    setupSkill = skill;
+    setupSkillError = reason ?? null;
+    setupAuthCommand = null;
+    setupAuthAction = "copy";
+    showSkillSetupDialog = true;
+  }
+
   function selectIntent(intent: Intent) {
     selectedIntentId = intent.id;
     taskInput = intent.body;
-    // Auto-enable skills required by this intent
-    if (intent.skills && intent.skills.length > 0) {
+    const inferredSkills = inferIntentSkills(intent);
+    pendingIntentRequiredSkills = inferredSkills;
+
+    if (inferredSkills.length > 0) {
       const merged = new Set(selectedSkillIds);
-      for (const s of intent.skills) merged.add(s);
+      for (const skillId of inferredSkills) merged.add(skillId);
       selectedSkillIds = [...merged];
     }
-    // Auto-submit the task when an intent is selected
-    // submitTask will handle validation (node selection, active status, etc.)
+
+    // Proactively resolve required skills before auto-launching.
     if (intent.body.trim()) {
+      const unavailableRequired = getUnavailableSkills(inferredSkills);
+      if (unavailableRequired.length > 0) {
+        pendingIntentBody = intent.body.trim();
+        const firstMissing = unavailableRequired[0];
+        openSkillSetupDialog(
+          firstMissing,
+          `${firstMissing.name} is required by "${intent.name}" and needs setup first.`,
+        );
+        return;
+      }
       void submitTask(intent.body);
     }
   }
 
   function clearIntent() {
     selectedIntentId = null;
+    pendingIntentBody = null;
+    pendingIntentRequiredSkills = [];
   }
 
   function handleUnavailableSkillRequest(skill: AccountSkill) {
-    setupSkill = skill;
-    setupSkillError = null;
-    setupAuthCommand = null;
-    setupAuthAction = "copy";
-    showSkillSetupDialog = true;
+    openSkillSetupDialog(skill);
   }
 
   async function runSkillProvision(install: boolean) {
@@ -331,9 +397,30 @@
         if (!selectedSkillIds.includes(targetSkill.id)) {
           selectedSkillIds = [...selectedSkillIds, targetSkill.id];
         }
+        await fetchData();
+
+        if (pendingIntentBody) {
+          const remaining = getUnavailableSkills(pendingIntentRequiredSkills);
+          if (remaining.length > 0) {
+            const nextSkill = remaining[0];
+            openSkillSetupDialog(
+              nextSkill,
+              `${nextSkill.name} is still required before auto-launching this intent.`,
+            );
+            return;
+          }
+
+          const autoLaunchBody = pendingIntentBody;
+          pendingIntentBody = null;
+          pendingIntentRequiredSkills = [];
+          showSkillSetupDialog = false;
+          setupAuthCommand = null;
+          await submitTask(autoLaunchBody);
+          return;
+        }
+
         showSkillSetupDialog = false;
         setupAuthCommand = null;
-        await fetchData();
         return;
       }
 
@@ -405,9 +492,11 @@
     );
     if (unavailableSelected.length > 0) {
       const firstSkill = unavailableSelected[0];
-      setupSkill = firstSkill;
-      setupSkillError = `${firstSkill.name} is not ready on this node.`;
-      showSkillSetupDialog = true;
+      if (selectedIntent && !pendingIntentBody) {
+        pendingIntentBody = content;
+        pendingIntentRequiredSkills = inferIntentSkills(selectedIntent);
+      }
+      openSkillSetupDialog(firstSkill, `${firstSkill.name} is not ready on this node.`);
       return;
     }
 
@@ -781,6 +870,8 @@
           showSkillSetupDialog = false;
           setupSkillError = null;
           setupAuthCommand = null;
+          pendingIntentBody = null;
+          pendingIntentRequiredSkills = [];
         }}
       >
         Not now

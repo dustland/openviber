@@ -914,6 +914,9 @@ export class ViberController extends EventEmitter {
     if (skillId === "railway" && checkId === "railway-auth") {
       return "railway login";
     }
+    if (skillId === "gmail" && checkId === "google-oauth") {
+      return "openviber auth google || viber auth google";
+    }
     return undefined;
   }
 

@@ -31,6 +31,12 @@ import {
 } from "./node-status";
 import type { SkillHealthReport } from "../skills/health";
 import { createHash } from "crypto";
+import {
+  validateAllLlmKeys,
+  validateAllOAuthTokens,
+  validateEnvSecrets,
+  type ConfigValidationResult,
+} from "./config-validator";
 
 // ==================== Types ====================
 
@@ -996,13 +1002,38 @@ export class ViberController extends EventEmitter {
     this.log.info("Received config:push, pulling latest config");
     try {
       // TODO: In Step 4, this will call the web API to pull config
-      // For now, we'll use a placeholder that acknowledges with current state
+      // For now, we'll use a placeholder that validates what we can
       const now = new Date().toISOString();
       
       // Placeholder: we'll implement actual config pull in Step 4
-      // For now, create a basic config state
-      const configVersion = this.configState?.configVersion || this.computeConfigVersion({});
-      const validations: ConfigValidation[] = this.configState?.validations || [];
+      // For now, validate environment variables and any available config
+      const validations: ConfigValidation[] = [];
+
+      // Validate LLM keys from environment (if available)
+      // In Step 4, this will come from the pulled config
+      const envLlmKeys: Record<string, { apiKey?: string; baseUrl?: string }> = {};
+      if (process.env.ANTHROPIC_API_KEY) {
+        envLlmKeys.anthropic = { apiKey: process.env.ANTHROPIC_API_KEY };
+      }
+      if (process.env.OPENAI_API_KEY) {
+        envLlmKeys.openai = { apiKey: process.env.OPENAI_API_KEY };
+      }
+      if (process.env.OPENROUTER_API_KEY) {
+        envLlmKeys.openrouter = { apiKey: process.env.OPENROUTER_API_KEY };
+      }
+
+      if (Object.keys(envLlmKeys).length > 0) {
+        const llmResults = await validateAllLlmKeys(envLlmKeys);
+        validations.push(
+          ...llmResults.map((r) => ({
+            ...r,
+            checkedAt: now,
+          })),
+        );
+      }
+
+      // Compute config version (placeholder - will use actual config in Step 4)
+      const configVersion = this.configState?.configVersion || this.computeConfigVersion(envLlmKeys);
 
       this.configState = {
         configVersion,

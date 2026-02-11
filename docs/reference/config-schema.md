@@ -86,7 +86,7 @@ channels:
     agent_id: "${WECOM_AGENT_ID}"
     secret: "${WECOM_SECRET}"
 
-# Gateway settings (webhook server for channel integrations)
+# Channels gateway settings (webhook server for DingTalk, WeCom, etc.; started with `viber channels`)
 gateway:
   host: "0.0.0.0"
   port: 6009

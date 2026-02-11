@@ -121,10 +121,10 @@ User clicks `Map to Node`:
 - Click `Prepare Environment`
 
 System flow:
-1. Board stores binding request.
-2. Hub pushes `environment:prepare` to node.
+1. Viber Board stores binding request.
+2. Gateway pushes `environment:prepare` to node.
 3. Node daemon performs clone/pull, setup, and health check.
-4. Board receives status events and updates UI.
+4. Viber Board receives status events and updates UI.
 
 ---
 
@@ -192,15 +192,15 @@ Keep `/api/nodes/[id]/config` but extend payload:
 
 ---
 
-## 7. Hub/Daemon Protocol Additions
+## 7. Gateway/Daemon Protocol Additions
 
 New control-plane messages:
 
-- Board/Hub -> Node
+- Viber Board / Gateway -> Node
   - `environment:prepare`
   - `environment:sync`
   - `thread:submit` (includes `threadId`, `environmentId`, `bindingId`)
-- Node -> Board/Hub
+- Node -> Gateway
   - `environment:status` (`preparing`, `ready`, `error`)
   - `environment:log` (setup logs, redacted)
   - `thread:started`, `thread:progress`, `thread:completed`, `thread:error`
@@ -220,8 +220,8 @@ Node runtime component:
 1. Secrets encrypted at rest and never echoed back raw.
 2. Setup/runtime logs pass through redaction before persistence/streaming.
 3. Secret exposure boundaries:
-- Board: masked values only
-- Hub: pass-through encrypted references when possible
+- Viber Board: masked values only
+- Gateway: pass-through encrypted references when possible
 - Node: plaintext only in-memory at execution time
 4. Node auth uses existing `auth_token` + ownership checks.
 
@@ -285,4 +285,4 @@ Likely files/services to update:
 - `web/src/routes/api/nodes/[id]/config/+server.ts` (config pull expansion)
 - `src/daemon/controller.ts` (new control-plane message handlers)
 - `src/daemon/runtime.ts` (environment-aware task bootstrap)
-- `src/daemon/hub.ts` (relay and status fanout for environment events)
+- `src/daemon/gateway.ts` (relay and status fanout for environment events)

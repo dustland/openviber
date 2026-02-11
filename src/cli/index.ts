@@ -132,6 +132,14 @@ program
       if (cliSkills.length > 0) {
         settings.standaloneSkills = Array.from(new Set(cliSkills));
       }
+      if (
+        typeof options.googleAccessToken === "string" &&
+        options.googleAccessToken.trim().length > 0
+      ) {
+        settings.standaloneSkills = Array.from(
+          new Set([...(settings.standaloneSkills || []), "gmail"]),
+        );
+      }
       if (typeof options.primaryCodingCli === "string" && options.primaryCodingCli.trim().length > 0) {
         settings.primaryCodingCli = options.primaryCodingCli.trim();
       }

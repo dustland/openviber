@@ -438,7 +438,7 @@ program
   .option("-v, --viber <id>", "Target task runtime ID (defaults to first connected)")
   .option(
     "-s, --session <name>",
-    "Session name for local history (saved under ~/.openviber/vibers/default/sessions/)",
+    "Session name for local history (saved under ~/.openviber/tasks/default/sessions/)",
   )
   .option("--no-save", "Do not write chat history to disk")
   .action(async (options) => {
@@ -449,7 +449,7 @@ program
     const sessionsDir = path.join(
       os.homedir(),
       ".openviber",
-      "vibers",
+      "tasks",
       agentId,
       "sessions",
     );
@@ -1106,7 +1106,7 @@ program
   .option("--no-interactive", "Skip interactive prompts (just scaffold and show health report)")
   .action(async (options) => {
     const configDir = OPENVIBER_DIR;
-    const vibersDir = path.join(configDir, "vibers");
+    const tasksDir = path.join(configDir, "tasks");
     const skillsDir = path.join(configDir, "skills");
 
     console.log(`
@@ -1118,10 +1118,10 @@ program
     // Create directories
     console.log("Creating directories...");
     await fs.mkdir(configDir, { recursive: true });
-    await fs.mkdir(vibersDir, { recursive: true });
+    await fs.mkdir(tasksDir, { recursive: true });
     await fs.mkdir(skillsDir, { recursive: true });
     console.log(`  ✓ ${configDir}`);
-    console.log(`  ✓ ${vibersDir}`);
+    console.log(`  ✓ ${tasksDir}`);
     console.log(`  ✓ ${skillsDir}`);
 
     // ===== Connected mode: onboard with token =====
@@ -1210,10 +1210,10 @@ ${YAML.stringify(savedConfig)}`,
     }
 
     // Scaffold viber files (both modes)
-    const defaultViberPath = path.join(vibersDir, "default.yaml");
+    const defaultViberPath = path.join(configDir, "viber.yaml");
     try {
       await fs.access(defaultViberPath);
-      console.log(`\n  ⏭ vibers/default.yaml already exists, skipping`);
+      console.log(`\n  ⏭ viber.yaml already exists, skipping`);
     } catch {
       const defaultViber = `# Default Viber Configuration
 name: default
@@ -1239,7 +1239,7 @@ tools:
 workingMode: viber-decides
 `;
       await fs.writeFile(defaultViberPath, defaultViber);
-      console.log(`\n  ✓ Created vibers/default.yaml`);
+      console.log(`\n  ✓ Created viber.yaml`);
     }
 
     // Create user.md (shared across vibers)
@@ -1252,7 +1252,7 @@ workingMode: viber-decides
     }
 
     // Create per-viber soul.md and memory.md
-    const defaultViberDir = path.join(vibersDir, "default");
+    const defaultViberDir = path.join(tasksDir, "default");
     await fs.mkdir(defaultViberDir, { recursive: true });
 
     const soulPath = path.join(defaultViberDir, "soul.md");
@@ -1260,7 +1260,7 @@ workingMode: viber-decides
       await fs.access(soulPath);
     } catch {
       await fs.writeFile(soulPath, "# Soul\n\nDefine this viber's personality and communication style.\n");
-      console.log(`  ✓ Created vibers/default/soul.md`);
+      console.log(`  ✓ Created tasks/default/soul.md`);
     }
 
     const memoryPath = path.join(defaultViberDir, "memory.md");
@@ -1268,7 +1268,7 @@ workingMode: viber-decides
       await fs.access(memoryPath);
     } catch {
       await fs.writeFile(memoryPath, "# Memory\n\nLong-term notes and context.\n");
-      console.log(`  ✓ Created vibers/default/memory.md`);
+      console.log(`  ✓ Created tasks/default/memory.md`);
     }
 
     // Generate viber ID

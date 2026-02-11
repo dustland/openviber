@@ -163,18 +163,18 @@ async function runCursorAgentPlayground(args: {
     };
   }
 
-  let tmuxStatus: any = undefined;
+  let terminalStatus: any = undefined;
   try {
-    const tmuxTools = await defaultRegistry.getTools("tmux");
-    if (tmuxTools.tmux_install_check) {
-      tmuxStatus = await tmuxTools.tmux_install_check.execute({});
-      if (!tmuxStatus?.installed) {
+    const terminalTools = await defaultRegistry.getTools("terminal");
+    if (terminalTools.terminal_check) {
+      terminalStatus = await terminalTools.terminal_check.execute({});
+      if (!terminalStatus?.available) {
         return {
           ok: false,
           skillId: args.skillId,
-          error: "tmux is not installed (required for cursor-agent).",
+          error: "Terminal backend not available (required for cursor-agent).",
           playground: { ...args.spec, repoPath: repo.path, repoStatus: repo.status },
-          tmux: tmuxStatus,
+          terminal: terminalStatus,
         };
       }
     }
@@ -182,7 +182,7 @@ async function runCursorAgentPlayground(args: {
     return {
       ok: false,
       skillId: args.skillId,
-      error: `Failed to load tmux tools: ${error?.message || String(error)}`,
+      error: `Failed to load terminal tools: ${error?.message || String(error)}`,
       playground: { ...args.spec, repoPath: repo.path, repoStatus: repo.status },
     };
   }
@@ -232,7 +232,7 @@ async function runCursorAgentPlayground(args: {
           ? "Output did not include the PLAYGROUND_OK marker."
           : undefined,
     },
-    tmux: tmuxStatus,
+    terminal: terminalStatus,
     run: runResult,
   };
 }

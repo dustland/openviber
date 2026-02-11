@@ -19,7 +19,7 @@ export function getViberRoot(): string {
 
 /**
  * Get a path within the OpenViber directory structure
- * @param subPath - Relative path within .openviber directory (e.g., 'vibers/default', 'skills/tmux')
+ * @param subPath - Relative path within .openviber directory (e.g., 'vibers/default', 'skills/terminal')
  */
 export function getViberPath(...subPaths: string[]): string {
   return path.join(getViberRoot(), ...subPaths);

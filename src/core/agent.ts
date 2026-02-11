@@ -211,7 +211,7 @@ export class Agent {
       );
       if (Object.keys(this.loadedSkillTools).length > 0) {
         segments.push(
-          "When the user asks to use a skill by name (e.g. cursor-agent, tmux), one of your tools is for that—use each tool's description to decide when to call it.",
+          "When the user asks to use a skill by name (e.g. cursor-agent, terminal), one of your tools is for that—use each tool's description to decide when to call it.",
         );
       }
     }

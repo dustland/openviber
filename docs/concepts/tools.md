@@ -17,7 +17,7 @@ Think of tools like apps on your phone — each one does something specific, and
 
 OpenViber comes with several tools ready to use:
 
-For terminal automation, OpenViber uses the **tmux skill** (`tmux`, `cursor-agent`) rather than a standalone terminal tool.
+For terminal automation, OpenViber uses the **terminal skill** (`terminal`, `cursor-agent`) rather than a standalone built-in terminal tool.
 
 | Tool | What It Does |
 |------|--------------|
@@ -57,10 +57,10 @@ Skills can bundle specialized tools for specific domains. When a skill is loaded
 | Skill | Tools Provided |
 |-------|---------------|
 | **antigravity** | `antigravity_check_and_heal` — detect and recover from IDE errors |
-| **cursor-agent** | `cursor_agent_run` — run Cursor CLI in tmux |
+| **cursor-agent** | `cursor_agent_run` — run Cursor CLI in a terminal session |
 | **codex-cli** | `codex_run` — run Codex CLI non-interactively |
 | **github** | `gh_list_issues`, `gh_get_issue`, `gh_clone_repo`, `gh_create_branch`, `gh_commit_and_push`, `gh_create_pr` |
-| **tmux** | `tmux_install_check`, `tmux_new_session`, `tmux_new_window`, `tmux_split_pane`, `tmux_send_keys`, `tmux_list`, `tmux_run` |
+| **terminal** | `terminal_check`, `terminal_prepare_skill_prerequisites`, `terminal_new_session`, `terminal_kill_session`, `terminal_rename_session`, `terminal_new_window`, `terminal_kill_window`, `terminal_rename_window`, `terminal_split_pane`, `terminal_send_keys`, `terminal_read`, `terminal_list`, `terminal_run` |
 
 Skill tools follow the same `CoreTool` interface (Zod input schema + async execute function) as built-in tools. See [Skills](/docs/concepts/skills) for details on how skills bundle tools with domain knowledge.
 

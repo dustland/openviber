@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Verify tmux and cursor-agent skills: load registry, run tmux_install_check
- * and tmux_run with a trivial command. Optionally run cursor_agent_run (--cursor).
+ * Verify terminal and cursor-agent skills: load registry, run terminal_check
+ * and terminal_run with a trivial command. Optionally run cursor_agent_run (--cursor).
  *
  * Usage (from repo root):
  *   pnpm run verify:skills
@@ -10,9 +10,9 @@
  * Verify on the web (Viber Board):
  *   1. Start stack: pnpm dev  (hub + web + viber daemon)
  *   2. Open http://localhost:5173 (or your web URL) → Vibers
- *   3. Click your connected viber → you should see tmux and cursor-agent under "What you can ask"
- *   4. Send: "Check if tmux is installed" — the agent will use tmux_install_check and reply with version
- *   5. Or: "Run echo hello in tmux" — agent can use tmux_run to verify
+ *   3. Click your connected viber → you should see terminal and cursor-agent under "What you can ask"
+ *   4. Send: "Check terminal status" — the agent will use terminal_check and reply with version
+ *   5. Or: "Run echo hello in a terminal" — agent can use terminal_run to verify
  */
 
 import { defaultRegistry } from "../src/skills/registry";
@@ -29,50 +29,50 @@ async function main() {
   const skills = defaultRegistry.getAllSkills();
   console.log("Loaded skills:", skills.map((s) => s.id).join(", "));
   if (
-    !skills.some((s) => s.id === "tmux") ||
+    !skills.some((s) => s.id === "terminal") ||
     !skills.some((s) => s.id === "cursor-agent")
   ) {
-    console.error("Expected tmux and cursor-agent skills to be loaded.");
+    console.error("Expected terminal and cursor-agent skills to be loaded.");
     process.exit(1);
   }
   console.log("");
 
-  // 2. Tmux: install check
-  const tmuxTools = await defaultRegistry.getTools("tmux");
-  const check = tmuxTools.tmux_install_check;
+  // 2. Terminal: health check
+  const terminalTools = await defaultRegistry.getTools("terminal");
+  const check = terminalTools.terminal_check;
   if (!check) {
-    console.error("tmux_install_check tool not found");
+    console.error("terminal_check tool not found");
     process.exit(1);
   }
   const checkResult = await check.execute({});
-  console.log("tmux_install_check:", JSON.stringify(checkResult, null, 2));
-  if (!checkResult.installed) {
+  console.log("terminal_check:", JSON.stringify(checkResult, null, 2));
+  if (!checkResult.available) {
     console.error(
-      "Tmux is not installed. Install with: brew install tmux (macOS) or sudo apt install tmux (Ubuntu)"
+      "Terminal backend not available. Install tmux: brew install tmux (macOS) or sudo apt install tmux (Ubuntu)"
     );
     process.exit(1);
   }
   console.log("");
 
-  // 3. Tmux: run a trivial command in tmux
-  const tmuxRun = tmuxTools.tmux_run;
-  if (!tmuxRun) {
-    console.error("tmux_run tool not found");
+  // 3. Terminal: run a trivial command
+  const terminalRun = terminalTools.terminal_run;
+  if (!terminalRun) {
+    console.error("terminal_run tool not found");
     process.exit(1);
   }
-  console.log("Running tmux_run with: echo 'Hello from tmux skill' ...");
-  const tmuxResult = await tmuxRun.execute({
+  console.log("Running terminal_run with: echo 'Hello from terminal skill' ...");
+  const runResult = await terminalRun.execute({
     sessionName: "viber-verify",
-    command: "echo 'Hello from tmux skill'",
+    command: "echo 'Hello from terminal skill'",
     waitSeconds: 2,
   });
-  console.log("tmux_run result:", tmuxResult.ok ? "OK" : "FAILED");
-  if (tmuxResult.ok && tmuxResult.output) {
+  console.log("terminal_run result:", runResult.ok ? "OK" : "FAILED");
+  if (runResult.ok && runResult.output) {
     console.log("Captured output (last 5 lines):");
-    const lines = String(tmuxResult.output).trim().split("\n").slice(-5);
+    const lines = String(runResult.output).trim().split("\n").slice(-5);
     lines.forEach((l) => console.log("  ", l));
-  } else if (!tmuxResult.ok) {
-    console.error("Error:", tmuxResult.error);
+  } else if (!runResult.ok) {
+    console.error("Error:", runResult.error);
     process.exit(1);
   }
   console.log("");

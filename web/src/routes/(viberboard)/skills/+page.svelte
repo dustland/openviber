@@ -19,7 +19,11 @@
     Search,
     Server,
     Sparkles,
+    Play,
   } from "@lucide/svelte";
+  import * as Dialog from "$lib/components/ui/dialog";
+  import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
+  import { Button } from "$lib/components/ui/button";
 
   interface UnmetRequirement {
     type: "oauth" | "env" | "bin";
@@ -64,6 +68,29 @@
     docsUrl?: string;
   }
 
+  interface NodeSkillInfo {
+    id?: string;
+    name: string;
+  }
+
+  interface NodeOption {
+    id: string;
+    name: string;
+    node_id: string | null;
+    status: "pending" | "active" | "offline";
+    skills?: NodeSkillInfo[];
+  }
+
+  interface PlaygroundResult {
+    ok: boolean;
+    status: string;
+    viberId: string;
+    result?: unknown;
+    partialText?: string;
+    error?: string;
+    message?: string;
+  }
+
   interface ImportState {
     status: "idle" | "importing" | "success" | "error";
     message?: string;
@@ -91,6 +118,13 @@
   let requirementStatuses = $state<Record<string, SkillRequirementStatus>>({});
   let expandedSetup = $state<string | null>(null);
   let copiedHint = $state<string | null>(null);
+  let nodes = $state<NodeOption[]>([]);
+  let playgroundDialogOpen = $state(false);
+  let playgroundSkill = $state<InstalledSkill | null>(null);
+  let selectedPlaygroundNodeId = $state<string>("");
+  let playgroundRunning = $state(false);
+  let playgroundError = $state<string | null>(null);
+  let playgroundResult = $state<PlaygroundResult | null>(null);
 
   const enabledSources = $derived(sources.filter((s) => s.enabled));
   const enabledSourcesCount = $derived(enabledSources.length);
@@ -101,6 +135,10 @@
     }
     return map;
   });
+  const activeNodes = $derived(nodes.filter((node) => node.status === "active"));
+  const selectedPlaygroundNode = $derived(
+    activeNodes.find((node) => node.id === selectedPlaygroundNodeId) ?? null,
+  );
 
   function getSkillKey(skill: DiscoverSkill) {
     return `${skill.source}:${skill.id}`;
@@ -135,6 +173,20 @@
       installed = [];
     } finally {
       installedLoading = false;
+    }
+  }
+
+  async function fetchNodes() {
+    try {
+      const res = await fetch("/api/nodes");
+      if (!res.ok) {
+        nodes = [];
+        return;
+      }
+      const data = await res.json();
+      nodes = data.nodes ?? [];
+    } catch {
+      nodes = [];
     }
   }
 
@@ -286,8 +338,73 @@
     }
   }
 
+  function nodeSupportsSkill(node: NodeOption, skillId: string) {
+    return (node.skills ?? []).some((skill) => {
+      const id = (skill.id || skill.name || "").toLowerCase();
+      return id === skillId.toLowerCase();
+    });
+  }
+
+  function openPlayground(skill: InstalledSkill) {
+    playgroundDialogOpen = true;
+    playgroundSkill = skill;
+    playgroundError = null;
+    playgroundResult = null;
+
+    const preferredNode = activeNodes.find((node) =>
+      skill.usedByNodes.some((usedByNode) => usedByNode.id === node.id || usedByNode.id === node.node_id),
+    );
+    const fallbackNode = activeNodes.find((node) => nodeSupportsSkill(node, skill.id));
+    selectedPlaygroundNodeId = preferredNode?.id || fallbackNode?.id || activeNodes[0]?.id || "";
+  }
+
+  async function runPlayground() {
+    if (!playgroundSkill) return;
+    playgroundRunning = true;
+    playgroundError = null;
+    playgroundResult = null;
+    try {
+      const selectedNode = activeNodes.find((node) => node.id === selectedPlaygroundNodeId);
+      const res = await fetch("/api/skills/playground", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          skillId: playgroundSkill.id,
+          nodeId: selectedNode?.node_id || selectedNode?.id,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to run playground");
+      }
+      playgroundResult = data;
+      if (!data.ok) {
+        playgroundError = data.message || data.error || "Playground run did not complete successfully.";
+      }
+    } catch (error) {
+      playgroundError = error instanceof Error ? error.message : "Failed to run playground";
+    } finally {
+      playgroundRunning = false;
+    }
+  }
+
+  function closePlaygroundDialog() {
+    playgroundDialogOpen = false;
+    playgroundSkill = null;
+    playgroundError = null;
+    playgroundResult = null;
+  }
+
+  $effect(() => {
+    if (!playgroundDialogOpen && playgroundSkill) {
+      playgroundSkill = null;
+      playgroundError = null;
+      playgroundResult = null;
+    }
+  });
+
   onMount(async () => {
-    await Promise.all([fetchInstalled(), fetchSources()]);
+    await Promise.all([fetchInstalled(), fetchSources(), fetchNodes()]);
     await checkAllRequirements();
     if (!sourcesError && enabledSourcesCount > 0) {
       await searchDiscover(1);
@@ -375,6 +492,14 @@
                   {/if}
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onclick={() => openPlayground(skill)}
+                  >
+                    <Play class="size-3.5 mr-1" />
+                    Playground
+                  </Button>
                   {#if reqStatus?.loading}
                     <Loader2 class="size-4 animate-spin text-muted-foreground" />
                   {:else if reqStatus && !reqStatus.ready}
@@ -696,3 +821,94 @@
     </section>
   </div>
 </div>
+
+<Dialog.Root bind:open={playgroundDialogOpen}>
+  <Dialog.Content class="sm:max-w-xl">
+    <Dialog.Header>
+      <Dialog.Title>Skill Playground</Dialog.Title>
+      <Dialog.Description>
+        Run a quick verification on a target node to confirm <code>{playgroundSkill?.id}</code> works end-to-end.
+      </Dialog.Description>
+    </Dialog.Header>
+
+    <div class="space-y-4">
+      {#if activeNodes.length === 0}
+        <div class="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+          No active nodes available. Bring a node online to run playground checks.
+        </div>
+      {:else}
+        <div class="space-y-2">
+          <p class="text-xs font-medium text-muted-foreground">Target node</p>
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger class="inline-flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 text-sm">
+              <span>{selectedPlaygroundNode?.name || "Select a node"}</span>
+              <ChevronDown class="size-4" />
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Content class="w-[var(--bits-anchor-width)]">
+              {#each activeNodes as node (node.id)}
+                <DropdownMenu.Item
+                  onclick={() => {
+                    selectedPlaygroundNodeId = node.id;
+                  }}
+                >
+                  <div class="flex w-full items-center justify-between gap-2">
+                    <span>{node.name}</span>
+                    {#if playgroundSkill && nodeSupportsSkill(node, playgroundSkill.id)}
+                      <span class="text-[10px] text-primary">has skill</span>
+                    {/if}
+                  </div>
+                </DropdownMenu.Item>
+              {/each}
+            </DropdownMenu.Content>
+          </DropdownMenu.Root>
+        </div>
+
+        <div class="rounded-md border border-border bg-muted/20 p-3 text-xs text-muted-foreground">
+          This creates a temporary viber on the selected node and asks it to run the playground verification flow for the selected skill.
+        </div>
+      {/if}
+
+      {#if playgroundError}
+        <div class="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+          {playgroundError}
+        </div>
+      {/if}
+
+      {#if playgroundResult}
+        <div class="space-y-2 rounded-md border border-border bg-muted/20 p-3 text-xs">
+          <p>
+            <span class="font-medium">Status:</span>
+            <span class={playgroundResult.ok ? "text-green-600" : "text-destructive"}>
+              {playgroundResult.status}
+            </span>
+          </p>
+          <p><span class="font-medium">Viber:</span> {playgroundResult.viberId}</p>
+          {#if playgroundResult.message}
+            <p><span class="font-medium">Message:</span> {playgroundResult.message}</p>
+          {/if}
+        </div>
+      {/if}
+    </div>
+
+    <Dialog.Footer>
+      <Button
+        variant="outline"
+        onclick={closePlaygroundDialog}
+      >
+        Close
+      </Button>
+      <Button
+        onclick={runPlayground}
+        disabled={playgroundRunning || !playgroundSkill || !selectedPlaygroundNodeId}
+      >
+        {#if playgroundRunning}
+          <Loader2 class="size-4 mr-1 animate-spin" />
+          Running...
+        {:else}
+          <Play class="size-4 mr-1" />
+          Run playground
+        {/if}
+      </Button>
+    </Dialog.Footer>
+  </Dialog.Content>
+</Dialog.Root>

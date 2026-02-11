@@ -337,10 +337,10 @@
               {/if}
 
               {#if configSyncState}
+                {@const syncStatus = getConfigSyncStatus(configSyncState)}
                 <div class="rounded-lg border border-border p-4 mb-3">
                   <div class="flex items-center justify-between mb-3">
                     <div class="text-xs font-medium text-foreground">Sync Status</div>
-                    {@const syncStatus = getConfigSyncStatus(configSyncState)}
                     <span class={`inline-flex items-center rounded-md px-2 py-1 text-[10px] font-medium ${syncStatus.badgeClass}`}>
                       {syncStatus.label}
                     </span>

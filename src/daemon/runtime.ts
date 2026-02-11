@@ -464,6 +464,16 @@ export async function runTask(
     environment,
   } = options;
 
+  let oauthTokens = options.oauthTokens;
+  if (!oauthTokens) {
+    try {
+      const settings = await loadSettings();
+      oauthTokens = settings.oauthTokens;
+    } catch (err) {
+      console.warn("[Runtime] Failed to load settings for oauthTokens:", err);
+    }
+  }
+
   let config = overrideConfig ?? (await loadAgentConfig(singleAgentId));
   if (!config) {
     throw new Error(
@@ -494,7 +504,16 @@ export async function runTask(
   }
 
   // Merge additional skills from intent/settings override into the agent config
-  const extraSkills = options.settingsOverride?.skills;
+  let extraSkills = options.settingsOverride?.skills;
+  if (!extraSkills || extraSkills.length === 0) {
+    try {
+      const settings = await loadSettings();
+      extraSkills = settings.standaloneSkills;
+    } catch (err) {
+      console.warn("[Runtime] Failed to load settings for standaloneSkills:", err);
+    }
+  }
+
   if (extraSkills && extraSkills.length > 0) {
     const existing = new Set(config.skills ?? []);
     const merged = [...(config.skills ?? [])];
@@ -529,7 +548,7 @@ export async function runTask(
     messages: viberMessages,
     metadata: { 
       taskId, 
-      oauthTokens: options.oauthTokens,
+      oauthTokens,
       onProgress: options.onProgress,
     },
     ...(signal && { abortSignal: signal }),

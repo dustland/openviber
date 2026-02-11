@@ -123,6 +123,20 @@ export class SkillRegistry {
    */
   preRegisterTools(skillId: string, tools: Record<string, CoreTool>): void {
     this.loadedTools.set(skillId, tools);
+
+    // Ensure pre-registered skills are visible via getAllSkills() even when
+    // SKILL.md discovery is unavailable (e.g. bundled runtime without source files).
+    if (!this.skills.has(skillId)) {
+      this.skills.set(skillId, {
+        id: skillId,
+        metadata: {
+          name: skillId,
+          description: "",
+        },
+        instructions: "",
+        dir: path.join(this.skillsRoot, skillId),
+      });
+    }
   }
 
   getSkill(id: string): Skill | undefined {
@@ -190,4 +204,3 @@ function getDefaultSkillsPath(): string {
 }
 
 export const defaultRegistry = new SkillRegistry(getDefaultSkillsPath());
-

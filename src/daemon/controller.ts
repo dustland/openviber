@@ -33,9 +33,9 @@ import type { SkillHealthReport } from "../skills/health";
 
 export interface ViberControllerConfig {
   /** WebSocket URL to connect to (e.g., wss://supen.app/vibers/ws) */
-  serverUrl: string;
+  serverUrl?: string;
   /** Authentication token */
-  token: string;
+  token?: string;
   /** Unique identifier for this viber */
   viberId: string;
   /** Human-readable name for this viber */
@@ -225,8 +225,18 @@ export class ViberController extends EventEmitter {
    */
   async start(): Promise<void> {
     this.log = createLogger("controller", { viberId: this.config.viberId });
-    this.log.info("Starting viber", { serverUrl: this.config.serverUrl });
+    this.log.info("Starting viber", {
+      serverUrl: this.config.serverUrl || "(standalone)",
+    });
     this.shouldReconnect = true;
+
+    if (!this.config.serverUrl) {
+      await this.initializeLocalStatus();
+      this.startHeartbeat();
+      this.emit("connected");
+      return;
+    }
+
     await this.connect();
   }
 
@@ -306,10 +316,15 @@ export class ViberController extends EventEmitter {
   // ==================== Connection Management ====================
 
   private async connect(): Promise<void> {
+    if (!this.config.serverUrl) {
+      this.log.info("No command center configured; running in standalone mode");
+      return;
+    }
+
     try {
       this.ws = new WebSocket(this.config.serverUrl, {
         headers: {
-          Authorization: `Bearer ${this.config.token}`,
+          Authorization: `Bearer ${this.config.token || ""}`,
           "X-Viber-Id": this.config.viberId,
           "X-Viber-Version": getOpenViberVersion(),
         },
@@ -330,6 +345,30 @@ export class ViberController extends EventEmitter {
   private async onConnected(): Promise<void> {
     this.log.info("Connected to command center");
     this.isConnected = true;
+
+    const { capabilities, skills } = await this.initializeLocalStatus();
+
+    this.send({
+      type: "connected",
+      viber: {
+        id: this.config.viberId,
+        name: this.config.viberName || this.config.viberId,
+        version: getOpenViberVersion(),
+        platform: process.platform,
+        capabilities,
+        runningTasks: Array.from(this.runningTasks.keys()),
+        skills: skills.length > 0 ? skills : undefined,
+      },
+    });
+
+    this.startHeartbeat();
+    this.emit("connected");
+  }
+
+  /**
+   * Load local capabilities and skill metadata/health for status reporting.
+   */
+  private async initializeLocalStatus(): Promise<{ capabilities: string[]; skills: ViberSkillInfo[] }> {
 
     const capabilities = ["file", "search", "web"];
     if (this.config.enableDesktop) {
@@ -375,21 +414,7 @@ export class ViberController extends EventEmitter {
     this.loadedCapabilities = capabilities;
     this.loadedSkills = skills.map((s) => s.id);
 
-    this.send({
-      type: "connected",
-      viber: {
-        id: this.config.viberId,
-        name: this.config.viberName || this.config.viberId,
-        version: getOpenViberVersion(),
-        platform: process.platform,
-        capabilities,
-        runningTasks: Array.from(this.runningTasks.keys()),
-        skills: skills.length > 0 ? skills : undefined,
-      },
-    });
-
-    this.startHeartbeat();
-    this.emit("connected");
+    return { capabilities, skills };
   }
 
   private onDisconnected(): void {
@@ -982,7 +1007,7 @@ export class ViberController extends EventEmitter {
   // ==================== Reconnection ====================
 
   private scheduleReconnect(): void {
-    if (!this.shouldReconnect) return;
+    if (!this.shouldReconnect || !this.config.serverUrl) return;
 
     const interval = this.config.reconnectInterval || 5000;
     this.log.info("Reconnecting", { intervalMs: interval });

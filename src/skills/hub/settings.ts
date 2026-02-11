@@ -27,6 +27,12 @@ export interface ChannelIntegrationSetting {
   config?: Record<string, string>;
 }
 
+/** Stored OAuth token pair for standalone skill execution. */
+export interface OAuthTokenSetting {
+  accessToken: string;
+  refreshToken?: string | null;
+}
+
 /** Full settings file shape */
 export interface OpenViberSettings {
   /** Skill hub source configuration */
@@ -35,6 +41,10 @@ export interface OpenViberSettings {
   primaryCodingCli?: string | null;
   /** Configured channel integrations (Discord, Feishu, etc.). */
   channelIntegrations?: Record<string, ChannelIntegrationSetting>;
+  /** Additional default skills to enable when running tasks standalone. */
+  standaloneSkills?: string[];
+  /** OAuth tokens available to local standalone runs (e.g. gmail skill). */
+  oauthTokens?: Record<string, OAuthTokenSetting>;
 }
 
 const SETTINGS_FILENAME = "settings.yaml";
@@ -169,6 +179,38 @@ function normalizeSettings(raw: any): OpenViberSettings {
     settings.channelIntegrations = normalized;
   } else {
     settings.channelIntegrations = {};
+  }
+
+  if (Array.isArray(raw.standaloneSkills)) {
+    settings.standaloneSkills = raw.standaloneSkills
+      .filter((skillId: unknown): skillId is string => typeof skillId === "string")
+      .map((skillId: string) => skillId.trim())
+      .filter((skillId: string) => skillId.length > 0);
+  } else {
+    settings.standaloneSkills = [];
+  }
+
+  if (raw.oauthTokens && typeof raw.oauthTokens === "object") {
+    const normalizedOauthTokens: Record<string, OAuthTokenSetting> = {};
+    for (const [provider, value] of Object.entries(raw.oauthTokens)) {
+      if (!value || typeof value !== "object") continue;
+      const tokenValue = value as {
+        accessToken?: unknown;
+        refreshToken?: unknown;
+      };
+      if (typeof tokenValue.accessToken !== "string" || tokenValue.accessToken.length === 0) {
+        continue;
+      }
+      normalizedOauthTokens[provider] = {
+        accessToken: tokenValue.accessToken,
+        ...(typeof tokenValue.refreshToken === "string" || tokenValue.refreshToken === null
+          ? { refreshToken: tokenValue.refreshToken }
+          : {}),
+      };
+    }
+    settings.oauthTokens = normalizedOauthTokens;
+  } else {
+    settings.oauthTokens = {};
   }
 
   return settings;

@@ -18,6 +18,7 @@ import { runTask, appendDailyMemory } from "./runtime";
 import { createLogger } from "../utils/logger";
 import { TerminalManager } from "./terminal";
 import { getOpenViberVersion } from "../utils/version";
+import { validateConfig } from "./config-validator";
 import {
   collectMachineResourceStatus,
   collectViberRunningStatus,
@@ -1009,9 +1010,16 @@ export class ViberController extends EventEmitter {
       const configVersion = String(configData.configVersion || Date.now());
       const lastConfigPullAt = new Date().toISOString();
 
-      // TODO: Step 2 - Run config validator here
-      // For now, send empty validations
-      const validations: ConfigValidation[] = [];
+      // Run config validator
+      const validations = await validateConfig({
+        aiProviders: configData.globalSettings?.aiProviders,
+        oauthConnections: configData.oauthConnections?.map((conn: any) => ({
+          provider: conn.provider,
+          accessToken: conn.accessToken,
+          expiresAt: conn.expiresAt,
+        })),
+        environments: configData.environments,
+      });
 
       // Update config state
       this.configState = collectConfigState(configVersion, lastConfigPullAt, validations);

@@ -91,6 +91,7 @@
     required?: boolean;
     message?: string;
     hint?: string;
+    actionType?: "env" | "oauth" | "binary" | "auth_cli" | "manual";
   }
 
   interface SkillHealthResult {
@@ -110,10 +111,20 @@
   interface Props {
     nodeId: string;
     nodeName: string;
+    configSyncState?: {
+      configVersion: string;
+      lastConfigPullAt: string;
+      validations: Array<{
+        category: "llm_keys" | "oauth" | "env_secrets" | "skills" | "binary_deps";
+        status: "verified" | "failed" | "unchecked";
+        message?: string;
+        checkedAt: string;
+      }>;
+    };
     onClose: () => void;
   }
 
-  let { nodeId, nodeName, onClose }: Props = $props();
+  let { nodeId, nodeName, configSyncState, onClose }: Props = $props();
 
   let status = $state<DetailedStatus | null>(null);
   let loading = $state(true);
@@ -543,6 +554,60 @@
                 </div>
               {/if}
 
+              <!-- Config Sync State -->
+              {#if configSyncState || status.viber.configState}
+                {@const syncState = configSyncState || status.viber.configState}
+                <div class="rounded-lg border border-border p-4 mb-3">
+                  <div class="flex items-center gap-2 text-sm font-medium text-foreground mb-3">
+                    <RefreshCw class="size-4" />
+                    Config Sync State
+                  </div>
+                  <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                      <span class="text-xs text-muted-foreground">Status</span>
+                      {@const allVerified = syncState.validations.every(v => v.status === "verified")}
+                      {@const anyFailed = syncState.validations.some(v => v.status === "failed")}
+                      {@const syncStatus = allVerified ? "verified" : anyFailed ? "failed" : "pending"}
+                      <span class={`inline-flex items-center rounded-md px-2 py-1 text-[10px] font-medium ${
+                        syncStatus === "verified" ? "bg-emerald-500/10 text-emerald-600" :
+                        syncStatus === "failed" ? "bg-rose-500/10 text-rose-600" :
+                        "bg-amber-500/10 text-amber-600"
+                      }`}>
+                        {syncStatus === "verified" ? "Verified" : syncStatus === "failed" ? "Failed" : "Pending"}
+                      </span>
+                    </div>
+                    {#if syncState.configVersion}
+                      <div class="text-xs text-muted-foreground">
+                        Version: <span class="font-mono">{syncState.configVersion.slice(0, 8)}...</span>
+                      </div>
+                    {/if}
+                    {#if syncState.lastConfigPullAt}
+                      {@const lastPull = new Date(syncState.lastConfigPullAt)}
+                      {@const minutesAgo = Math.floor((Date.now() - lastPull.getTime()) / 60000)}
+                      <div class="text-xs text-muted-foreground">
+                        Last verified: {minutesAgo < 1 ? "just now" : `${minutesAgo}m ago`}
+                      </div>
+                    {/if}
+                    {#if syncState.validations && syncState.validations.length > 0}
+                      <div class="mt-2 space-y-1">
+                        {#each syncState.validations as validation}
+                          <div class="text-[11px] flex items-center gap-2">
+                            <span class={`size-1.5 rounded-full ${
+                              validation.status === "verified" ? "bg-emerald-500" :
+                              validation.status === "failed" ? "bg-rose-500" :
+                              "bg-amber-500"
+                            }`}></span>
+                            <span class="text-muted-foreground">
+                              {validation.category}: {validation.message || validation.status}
+                            </span>
+                          </div>
+                        {/each}
+                      </div>
+                    {/if}
+                  </div>
+                </div>
+              {/if}
+
               <!-- Skill Health -->
               {#if status.viber.skillHealth?.skills && status.viber.skillHealth.skills.length > 0}
                 <div class="rounded-lg border border-border p-4 mb-3">
@@ -568,8 +633,41 @@
                               <div>{skill.summary}</div>
                             {:else}
                               {#each missingChecks as check}
-                                <div>
-                                  - {check.label}: {check.hint || check.message || "missing"}
+                                <div class="flex items-center justify-between">
+                                  <span>
+                                    - {check.label}: {check.hint || check.message || "missing"}
+                                  </span>
+                                  {#if check.actionType === "oauth"}
+                                    <button
+                                      type="button"
+                                      class="text-[10px] px-2 py-0.5 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                                      onclick={() => window.open(`/auth/${check.hint?.includes("google") ? "google" : "github"}`, "_blank")}
+                                    >
+                                      Connect
+                                    </button>
+                                  {:else if check.actionType === "binary" && check.hint}
+                                    <button
+                                      type="button"
+                                      class="text-[10px] px-2 py-0.5 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                                      onclick={() => {
+                                        navigator.clipboard.writeText(check.hint || "");
+                                        alert("Install command copied to clipboard");
+                                      }}
+                                    >
+                                      Copy cmd
+                                    </button>
+                                  {:else if check.actionType === "env" && check.hint}
+                                    <button
+                                      type="button"
+                                      class="text-[10px] px-2 py-0.5 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                                      onclick={() => {
+                                        navigator.clipboard.writeText(check.hint || "");
+                                        alert("Env var hint copied to clipboard");
+                                      }}
+                                    >
+                                      Copy hint
+                                    </button>
+                                  {/if}
                                 </div>
                               {/each}
                             {/if}

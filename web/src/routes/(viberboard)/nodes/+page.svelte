@@ -61,6 +61,16 @@
     onboard_token: string | null;
     token_expires_at: string | null;
     created_at: string;
+    config_sync_state?: {
+      configVersion?: string;
+      lastConfigPullAt?: string;
+      validations?: Array<{
+        category: string;
+        status: string;
+        message?: string;
+        checkedAt: string;
+      }>;
+    };
     // Enriched hub data
     version?: string;
     platform?: string;
@@ -200,6 +210,28 @@
     selectedNodeName = node.name;
   }
 
+  function getConfigSyncBadge(syncState?: ViberNode["config_sync_state"]): {
+    label: string;
+    class: string;
+  } | null {
+    if (!syncState?.configVersion) return null;
+
+    const validations = syncState.validations || [];
+    const failed = validations.filter((v) => v.status === "failed");
+    const verified = validations.filter((v) => v.status === "verified");
+
+    if (failed.length > 0) {
+      return { label: "Config Failed", class: "bg-rose-500/10 text-rose-600" };
+    }
+    if (verified.length > 0 && failed.length === 0) {
+      return { label: "Config Verified", class: "bg-emerald-500/10 text-emerald-600" };
+    }
+    if (syncState.lastConfigPullAt) {
+      return { label: "Config Delivered", class: "bg-amber-500/10 text-amber-600" };
+    }
+    return { label: "Config Pending", class: "bg-muted text-muted-foreground" };
+  }
+
   onMount(() => {
     loading = true;
     fetchNodes().finally(() => {
@@ -306,6 +338,14 @@
                       {/if}
                       <span>created {formatTimeAgo(node.created_at)}</span>
                     </CardDescription>
+                    {#if getConfigSyncBadge(node.config_sync_state)}
+                      {@const badge = getConfigSyncBadge(node.config_sync_state)}
+                      <div class="mt-1.5">
+                        <span class={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-medium ${badge.class}`}>
+                          {badge.label}
+                        </span>
+                      </div>
+                    {/if}
                   </div>
                   <div class="flex items-center gap-1 shrink-0">
                     <button
@@ -486,9 +526,11 @@
 
 <!-- Node Detail Panel -->
 {#if selectedNodeId}
+  {@const selectedNode = nodes.find((n) => n.id === selectedNodeId)}
   <NodeDetailPanel
     nodeId={selectedNodeId}
     nodeName={selectedNodeName}
+    configSyncState={selectedNode?.config_sync_state}
     onClose={() => { selectedNodeId = null; }}
   />
 {/if}

@@ -7,6 +7,7 @@
 
 import { json, type RequestHandler } from "@sveltejs/kit";
 import { listOAuthConnections, googleOAuthConfigured } from "$lib/server/oauth";
+import { gatewayClient } from "$lib/server/gateway-client";
 
 // Hard-coded skill requirements (mirrors SKILL.md frontmatter).
 // In the future this could be dynamically loaded from the skill registry.
@@ -49,10 +50,89 @@ export const GET: RequestHandler = async ({ url, locals }) => {
     return json({ error: "Missing skillId parameter" }, { status: 400 });
   }
 
+  // Try to get real health data from gateway nodes first
+  const nodeId = url.searchParams.get("nodeId");
+  let skillHealthFromNode: {
+    checks?: Array<{
+      id: string;
+      label: string;
+      ok: boolean;
+      required?: boolean;
+      message?: string;
+      hint?: string;
+      actionType?: string;
+    }>;
+    status?: string;
+    available?: boolean;
+  } | null = null;
+
+  if (nodeId) {
+    try {
+      const { nodes } = await gatewayClient.getNodes();
+      const node = nodes.find((n) => n.id === nodeId);
+      if (node?.skills) {
+        const skill = node.skills.find((s) => s.id === skillId);
+        if (skill) {
+          skillHealthFromNode = {
+            checks: skill.checks,
+            status: skill.status,
+            available: skill.available,
+          };
+        }
+      }
+    } catch (error) {
+      // Non-fatal: fall back to hardcoded requirements
+      console.warn("[Skills Requirements] Failed to get node health:", error);
+    }
+  }
+
+  // If we have real health data, use it to build unmet requirements
+  if (skillHealthFromNode?.checks) {
+    const unmet: UnmetRequirement[] = [];
+    for (const check of skillHealthFromNode.checks) {
+      if ((check.required ?? true) && !check.ok) {
+        if (check.actionType === "oauth") {
+          unmet.push({
+            type: "oauth",
+            label: check.label,
+            hint: check.hint,
+            connectUrl: check.hint?.includes("connect") ? `/auth/${skillId}` : undefined,
+          });
+        } else if (check.actionType === "env") {
+          unmet.push({
+            type: "env",
+            label: check.label,
+            hint: check.hint,
+            envName: check.id,
+          });
+        } else if (check.actionType === "binary") {
+          unmet.push({
+            type: "bin",
+            label: check.label,
+            hint: check.hint,
+          });
+        } else {
+          unmet.push({
+            type: "bin", // fallback
+            label: check.label,
+            hint: check.hint,
+          });
+        }
+      }
+    }
+    return json({
+      skillId,
+      ready: unmet.length === 0,
+      unmet,
+      source: "node-health",
+    });
+  }
+
+  // Fall back to hardcoded requirements
   const requirements = SKILL_REQUIREMENTS[skillId];
   if (!requirements) {
     // No requirements declared — skill is ready by default
-    return json({ ready: true, unmet: [], skillId });
+    return json({ ready: true, unmet: [], skillId, source: "default" });
   }
 
   const unmet: UnmetRequirement[] = [];
@@ -111,5 +191,6 @@ export const GET: RequestHandler = async ({ url, locals }) => {
     skillId,
     ready: unmet.length === 0,
     unmet,
+    source: "hardcoded",
   });
 };

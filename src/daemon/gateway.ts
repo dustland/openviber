@@ -29,6 +29,10 @@ import type {
 
 export interface GatewayConfig {
   port: number;
+  /** Web API base URL for persisting config sync state (optional) */
+  webApiUrl?: string;
+  /** API token for authenticating with web API (optional) */
+  webApiToken?: string;
 }
 
 /** @deprecated Use GatewayConfig instead */
@@ -52,7 +56,23 @@ interface ConnectedNode {
   version: string;
   platform: string;
   capabilities: string[];
-  skills?: { id: string; name: string; description: string; available: boolean; status: "AVAILABLE" | "NOT_AVAILABLE" | "UNKNOWN"; healthSummary?: string }[];
+  skills?: Array<{
+    id: string;
+    name: string;
+    description: string;
+    available: boolean;
+    status: "AVAILABLE" | "NOT_AVAILABLE" | "UNKNOWN";
+    healthSummary?: string;
+    checks?: Array<{
+      id: string;
+      label: string;
+      ok: boolean;
+      required?: boolean;
+      message?: string;
+      hint?: string;
+      actionType?: "env" | "oauth" | "binary" | "auth_cli" | "manual";
+    }>;
+  }>;
   ws: WebSocket;
   connectedAt: Date;
   lastHeartbeat: Date;
@@ -276,6 +296,12 @@ export class GatewayServer {
     ) {
       const nodeId = decodeURIComponent(url.pathname.split("/")[3]);
       this.handlePushJobToNode(nodeId, req, res);
+    } else if (
+      url.pathname.match(/^\/api\/nodes\/[^/]+\/config-push$/) &&
+      method === "POST"
+    ) {
+      const nodeId = decodeURIComponent(url.pathname.split("/")[3]);
+      this.handleConfigPush(nodeId, res);
     } else {
       res.writeHead(404, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: "Not found" }));
@@ -897,6 +923,10 @@ export class GatewayServer {
         this.handleStatusReport(ws, msg.status);
         break;
 
+      case "config:ack":
+        this.handleConfigAck(ws, msg.configVersion, msg.validations);
+        break;
+
       default:
         console.log(`[Gateway] Unknown message type: ${msg.type}`);
     }
@@ -1159,6 +1189,87 @@ export class GatewayServer {
           node.pendingStatusResolvers = [];
         }
 
+        break;
+      }
+    }
+  }
+
+  /**
+   * POST /api/nodes/:id/config-push - Push config to a node.
+   * Sends config:push WebSocket message to the target node.
+   */
+  private handleConfigPush(nodeId: string, res: ServerResponse): void {
+    const node = this.nodes.get(nodeId);
+    if (!node) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Node not found or not connected" }));
+      return;
+    }
+
+    try {
+      node.ws.send(JSON.stringify({ type: "config:push" }));
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: true, message: "Config push sent to node" }));
+    } catch (error) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(
+        JSON.stringify({
+          error: error instanceof Error ? error.message : "Failed to push config",
+        }),
+      );
+    }
+  }
+
+  /**
+   * Handle config:ack message from a node (response to config:push).
+   */
+  private handleConfigAck(
+    ws: WebSocket,
+    configVersion: string,
+    validations: Array<{
+      category: string;
+      status: string;
+      message?: string;
+      checkedAt: string;
+    }>,
+  ): void {
+    for (const node of this.nodes.values()) {
+      if (node.ws === ws) {
+        console.log(
+          `[Gateway] Node ${node.id} acknowledged config push: version=${configVersion}, validations=${validations.length}`,
+        );
+        
+        // Persist config sync state to Supabase via web API
+        const webApiUrl = this.config.webApiUrl || process.env.OPENVIBER_WEB_API_URL;
+        const webApiToken = this.config.webApiToken || process.env.VIBER_GATEWAY_API_TOKEN;
+        
+        if (webApiUrl && webApiToken) {
+          const syncState = {
+            configVersion,
+            lastConfigPullAt: new Date().toISOString(),
+            validations,
+          };
+          
+          // Call web API asynchronously (don't block)
+          fetch(`${webApiUrl}/api/nodes/${encodeURIComponent(node.id)}/config-sync-state`, {
+            method: "PUT",
+            headers: {
+              Authorization: `Bearer ${webApiToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ config_sync_state: syncState }),
+          }).catch((error) => {
+            console.error(
+              `[Gateway] Failed to persist config sync state for node ${node.id}:`,
+              error,
+            );
+          });
+        } else {
+          console.warn(
+            `[Gateway] Cannot persist config sync state: web API URL or token not configured`,
+          );
+        }
+        
         break;
       }
     }

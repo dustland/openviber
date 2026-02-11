@@ -30,25 +30,65 @@ You:   "Go ahead"
 Viber: On it. You can watch in the terminal panel...
 ```
 
+## Intent-Driven Creation (Viber Board)
+
+In the web UI, the **New Viber** flow is intent-first and environment-aware:
+
+1. Pick an intent template (for example: _Build a Feature_, _Code Review_, _Railway Deploy Failures_)
+2. OpenViber pre-fills the task goal from the template
+3. OpenViber infers required skills from the intent
+4. OpenViber compares required skills against the selected node's currently available skills
+5. If a required skill is missing, the UI opens a guided prerequisite flow before launch
+6. Once required skills are ready, the task auto-launches with the selected intent body
+
+### How Required Skills Are Inferred
+
+OpenViber merges skill requirements from three sources (highest confidence first):
+
+1. `intent.skills` (explicit per-template list)
+2. A `skills:` section declared inside the intent body
+3. Keyword detection in the intent text (for skill-specific terms)
+
+This gives good defaults for built-in templates while still letting you create precise custom templates.
+
+### Guided Setup Before Launch
+
+When a selected node is active but a required skill is not ready on that node, OpenViber starts a proactive setup flow:
+
+- checks node availability
+- runs skill provisioning for supported skills
+- handles auth guidance when the skill needs external login
+- retries launch automatically when prerequisites become available
+
+If the node is offline, OpenViber asks you to bring it online before launching the task.
+
+### Where to Manage Intents
+
+You can manage built-in and custom intent templates in **Settings → Intents**:
+
+- create and edit custom templates
+- replicate built-in templates into editable user templates
+- keep intent instructions aligned with your team workflows
+
 ## What Makes a Viber
 
 A viber combines three elements that no chat-only AI has:
 
-| Element | What It Gives You |
-|---------|--------------------|
-| **Persona & Goals** | Role focus — not a generic assistant, but a specialist with clear objectives |
-| **Machine Runtime** | Real execution — terminal, browser, files, apps on your machine |
-| **Identity & Accounts** | Agency — acts on your behalf across GitHub, email, cloud services |
+| Element                 | What It Gives You                                                            |
+| ----------------------- | ---------------------------------------------------------------------------- |
+| **Persona & Goals**     | Role focus — not a generic assistant, but a specialist with clear objectives |
+| **Machine Runtime**     | Real execution — terminal, browser, files, apps on your machine              |
+| **Identity & Accounts** | Agency — acts on your behalf across GitHub, email, cloud services            |
 
 This is what separates vibers from chatbots: they don't just answer questions, they **do the work**.
 
 ## Working Modes
 
-| Mode | When to Use |
-|------|-------------|
-| **Always Ask** | Building trust — viber asks before each action |
-| **Viber Decides** | Daily work — viber acts within policy, escalates risky actions |
-| **Always Execute** | Overnight runs — maximum autonomy, intervene by exception |
+| Mode               | When to Use                                                    |
+| ------------------ | -------------------------------------------------------------- |
+| **Always Ask**     | Building trust — viber asks before each action                 |
+| **Viber Decides**  | Daily work — viber acts within policy, escalates risky actions |
+| **Always Execute** | Overnight runs — maximum autonomy, intervene by exception      |
 
 Start with "Always Ask" and graduate to "Viber Decides" as you build confidence.
 
@@ -72,7 +112,7 @@ A **Viber Node** is a single machine running the OpenViber runtime. It provides:
 
 ### Adding a Node
 
-From the OpenViber Board, click "Add Node" to generate a one-liner:
+From the OpenViber Board, click **Add Node** to generate a one-liner:
 
 ```bash
 npx openviber connect --token eyJub2RlIjoiYTFiMmMz...

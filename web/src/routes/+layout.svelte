@@ -2,8 +2,9 @@
   import "../app.css";
   import { onMount } from "svelte";
   import { applyTheme, themeStore, type Theme } from "$lib/stores/theme";
+  import type { LayoutData } from "./$types";
 
-  let { children } = $props();
+  let { children, data }: { children: any; data: LayoutData } = $props();
 
   type MediaQueryListLegacy = MediaQueryList & {
     addListener?: (listener: (event: MediaQueryListEvent) => void) => void;
@@ -48,6 +49,14 @@
 </script>
 
 <div class="h-screen bg-background flex flex-col overflow-hidden">
+  {#if data.e2eTestMode}
+    <div
+      class="bg-amber-500/90 text-black text-center text-xs font-medium py-0.5 shrink-0"
+      data-testid="e2e-test-banner"
+    >
+      E2E Test Mode — auth and onboarding bypassed
+    </div>
+  {/if}
   <main class="flex-1 min-h-0 flex flex-col">
     {@render children()}
   </main>

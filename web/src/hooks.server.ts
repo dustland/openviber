@@ -1,5 +1,5 @@
 import type { Handle, HandleServerError } from "@sveltejs/kit";
-import { getAuthUser } from "$lib/server/auth";
+import { getAuthUser, isE2ETestMode, getE2ETestUser } from "$lib/server/auth";
 import { getSettingsForUser } from "$lib/server/user-settings";
 
 // Only these routes require authentication
@@ -73,6 +73,13 @@ export const handle: Handle = async ({ event, resolve }) => {
 
   const { pathname } = event.url;
 
+  // E2E test mode: inject synthetic user when no real session exists.
+  // This lets AI agents (Cursor, Codex, Playwright) test the full UI
+  // without going through the GitHub OAuth flow.
+  if (!event.locals.user && isE2ETestMode()) {
+    event.locals.user = getE2ETestUser();
+  }
+
   // Only protect vibers routes
   if (!event.locals.user && requiresAuth(pathname)) {
     const isApi = pathname.startsWith("/api/");
@@ -90,8 +97,9 @@ export const handle: Handle = async ({ event, resolve }) => {
     });
   }
 
-  // Onboarding gate: redirect to /onboarding if user hasn't completed setup
-  if (event.locals.user && needsOnboardingGate(pathname)) {
+  // Onboarding gate: redirect to /onboarding if user hasn't completed setup.
+  // Skipped entirely in E2E test mode so agents don't get stuck on the wizard.
+  if (event.locals.user && !isE2ETestMode() && needsOnboardingGate(pathname)) {
     try {
       const settings = await getSettingsForUser(event.locals.user.id);
       if (!settings.onboardingCompletedAt) {

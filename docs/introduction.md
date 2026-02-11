@@ -29,7 +29,7 @@ OpenViber handles tasks that require multiple steps, file operations, web browsi
 Open the browser-based interface to chat with your viber:
 
 ```bash
-# Start the full stack (Hub, Viber Node, and Web UI)
+# Start the full stack (Gateway, Viber Node, and Web UI)
 pnpm dev
 # Open http://localhost:6006
 ```

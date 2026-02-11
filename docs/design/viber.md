@@ -48,7 +48,7 @@ flowchart LR
       Terms["Terminal panels (tmux)"]
       Reports["Reports / evidence"]
     end
-    subgraph Hub["Hub (optional relay)"]
+    subgraph Gateway["Gateway (optional relay)"]
       WS["WS route"]
     end
     subgraph Node["Viber Node"]

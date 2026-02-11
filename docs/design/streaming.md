@@ -5,7 +5,7 @@ description: "How OpenViber streams LLM responses from daemon to browser using t
 
 # Streaming
 
-OpenViber streams LLM responses end-to-end using the [Vercel AI SDK](https://sdk.vercel.ai). The SDK handles token generation, tool calls, and UI rendering — OpenViber's job is to relay the stream from daemon to browser through the hub.
+OpenViber streams LLM responses end-to-end using the [Vercel AI SDK](https://sdk.vercel.ai). The SDK handles token generation, tool calls, and UI rendering — OpenViber's job is to relay the stream from daemon to browser through the gateway.
 
 ---
 
@@ -15,8 +15,8 @@ OpenViber streams LLM responses end-to-end using the [Vercel AI SDK](https://sdk
 Agent (AI SDK streamText)
   → streamResult.toUIMessageStreamResponse()   ← AI SDK generates SSE bytes
     → Controller reads SSE, sends task:stream-chunk over WebSocket
-      → Hub buffers and pipes to SSE endpoint
-        → Web API route pipes hub SSE to browser
+      → Gateway buffers and pipes to SSE endpoint
+        → Web API route pipes gateway SSE to browser
           → @ai-sdk/svelte Chat class renders UI
 ```
 
@@ -41,7 +41,7 @@ while (true) {
   const { done, value } = await reader.read();
   if (done) break;
   const chunk = decoder.decode(value, { stream: true });
-  // Relay raw SSE bytes to hub
+  // Relay raw SSE bytes to gateway
   ws.send(JSON.stringify({
     type: "task:stream-chunk",
     taskId,
@@ -50,9 +50,9 @@ while (true) {
 }
 ```
 
-### Hub
+### Gateway
 
-The hub holds SSE connections open for web app subscribers. When `task:stream-chunk` messages arrive from the daemon, it writes them directly to subscribers:
+The gateway holds SSE connections open for web app subscribers. When `task:stream-chunk` messages arrive from the daemon, it writes them directly to subscribers:
 
 ```
 GET /api/tasks/:id/stream
@@ -60,18 +60,18 @@ GET /api/tasks/:id/stream
   Content-Type: text/event-stream
 ```
 
-The hub buffers chunks so that late-connecting subscribers can catch up. When the task completes, it closes all subscriber connections.
+The gateway buffers chunks so that late-connecting subscribers can catch up. When the task completes, it closes all subscriber connections.
 
 ### Web App API Route
 
-The SvelteKit API route at `/api/vibers/[id]/chat` submits the task to the hub, then pipes the hub's SSE stream to the browser:
+The SvelteKit API route at `/api/vibers/[id]/chat` submits the task to the gateway, then pipes the gateway's SSE stream to the browser:
 
 ```typescript
 // Submit task
-const { taskId } = await hubClient.submitTask(goal, viberId, messages);
+const { taskId } = await gatewayClient.submitTask(goal, viberId, messages);
 
-// Connect to hub SSE stream and pipe to frontend
-const streamResponse = await fetch(`${HUB_URL}/api/tasks/${taskId}/stream`);
+// Connect to gateway SSE stream and pipe to frontend
+const streamResponse = await fetch(`${GATEWAY_URL}/api/tasks/${taskId}/stream`);
 return new Response(streamResponse.body, {
   headers: { "x-vercel-ai-ui-message-stream": "v1" },
 });
@@ -113,21 +113,21 @@ The Chat class handles text deltas, tool call rendering, and state management. O
 The AI SDK is designed for direct HTTP (browser → server → LLM). OpenViber adds a relay layer because the daemon runs on a separate machine from the web server:
 
 ```
-Browser  ←SSE→  Web App  ←SSE→  Hub  ←WS→  Daemon  ←HTTP→  LLM
+Browser  ←SSE→  Web App  ←SSE→  Gateway  ←WS→  Daemon  ←HTTP→  LLM
 ```
 
-The hub bridges WebSocket (daemon side) and SSE (browser side). This is the core infrastructure OpenViber provides on top of the AI SDK.
+The gateway bridges WebSocket (daemon side) and SSE (browser side). This is the core infrastructure OpenViber provides on top of the AI SDK.
 
 ### Chunk Buffering
 
-The hub buffers stream chunks per task so that:
+The gateway buffers stream chunks per task so that:
 - Late-connecting SSE subscribers catch up.
 - Completed tasks can replay their full stream on request.
 - Network interruptions don't lose data.
 
 ### Task Lifecycle Messages
 
-Beyond the stream relay, the hub tracks task state transitions (`pending → running → completed | error | stopped`) and provides REST endpoints for task management.
+Beyond the stream relay, the gateway tracks task state transitions (`pending → running → completed | error | stopped`) and provides REST endpoints for task management.
 
 ---
 

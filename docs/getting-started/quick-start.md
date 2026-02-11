@@ -52,7 +52,7 @@ cp .env.example .env
 
 ### Launch
 ```bash
-# Start the full stack (Hub, Viber Node, and Web UI)
+# Start the full stack (Gateway, Viber Node, and Web UI)
 pnpm dev
 ```
 

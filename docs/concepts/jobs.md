@@ -71,7 +71,7 @@ prompt: |
 | `skills` | No | `[]` | Skills to enable for this job |
 | `tools` | No | `[]` | Additional tools to enable |
 | `prompt` | Yes | — | The task/instruction for the agent |
-| `nodeId` | No | — | Target a specific viber node (for hub-pushed jobs) |
+| `nodeId` | No | — | Target a specific viber node (for gateway/Board-pushed jobs) |
 
 *Jobs without a `model` field are skipped at execution time.
 
@@ -195,9 +195,9 @@ The tool accepts natural language schedules and converts them to cron:
 | "every 3 seconds" | `*/3 * * * * *` |
 | "8:30pm every day" | `30 20 * * *` |
 
-### Method 3: Hub (Remote)
+### Method 3: Gateway (Remote)
 
-Jobs can be pushed from the OpenViber Board to a connected node via the `job:create` WebSocket message. The hub sends the job configuration and the node writes it to disk, then triggers a scheduler reload.
+Jobs can be pushed from the OpenViber Board to a connected node via the `job:create` WebSocket message. The gateway sends the job configuration and the node writes it to disk, then triggers a scheduler reload.
 
 ## Schedule Tools
 
@@ -307,7 +307,7 @@ The `JobScheduler` class (in `src/daemon/scheduler.ts`) manages the cron lifecyc
 
 - **`start()`** — Load jobs from disk and register cron triggers
 - **`stop()`** — Cancel all active cron jobs
-- **`reload()`** — Stop all jobs and re-scan the directory (used after hub pushes a new job)
+- **`reload()`** — Stop all jobs and re-scan the directory (used after the gateway pushes a new job from the Board)
 
 The scheduler uses [Croner](https://github.com/hexagon/croner) for cron parsing and scheduling. Croner supports both standard 5-field cron and 6-field cron with seconds.
 
@@ -315,7 +315,7 @@ The scheduler uses [Croner](https://github.com/hexagon/croner) for cron parsing 
 
 Changes to job files require either:
 - Restarting OpenViber (`openviber start`)
-- A hub-triggered reload (when a job is pushed from the Board)
+- A gateway-triggered reload (when a job is pushed from the Viber Board)
 
 Hot-reloading of job files is planned but not yet implemented.
 

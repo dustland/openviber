@@ -454,67 +454,70 @@ export function formatUptime(seconds: number): string {
  */
 export function formatNodeStatus(status: NodeObservabilityStatus): string {
   const { machine: m, viber: v } = status;
+  const w = 55;
+  const border = `+${"-".repeat(w + 2)}+`;
+  const line = (s: string) => `| ${s.padEnd(w)} |`;
 
   const lines: string[] = [];
 
-  lines.push("╔═══════════════════════════════════════════════════════════╗");
-  lines.push("║                  NODE OBSERVABILITY                       ║");
-  lines.push("╠═══════════════════════════════════════════════════════════╣");
+  lines.push(border);
+  lines.push(line("NODE OBSERVABILITY".padStart(Math.floor((w + 18) / 2))));
+  lines.push(border);
 
   // Machine section
-  lines.push("║  MACHINE RESOURCES                                        ║");
-  lines.push("╠═══════════════════════════════════════════════════════════╣");
-  lines.push(`║  Host:        ${m.hostname.padEnd(42)}║`);
-  lines.push(`║  Platform:    ${m.platform.slice(0, 42).padEnd(42)}║`);
-  lines.push(`║  Arch:        ${m.arch.padEnd(42)}║`);
-  lines.push(`║  Uptime:      ${formatUptime(m.systemUptimeSeconds).padEnd(42)}║`);
-  lines.push("║                                                           ║");
-  lines.push(`║  CPU:         ${(m.cpu.cores + " cores, " + m.cpu.averageUsage.toFixed(1) + "% avg").padEnd(42)}║`);
-  lines.push(`║  Memory:      ${(formatBytes(m.memory.usedBytes) + " / " + formatBytes(m.memory.totalBytes) + " (" + m.memory.usagePercent.toFixed(1) + "%)").padEnd(42)}║`);
-  lines.push(`║  Load Avg:    ${m.loadAverage.map((l) => l.toFixed(2)).join(", ").padEnd(42)}║`);
+  lines.push(line("MACHINE RESOURCES"));
+  lines.push(border);
+  lines.push(line("Host:        " + m.hostname.slice(0, 42)));
+  lines.push(line("Platform:    " + m.platform.slice(0, 42)));
+  lines.push(line("Arch:        " + m.arch.slice(0, 42)));
+  lines.push(line("Uptime:      " + formatUptime(m.systemUptimeSeconds).slice(0, 42)));
+  lines.push(line(""));
+  lines.push(line("CPU:         " + (m.cpu.cores + " cores, " + m.cpu.averageUsage.toFixed(1) + "% avg").slice(0, 42)));
+  lines.push(line("Memory:      " + (formatBytes(m.memory.usedBytes) + " / " + formatBytes(m.memory.totalBytes) + " (" + m.memory.usagePercent.toFixed(1) + "%)").slice(0, 42)));
+  lines.push(line("Load Avg:    " + m.loadAverage.map((l) => l.toFixed(2)).join(", ").slice(0, 42)));
 
   if (m.disks.length > 0) {
     for (const d of m.disks) {
-      lines.push(`║  Disk ${d.mount.padEnd(7)} ${(formatBytes(d.usedBytes) + " / " + formatBytes(d.totalBytes) + " (" + d.usagePercent.toFixed(1) + "%)").padEnd(42)}║`);
+      lines.push(line("Disk " + d.mount.slice(0, 7).padEnd(7) + (formatBytes(d.usedBytes) + " / " + formatBytes(d.totalBytes) + " (" + d.usagePercent.toFixed(1) + "%)").slice(0, 42)));
     }
   }
 
   if (m.network.length > 0) {
     const nonInternal = m.network.filter((n) => !n.internal);
     if (nonInternal.length > 0) {
-      lines.push(`║  Network:     ${nonInternal.map((n) => n.name + "=" + (n.ipv4 || "?")).join(", ").slice(0, 42).padEnd(42)}║`);
+      lines.push(line("Network:     " + nonInternal.map((n) => n.name + "=" + (n.ipv4 || "?")).join(", ").slice(0, 42)));
     }
   }
 
   // Viber section
-  lines.push("╠═══════════════════════════════════════════════════════════╣");
-  lines.push("║  VIBER RUNNING STATUS                                     ║");
-  lines.push("╠═══════════════════════════════════════════════════════════╣");
-  lines.push(`║  Viber ID:    ${v.viberId.slice(0, 42).padEnd(42)}║`);
-  lines.push(`║  Name:        ${v.viberName.slice(0, 42).padEnd(42)}║`);
-  lines.push(`║  Version:     ${v.version.padEnd(42)}║`);
-  lines.push(`║  Connected:   ${(v.connected ? "● Yes" : "○ No").padEnd(42)}║`);
-  lines.push(`║  Daemon Up:   ${formatUptime(v.daemonUptimeSeconds).padEnd(42)}║`);
-  lines.push(`║  Tasks:       ${(v.runningTaskCount + " running, " + v.totalTasksExecuted + " total").padEnd(42)}║`);
-  lines.push(`║  Process Mem: ${(formatBytes(v.processMemory.rss) + " RSS, " + formatBytes(v.processMemory.heapUsed) + " heap").padEnd(42)}║`);
+  lines.push(border);
+  lines.push(line("VIBER RUNNING STATUS"));
+  lines.push(border);
+  lines.push(line("Viber ID:    " + v.viberId.slice(0, 42)));
+  lines.push(line("Name:        " + v.viberName.slice(0, 42)));
+  lines.push(line("Version:     " + v.version.slice(0, 42)));
+  lines.push(line("Connected:   " + (v.connected ? "* Yes" : "o No")));
+  lines.push(line("Daemon Up:   " + formatUptime(v.daemonUptimeSeconds).slice(0, 42)));
+  lines.push(line("Tasks:       " + (v.runningTaskCount + " running, " + v.totalTasksExecuted + " total").slice(0, 42)));
+  lines.push(line("Process Mem: " + (formatBytes(v.processMemory.rss) + " RSS, " + formatBytes(v.processMemory.heapUsed) + " heap").slice(0, 42)));
 
   if (v.skills.length > 0) {
-    lines.push(`║  Skills:      ${v.skills.join(", ").slice(0, 42).padEnd(42)}║`);
+    lines.push(line("Skills:      " + v.skills.join(", ").slice(0, 42)));
   }
   if (v.capabilities.length > 0) {
-    lines.push(`║  Capabilities:${v.capabilities.join(", ").slice(0, 42).padEnd(42)}║`);
+    lines.push(line("Capabilities:" + v.capabilities.join(", ").slice(0, 42)));
   }
 
   if (v.runningTasks.length > 0) {
-    lines.push("║                                                           ║");
-    lines.push("║  Active Tasks:                                            ║");
+    lines.push(line(""));
+    lines.push(line("Active Tasks:"));
     for (const t of v.runningTasks) {
-      const desc = `  ${t.taskId.slice(0, 16)}... ${t.goal.slice(0, 25)}`;
-      lines.push(`║  ${desc.padEnd(55)}║`);
+      const desc = `${t.taskId.slice(0, 16)}... ${t.goal.slice(0, 25)}`;
+      lines.push(line(desc.slice(0, w)));
     }
   }
 
-  lines.push("╚═══════════════════════════════════════════════════════════╝");
+  lines.push(border);
 
   return lines.join("\n");
 }

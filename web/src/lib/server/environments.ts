@@ -1,7 +1,7 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "crypto";
 import { env } from "$env/dynamic/private";
 import { nanoid } from "nanoid";
-import { supabaseRequest, toInFilter } from "./supabase-rest";
+import { getServerSupabase, supabaseRequest, toInFilter } from "./supabase-rest";
 
 const ENVIRONMENT_TYPES = new Set(["github", "local", "manual"]);
 const SECRET_PLACEHOLDER = "••••••••";
@@ -858,12 +858,14 @@ export interface SkillInput {
  */
 export async function listSkills(userId: string): Promise<SkillRow[]> {
   try {
-    return await supabaseRequest<SkillRow[]>("skills", {
-      params: {
-        user_id: `eq.${userId}`,
-        order: "name.asc",
-      },
-    });
+    const supabase = getServerSupabase();
+    const { data, error } = await supabase
+      .from("skills")
+      .select("*")
+      .eq("user_id", userId)
+      .order("name", { ascending: true });
+    if (error) throw error;
+    return (data ?? []) as SkillRow[];
   } catch {
     return [];
   }
@@ -877,10 +879,9 @@ export async function upsertSkill(
   skill: SkillInput,
 ): Promise<void> {
   const now = new Date().toISOString();
-  await supabaseRequest<unknown>("skills", {
-    method: "POST",
-    headers: { Prefer: "resolution=merge-duplicates" },
-    body: {
+  const supabase = getServerSupabase();
+  const { error } = await supabase.from("skills").upsert(
+    {
       user_id: userId,
       skill_id: skill.skill_id,
       name: skill.name,
@@ -889,7 +890,9 @@ export async function upsertSkill(
       version: skill.version ?? null,
       updated_at: now,
     },
-  });
+    { onConflict: "user_id,skill_id" },
+  );
+  if (error) throw error;
 }
 
 /**
@@ -910,9 +913,9 @@ export async function upsertSkillsBatch(
     version: skill.version ?? null,
     updated_at: now,
   }));
-  await supabaseRequest<unknown>("skills", {
-    method: "POST",
-    headers: { Prefer: "resolution=merge-duplicates" },
-    body: rows,
-  });
+  const supabase = getServerSupabase();
+  const { error } = await supabase
+    .from("skills")
+    .upsert(rows, { onConflict: "user_id,skill_id" });
+  if (error) throw error;
 }

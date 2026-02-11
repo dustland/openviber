@@ -8,6 +8,7 @@ declare global {
 
     interface PageData {
       user: AuthUser | null;
+      e2eTestMode?: boolean;
     }
   }
 }

@@ -25,11 +25,11 @@ stateDiagram-v2
 
 | State | Meaning |
 |-------|---------|
-| `pending` | Task created in the hub, waiting for the daemon to start execution |
+| `pending` | Task created in the gateway, waiting for the daemon to start execution |
 | `running` | Daemon is executing the task (AI SDK `streamText()` in progress) |
 | `completed` | Task finished successfully, result available |
 | `error` | Task failed (provider error, tool error, unrecoverable issue) |
-| `stopped` | Operator explicitly stopped the task via the Board |
+| `stopped` | Operator explicitly stopped the task via the Viber Board (web UI) |
 
 ---
 
@@ -37,22 +37,22 @@ stateDiagram-v2
 
 ### Submission
 
-1. Operator sends a message in the Board (or CLI runs a command).
-2. Web app calls `hubClient.submitTask(goal, viberId, messages)`.
-3. Hub creates a task record (`pending`), sends `task:submit` to the daemon.
+1. Operator sends a message in the Viber Board (or CLI runs a command).
+2. Web app calls `gatewayClient.submitTask(goal, viberId, messages)` (or equivalent).
+3. Gateway creates a task record (`pending`), sends `task:submit` to the daemon.
 
 ### Execution
 
 4. Daemon receives `task:submit`, creates a `TaskRuntimeState`.
-5. Daemon sends `task:started` → hub marks task as `running`.
+5. Daemon sends `task:started` → gateway marks task as `running`.
 6. Daemon calls `runTask()` → AI SDK `streamText()` with model, tools, and message history.
 7. AI SDK generates response, calls tools in a loop (up to `maxSteps`).
-8. Stream chunks flow: daemon → hub (WebSocket) → web app (SSE) → browser.
+8. Stream chunks flow: daemon → gateway (WebSocket) → web app (SSE) → browser.
 
 ### Completion
 
 9. Stream ends. Daemon sends `task:completed` with the final text and summary.
-10. Hub closes SSE subscribers for that task.
+10. Gateway closes SSE subscribers for that task.
 11. Frontend `Chat.onFinish` callback persists the assistant's message to the database.
 
 ### Error
@@ -60,7 +60,7 @@ stateDiagram-v2
 If the AI SDK call fails (provider error, tool error, abort):
 
 - Daemon sends `task:error` with the error message.
-- Hub marks task as `error` and closes SSE subscribers.
+- Gateway marks task as `error` and closes SSE subscribers.
 
 ---
 
@@ -123,14 +123,14 @@ These are injected as `<soul>`, `<user>`, `<memory>` blocks in the system prompt
 
 ## 5. Stopping a Task
 
-When the operator clicks "Stop" in the Board:
+When the operator clicks "Stop" in the Viber Board:
 
-1. Web app calls `hubClient.stopTask(taskId)`.
-2. Hub sends `task:stop` to the daemon.
+1. Web app calls `gatewayClient.stopViber(viberId)` (or equivalent gateway API).
+2. Gateway sends `viber:stop` to the daemon.
 3. Daemon sets `runtime.stopped = true` and calls `controller.abort()`.
 4. The AI SDK's `AbortController` cancels the in-flight LLM call.
 5. Daemon does not send `task:completed` — the task ends silently.
-6. Hub marks the task as `stopped` and closes SSE subscribers.
+6. Gateway marks the task as `stopped` and closes SSE subscribers.
 
 ---
 
@@ -167,9 +167,9 @@ When a job's cron trigger fires:
 4. Tool results and the agent's text response are logged to the console.
 5. Routine "healthy" results (e.g., `antigravity_check_and_heal` returning `HEALTHY`) are suppressed from logs.
 
-Unlike interactive tasks, scheduled jobs run independently of the hub/Board pipeline. They execute directly in the daemon process without SSE streaming. If you need a job's results in the Board, the job's prompt can use the `notify` tool to send a notification.
+Unlike interactive tasks, scheduled jobs run independently of the gateway/Viber Board pipeline. They execute directly in the daemon process without SSE streaming. If you need a job's results in the Viber Board, the job's prompt can use the `notify` tool to send a notification.
 
-Jobs can also be created through chat using the `create_scheduled_job` tool (which supports natural language scheduling like "8am daily") or pushed from the Board via the `job:create` WebSocket message.
+Jobs can also be created through chat using the `create_scheduled_job` tool (which supports natural language scheduling like "8am daily") or pushed from the Viber Board via the `job:create` WebSocket message.
 
 Global jobs (in `~/.openviber/jobs/`) are shared across all vibers. Per-viber jobs (in `~/.openviber/vibers/{id}/jobs/`) are scoped to a specific viber.
 
@@ -179,6 +179,6 @@ See [Jobs](/docs/concepts/jobs) for the full reference.
 
 ## 7. Persistence
 
-- **Task metadata**: Stored in the hub's in-memory `Map<string, Task>`. Lost on hub restart (tasks are ephemeral).
+- **Task metadata**: Stored in the gateway's in-memory `Map<string, Task>` (or equivalent). Lost on gateway restart (tasks are ephemeral).
 - **Message history**: Persisted to SQLite in the web app database (via `/api/vibers/[id]/messages`).
 - **Session memory**: Key decisions and outcomes can be flushed to `memory.md` (see [memory.md](./memory.md)).

@@ -1,7 +1,7 @@
 ---
 name: cursor-agent
 version: 3.0.0
-description: Use the Cursor CLI (agent) for software engineering tasks. Includes installation, auth, commands, tmux-based automation, and best practices for AI coding workflows.
+description: Use the Cursor CLI (agent) for software engineering tasks. Includes installation, auth, commands, terminal-based automation, and best practices for AI coding workflows.
 author: Pushpinder Pal Singh
 playground:
   repo: dustland/openviber
@@ -10,7 +10,7 @@ playground:
 
 # Cursor CLI Agent Skill
 
-This skill provides expert knowledge for using the Cursor CLI (`agent` / `cursor-agent`). When the user asks to use this skill or run the Cursor CLI, use your available tools (their descriptions tell you when to call them). When running the Cursor CLI from automation you **must** use tmux — direct execution without a TTY will hang.
+This skill provides expert knowledge for using the Cursor CLI (`agent` / `cursor-agent`). When the user asks to use this skill or run the Cursor CLI, use your available tools (their descriptions tell you when to call them). The Cursor CLI requires a real terminal (PTY) — the **terminal** skill provides persistent sessions for this.
 
 ## Installation & Setup
 
@@ -101,18 +101,18 @@ Cursor agent supports MCP (Model Context Protocol) servers defined in `mcp.json`
 
 **CRITICAL:** The Cursor CLI requires a real TTY. Running `agent` or `agent -p "..."` directly from a subprocess or script will hang indefinitely.
 
-**Solution: run inside tmux.** The **tmux** skill documents how to install and use tmux; use **tmux_install_check** first and if tmux is not installed, tell the user to install it (e.g. `brew install tmux` or `sudo apt install tmux`).
+**Solution:** The **terminal** skill provides persistent terminal sessions. Use **terminal_check** first to verify the backend is available.
 
-1. **Install tmux** if needed (see **tmux** skill or run `tmux_install_check`).
-2. **cursor_agent_run** runs the agent inside a tmux session with automatic completion detection.
-3. For custom flows: create a detached session, send keys, wait, capture pane (see tmux skill).
+1. **Check terminal backend** (use the **terminal** skill's `terminal_check`).
+2. **cursor_agent_run** runs the agent inside a terminal session with automatic completion detection.
+3. For custom flows: create a session with `terminal_new_session`, send keys with `terminal_send_keys`, read output with `terminal_read`.
 
 **What does NOT work:** Running `agent "task"` or `agent -p "task"` directly from Node/scripts without a PTY — it will hang.
 
 ### Tool: cursor_agent_run
 
 The `cursor_agent_run` tool:
-- Runs the Cursor agent in a tmux session with a specified prompt
+- Runs the Cursor agent in a persistent terminal session with a specified prompt
 - **Polls for completion** instead of blindly waiting a fixed duration
 - Returns structured output with status, timing, and captured terminal output
 - Supports parallel runs via distinct `sessionName` values
@@ -121,7 +121,7 @@ The `cursor_agent_run` tool:
 - `goal` (required): Detailed task prompt — be specific (see best practices above)
 - `cwd` (optional): Project root directory
 - `waitSeconds` (optional): Maximum wait time (default: 120s, polls every 3s)
-- `sessionName` (optional): Tmux session name for parallel runs (default: 'cursor-agent')
+- `sessionName` (optional): Session name for parallel runs (default: 'cursor-agent')
 
 **Return shape:**
 - `ok`: boolean — whether the agent completed within the time limit
@@ -141,7 +141,7 @@ cursor_agent_run({ goal: "Fix auth module tests", cwd: "/project", sessionName: 
 cursor_agent_run({ goal: "Update API documentation", cwd: "/project", sessionName: "cursor-docs" })
 ```
 
-Check status of all sessions with `tmux_list`.
+Check status of all sessions with `terminal_list`.
 
 ## Recommended Workflows
 

@@ -10,7 +10,7 @@ import "dotenv/config";
  *   viber start    - Start the Viber runtime (connect to command center)
  *   viber run      - Run a task locally without connection to command center
  *   viber chat     - Chat with a running task via the local gateway (terminal-first)
- *   viber term     - List/attach/send input to tmux panes via local WS (port 6008)
+ *   viber term     - List/attach/send input to terminal panes via local WS (port 6008)
  *   viber gateway  - Start the gateway (central coordinator for tasks)
  *   viber channels - Start the enterprise channel server (DingTalk, WeCom, etc.)
  */
@@ -400,7 +400,7 @@ program
 program
   .command("chat")
   .description(
-    "Chat with a running task via the local gateway (works great inside tmux)",
+    "Chat with a running task via the local gateway (works great inside a terminal session)",
   )
   .option(
     "--gateway <url>",
@@ -582,7 +582,7 @@ program
 
 const termCommand = program
   .command("term")
-  .description("Interact with tmux panes via the viber local WS server (port 6008)")
+  .description("Interact with terminal panes via the viber local WS server (port 6008)")
   .addHelpText(
     "after",
     `
@@ -596,7 +596,7 @@ Examples:
 
 termCommand
   .command("list")
-  .description("List tmux sessions and panes")
+  .description("List terminal sessions and panes")
   .option("--ws <url>", "Local WS URL", "ws://localhost:6008")
   .action(async (options) => {
     try {
@@ -614,7 +614,7 @@ termCommand
       const panes = Array.isArray(msg?.panes) ? msg.panes : [];
 
       if (sessions.length === 0 && panes.length === 0) {
-        console.log("No tmux sessions found (or tmux not installed).");
+        console.log("No terminal sessions found (is the terminal backend installed?).");
         return;
       }
 
@@ -646,7 +646,7 @@ termCommand
 
 termCommand
   .command("create-session [sessionName]")
-  .description("Create a detached tmux session (used for web-managed terminals)")
+  .description("Create a terminal session (used for web-managed terminals)")
   .option("--ws <url>", "Local WS URL", "ws://localhost:6008")
   .option("--window <name>", "First window name", "main")
   .option("--cwd <dir>", "Start directory for first window")
@@ -671,7 +671,7 @@ termCommand
 
       if (msg?.ok) {
         console.log(
-          `Session '${msg.sessionName}' ${msg.created ? "created" : "exists"}. Attach with: tmux attach -t ${msg.sessionName}`,
+          `Session '${msg.sessionName}' ${msg.created ? "created" : "already exists"}.`,
         );
       } else {
         console.error(
@@ -689,7 +689,7 @@ termCommand
 
 termCommand
   .command("attach <target>")
-  .description("Attach to a tmux pane target and stream output to stdout")
+  .description("Attach to a terminal pane and stream output to stdout")
   .option("--ws <url>", "Local WS URL", "ws://localhost:6008")
   .action(async (target, options) => {
     let ws: WebSocket;
@@ -736,7 +736,7 @@ termCommand
 
 termCommand
   .command("send <target> [keys...]")
-  .description("Send keys to a tmux pane (use --enter to press Enter after)")
+  .description("Send keys to a terminal pane (use --enter to press Enter after)")
   .option("--ws <url>", "Local WS URL", "ws://localhost:6008")
   .option("--enter", "Send Enter after the keys", false)
   .action(async (target, keys, options) => {
@@ -758,7 +758,7 @@ termCommand
 
 termCommand
   .command("resize <target>")
-  .description("Resize a tmux pane (cols/rows)")
+  .description("Resize a terminal pane (cols/rows)")
   .requiredOption("--cols <n>", "Columns", (v) => parseInt(v, 10))
   .requiredOption("--rows <n>", "Rows", (v) => parseInt(v, 10))
   .option("--ws <url>", "Local WS URL", "ws://localhost:6008")

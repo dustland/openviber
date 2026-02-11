@@ -64,7 +64,7 @@ const DEFAULT_SKILL_IDS = [
   "github",
   "gmail",
   "railway",
-  "tmux",
+  "terminal",
 ] as const;
 
 function formatFirstLine(text: string): string {
@@ -307,7 +307,7 @@ async function checkCursorAgentHealth(skill: SkillInfo): Promise<SkillHealthResu
   });
   const tmuxCheck = buildCommandCheck({
     id: "tmux",
-    label: "tmux installed",
+    label: "Terminal backend (tmux) installed",
     candidates: ["tmux"],
     hint: "Install with: brew install tmux (macOS) or sudo apt install tmux",
   });
@@ -399,10 +399,10 @@ async function checkRailwayHealth(skill: SkillInfo): Promise<SkillHealthResult> 
   return buildResult(skill, [commandCheck.check, authCheck]);
 }
 
-async function checkTmuxHealth(skill: SkillInfo): Promise<SkillHealthResult> {
+async function checkTerminalHealth(skill: SkillInfo): Promise<SkillHealthResult> {
   const commandCheck = buildCommandCheck({
     id: "tmux",
-    label: "tmux installed",
+    label: "Terminal backend (tmux) installed",
     candidates: ["tmux"],
     hint: "Install with: brew install tmux (macOS) or sudo apt install tmux",
   });
@@ -468,7 +468,7 @@ const SKILL_CHECKERS: Record<
   github: checkGithubHealth,
   gmail: checkGmailHealth,
   railway: checkRailwayHealth,
-  tmux: checkTmuxHealth,
+  terminal: checkTerminalHealth,
 };
 
 /**

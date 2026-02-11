@@ -156,11 +156,10 @@ export class SkillRegistry {
   }
 }
 
-import { fileURLToPath } from "url";
 import { getViberRoot } from "../config";
+import { getModuleDirname } from "../utils/module-path";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __dirname = getModuleDirname();
 
 // Try multiple paths for skill discovery:
 // 1. User's config directory (~/.openviber/skills) - User custom skills

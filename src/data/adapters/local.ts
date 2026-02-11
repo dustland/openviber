@@ -19,11 +19,9 @@ import { BaseStorage } from "../../storage/base";
 import { getViberRoot } from "../../config";
 import * as yaml from "yaml";
 import path from "path";
-import { fileURLToPath } from "url";
+import { getModuleDirname } from "../../utils/module-path";
 
-// ESM-compatible __dirname
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __dirname = getModuleDirname();
 
 export class LocalDataAdapter implements DataAdapter {
   // Helper to read and parse YAML file

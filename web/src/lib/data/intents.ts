@@ -19,6 +19,102 @@ export interface Intent {
   skills?: string[];
 }
 
+const KNOWN_SKILL_IDS = [
+  "cursor-agent",
+  "codex-cli",
+  "gemini-cli",
+  "github",
+  "railway",
+  "gmail",
+  "tmux",
+] as const;
+
+const SKILL_KEYWORD_PATTERNS: Record<string, RegExp[]> = {
+  "cursor-agent": [/\bcursor[-\s]?agent\b/i, /\buse cursor\b/i],
+  "codex-cli": [/\bcodex(?:\s*cli)?\b/i, /\bopenai codex\b/i],
+  "gemini-cli": [/\bgemini(?:\s*cli)?\b/i],
+  github: [/\bgithub\b/i, /\bgh auth\b/i],
+  railway: [/\brailway\b/i],
+  gmail: [/\bgmail\b/i],
+  tmux: [/\btmux\b/i],
+};
+
+function normalizeSkillToken(raw: string): string | null {
+  const token = raw.trim().toLowerCase();
+  if (!token) return null;
+
+  if (KNOWN_SKILL_IDS.includes(token as (typeof KNOWN_SKILL_IDS)[number])) {
+    return token;
+  }
+  if (token === "cursor" || token === "cursor agent") return "cursor-agent";
+  if (token === "codex" || token === "codex cli") return "codex-cli";
+  if (token === "gemini" || token === "gemini cli") return "gemini-cli";
+  return null;
+}
+
+function parseDeclaredSkillsFromBody(body: string): string[] {
+  const out: string[] = [];
+  const lines = body.split(/\r?\n/);
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    const inlineMatch = line.match(/^(?:required\s+)?skills?\s*:\s*(.*)$/i);
+    if (!inlineMatch) continue;
+
+    const inlineValue = inlineMatch[1]?.trim() || "";
+    if (inlineValue.length > 0) {
+      for (const part of inlineValue.split(/[,\s]+/g)) {
+        const normalized = normalizeSkillToken(part);
+        if (normalized) out.push(normalized);
+      }
+      continue;
+    }
+
+    // Supports:
+    // skills:
+    // - cursor-agent
+    // - github
+    for (let j = i + 1; j < lines.length; j++) {
+      const item = lines[j].trim();
+      if (!item.startsWith("-")) break;
+      const normalized = normalizeSkillToken(item.slice(1).trim());
+      if (normalized) out.push(normalized);
+      i = j;
+    }
+  }
+
+  return out;
+}
+
+/**
+ * Infer required skills from intent template data.
+ * Priority:
+ * 1) explicit intent.skills
+ * 2) declared "skills:" section in body
+ * 3) keyword detection from body text
+ */
+export function inferIntentSkills(intent: Pick<Intent, "skills" | "body">): string[] {
+  const merged = new Set<string>();
+
+  for (const explicit of intent.skills || []) {
+    const normalized = normalizeSkillToken(explicit);
+    if (normalized) merged.add(normalized);
+  }
+
+  for (const declared of parseDeclaredSkillsFromBody(intent.body || "")) {
+    merged.add(declared);
+  }
+
+  const body = intent.body || "";
+  for (const [skillId, patterns] of Object.entries(SKILL_KEYWORD_PATTERNS)) {
+    if (patterns.some((pattern) => pattern.test(body))) {
+      merged.add(skillId);
+    }
+  }
+
+  return Array.from(merged);
+}
+
 /**
  * Built-in intents that ship with OpenViber.
  * Users can create their own in Settings → Intents.

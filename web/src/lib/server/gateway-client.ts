@@ -199,6 +199,29 @@ export interface NodeObservabilityStatus {
   viber: ViberRunningStatus;
 }
 
+export interface NodeSkillProvisionResponse {
+  type?: "skill:provision-result";
+  requestId: string;
+  skillId: string;
+  ok: boolean;
+  ready: boolean;
+  before?: SkillHealthResult;
+  after?: SkillHealthResult;
+  auth?: {
+    required: boolean;
+    ready: boolean;
+    command?: string;
+    message?: string;
+  };
+  installLog?: Array<{
+    checkId: string;
+    command: string;
+    ok: boolean;
+    output?: string;
+  }>;
+  error?: string;
+}
+
 /** Environment context passed to viber for project awareness */
 export interface ViberEnvironmentContext {
   name: string;
@@ -433,6 +456,31 @@ export const gatewayClient = {
       console.error("[GatewayClient] Failed to get node status:", error);
       return null;
     }
+  },
+
+  /** Run deterministic skill provisioning actions on a connected node */
+  async provisionNodeSkill(
+    nodeId: string,
+    payload: {
+      skillId: string;
+      install?: boolean;
+      authAction?: "none" | "copy" | "start";
+    },
+  ): Promise<NodeSkillProvisionResponse> {
+    const response = await gatewayFetch(
+      `/api/nodes/${encodeURIComponent(nodeId)}/skills/provision`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      },
+    );
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const message = data?.error || `Gateway returned ${response.status}`;
+      throw new Error(message);
+    }
+    return data as NodeSkillProvisionResponse;
   },
 
   /** Fetch unified event stream from the hub (activity + system events) */

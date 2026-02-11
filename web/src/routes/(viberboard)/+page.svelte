@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import { page } from "$app/stores";
   import {
     ArrowRight,
@@ -19,7 +20,58 @@
     avatarUrl?: string | null;
   }
 
+  interface DashboardViber {
+    id: string;
+    goal: string;
+    status: string;
+    nodeConnected: boolean | null;
+  }
+
   const user = $derived(($page.data?.user as SessionUser | undefined) || null);
+  let recentVibers = $state<DashboardViber[]>([]);
+  let loadingRecentVibers = $state(true);
+  let lastActiveViberId = $state<string | null>(null);
+
+  const continueChatHref = $derived.by(() => {
+    if (
+      lastActiveViberId &&
+      recentVibers.some((viber) => viber.id === lastActiveViberId)
+    ) {
+      return `/vibers/${lastActiveViberId}`;
+    }
+    return recentVibers[0] ? `/vibers/${recentVibers[0].id}` : "/vibers/new";
+  });
+
+  onMount(async () => {
+    try {
+      if (typeof window !== "undefined") {
+        lastActiveViberId = window.localStorage.getItem(
+          "openviber:last-active-viber",
+        );
+      }
+
+      const response = await fetch("/api/vibers");
+      const payload = await response.json();
+      if (response.ok && Array.isArray(payload)) {
+        recentVibers = payload
+          .map((viber) => ({
+            id: String(viber.id || ""),
+            goal: String(viber.goal || viber.id || "Untitled viber"),
+            status: String(viber.status || "unknown"),
+            nodeConnected:
+              typeof viber.nodeConnected === "boolean"
+                ? viber.nodeConnected
+                : null,
+          }))
+          .filter((viber) => viber.id)
+          .slice(0, 3);
+      }
+    } catch {
+      recentVibers = [];
+    } finally {
+      loadingRecentVibers = false;
+    }
+  });
 
   const quickLinks = [
     {
@@ -93,6 +145,62 @@
             Your local AI workforce, ready to go.
           </p>
         </div>
+      </div>
+    </section>
+
+    <!-- Chat-first launcher -->
+    <section class="mb-10">
+      <div
+        class="rounded-xl border border-border/50 bg-card/30 p-6 backdrop-blur-sm"
+      >
+        <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Chat-first
+        </p>
+        <h2 class="mt-1 text-xl font-semibold text-foreground">
+          Start in one click
+        </h2>
+        <p class="mt-1 text-sm text-muted-foreground">
+          No setup text needed. Choose what you want to do and continue in chat.
+        </p>
+
+        <div class="mt-4 flex flex-wrap gap-2">
+          <a
+            href={continueChatHref}
+            class="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-1.5 text-xs font-medium text-primary-foreground transition-all duration-200 hover:brightness-110"
+          >
+            Continue Chat
+          </a>
+          <a
+            href="/vibers/new"
+            class="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-background/60 px-3.5 py-1.5 text-xs font-medium text-foreground transition-all duration-200 hover:bg-accent/80 hover:border-primary/30"
+          >
+            New Chat
+          </a>
+          <a
+            href="/nodes"
+            class="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-background/60 px-3.5 py-1.5 text-xs font-medium text-foreground transition-all duration-200 hover:bg-accent/80 hover:border-primary/30"
+          >
+            Fix Setup
+          </a>
+        </div>
+
+        {#if !loadingRecentVibers && recentVibers.length > 0}
+          <div class="mt-4 space-y-1">
+            <p class="text-[11px] uppercase tracking-wide text-muted-foreground">
+              Recent chats
+            </p>
+            <div class="flex flex-wrap gap-2">
+              {#each recentVibers as viber (viber.id)}
+                <a
+                  href={`/vibers/${viber.id}`}
+                  class="inline-flex max-w-full items-center gap-1.5 rounded-full border border-border bg-background px-2.5 py-1 text-xs text-foreground hover:bg-accent"
+                >
+                  <span class="truncate max-w-[220px]">{viber.goal}</span>
+                </a>
+              {/each}
+            </div>
+          </div>
+        {/if}
       </div>
     </section>
 

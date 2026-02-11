@@ -319,7 +319,7 @@
           params.set("node", nodeId);
         }
         if (viberId) {
-          await goto(`/vibers/${viberId}/vibers/new?${params.toString()}`);
+          await goto(`/vibers/new?${params.toString()}`);
         } else {
           await goto(`/vibers/new?${params.toString()}`);
         }

@@ -18,7 +18,7 @@ import * as http from "http";
 import * as fs from "fs/promises";
 import * as path from "path";
 import * as readline from "readline";
-import { exec } from "child_process";
+import { exec, spawn } from "child_process";
 import { getViberRoot } from "../config";
 import { loadSettings, saveSettings } from "../skills/hub/settings";
 
@@ -134,6 +134,92 @@ function createRl(): readline.Interface {
 function ask(rl: readline.Interface, question: string): Promise<string> {
   return new Promise((resolve) => {
     rl.question(question, (answer) => resolve(answer.trim()));
+  });
+}
+
+function getTmuxInstallCommandForPlatform(): string | null {
+  if (process.platform === "darwin") {
+    return "brew install tmux";
+  }
+  if (process.platform === "linux") {
+    return "sudo apt-get update && sudo apt-get install -y tmux";
+  }
+  return null;
+}
+
+function getAutoInstallCommand(skillId: string, checkId: string): string | null {
+  if (checkId === "tmux") {
+    return getTmuxInstallCommandForPlatform();
+  }
+  if (skillId === "cursor-agent" && checkId === "cursor-cli") {
+    return "curl https://cursor.com/install -fsS | bash";
+  }
+  if (skillId === "codex-cli" && checkId === "codex-cli") {
+    return "pnpm add -g @openai/codex";
+  }
+  if (skillId === "gemini-cli" && checkId === "gemini-cli") {
+    return "npm install -g @google/gemini-cli";
+  }
+  if (skillId === "github" && checkId === "gh-cli") {
+    if (process.platform === "darwin") return "brew install gh";
+    if (process.platform === "linux") {
+      return "sudo apt-get update && sudo apt-get install -y gh";
+    }
+    return null;
+  }
+  if (skillId === "railway" && checkId === "railway-cli") {
+    return "npm install -g @railway/cli";
+  }
+  return null;
+}
+
+function getAuthCommand(skillId: string, checkId: string): string | null {
+  if (skillId === "cursor-agent" && checkId === "cursor-auth") {
+    return "agent login || cursor-agent login";
+  }
+  if (skillId === "codex-cli" && checkId === "codex-auth") {
+    return "codex login";
+  }
+  if (skillId === "gemini-cli" && checkId === "gemini-auth") {
+    return "gemini";
+  }
+  if (skillId === "github" && checkId === "gh-auth") {
+    return "gh auth login -h github.com";
+  }
+  if (skillId === "railway" && checkId === "railway-auth") {
+    return "railway login";
+  }
+  return null;
+}
+
+function getAuthEnvVar(skillId: string, checkId: string): string | null {
+  if (skillId === "cursor-agent" && checkId === "cursor-auth") {
+    return "CURSOR_API_KEY";
+  }
+  if (skillId === "codex-cli" && checkId === "codex-auth") {
+    return "OPENAI_API_KEY";
+  }
+  if (skillId === "gemini-cli" && checkId === "gemini-auth") {
+    return "GEMINI_API_KEY";
+  }
+  if (skillId === "github" && checkId === "gh-auth") {
+    return "GH_TOKEN";
+  }
+  if (skillId === "railway" && checkId === "railway-auth") {
+    return "RAILWAY_TOKEN";
+  }
+  return null;
+}
+
+async function runInteractiveShellCommand(command: string): Promise<boolean> {
+  return await new Promise<boolean>((resolve) => {
+    const child = spawn(command, {
+      shell: true,
+      stdio: "inherit",
+      env: process.env,
+    });
+    child.once("close", (code) => resolve((code ?? 1) === 0));
+    child.once("error", () => resolve(false));
   });
 }
 
@@ -1066,6 +1152,18 @@ export async function runSkillSetup(
   console.log(`\n  Setting up ${selectedWithIssues.length} skill(s)...\n`);
 
   const rl = createRl();
+  const recheckCheck = async (
+    skillInfo: { id: string; name?: string },
+    checkId: string,
+  ): Promise<boolean> => {
+    const { checkSkillHealth } = await import("../skills/health");
+    const recheck = await checkSkillHealth({
+      id: skillInfo.id,
+      name: skillInfo.name,
+    });
+    const recheckItem = recheck.checks.find((c) => c.id === checkId);
+    return Boolean(recheckItem?.ok);
+  };
 
   for (const skill of selectedWithIssues) {
     const failedChecks = skill.checks.filter(
@@ -1129,24 +1227,38 @@ export async function runSkillSetup(
           console.log(
             `    ${check.label}: ${check.message || "not found"}`,
           );
+          const autoInstallCommand = getAutoInstallCommand(skill.id, check.id);
+          if (autoInstallCommand) {
+            const installNow = await promptYesNo(
+              rl,
+              "    Should I install this for you now?",
+              true,
+            );
+            if (installNow) {
+              console.log(`\n    Running: ${autoInstallCommand}\n`);
+              const installed = await runInteractiveShellCommand(autoInstallCommand);
+              if (!installed) {
+                console.log(
+                  "    Install command failed. You can retry manually.\n",
+                );
+              } else {
+                const ok = await recheckCheck(skill, check.id);
+                if (ok) {
+                  console.log(`    ${check.label}: OK\n`);
+                  break;
+                }
+              }
+            }
+          }
+
           if (check.hint) {
             const shouldRetry = await promptRetryOrSkip(
               rl,
               check.hint,
             );
             if (shouldRetry) {
-              // Re-check after user claims to have installed
-              const { checkSkillHealth } = await import(
-                "../skills/health"
-              );
-              const recheck = await checkSkillHealth({
-                id: skill.id,
-                name: skill.name,
-              });
-              const recheckItem = recheck.checks.find(
-                (c) => c.id === check.id,
-              );
-              if (recheckItem?.ok) {
+              const ok = await recheckCheck(skill, check.id);
+              if (ok) {
                 console.log(`    ${check.label}: OK\n`);
               } else {
                 console.log(
@@ -1164,23 +1276,70 @@ export async function runSkillSetup(
           console.log(
             `    ${check.label}: ${check.message || "not authenticated"}`,
           );
+          const authCommand = getAuthCommand(skill.id, check.id);
+          const authEnvVar = getAuthEnvVar(skill.id, check.id);
+          const setupNow = await promptYesNo(
+            rl,
+            "    Should I set up auth for you now?",
+            true,
+          );
+          if (setupNow) {
+            const mode = (
+              await ask(
+                rl,
+                "    Press Enter to start login, type 'copy' to show command, 'token' to paste key, or 's' to skip: ",
+              )
+            )
+              .trim()
+              .toLowerCase();
+
+            if (mode === "copy") {
+              if (authCommand) {
+                console.log("\n    Run this command in your terminal:");
+                console.log(`    ${authCommand}\n`);
+              } else if (check.hint) {
+                console.log(`\n    ${check.hint}\n`);
+              }
+            } else if (mode === "token") {
+              if (authEnvVar) {
+                const tokenValue = await ask(
+                  rl,
+                  `    Paste ${authEnvVar} (or Enter to skip): `,
+                );
+                if (tokenValue) {
+                  await saveApiKeyToEnv(authEnvVar, tokenValue);
+                  process.env[authEnvVar] = tokenValue;
+                  console.log(`    Saved ${authEnvVar} to ${getEnvFile()}\n`);
+                }
+              } else {
+                console.log("    No API key fallback for this skill.\n");
+              }
+            } else if (mode !== "s" && mode !== "skip") {
+              if (authCommand) {
+                console.log(
+                  "\n    Starting login flow. Follow prompts in terminal/browser...\n",
+                );
+                await runInteractiveShellCommand(authCommand);
+              } else if (check.hint) {
+                console.log(`\n    ${check.hint}\n`);
+              }
+            }
+
+            const ok = await recheckCheck(skill, check.id);
+            if (ok) {
+              console.log(`    ${check.label}: OK\n`);
+              break;
+            }
+          }
+
           if (check.hint) {
             const shouldRetry = await promptRetryOrSkip(
               rl,
               check.hint,
             );
             if (shouldRetry) {
-              const { checkSkillHealth } = await import(
-                "../skills/health"
-              );
-              const recheck = await checkSkillHealth({
-                id: skill.id,
-                name: skill.name,
-              });
-              const recheckItem = recheck.checks.find(
-                (c) => c.id === check.id,
-              );
-              if (recheckItem?.ok) {
+              const ok = await recheckCheck(skill, check.id);
+              if (ok) {
                 console.log(`    ${check.label}: OK\n`);
               } else {
                 console.log(
@@ -1257,6 +1416,21 @@ export async function runOnboardingWizard(): Promise<string[]> {
   console.log(`\n  ${ready}/${total} selected skills ready.\n`);
 
   return selectedIds;
+}
+
+/**
+ * Ensure selected skills are ready right now.
+ * Used by chat-first flows (e.g. `openviber start --skills cursor-agent`).
+ */
+export async function ensureSkillsReady(selectedIds: string[]): Promise<void> {
+  const uniqueIds = Array.from(new Set(selectedIds.filter(Boolean)));
+  if (uniqueIds.length === 0) return;
+
+  const { checkSkillsHealth } = await import("../skills/health");
+  const report = await checkSkillsHealth(
+    uniqueIds.map((id) => ({ id, name: id })),
+  );
+  await runSkillSetup(uniqueIds, report);
 }
 
 // ────────────────────────────────────────────────────────────

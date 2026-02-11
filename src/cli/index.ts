@@ -20,6 +20,7 @@ import * as os from "os";
 import * as fs from "fs/promises";
 import * as path from "path";
 import * as readline from "readline";
+import { spawn } from "child_process";
 import WebSocket from "ws";
 import YAML from "yaml";
 import { getOpenViberVersion } from "../utils/version";
@@ -148,6 +149,26 @@ program
         };
       }
       await saveSettings(settings);
+    }
+
+    if (isInteractiveTerminal()) {
+      const persistedSettings = await loadSettings();
+      const proactiveSkillIds = new Set<string>(cliSkills);
+      if (
+        typeof options.primaryCodingCli === "string" &&
+        options.primaryCodingCli.trim().length > 0
+      ) {
+        proactiveSkillIds.add(options.primaryCodingCli.trim());
+      } else if (persistedSettings.primaryCodingCli) {
+        proactiveSkillIds.add(persistedSettings.primaryCodingCli);
+      }
+      for (const skillId of persistedSettings.standaloneSkills || []) {
+        proactiveSkillIds.add(skillId);
+      }
+      if (proactiveSkillIds.size > 0) {
+        const { ensureSkillsReady } = await import("./auth");
+        await ensureSkillsReady(Array.from(proactiveSkillIds));
+      }
     }
 
     const isConnectedMode = !!serverUrl;
@@ -443,8 +464,19 @@ program
 
     const vibers = await hubGetVibers(gatewayUrl);
     if (!vibers.connected || vibers.vibers.length === 0) {
+      if (isInteractiveTerminal()) {
+        const action = await promptNoVibersAction(gatewayUrl);
+        if (action === "start") {
+          process.exit(await runSubcommand(["start"]));
+        }
+        if (action === "onboard") {
+          process.exit(await runSubcommand(["onboard"]));
+        }
+      }
       console.error(`[Chat] No tasks connected to gateway at ${gatewayUrl}`);
-      console.error("[Chat] Start the gateway + Viber runtime in another terminal:");
+      console.error("[Chat] Start setup with one of:");
+      console.error("  openviber onboard");
+      console.error("  openviber start");
       console.error("  pnpm dev  (or: pnpm dev:gateway + pnpm dev:viber)");
       process.exit(1);
     }
@@ -1901,6 +1933,155 @@ function question(rl: readline.Interface, prompt: string): Promise<string> {
   return new Promise((resolve) => rl.question(prompt, resolve));
 }
 
+function isInteractiveTerminal(): boolean {
+  return Boolean(process.stdin.isTTY && process.stdout.isTTY);
+}
+
+function shouldRunInteractiveLauncher(): boolean {
+  if (process.env.OPENVIBER_NO_LAUNCHER === "1") return false;
+  return process.argv.slice(2).length === 0 && isInteractiveTerminal();
+}
+
+async function runSubcommand(args: string[]): Promise<number> {
+  return await new Promise<number>((resolve, reject) => {
+    const child = spawn(process.execPath, [process.argv[1], ...args], {
+      stdio: "inherit",
+      env: process.env,
+    });
+    child.on("error", reject);
+    child.on("close", (code) => resolve(code ?? 0));
+  });
+}
+
+async function promptNoVibersAction(
+  gatewayUrl: string,
+): Promise<"start" | "onboard" | "exit"> {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+    terminal: true,
+  });
+
+  try {
+    console.log(
+      `\n[Chat] No vibers connected to gateway at ${gatewayUrl}\n`,
+    );
+    console.log("Choose next step:");
+    console.log("  1) Start local daemon now");
+    console.log("  2) Run onboarding setup");
+    console.log("  3) Exit\n");
+
+    const answer = (await question(rl, "Select [1-3] (Enter for 1): "))
+      .trim()
+      .toLowerCase();
+
+    if (answer === "" || answer === "1" || answer === "start") return "start";
+    if (answer === "2" || answer === "onboard") return "onboard";
+    return "exit";
+  } finally {
+    rl.close();
+  }
+}
+
+async function runInteractiveLauncher(): Promise<void> {
+  const gatewayUrl =
+    process.env.VIBER_GATEWAY_URL ||
+    process.env.VIBER_BOARD_URL ||
+    process.env.VIBER_HUB_URL ||
+    "http://localhost:6009";
+
+  const vibers = await hubGetVibers(gatewayUrl);
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+    terminal: true,
+  });
+
+  type LauncherAction =
+    | "chat"
+    | "status"
+    | "onboard"
+    | "start"
+    | "run"
+    | "exit";
+
+  let action: LauncherAction = "exit";
+  let runGoal = "";
+
+  try {
+    console.log("\nOpenViber — chat-first launcher\n");
+
+    if (vibers.connected && vibers.vibers.length > 0) {
+      const preview = vibers.vibers
+        .slice(0, 3)
+        .map((v, i) => `  ${i + 1}. ${v.name} (${v.id})`)
+        .join("\n");
+      console.log(`Connected vibers (${vibers.vibers.length}):`);
+      console.log(preview);
+      if (vibers.vibers.length > 3) {
+        console.log(`  ...and ${vibers.vibers.length - 3} more`);
+      }
+      console.log("");
+      console.log("Choose next step:");
+      console.log("  1) Jump into chat");
+      console.log("  2) Check status");
+      console.log("  3) Run onboarding setup");
+      console.log("  4) Exit\n");
+
+      const answer = (await question(rl, "Select [1-4] (Enter for 1): "))
+        .trim()
+        .toLowerCase();
+
+      if (answer === "" || answer === "1" || answer === "chat") action = "chat";
+      else if (answer === "2" || answer === "status") action = "status";
+      else if (answer === "3" || answer === "onboard") action = "onboard";
+      else action = "exit";
+    } else {
+      console.log("No connected vibers detected.\n");
+      console.log("Choose next step:");
+      console.log("  1) Run onboarding setup");
+      console.log("  2) Start local daemon");
+      console.log("  3) Run a one-off task");
+      console.log("  4) Exit\n");
+
+      const answer = (await question(rl, "Select [1-4] (Enter for 1): "))
+        .trim()
+        .toLowerCase();
+
+      if (answer === "" || answer === "1" || answer === "onboard") {
+        action = "onboard";
+      } else if (answer === "2" || answer === "start") {
+        action = "start";
+      } else if (answer === "3" || answer === "run") {
+        action = "run";
+        runGoal = (await question(rl, "Task goal: ")).trim();
+      } else {
+        action = "exit";
+      }
+    }
+  } finally {
+    rl.close();
+  }
+
+  if (action === "exit") return;
+
+  if (action === "chat") {
+    process.exit(await runSubcommand(["chat", "--gateway", gatewayUrl]));
+  } else if (action === "status") {
+    process.exit(await runSubcommand(["status", "--gateway", gatewayUrl]));
+  } else if (action === "onboard") {
+    process.exit(await runSubcommand(["onboard"]));
+  } else if (action === "start") {
+    process.exit(await runSubcommand(["start"]));
+  } else if (action === "run") {
+    if (!runGoal) {
+      console.log("No task goal provided. Exiting.");
+      return;
+    }
+    process.exit(await runSubcommand(["run", runGoal]));
+  }
+}
+
 async function handleChatCommand(
   input: string,
   ctx: {
@@ -2071,4 +2252,12 @@ function waitForWsMessage(
 
 // ==================== Main ====================
 
-program.parse();
+async function main(): Promise<void> {
+  if (shouldRunInteractiveLauncher()) {
+    await runInteractiveLauncher();
+    return;
+  }
+  await program.parseAsync();
+}
+
+void main();

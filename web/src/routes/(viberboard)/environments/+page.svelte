@@ -64,15 +64,11 @@
   }
 
   function getNewThreadHref(environmentId: string) {
-    if (!viberId) {
-      return "/vibers";
-    }
-
     const params = new URLSearchParams({ environment: environmentId });
     if (nodeId) {
       params.set("node", nodeId);
     }
-    return `/vibers/${viberId}/new?${params.toString()}`;
+    return `/vibers/new?${params.toString()}`;
   }
 
   function isSelectedForViber(environmentId: string) {

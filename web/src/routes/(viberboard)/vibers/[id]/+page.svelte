@@ -27,6 +27,7 @@
   import ChatComposer from "$lib/components/chat-composer.svelte";
   import * as Resizable from "$lib/components/ui/resizable";
   import * as Sheet from "$lib/components/ui/sheet";
+  import * as Dialog from "$lib/components/ui/dialog";
   import {
     Collapsible,
     CollapsibleTrigger,
@@ -35,9 +36,19 @@
 
   // Markdown → HTML for message content (GFM, line breaks)
   marked.setOptions({ gfm: true, breaks: true });
+  function sanitizeRenderedHtml(html: string): string {
+    return html
+      .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
+      .replace(/\son\w+="[^"]*"/gi, "")
+      .replace(/\son\w+='[^']*'/gi, "")
+      .replace(/href="javascript:[^"]*"/gi, 'href="#"')
+      .replace(/href='javascript:[^']*'/gi, "href='#'");
+  }
+
   function renderMarkdown(text: string): string {
     if (!text) return "";
-    return marked.parse(text) as string;
+    const rendered = marked.parse(text) as string;
+    return sanitizeRenderedHtml(rendered);
   }
 
   /**
@@ -390,13 +401,6 @@
     environmentId?: string | null;
   }
 
-  interface ComposerNodeInfo {
-    id: string;
-    name: string;
-    node_id: string | null;
-    status: "pending" | "active" | "offline";
-  }
-
   interface ComposerEnvInfo {
     id: string;
     name: string;
@@ -475,15 +479,19 @@
   let inputValue = $state("");
   let selectedModelId = $state("");
   let selectedSkillIds = $state<string[]>([]);
-  let composerNodes = $state<ComposerNodeInfo[]>([]);
   let composerEnvironments = $state<ComposerEnvInfo[]>([]);
-  let selectedNodeId = $state<string | null>(null);
   let selectedEnvironmentId = $state<string | null>(null);
   let sending = $state(false);
   let messagesContainer = $state<HTMLDivElement | null>(null);
   let inputEl = $state<HTMLTextAreaElement | null>(null);
   // Error feedback for failed tasks / API errors
   let chatError = $state<string | null>(null);
+  let showSkillSetupDialog = $state(false);
+  let setupSkill = $state<ViberSkill | null>(null);
+  let setupSkillError = $state<string | null>(null);
+  let settingUpSkill = $state(false);
+  let setupAuthAction = $state<"copy" | "start">("copy");
+  let setupAuthCommand = $state<string | null>(null);
 
   // Session activity tracking for long-running AI tasks
   let sessionStartedAt = $state<number | null>(null);
@@ -630,12 +638,7 @@
         if (data.enabledSkills && selectedSkillIds.length === 0) {
           selectedSkillIds = data.enabledSkills;
         }
-        // Sync node/environment selection from viber data (first load)
-        if (data.nodeId && !selectedNodeId) {
-          // Match by node_id (daemon ID) since the viber's nodeId is the daemon's ID
-          const match = composerNodes.find((n) => n.node_id === data.nodeId || n.id === data.nodeId);
-          if (match) selectedNodeId = match.id;
-        }
+        // Sync environment selection from viber data (first load)
         if (data.environmentId && !selectedEnvironmentId) {
           selectedEnvironmentId = data.environmentId;
         }
@@ -663,6 +666,15 @@
     const content = (overrideContent ?? inputValue).trim();
     if (!content || sending || viber?.nodeConnected !== true) return;
 
+    const unavailableSelected = (viber?.skills ?? []).filter(
+      (skill) =>
+        selectedSkillIds.includes(skill.id) && skill.available === false,
+    );
+    if (unavailableSelected.length > 0) {
+      handleSkillSetupRequest(unavailableSelected[0]);
+      return;
+    }
+
     chatError = null; // Clear previous error on retry
     inputValue = "";
     sending = true;
@@ -687,6 +699,9 @@
           body: {
             ...(selectedModelId ? { model: selectedModelId } : {}),
             ...(selectedSkillIds.length > 0 ? { skills: selectedSkillIds } : {}),
+            ...(selectedEnvironmentId
+              ? { environmentId: selectedEnvironmentId }
+              : {}),
           },
         }),
         // Seed with existing DB messages as initial messages
@@ -754,6 +769,93 @@
         error instanceof Error ? error.message : "Failed to send message.";
       sending = false;
       sessionStartedAt = null;
+    }
+  }
+
+  function handleSkillSetupRequest(skill: ViberSkill) {
+    setupSkill = skill;
+    setupSkillError = null;
+    setupAuthAction = "copy";
+    setupAuthCommand = null;
+    showSkillSetupDialog = true;
+  }
+
+  async function runSkillProvision(install: boolean) {
+    if (!setupSkill || !viber?.nodeId) {
+      setupSkillError = "Node is unavailable for this viber.";
+      return;
+    }
+    const targetSkill = setupSkill;
+
+    settingUpSkill = true;
+    setupSkillError = null;
+    try {
+      const response = await fetch("/api/skills/provision", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          skillId: targetSkill.id,
+          nodeId: viber.nodeId,
+          install,
+          authAction: install ? setupAuthAction : "none",
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload?.error || "Failed to start skill setup.");
+      }
+
+      if (payload.ready) {
+        if (!selectedSkillIds.includes(targetSkill.id)) {
+          selectedSkillIds = [...selectedSkillIds, targetSkill.id];
+        }
+        showSkillSetupDialog = false;
+        setupAuthCommand = null;
+        await fetchViber();
+        return;
+      }
+
+      await fetchViber();
+      const latestSkill =
+        (viber?.skills ?? []).find((skill) => skill.id === targetSkill.id) ||
+        targetSkill;
+      const auth = payload?.auth as
+        | { required?: boolean; ready?: boolean; command?: string; message?: string }
+        | undefined;
+      if (auth?.required && !auth?.ready) {
+        setupAuthCommand = auth.command || null;
+        setupSkillError =
+          auth.message ||
+          `${latestSkill.name} still needs authentication before it can run.`;
+        return;
+      }
+
+      setupSkillError =
+        payload?.error ||
+        latestSkill.healthSummary ||
+        `${latestSkill.name} is still not ready.`;
+    } catch (error) {
+      setupSkillError =
+        error instanceof Error ? error.message : "Failed to start skill setup.";
+    } finally {
+      settingUpSkill = false;
+    }
+  }
+
+  async function startSkillSetup() {
+    await runSkillProvision(true);
+  }
+
+  async function recheckSkillSetup() {
+    await runSkillProvision(false);
+  }
+
+  async function copySetupAuthCommand() {
+    if (!setupAuthCommand) return;
+    try {
+      await navigator.clipboard.writeText(setupAuthCommand);
+    } catch {
+      setupSkillError = "Failed to copy command. Please copy it manually.";
     }
   }
 
@@ -857,21 +959,11 @@
 
   async function fetchComposerContext() {
     try {
-      const [nodesRes, envsRes, settingsRes] = await Promise.all([
-        fetch("/api/nodes"),
+      const [envsRes, settingsRes] = await Promise.all([
         fetch("/api/environments"),
         fetch("/api/settings"),
       ]);
 
-      if (nodesRes.ok) {
-        const data = await nodesRes.json();
-        composerNodes = (data.nodes ?? []).map((n: any) => ({
-          id: n.id,
-          name: n.name,
-          node_id: n.node_id ?? n.id,
-          status: n.status ?? "offline",
-        }));
-      }
       if (envsRes.ok) {
         const data = await envsRes.json();
         composerEnvironments = (data.environments ?? []).map((e: any) => ({
@@ -954,6 +1046,27 @@
                 The node that hosts this viber is not connected. Start the viber
                 daemon on that node to chat.
               </p>
+              <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
+                <a
+                  href="/nodes"
+                  class="inline-flex items-center rounded-md border border-border bg-card px-3 py-1.5 text-xs text-foreground hover:bg-accent"
+                >
+                  Open Nodes
+                </a>
+                <a
+                  href="/vibers/new"
+                  class="inline-flex items-center rounded-md border border-border bg-card px-3 py-1.5 text-xs text-foreground hover:bg-accent"
+                >
+                  Start New Chat
+                </a>
+                <button
+                  type="button"
+                  class="inline-flex items-center rounded-md border border-border bg-card px-3 py-1.5 text-xs text-foreground hover:bg-accent"
+                  onclick={() => void fetchViber()}
+                >
+                  Retry
+                </button>
+              </div>
             </div>
           </div>
         {:else if displayMessages.length === 0}
@@ -1165,17 +1278,17 @@
           bind:value={inputValue}
           bind:inputElement={inputEl}
           bind:selectedModelId
-          bind:selectedNodeId
           bind:selectedEnvironmentId
           placeholder={viber?.nodeConnected === true
             ? "Send a task or command..."
             : "Node is offline"}
           disabled={viber?.nodeConnected !== true}
           {sending}
-          nodes={composerNodes}
+          nodes={[]}
           environments={composerEnvironments}
           skills={viber?.skills ?? []}
           bind:selectedSkillIds
+          onsetupskill={handleSkillSetupRequest}
           onsubmit={() => sendMessage()}
         >
           {#snippet beforeInput()}
@@ -1257,6 +1370,106 @@
     </div>
   </Sheet.Content>
 </Sheet.Root>
+
+<Dialog.Root bind:open={showSkillSetupDialog}>
+  <Dialog.Content class="max-w-md">
+    <Dialog.Header>
+      <Dialog.Title>Set up {setupSkill?.name || "skill"}?</Dialog.Title>
+      <Dialog.Description>
+        {setupSkill?.name || "This skill"} is not ready on this node yet.
+        Should I start guided setup now?
+      </Dialog.Description>
+    </Dialog.Header>
+
+    {#if setupSkill?.healthSummary}
+      <p class="rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+        {setupSkill.healthSummary}
+      </p>
+    {/if}
+
+    <div class="space-y-2 rounded-md border border-border bg-muted/20 px-3 py-2">
+      <p class="text-xs font-medium text-foreground">If auth is needed</p>
+      <div class="flex flex-wrap gap-2">
+        <button
+          type="button"
+          class="rounded-md border px-2.5 py-1 text-xs transition-colors {setupAuthAction === 'copy'
+            ? 'border-primary/40 bg-primary/10 text-primary'
+            : 'border-border bg-background text-muted-foreground hover:text-foreground'}"
+          onclick={() => (setupAuthAction = "copy")}
+        >
+          Show command to copy
+        </button>
+        <button
+          type="button"
+          class="rounded-md border px-2.5 py-1 text-xs transition-colors {setupAuthAction === 'start'
+            ? 'border-primary/40 bg-primary/10 text-primary'
+            : 'border-border bg-background text-muted-foreground hover:text-foreground'}"
+          onclick={() => (setupAuthAction = "start")}
+        >
+          Try start auth now
+        </button>
+      </div>
+    </div>
+
+    {#if setupAuthCommand}
+      <div class="space-y-2 rounded-md border border-border bg-background px-3 py-2">
+        <p class="text-xs text-muted-foreground">Run this auth command:</p>
+        <code class="block rounded-md bg-muted px-2 py-1 text-[11px] text-foreground">
+          {setupAuthCommand}
+        </code>
+        <button
+          type="button"
+          class="rounded-md border border-border px-2.5 py-1 text-xs text-foreground hover:bg-muted"
+          onclick={() => void copySetupAuthCommand()}
+        >
+          Copy command
+        </button>
+      </div>
+    {/if}
+
+    {#if setupSkillError}
+      <p class="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+        {setupSkillError}
+      </p>
+    {/if}
+
+    <Dialog.Footer class="mt-2">
+      <button
+        type="button"
+        class="rounded-md border border-border px-3 py-2 text-sm text-foreground hover:bg-muted"
+        onclick={() => {
+          showSkillSetupDialog = false;
+          setupSkillError = null;
+          setupAuthCommand = null;
+        }}
+      >
+        Not now
+      </button>
+      {#if setupSkillError}
+        <button
+          type="button"
+          class="rounded-md border border-border px-3 py-2 text-sm text-foreground hover:bg-muted disabled:opacity-60"
+          disabled={settingUpSkill}
+          onclick={() => void recheckSkillSetup()}
+        >
+          Re-check
+        </button>
+      {/if}
+      <button
+        type="button"
+        class="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60"
+        disabled={settingUpSkill}
+        onclick={() => void startSkillSetup()}
+      >
+        {#if settingUpSkill}
+          Running setup...
+        {:else}
+          Yes, set it up
+        {/if}
+      </button>
+    </Dialog.Footer>
+  </Dialog.Content>
+</Dialog.Root>
 
 {#snippet toolOutputContent()}
   <div class="border-b border-border/60 px-3 py-2.5 shrink-0">

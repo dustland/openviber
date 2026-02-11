@@ -303,8 +303,11 @@
           >
           <p class="text-[11px] text-muted-foreground">
             Describe what the viber should do. Write in natural language — the
-            node will match skills automatically. You can mention skill names
-            in prose if you want.
+            node will match skills automatically. You can also declare required
+            skills explicitly with a line like:
+            <code class="mx-1 rounded bg-muted px-1 py-0.5 text-[10px]"
+              >Required skills: cursor-agent, github</code
+            >
           </p>
           <Textarea
             id="intent-body"

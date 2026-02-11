@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, tick } from "svelte";
+  import { onDestroy, onMount, tick } from "svelte";
   import { page } from "$app/stores";
   import { goto } from "$app/navigation";
   import { Chat } from "@ai-sdk/svelte";
@@ -507,7 +507,67 @@
   let toolOutputContainer = $state<HTMLDivElement | null>(null);
   let toolOutputUserScrolledUp = $state(false);
   let selectedToolOutputId = $state<string | null>(null);
+  let highlightedToolOutputId = $state<string | null>(null);
   let showMobileToolOutput = $state(false);
+  let toolOutputHighlightTimeout: ReturnType<typeof setTimeout> | null = null;
+  const toolOutputEntryElements = new Map<string, HTMLDivElement>();
+
+  function getToolOutputEntryId(messageId: string, partIndex: number, toolName: string): string {
+    return `${messageId}:${partIndex}:${toolName}`;
+  }
+
+  function trackToolOutputEntry(node: HTMLDivElement, id: string) {
+    toolOutputEntryElements.set(id, node);
+
+    return {
+      update(nextId: string) {
+        if (nextId === id) return;
+        toolOutputEntryElements.delete(id);
+        id = nextId;
+        toolOutputEntryElements.set(id, node);
+      },
+      destroy() {
+        toolOutputEntryElements.delete(id);
+      },
+    };
+  }
+
+  function triggerToolOutputHighlight(id: string): void {
+    highlightedToolOutputId = id;
+    if (toolOutputHighlightTimeout) {
+      clearTimeout(toolOutputHighlightTimeout);
+    }
+    toolOutputHighlightTimeout = setTimeout(() => {
+      if (highlightedToolOutputId === id) {
+        highlightedToolOutputId = null;
+      }
+      toolOutputHighlightTimeout = null;
+    }, 1400);
+  }
+
+  async function focusToolOutputEntry(id: string): Promise<void> {
+    selectedToolOutputId = id;
+
+    await tick();
+    const entryElement = toolOutputEntryElements.get(id);
+    const containerElement = toolOutputContainer;
+    if (entryElement && containerElement) {
+      entryElement.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+      });
+      triggerToolOutputHighlight(id);
+    }
+  }
+
+
+  onDestroy(() => {
+    if (toolOutputHighlightTimeout) {
+      clearTimeout(toolOutputHighlightTimeout);
+      toolOutputHighlightTimeout = null;
+    }
+    highlightedToolOutputId = null;
+  });
 
   function scrollToBottom(behavior: ScrollBehavior = "smooth") {
     if (!messagesContainer || userScrolledUp) return;
@@ -1208,13 +1268,32 @@
                         {@const toolName = getPartToolName(part)}
                         {@const toolPart = part as any}
                         {#if toolName}
-                          <ToolCall
-                            {toolName}
-                            toolState={toolPart.state || "input-available"}
-                            input={toolPart.input}
-                            output={toolPart.output}
-                            errorText={toolPart.errorText}
-                          />
+                          <div
+                            class="rounded-lg transition-shadow focus-within:ring-2 focus-within:ring-ring"
+                            role="button"
+                            tabindex="0"
+                            aria-label={`Focus ${toolName} output`}
+                            onclick={() =>
+                              void focusToolOutputEntry(
+                                getToolOutputEntryId(message.id, i, toolName),
+                              )}
+                            onkeydown={(event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                void focusToolOutputEntry(
+                                  getToolOutputEntryId(message.id, i, toolName),
+                                );
+                              }
+                            }}
+                          >
+                            <ToolCall
+                              {toolName}
+                              toolState={toolPart.state || "input-available"}
+                              input={toolPart.input}
+                              output={toolPart.output}
+                              errorText={toolPart.errorText}
+                            />
+                          </div>
                         {/if}
                       {/if}
                     {/each}
@@ -1500,72 +1579,82 @@
     >
       <div class="space-y-1 min-w-0 w-full">
         {#each toolOutputEntries as entry (entry.id)}
-          <Collapsible
-            open={selectedToolOutputId === entry.id}
-            class="min-w-0 w-full box-border overflow-hidden"
+          <div
+            use:trackToolOutputEntry={entry.id}
+            class="min-w-0 w-full rounded-lg transition-colors duration-300 {highlightedToolOutputId ===
+            entry.id
+              ? 'bg-primary/10'
+              : ''}"
           >
-            <CollapsibleTrigger
-              class="box-border flex w-full min-w-0 overflow-hidden items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-muted/60 {selectedToolOutputId ===
-              entry.id
-                ? 'bg-muted/50'
-                : ''}"
-              onclick={() => {
-                selectedToolOutputId =
-                  selectedToolOutputId === entry.id ? null : entry.id;
-              }}
+            <Collapsible
+              open={selectedToolOutputId === entry.id}
+              class="min-w-0 w-full box-border overflow-hidden"
             >
-              <div
-                class="flex min-w-0 flex-1 items-center gap-2 overflow-hidden"
+              <CollapsibleTrigger
+                class="box-border flex w-full min-w-0 overflow-hidden items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-muted/60 {selectedToolOutputId ===
+                entry.id
+                  ? 'bg-muted/50'
+                  : ''}"
+                onclick={() => {
+                  selectedToolOutputId =
+                    selectedToolOutputId === entry.id ? null : entry.id;
+                }}
               >
-                <ChevronRight
-                  class="size-3.5 shrink-0 text-muted-foreground transition-transform duration-200 {selectedToolOutputId ===
-                  entry.id
-                    ? 'rotate-90'
-                    : ''}"
-                />
-                {#if isToolStateRunning(entry.state)}
-                  <LoaderCircle
-                    class="size-3.5 shrink-0 animate-spin text-amber-500"
+                <div
+                  class="flex min-w-0 flex-1 items-center gap-2 overflow-hidden"
+                >
+                  <ChevronRight
+                    class="size-3.5 shrink-0 text-muted-foreground transition-transform duration-200 {selectedToolOutputId ===
+                    entry.id
+                      ? 'rotate-90'
+                      : ''}"
                   />
-                {:else if isToolStateError(entry.state)}
-                  <AlertCircle class="size-3.5 shrink-0 text-red-500" />
-                {:else}
-                  <CheckCircle2 class="size-3.5 shrink-0 text-emerald-500" />
-                {/if}
-                <div class="min-w-0 w-0 flex-1 overflow-hidden">
-                  <p
-                    class="truncate text-[12px] font-medium text-foreground"
-                  >
-                    {entry.toolName}
-                  </p>
-                  {#if entry.summary}
+                  {#if isToolStateRunning(entry.state)}
+                    <LoaderCircle
+                      class="size-3.5 shrink-0 animate-spin text-amber-500"
+                    />
+                  {:else if isToolStateError(entry.state)}
+                    <AlertCircle class="size-3.5 shrink-0 text-red-500" />
+                  {:else}
+                    <CheckCircle2 class="size-3.5 shrink-0 text-emerald-500" />
+                  {/if}
+                  <div class="min-w-0 w-0 flex-1 overflow-hidden">
                     <p
-                      class="truncate text-[10px] text-muted-foreground"
-                      title={entry.summary}
+                      class="truncate text-[12px] font-medium text-foreground"
                     >
-                      {entry.summary}
+                      {entry.toolName}
+                    </p>
+                    {#if entry.summary}
+                      <p
+                        class="truncate text-[10px] text-muted-foreground"
+                        title={entry.summary}
+                      >
+                        {entry.summary}
+                      </p>
+                    {/if}
+                  </div>
+                </div>
+              </CollapsibleTrigger>
+              <CollapsibleContent
+                class="min-w-0 w-full max-w-full overflow-hidden"
+              >
+                <div
+                  class="mx-2 mb-1 box-border max-h-48 min-w-0 w-[calc(100%-1rem)] max-w-full overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable] rounded-md border border-border/50 bg-black/[0.03] dark:bg-white/[0.03]"
+                >
+                  {#if entry.output}
+                    <pre
+                      class="block box-border w-full min-w-0 max-w-full whitespace-pre-wrap wrap-anywhere p-3 font-mono text-[11px] leading-relaxed text-foreground/85">{entry.output}</pre>
+                  {:else}
+                    <p
+                      class="p-3 text-[11px] text-muted-foreground"
+                    >
+                      Waiting for output...
                     </p>
                   {/if}
                 </div>
-              </div>
-            </CollapsibleTrigger>
-            <CollapsibleContent
-              class="min-w-0 w-full max-w-full overflow-hidden"
-            >
-              <div
-                class="mx-2 mb-1 box-border max-h-48 min-w-0 w-[calc(100%-1rem)] max-w-full overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable] rounded-md border border-border/50 bg-black/[0.03] dark:bg-white/[0.03]"
-              >
-                {#if entry.output}
-                  <pre
-                    class="block box-border w-full min-w-0 max-w-full whitespace-pre-wrap wrap-anywhere p-3 font-mono text-[11px] leading-relaxed text-foreground/85">{entry.output}</pre>
-                {:else}
-                  <p class="p-3 text-[11px] text-muted-foreground">
-                    Waiting for output...
-                  </p>
-                {/if}
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
+              </CollapsibleContent>
+            </Collapsible>
+          </div>
         {/each}
       </div>
     </div>

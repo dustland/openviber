@@ -1,6 +1,6 @@
 # OpenViber Documentation
 
-Welcome to the OpenViber documentation. OpenViber is an open-source platform that turns your machine into a **Viber Node** — hosting role-scoped AI workers called **vibers** that handle real tasks autonomously.
+Welcome to the OpenViber documentation. OpenViber is an open-source platform that turns your machine into a local AI runtime — hosting role-scoped AI workers called **vibers** that handle real tasks autonomously.
 
 ## What is OpenViber?
 
@@ -14,7 +14,7 @@ OpenViber is a platform for deploying AI vibers that can:
 ## Quick Links
 
 - [Quick Start](/docs/getting-started/quick-start) — Run your first viber in minutes
-- [Onboarding](/docs/getting-started/onboarding) — Set up your Viber Node
+- [Onboarding](/docs/getting-started/onboarding) — Set up your local runtime
 - [Vibers](/docs/concepts/viber) — Configure viber behavior
 - [Jobs](/docs/concepts/jobs) — Set up scheduled tasks
 - [Tools](/docs/concepts/tools) — Available actions
@@ -23,7 +23,7 @@ OpenViber is a platform for deploying AI vibers that can:
 ## Key Components
 
 1. **Vibers** — Role-scoped AI workers with their own persona, tools, and memory
-2. **Viber Node** — Your machine running OpenViber, hosting one or more vibers
+2. **Runtime** — Your machine running OpenViber, hosting one or more vibers
 3. **Tools** — Capabilities vibers can use (file, search, browser, terminal, etc.)
 4. **Skills** — Domain knowledge injected as instructions
 5. **Jobs** — Scheduled tasks defined in YAML

@@ -13,6 +13,7 @@
 
 import { EventEmitter } from "events";
 import WebSocket from "ws";
+import { spawnSync } from "child_process";
 import type { ViberOptions } from "../core/viber-agent";
 import { runTask, appendDailyMemory } from "./runtime";
 import { createLogger } from "../utils/logger";
@@ -27,7 +28,7 @@ import {
   type RunningTaskInfo,
   type NodeObservabilityStatus,
 } from "./node-status";
-import type { SkillHealthReport } from "../skills/health";
+import type { SkillHealthReport, SkillHealthResult } from "../skills/health";
 
 // ==================== Types ====================
 
@@ -135,7 +136,14 @@ export type ControllerServerMessage =
     model?: string;
     nodeId?: string;
   }
-  | { type: "status:request" };
+  | { type: "status:request" }
+  | {
+    type: "skill:provision";
+    requestId: string;
+    skillId: string;
+    install?: boolean;
+    authAction?: "none" | "copy" | "start";
+  };
 
 // Viber -> Server messages
 export type ControllerClientMessage =
@@ -154,6 +162,28 @@ export type ControllerClientMessage =
   | { type: "terminal:output"; target: string; appId?: string; data: string }
   | { type: "terminal:resized"; target: string; appId?: string; ok: boolean }
   | { type: "status:report"; status: NodeObservabilityStatus }
+  | {
+    type: "skill:provision-result";
+    requestId: string;
+    skillId: string;
+    ok: boolean;
+    ready: boolean;
+    before?: SkillHealthResult;
+    after?: SkillHealthResult;
+    auth?: {
+      required: boolean;
+      ready: boolean;
+      command?: string;
+      message?: string;
+    };
+    installLog?: Array<{
+      checkId: string;
+      command: string;
+      ok: boolean;
+      output?: string;
+    }>;
+    error?: string;
+  }
   // Job reporting
   | { type: "jobs:list"; jobs: Array<{ name: string; schedule: string; prompt: string; description?: string; model?: string; nodeId?: string }> };
 
@@ -507,6 +537,10 @@ export class ViberController extends EventEmitter {
         case "status:request":
           await this.handleStatusRequest();
           break;
+
+        case "skill:provision":
+          await this.handleSkillProvision(message);
+          break;
       }
     } catch (error) {
       this.log.error("Failed to process message", { error: String(error) });
@@ -818,6 +852,246 @@ export class ViberController extends EventEmitter {
       status.viber.skillHealth = report;
     }
     this.send({ type: "status:report", status });
+  }
+
+  private async getSkillHealthResult(skillId: string): Promise<SkillHealthResult | null> {
+    try {
+      const { checkSkillHealth } = await import("../skills/health");
+      return await checkSkillHealth({ id: skillId, name: skillId });
+    } catch (error) {
+      this.log.warn("Failed to run skill health check", {
+        skillId,
+        error: String(error),
+      });
+      return null;
+    }
+  }
+
+  private getProvisionInstallCommand(skillId: string, checkId: string): string | null {
+    if (checkId === "tmux") {
+      if (process.platform === "darwin") return "brew install tmux";
+      if (process.platform === "linux") {
+        return "sudo apt-get update && sudo apt-get install -y tmux";
+      }
+      return null;
+    }
+
+    if (skillId === "cursor-agent" && checkId === "cursor-cli") {
+      return "curl https://cursor.com/install -fsS | bash";
+    }
+    if (skillId === "codex-cli" && checkId === "codex-cli") {
+      return "pnpm add -g @openai/codex";
+    }
+    if (skillId === "gemini-cli" && checkId === "gemini-cli") {
+      return "npm install -g @google/gemini-cli";
+    }
+    if (skillId === "github" && checkId === "gh-cli") {
+      if (process.platform === "darwin") return "brew install gh";
+      if (process.platform === "linux") {
+        return "sudo apt-get update && sudo apt-get install -y gh";
+      }
+      return null;
+    }
+    if (skillId === "railway" && checkId === "railway-cli") {
+      return "npm install -g @railway/cli";
+    }
+    return null;
+  }
+
+  private getProvisionAuthCommand(skillId: string, checkId: string): string | undefined {
+    if (skillId === "cursor-agent" && checkId === "cursor-auth") {
+      return "agent login || cursor-agent login";
+    }
+    if (skillId === "codex-cli" && checkId === "codex-auth") {
+      return "codex login";
+    }
+    if (skillId === "gemini-cli" && checkId === "gemini-auth") {
+      return "gemini";
+    }
+    if (skillId === "github" && checkId === "gh-auth") {
+      return "gh auth login -h github.com";
+    }
+    if (skillId === "railway" && checkId === "railway-auth") {
+      return "railway login";
+    }
+    return undefined;
+  }
+
+  private runProvisionCommand(
+    command: string,
+    timeoutMs: number = 10 * 60 * 1000,
+  ): { ok: boolean; output: string } {
+    const result = spawnSync(command, {
+      shell: true,
+      encoding: "utf8",
+      stdio: "pipe",
+      timeout: timeoutMs,
+    });
+    const stdout = result.stdout ? String(result.stdout) : "";
+    const stderr = result.stderr ? String(result.stderr) : "";
+    const output = [stdout, stderr].filter(Boolean).join("\n").trim();
+
+    if (result.error) {
+      return {
+        ok: false,
+        output:
+          output ||
+          result.error.message ||
+          "Command failed to start.",
+      };
+    }
+    return {
+      ok: (result.status ?? 1) === 0,
+      output,
+    };
+  }
+
+  private async handleSkillProvision(message: {
+    requestId: string;
+    skillId: string;
+    install?: boolean;
+    authAction?: "none" | "copy" | "start";
+  }): Promise<void> {
+    const skillId = String(message.skillId || "").trim();
+    if (!skillId) {
+      this.send({
+        type: "skill:provision-result",
+        requestId: message.requestId,
+        skillId: "",
+        ok: false,
+        ready: false,
+        error: "Missing skillId",
+      });
+      return;
+    }
+
+    const before = await this.getSkillHealthResult(skillId);
+    if (!before) {
+      this.send({
+        type: "skill:provision-result",
+        requestId: message.requestId,
+        skillId,
+        ok: false,
+        ready: false,
+        error: `Failed to read health status for ${skillId}`,
+      });
+      return;
+    }
+
+    const installLog: Array<{
+      checkId: string;
+      command: string;
+      ok: boolean;
+      output?: string;
+    }> = [];
+
+    if (before.available) {
+      this.send({
+        type: "skill:provision-result",
+        requestId: message.requestId,
+        skillId,
+        ok: true,
+        ready: true,
+        before,
+        after: before,
+        auth: {
+          required: false,
+          ready: true,
+        },
+        installLog,
+      });
+      return;
+    }
+
+    if (message.install) {
+      const binaryChecks = before.checks.filter(
+        (check) =>
+          (check.required ?? true) &&
+          !check.ok &&
+          check.actionType === "binary",
+      );
+
+      for (const check of binaryChecks) {
+        const command = this.getProvisionInstallCommand(skillId, check.id);
+        if (!command) continue;
+        const installResult = this.runProvisionCommand(command);
+        installLog.push({
+          checkId: check.id,
+          command,
+          ok: installResult.ok,
+          output: installResult.output.slice(0, 1200),
+        });
+      }
+    }
+
+    let after = await this.getSkillHealthResult(skillId);
+    if (!after) {
+      after = before;
+    }
+
+    const authCheck = after.checks.find(
+      (check) =>
+        (check.required ?? true) &&
+        !check.ok &&
+        (check.actionType === "auth_cli" || check.actionType === "oauth"),
+    );
+
+    let auth: {
+      required: boolean;
+      ready: boolean;
+      command?: string;
+      message?: string;
+    } = {
+      required: false,
+      ready: true,
+    };
+
+    if (authCheck) {
+      const authCommand = this.getProvisionAuthCommand(skillId, authCheck.id);
+      auth = {
+        required: true,
+        ready: false,
+        command:
+          message.authAction === "copy" || message.authAction === "start"
+            ? authCommand
+            : undefined,
+        message: authCheck.hint || authCheck.message || "Authentication is required.",
+      };
+
+      // "start" currently performs a non-interactive kickoff attempt.
+      // Many CLI auth flows still need user interaction in terminal/browser.
+      if (message.authAction === "start" && authCommand) {
+        const kickoff = this.runProvisionCommand(authCommand, 20_000);
+        installLog.push({
+          checkId: authCheck.id,
+          command: authCommand,
+          ok: kickoff.ok,
+          output: kickoff.output.slice(0, 1200),
+        });
+        const refreshed = await this.getSkillHealthResult(skillId);
+        if (refreshed) {
+          after = refreshed;
+          if (refreshed.available) {
+            auth = {
+              required: true,
+              ready: true,
+            };
+          }
+        }
+      }
+    }
+
+    this.send({
+      type: "skill:provision-result",
+      requestId: message.requestId,
+      skillId,
+      ok: true,
+      ready: after.available,
+      before,
+      after,
+      auth,
+      installLog,
+    });
   }
 
   /**

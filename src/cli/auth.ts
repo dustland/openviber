@@ -148,11 +148,65 @@ function getTmuxInstallCommandForPlatform(): string | null {
 }
 
 function getAutoInstallCommand(skillId: string, checkId: string): string | null {
+  if (checkId === "tmux") {
+    return getTmuxInstallCommandForPlatform();
+  }
   if (skillId === "cursor-agent" && checkId === "cursor-cli") {
     return "curl https://cursor.com/install -fsS | bash";
   }
-  if (skillId === "cursor-agent" && checkId === "tmux") {
-    return getTmuxInstallCommandForPlatform();
+  if (skillId === "codex-cli" && checkId === "codex-cli") {
+    return "pnpm add -g @openai/codex";
+  }
+  if (skillId === "gemini-cli" && checkId === "gemini-cli") {
+    return "npm install -g @google/gemini-cli";
+  }
+  if (skillId === "github" && checkId === "gh-cli") {
+    if (process.platform === "darwin") return "brew install gh";
+    if (process.platform === "linux") {
+      return "sudo apt-get update && sudo apt-get install -y gh";
+    }
+    return null;
+  }
+  if (skillId === "railway" && checkId === "railway-cli") {
+    return "npm install -g @railway/cli";
+  }
+  return null;
+}
+
+function getAuthCommand(skillId: string, checkId: string): string | null {
+  if (skillId === "cursor-agent" && checkId === "cursor-auth") {
+    return "agent login || cursor-agent login";
+  }
+  if (skillId === "codex-cli" && checkId === "codex-auth") {
+    return "codex login";
+  }
+  if (skillId === "gemini-cli" && checkId === "gemini-auth") {
+    return "gemini";
+  }
+  if (skillId === "github" && checkId === "gh-auth") {
+    return "gh auth login -h github.com";
+  }
+  if (skillId === "railway" && checkId === "railway-auth") {
+    return "railway login";
+  }
+  return null;
+}
+
+function getAuthEnvVar(skillId: string, checkId: string): string | null {
+  if (skillId === "cursor-agent" && checkId === "cursor-auth") {
+    return "CURSOR_API_KEY";
+  }
+  if (skillId === "codex-cli" && checkId === "codex-auth") {
+    return "OPENAI_API_KEY";
+  }
+  if (skillId === "gemini-cli" && checkId === "gemini-auth") {
+    return "GEMINI_API_KEY";
+  }
+  if (skillId === "github" && checkId === "gh-auth") {
+    return "GH_TOKEN";
+  }
+  if (skillId === "railway" && checkId === "railway-auth") {
+    return "RAILWAY_TOKEN";
   }
   return null;
 }
@@ -1222,42 +1276,59 @@ export async function runSkillSetup(
           console.log(
             `    ${check.label}: ${check.message || "not authenticated"}`,
           );
-          if (skill.id === "cursor-agent" && check.id === "cursor-auth") {
-            const setupNow = await promptYesNo(
-              rl,
-              "    Should I set up Cursor auth for you now?",
-              true,
-            );
-            if (setupNow) {
-              const mode = (
-                await ask(
-                  rl,
-                  "    Press Enter to open browser login now, type 'copy' to show command, or 's' to skip: ",
-                )
+          const authCommand = getAuthCommand(skill.id, check.id);
+          const authEnvVar = getAuthEnvVar(skill.id, check.id);
+          const setupNow = await promptYesNo(
+            rl,
+            "    Should I set up auth for you now?",
+            true,
+          );
+          if (setupNow) {
+            const mode = (
+              await ask(
+                rl,
+                "    Press Enter to start login, type 'copy' to show command, 'token' to paste key, or 's' to skip: ",
               )
-                .trim()
-                .toLowerCase();
+            )
+              .trim()
+              .toLowerCase();
 
-              if (mode === "copy") {
+            if (mode === "copy") {
+              if (authCommand) {
                 console.log("\n    Run this command in your terminal:");
-                console.log("    agent login");
-                console.log(
-                  "    (If `agent` is unavailable, try: cursor-agent login)\n",
-                );
-              } else if (mode !== "s" && mode !== "skip") {
-                console.log(
-                  "\n    Starting Cursor login. Follow prompts in the terminal/browser...\n",
-                );
-                await runInteractiveShellCommand(
-                  "agent login || cursor-agent login",
-                );
+                console.log(`    ${authCommand}\n`);
+              } else if (check.hint) {
+                console.log(`\n    ${check.hint}\n`);
               }
+            } else if (mode === "token") {
+              if (authEnvVar) {
+                const tokenValue = await ask(
+                  rl,
+                  `    Paste ${authEnvVar} (or Enter to skip): `,
+                );
+                if (tokenValue) {
+                  await saveApiKeyToEnv(authEnvVar, tokenValue);
+                  process.env[authEnvVar] = tokenValue;
+                  console.log(`    Saved ${authEnvVar} to ${getEnvFile()}\n`);
+                }
+              } else {
+                console.log("    No API key fallback for this skill.\n");
+              }
+            } else if (mode !== "s" && mode !== "skip") {
+              if (authCommand) {
+                console.log(
+                  "\n    Starting login flow. Follow prompts in terminal/browser...\n",
+                );
+                await runInteractiveShellCommand(authCommand);
+              } else if (check.hint) {
+                console.log(`\n    ${check.hint}\n`);
+              }
+            }
 
-              const ok = await recheckCheck(skill, check.id);
-              if (ok) {
-                console.log(`    ${check.label}: OK\n`);
-                break;
-              }
+            const ok = await recheckCheck(skill, check.id);
+            if (ok) {
+              console.log(`    ${check.label}: OK\n`);
+              break;
             }
           }
 

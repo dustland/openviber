@@ -73,6 +73,8 @@
   let setupSkill = $state<AccountSkill | null>(null);
   let settingUpSkill = $state(false);
   let setupSkillError = $state<string | null>(null);
+  let setupAuthAction = $state<"copy" | "start">("copy");
+  let setupAuthCommand = $state<string | null>(null);
 
   // Show first 3 intents inline, rest in dialog
   const previewIntents = $derived(intents.slice(0, 3));
@@ -294,15 +296,18 @@
   function handleUnavailableSkillRequest(skill: AccountSkill) {
     setupSkill = skill;
     setupSkillError = null;
+    setupAuthCommand = null;
+    setupAuthAction = "copy";
     showSkillSetupDialog = true;
   }
 
-  async function startSkillSetup() {
+  async function runSkillProvision(install: boolean) {
     const node = nodes.find((n) => n.id === selectedNodeId);
     if (!setupSkill || !node) {
       setupSkillError = "Select an active node before running skill setup.";
       return;
     }
+    const targetSkill = setupSkill;
 
     settingUpSkill = true;
     setupSkillError = null;
@@ -311,8 +316,10 @@
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          skillId: setupSkill.id,
+          skillId: targetSkill.id,
           nodeId: node.node_id || node.id,
+          install,
+          authAction: install ? setupAuthAction : "none",
         }),
       });
       const payload = await response.json();
@@ -321,19 +328,34 @@
       }
 
       if (payload.ready) {
-        if (!selectedSkillIds.includes(setupSkill.id)) {
-          selectedSkillIds = [...selectedSkillIds, setupSkill.id];
+        if (!selectedSkillIds.includes(targetSkill.id)) {
+          selectedSkillIds = [...selectedSkillIds, targetSkill.id];
         }
         showSkillSetupDialog = false;
+        setupAuthCommand = null;
         await fetchData();
         return;
       }
 
-      if (payload.setupViberId) {
-        showSkillSetupDialog = false;
-        await goto(`/vibers/${payload.setupViberId}`);
+      await fetchData();
+      const latestSkill =
+        composerSkills.find((skill) => skill.id === targetSkill.id) ||
+        targetSkill;
+      const auth = payload?.auth as
+        | { required?: boolean; ready?: boolean; command?: string; message?: string }
+        | undefined;
+      if (auth?.required && !auth?.ready) {
+        setupAuthCommand = auth.command || null;
+        setupSkillError =
+          auth.message ||
+          `${latestSkill.name} still needs authentication before it can run.`;
         return;
       }
+
+      setupSkillError =
+        payload?.error ||
+        latestSkill.healthSummary ||
+        `${latestSkill.name} is still not ready.`;
     } catch (setupError) {
       setupSkillError =
         setupError instanceof Error
@@ -341,6 +363,23 @@
           : "Failed to start skill setup.";
     } finally {
       settingUpSkill = false;
+    }
+  }
+
+  async function startSkillSetup() {
+    await runSkillProvision(true);
+  }
+
+  async function recheckSkillSetup() {
+    await runSkillProvision(false);
+  }
+
+  async function copySetupAuthCommand() {
+    if (!setupAuthCommand) return;
+    try {
+      await navigator.clipboard.writeText(setupAuthCommand);
+    } catch {
+      setupSkillError = "Failed to copy command. Please copy it manually.";
     }
   }
 
@@ -688,6 +727,46 @@
       </p>
     {/if}
 
+    <div class="space-y-2 rounded-md border border-border bg-muted/20 px-3 py-2">
+      <p class="text-xs font-medium text-foreground">If auth is needed</p>
+      <div class="flex flex-wrap gap-2">
+        <button
+          type="button"
+          class="rounded-md border px-2.5 py-1 text-xs transition-colors {setupAuthAction === 'copy'
+            ? 'border-primary/40 bg-primary/10 text-primary'
+            : 'border-border bg-background text-muted-foreground hover:text-foreground'}"
+          onclick={() => (setupAuthAction = "copy")}
+        >
+          Show command to copy
+        </button>
+        <button
+          type="button"
+          class="rounded-md border px-2.5 py-1 text-xs transition-colors {setupAuthAction === 'start'
+            ? 'border-primary/40 bg-primary/10 text-primary'
+            : 'border-border bg-background text-muted-foreground hover:text-foreground'}"
+          onclick={() => (setupAuthAction = "start")}
+        >
+          Try start auth now
+        </button>
+      </div>
+    </div>
+
+    {#if setupAuthCommand}
+      <div class="space-y-2 rounded-md border border-border bg-background px-3 py-2">
+        <p class="text-xs text-muted-foreground">Run this auth command:</p>
+        <code class="block rounded-md bg-muted px-2 py-1 text-[11px] text-foreground">
+          {setupAuthCommand}
+        </code>
+        <button
+          type="button"
+          class="rounded-md border border-border px-2.5 py-1 text-xs text-foreground hover:bg-muted"
+          onclick={() => void copySetupAuthCommand()}
+        >
+          Copy command
+        </button>
+      </div>
+    {/if}
+
     {#if setupSkillError}
       <p class="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
         {setupSkillError}
@@ -701,10 +780,21 @@
         onclick={() => {
           showSkillSetupDialog = false;
           setupSkillError = null;
+          setupAuthCommand = null;
         }}
       >
         Not now
       </button>
+      {#if setupSkillError}
+        <button
+          type="button"
+          class="rounded-md border border-border px-3 py-2 text-sm text-foreground hover:bg-muted disabled:opacity-60"
+          disabled={settingUpSkill}
+          onclick={() => void recheckSkillSetup()}
+        >
+          Re-check
+        </button>
+      {/if}
       <button
         type="button"
         class="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60"
@@ -712,7 +802,7 @@
         onclick={() => void startSkillSetup()}
       >
         {#if settingUpSkill}
-          Starting setup...
+          Running setup...
         {:else}
           Yes, set it up
         {/if}

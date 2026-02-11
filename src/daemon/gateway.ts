@@ -124,6 +124,14 @@ export class GatewayServer {
   private streamSubscribers: Map<string, ServerResponse[]> = new Map();
   // System-level events ring buffer (node connect/disconnect/heartbeat-miss)
   private nodeEvents: SystemEvent[] = [];
+  // In-flight skill provisioning requests waiting for node replies
+  private pendingSkillProvisionResolvers: Map<
+    string,
+    {
+      resolve: (payload: any) => void;
+      timeout: NodeJS.Timeout;
+    }
+  > = new Map();
 
   constructor(private config: GatewayConfig) {}
 
@@ -181,6 +189,10 @@ export class GatewayServer {
       node.ws.close();
     }
     this.nodes.clear();
+    for (const pending of this.pendingSkillProvisionResolvers.values()) {
+      clearTimeout(pending.timeout);
+    }
+    this.pendingSkillProvisionResolvers.clear();
 
     return new Promise((resolve) => {
       // Close WebSocket server first
@@ -264,6 +276,12 @@ export class GatewayServer {
     ) {
       const viberId = decodeURIComponent(url.pathname.split("/")[3]);
       this.handleStreamViber(viberId, req, res);
+    } else if (
+      url.pathname.match(/^\/api\/nodes\/[^/]+\/skills\/provision$/) &&
+      method === "POST"
+    ) {
+      const nodeId = decodeURIComponent(url.pathname.split("/")[3]);
+      this.handleProvisionNodeSkill(nodeId, req, res);
     } else if (
       url.pathname.match(/^\/api\/nodes\/[^/]+\/status$/) &&
       method === "GET"
@@ -677,6 +695,94 @@ export class GatewayServer {
   }
 
   /**
+   * POST /api/nodes/:nodeId/skills/provision - Run deterministic skill setup actions on a node.
+   * The gateway sends a direct command to the node and waits for a result payload.
+   */
+  private handleProvisionNodeSkill(
+    nodeId: string,
+    req: IncomingMessage,
+    res: ServerResponse,
+  ): void {
+    const node = this.nodes.get(nodeId);
+    if (!node) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Node not found or not connected" }));
+      return;
+    }
+
+    let body = "";
+    req.on("data", (chunk) => (body += chunk));
+    req.on("end", () => {
+      let requestId = "";
+      try {
+        const parsed = JSON.parse(body || "{}");
+        const skillId = String(parsed.skillId || "").trim();
+        if (!skillId) {
+          res.writeHead(400, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Missing skillId" }));
+          return;
+        }
+
+        const requestId = String(parsed.requestId || `skill-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+        const authAction =
+          parsed.authAction === "none" ||
+          parsed.authAction === "copy" ||
+          parsed.authAction === "start"
+            ? parsed.authAction
+            : "copy";
+
+        const timeout = setTimeout(() => {
+          this.pendingSkillProvisionResolvers.delete(requestId);
+          if (!res.writableEnded) {
+            res.writeHead(504, { "Content-Type": "application/json" });
+            res.end(
+              JSON.stringify({
+                error: "Timed out waiting for node skill provisioning result",
+                requestId,
+                skillId,
+              }),
+            );
+          }
+        }, 90_000);
+
+        this.pendingSkillProvisionResolvers.set(requestId, {
+          timeout,
+          resolve: (payload: any) => {
+            if (res.writableEnded) return;
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(JSON.stringify(payload));
+          },
+        });
+
+        node.ws.send(
+          JSON.stringify({
+            type: "skill:provision",
+            requestId,
+            skillId,
+            install: parsed.install !== false,
+            authAction,
+          }),
+        );
+      } catch (error) {
+        if (requestId) {
+          const pending = this.pendingSkillProvisionResolvers.get(requestId);
+          if (pending) {
+            clearTimeout(pending.timeout);
+            this.pendingSkillProvisionResolvers.delete(requestId);
+          }
+        }
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify({
+            error:
+              error instanceof Error ? error.message : "Invalid JSON body",
+          }),
+        );
+      }
+    });
+  }
+
+  /**
    * GET /api/nodes/:id/status - Get detailed node observability status.
    *
    * If the node has recent heartbeat data, returns it immediately.
@@ -895,6 +1001,10 @@ export class GatewayServer {
 
       case "status:report":
         this.handleStatusReport(ws, msg.status);
+        break;
+
+      case "skill:provision-result":
+        this.handleSkillProvisionResult(msg);
         break;
 
       default:
@@ -1162,6 +1272,17 @@ export class GatewayServer {
         break;
       }
     }
+  }
+
+  private handleSkillProvisionResult(msg: any): void {
+    const requestId = String(msg?.requestId || "").trim();
+    if (!requestId) return;
+    const pending = this.pendingSkillProvisionResolvers.get(requestId);
+    if (!pending) return;
+
+    clearTimeout(pending.timeout);
+    this.pendingSkillProvisionResolvers.delete(requestId);
+    pending.resolve(msg);
   }
 }
 

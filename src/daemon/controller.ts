@@ -18,6 +18,7 @@ import { runTask, appendDailyMemory } from "./runtime";
 import { createLogger } from "../utils/logger";
 import { TerminalManager } from "./terminal";
 import { getOpenViberVersion } from "../utils/version";
+import { validateConfig } from "./config-validator";
 import {
   collectMachineResourceStatus,
   collectViberRunningStatus,
@@ -1058,46 +1059,16 @@ export class ViberController extends EventEmitter {
       const configVersion = configData.configVersion || String(Date.now());
       const lastConfigPullAt = new Date().toISOString();
 
-      // Validate config (basic validation for now, will be enhanced in Step 2)
-      const validations: ConfigValidation[] = [];
-      
-      // Validate LLM keys
-      if (configData.globalSettings?.aiProviders) {
-        const hasAnyKey = Object.values(configData.globalSettings.aiProviders).some(
-          (p: any) => !!p?.apiKey?.trim()
-        );
-        validations.push({
-          category: "llm_keys",
-          status: hasAnyKey ? "verified" : "failed",
-          message: hasAnyKey ? "At least one LLM provider key configured" : "No LLM provider keys found",
-          checkedAt: lastConfigPullAt,
-        });
-      } else {
-        validations.push({
-          category: "llm_keys",
-          status: "unchecked",
-          message: "LLM provider settings not provided",
-          checkedAt: lastConfigPullAt,
-        });
-      }
-
-      // Validate OAuth tokens
-      if (configData.oauthConnections && Array.isArray(configData.oauthConnections)) {
-        const hasOAuth = configData.oauthConnections.some((c: any) => c.connected);
-        validations.push({
-          category: "oauth",
-          status: hasOAuth ? "verified" : "unchecked",
-          message: hasOAuth ? "OAuth connections available" : "No OAuth connections",
-          checkedAt: lastConfigPullAt,
-        });
-      } else {
-        validations.push({
-          category: "oauth",
-          status: "unchecked",
-          message: "OAuth connections not checked",
-          checkedAt: lastConfigPullAt,
-        });
-      }
+      // Validate config using the validator
+      const validations = await validateConfig({
+        aiProviders: configData.globalSettings?.aiProviders,
+        oauthConnections: configData.oauthConnections?.map((c: any) => ({
+          provider: c.provider,
+          accessToken: c.accessToken || "",
+          expiresAt: c.expiresAt,
+        })),
+        // TODO: Add requiredEnvSecrets when we have that info from config
+      });
 
       // Update config state
       this.configState = collectConfigState({

@@ -301,7 +301,7 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
         viber_id: params.id,
         metadata: {
           error: errMsg,
-          model: modelLabel,
+          model: "unknown",
           stack: error instanceof Error ? error.stack?.slice(0, 500) : undefined,
           phase: "chat_request",
         },

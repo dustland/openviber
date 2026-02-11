@@ -18,7 +18,7 @@ import * as http from "http";
 import * as fs from "fs/promises";
 import * as path from "path";
 import * as readline from "readline";
-import { exec } from "child_process";
+import { exec, spawn } from "child_process";
 import { getViberRoot } from "../config";
 import { loadSettings, saveSettings } from "../skills/hub/settings";
 
@@ -134,6 +134,38 @@ function createRl(): readline.Interface {
 function ask(rl: readline.Interface, question: string): Promise<string> {
   return new Promise((resolve) => {
     rl.question(question, (answer) => resolve(answer.trim()));
+  });
+}
+
+function getTmuxInstallCommandForPlatform(): string | null {
+  if (process.platform === "darwin") {
+    return "brew install tmux";
+  }
+  if (process.platform === "linux") {
+    return "sudo apt-get update && sudo apt-get install -y tmux";
+  }
+  return null;
+}
+
+function getAutoInstallCommand(skillId: string, checkId: string): string | null {
+  if (skillId === "cursor-agent" && checkId === "cursor-cli") {
+    return "curl https://cursor.com/install -fsS | bash";
+  }
+  if (skillId === "cursor-agent" && checkId === "tmux") {
+    return getTmuxInstallCommandForPlatform();
+  }
+  return null;
+}
+
+async function runInteractiveShellCommand(command: string): Promise<boolean> {
+  return await new Promise<boolean>((resolve) => {
+    const child = spawn(command, {
+      shell: true,
+      stdio: "inherit",
+      env: process.env,
+    });
+    child.once("close", (code) => resolve((code ?? 1) === 0));
+    child.once("error", () => resolve(false));
   });
 }
 
@@ -1066,6 +1098,18 @@ export async function runSkillSetup(
   console.log(`\n  Setting up ${selectedWithIssues.length} skill(s)...\n`);
 
   const rl = createRl();
+  const recheckCheck = async (
+    skillInfo: { id: string; name?: string },
+    checkId: string,
+  ): Promise<boolean> => {
+    const { checkSkillHealth } = await import("../skills/health");
+    const recheck = await checkSkillHealth({
+      id: skillInfo.id,
+      name: skillInfo.name,
+    });
+    const recheckItem = recheck.checks.find((c) => c.id === checkId);
+    return Boolean(recheckItem?.ok);
+  };
 
   for (const skill of selectedWithIssues) {
     const failedChecks = skill.checks.filter(
@@ -1129,24 +1173,38 @@ export async function runSkillSetup(
           console.log(
             `    ${check.label}: ${check.message || "not found"}`,
           );
+          const autoInstallCommand = getAutoInstallCommand(skill.id, check.id);
+          if (autoInstallCommand) {
+            const installNow = await promptYesNo(
+              rl,
+              "    Should I install this for you now?",
+              true,
+            );
+            if (installNow) {
+              console.log(`\n    Running: ${autoInstallCommand}\n`);
+              const installed = await runInteractiveShellCommand(autoInstallCommand);
+              if (!installed) {
+                console.log(
+                  "    Install command failed. You can retry manually.\n",
+                );
+              } else {
+                const ok = await recheckCheck(skill, check.id);
+                if (ok) {
+                  console.log(`    ${check.label}: OK\n`);
+                  break;
+                }
+              }
+            }
+          }
+
           if (check.hint) {
             const shouldRetry = await promptRetryOrSkip(
               rl,
               check.hint,
             );
             if (shouldRetry) {
-              // Re-check after user claims to have installed
-              const { checkSkillHealth } = await import(
-                "../skills/health"
-              );
-              const recheck = await checkSkillHealth({
-                id: skill.id,
-                name: skill.name,
-              });
-              const recheckItem = recheck.checks.find(
-                (c) => c.id === check.id,
-              );
-              if (recheckItem?.ok) {
+              const ok = await recheckCheck(skill, check.id);
+              if (ok) {
                 console.log(`    ${check.label}: OK\n`);
               } else {
                 console.log(
@@ -1164,23 +1222,53 @@ export async function runSkillSetup(
           console.log(
             `    ${check.label}: ${check.message || "not authenticated"}`,
           );
+          if (skill.id === "cursor-agent" && check.id === "cursor-auth") {
+            const setupNow = await promptYesNo(
+              rl,
+              "    Should I set up Cursor auth for you now?",
+              true,
+            );
+            if (setupNow) {
+              const mode = (
+                await ask(
+                  rl,
+                  "    Press Enter to open browser login now, type 'copy' to show command, or 's' to skip: ",
+                )
+              )
+                .trim()
+                .toLowerCase();
+
+              if (mode === "copy") {
+                console.log("\n    Run this command in your terminal:");
+                console.log("    agent login");
+                console.log(
+                  "    (If `agent` is unavailable, try: cursor-agent login)\n",
+                );
+              } else if (mode !== "s" && mode !== "skip") {
+                console.log(
+                  "\n    Starting Cursor login. Follow prompts in the terminal/browser...\n",
+                );
+                await runInteractiveShellCommand(
+                  "agent login || cursor-agent login",
+                );
+              }
+
+              const ok = await recheckCheck(skill, check.id);
+              if (ok) {
+                console.log(`    ${check.label}: OK\n`);
+                break;
+              }
+            }
+          }
+
           if (check.hint) {
             const shouldRetry = await promptRetryOrSkip(
               rl,
               check.hint,
             );
             if (shouldRetry) {
-              const { checkSkillHealth } = await import(
-                "../skills/health"
-              );
-              const recheck = await checkSkillHealth({
-                id: skill.id,
-                name: skill.name,
-              });
-              const recheckItem = recheck.checks.find(
-                (c) => c.id === check.id,
-              );
-              if (recheckItem?.ok) {
+              const ok = await recheckCheck(skill, check.id);
+              if (ok) {
                 console.log(`    ${check.label}: OK\n`);
               } else {
                 console.log(
@@ -1257,6 +1345,21 @@ export async function runOnboardingWizard(): Promise<string[]> {
   console.log(`\n  ${ready}/${total} selected skills ready.\n`);
 
   return selectedIds;
+}
+
+/**
+ * Ensure selected skills are ready right now.
+ * Used by chat-first flows (e.g. `openviber start --skills cursor-agent`).
+ */
+export async function ensureSkillsReady(selectedIds: string[]): Promise<void> {
+  const uniqueIds = Array.from(new Set(selectedIds.filter(Boolean)));
+  if (uniqueIds.length === 0) return;
+
+  const { checkSkillsHealth } = await import("../skills/health");
+  const report = await checkSkillsHealth(
+    uniqueIds.map((id) => ({ id, name: id })),
+  );
+  await runSkillSetup(uniqueIds, report);
 }
 
 // ────────────────────────────────────────────────────────────

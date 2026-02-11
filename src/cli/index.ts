@@ -151,6 +151,26 @@ program
       await saveSettings(settings);
     }
 
+    if (isInteractiveTerminal()) {
+      const persistedSettings = await loadSettings();
+      const proactiveSkillIds = new Set<string>(cliSkills);
+      if (
+        typeof options.primaryCodingCli === "string" &&
+        options.primaryCodingCli.trim().length > 0
+      ) {
+        proactiveSkillIds.add(options.primaryCodingCli.trim());
+      } else if (persistedSettings.primaryCodingCli) {
+        proactiveSkillIds.add(persistedSettings.primaryCodingCli);
+      }
+      for (const skillId of persistedSettings.standaloneSkills || []) {
+        proactiveSkillIds.add(skillId);
+      }
+      if (proactiveSkillIds.size > 0) {
+        const { ensureSkillsReady } = await import("./auth");
+        await ensureSkillsReady(Array.from(proactiveSkillIds));
+      }
+    }
+
     const isConnectedMode = !!serverUrl;
     const isStandaloneMode = !isConnectedMode;
 

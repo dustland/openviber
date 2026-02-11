@@ -12,6 +12,9 @@
     id: string;
     name: string;
     description: string;
+    available?: boolean;
+    status?: "AVAILABLE" | "NOT_AVAILABLE" | "UNKNOWN";
+    healthSummary?: string;
   }
 
   interface ViberNode {
@@ -19,6 +22,14 @@
     name: string;
     node_id: string | null;
     status: "pending" | "active" | "offline";
+    skills?: Array<{
+      id: string;
+      name: string;
+      description?: string;
+      available: boolean;
+      status: "AVAILABLE" | "NOT_AVAILABLE" | "UNKNOWN";
+      healthSummary?: string;
+    }>;
   }
 
   interface SidebarEnvironment {
@@ -58,6 +69,10 @@
   let intentPresetApplied = $state(false);
 
   let showIntentDialog = $state(false);
+  let showSkillSetupDialog = $state(false);
+  let setupSkill = $state<AccountSkill | null>(null);
+  let settingUpSkill = $state(false);
+  let setupSkillError = $state<string | null>(null);
 
   // Show first 3 intents inline, rest in dialog
   const previewIntents = $derived(intents.slice(0, 3));
@@ -71,6 +86,45 @@
       ? (intents.find((i) => i.id === selectedIntentId) ?? null)
       : null,
   );
+
+  const selectedNodeSkills = $derived(selectedNode?.skills ?? []);
+  const composerSkills = $derived.by(() => {
+    const nodeSkillMap = new Map<
+      string,
+      { available: boolean; status: string; healthSummary?: string }
+    >();
+    for (const skill of selectedNodeSkills) {
+      nodeSkillMap.set(skill.id, {
+        available: skill.available,
+        status: skill.status,
+        healthSummary: skill.healthSummary,
+      });
+      nodeSkillMap.set(skill.name, {
+        available: skill.available,
+        status: skill.status,
+        healthSummary: skill.healthSummary,
+      });
+    }
+
+    const hasNodeSkillInventory = selectedNodeSkills.length > 0;
+    return accountSkills.map((skill) => {
+      const fromNode = nodeSkillMap.get(skill.id) || nodeSkillMap.get(skill.name);
+      const available = hasNodeSkillInventory
+        ? Boolean(fromNode?.available)
+        : skill.available;
+
+      return {
+        ...skill,
+        available,
+        status: (fromNode?.status as AccountSkill["status"]) ?? skill.status,
+        healthSummary:
+          fromNode?.healthSummary ||
+          (hasNodeSkillInventory && available === false
+            ? "Not ready on selected node"
+            : skill.healthSummary),
+      };
+    });
+  });
 
   // Only active nodes (with a daemon connected) can receive tasks
   const activeNodes = $derived(nodes.filter((n) => n.status === "active"));
@@ -100,7 +154,22 @@
 
       if (nodesRes.ok) {
         const data = await nodesRes.json();
-        nodes = data.nodes ?? [];
+        nodes = (data.nodes ?? []).map((node: any) => ({
+          id: node.id,
+          name: node.name,
+          node_id: node.node_id ?? null,
+          status: node.status ?? "offline",
+          skills: Array.isArray(node.skills)
+            ? node.skills.map((skill: any) => ({
+              id: skill.id || skill.name,
+              name: skill.name || skill.id,
+              description: skill.description || "",
+              available: Boolean(skill.available),
+              status: skill.status || "UNKNOWN",
+              healthSummary: skill.healthSummary || "",
+            }))
+            : [],
+        }));
       }
       if (envsRes.ok) {
         const data = await envsRes.json();
@@ -222,6 +291,59 @@
     selectedIntentId = null;
   }
 
+  function handleUnavailableSkillRequest(skill: AccountSkill) {
+    setupSkill = skill;
+    setupSkillError = null;
+    showSkillSetupDialog = true;
+  }
+
+  async function startSkillSetup() {
+    const node = nodes.find((n) => n.id === selectedNodeId);
+    if (!setupSkill || !node) {
+      setupSkillError = "Select an active node before running skill setup.";
+      return;
+    }
+
+    settingUpSkill = true;
+    setupSkillError = null;
+    try {
+      const response = await fetch("/api/skills/provision", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          skillId: setupSkill.id,
+          nodeId: node.node_id || node.id,
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload?.error || "Failed to start skill setup.");
+      }
+
+      if (payload.ready) {
+        if (!selectedSkillIds.includes(setupSkill.id)) {
+          selectedSkillIds = [...selectedSkillIds, setupSkill.id];
+        }
+        showSkillSetupDialog = false;
+        await fetchData();
+        return;
+      }
+
+      if (payload.setupViberId) {
+        showSkillSetupDialog = false;
+        await goto(`/vibers/${payload.setupViberId}`);
+        return;
+      }
+    } catch (setupError) {
+      setupSkillError =
+        setupError instanceof Error
+          ? setupError.message
+          : "Failed to start skill setup.";
+    } finally {
+      settingUpSkill = false;
+    }
+  }
+
   async function submitTask(overrideContent?: string) {
     const content = (overrideContent ?? taskInput).trim();
     const node = nodes.find((n) => n.id === selectedNodeId);
@@ -235,6 +357,18 @@
         activeNodes.length > 0
           ? "Select an active node to start this viber."
           : "No active node found. Start a node first, then retry.";
+      return;
+    }
+
+    const unavailableSelected = composerSkills.filter(
+      (skill) =>
+        selectedSkillIds.includes(skill.id) && skill.available === false,
+    );
+    if (unavailableSelected.length > 0) {
+      const firstSkill = unavailableSelected[0];
+      setupSkill = firstSkill;
+      setupSkillError = `${firstSkill.name} is not ready on this node.`;
+      showSkillSetupDialog = true;
       return;
     }
 
@@ -474,8 +608,9 @@
         sending={creating}
         {nodes}
         {environments}
-        skills={accountSkills}
+        skills={composerSkills}
         bind:selectedSkillIds
+        onsetupskill={handleUnavailableSkillRequest}
         onsubmit={() => void submitTask()}
       />
     </div>
@@ -533,6 +668,55 @@
       >
         Manage intents in Settings
       </a>
+    </Dialog.Footer>
+  </Dialog.Content>
+</Dialog.Root>
+
+<Dialog.Root bind:open={showSkillSetupDialog}>
+  <Dialog.Content class="max-w-md">
+    <Dialog.Header>
+      <Dialog.Title>Set up {setupSkill?.name || "skill"}?</Dialog.Title>
+      <Dialog.Description>
+        {setupSkill?.name || "This skill"} is not ready on the selected node.
+        Should I start guided setup for you now?
+      </Dialog.Description>
+    </Dialog.Header>
+
+    {#if setupSkill?.healthSummary}
+      <p class="rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+        {setupSkill.healthSummary}
+      </p>
+    {/if}
+
+    {#if setupSkillError}
+      <p class="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+        {setupSkillError}
+      </p>
+    {/if}
+
+    <Dialog.Footer class="mt-2">
+      <button
+        type="button"
+        class="rounded-md border border-border px-3 py-2 text-sm text-foreground hover:bg-muted"
+        onclick={() => {
+          showSkillSetupDialog = false;
+          setupSkillError = null;
+        }}
+      >
+        Not now
+      </button>
+      <button
+        type="button"
+        class="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60"
+        disabled={settingUpSkill}
+        onclick={() => void startSkillSetup()}
+      >
+        {#if settingUpSkill}
+          Starting setup...
+        {:else}
+          Yes, set it up
+        {/if}
+      </button>
     </Dialog.Footer>
   </Dialog.Content>
 </Dialog.Root>

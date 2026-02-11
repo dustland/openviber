@@ -68,6 +68,8 @@
     onsubmit?: () => void;
     /** Called to dismiss error */
     ondismisserror?: () => void;
+    /** Called when user requests setup for an unavailable skill */
+    onsetupskill?: (skill: ComposerSkill) => void;
 
     // -- Selector data --
     nodes?: ComposerNode[];
@@ -97,6 +99,7 @@
     error = $bindable(null),
     onsubmit,
     ondismisserror,
+    onsetupskill,
 
     nodes = [],
     environments = [],
@@ -132,9 +135,15 @@
   );
 
   function toggleSkill(skillId: string) {
-    // Prevent toggling unavailable skills
     const skill = skills.find((s) => s.id === skillId);
-    if (skill && skill.available === false) return;
+    if (skill && skill.available === false) {
+      if (selectedSkillIds.includes(skillId)) {
+        selectedSkillIds = selectedSkillIds.filter((id) => id !== skillId);
+        return;
+      }
+      onsetupskill?.(skill);
+      return;
+    }
 
     if (selectedSkillIds.includes(skillId)) {
       selectedSkillIds = selectedSkillIds.filter((id) => id !== skillId);
@@ -354,13 +363,14 @@
                 <DropdownMenu.CheckboxItem
                   checked={selectedSkillIds.includes(skill.id)}
                   onCheckedChange={() => toggleSkill(skill.id)}
-                  disabled={skill.available === false}
                   class="flex items-center gap-2"
                 >
                   <div class="min-w-0 flex-1">
                     <span class="text-sm font-medium {skill.available === false ? 'opacity-50' : ''}">{skill.name}</span>
                     {#if skill.available === false && skill.healthSummary}
-                      <p class="text-[11px] text-destructive line-clamp-1">{skill.healthSummary}</p>
+                      <p class="text-[11px] text-destructive line-clamp-1">
+                        {skill.healthSummary} (click to set up)
+                      </p>
                     {:else if skill.description}
                       <p class="text-[11px] text-muted-foreground line-clamp-1">{skill.description}</p>
                     {/if}

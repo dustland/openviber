@@ -27,6 +27,7 @@
   import ChatComposer from "$lib/components/chat-composer.svelte";
   import * as Resizable from "$lib/components/ui/resizable";
   import * as Sheet from "$lib/components/ui/sheet";
+  import * as Dialog from "$lib/components/ui/dialog";
   import {
     Collapsible,
     CollapsibleTrigger,
@@ -485,6 +486,10 @@
   let inputEl = $state<HTMLTextAreaElement | null>(null);
   // Error feedback for failed tasks / API errors
   let chatError = $state<string | null>(null);
+  let showSkillSetupDialog = $state(false);
+  let setupSkill = $state<ViberSkill | null>(null);
+  let setupSkillError = $state<string | null>(null);
+  let settingUpSkill = $state(false);
 
   // Session activity tracking for long-running AI tasks
   let sessionStartedAt = $state<number | null>(null);
@@ -659,6 +664,15 @@
     const content = (overrideContent ?? inputValue).trim();
     if (!content || sending || viber?.nodeConnected !== true) return;
 
+    const unavailableSelected = (viber?.skills ?? []).filter(
+      (skill) =>
+        selectedSkillIds.includes(skill.id) && skill.available === false,
+    );
+    if (unavailableSelected.length > 0) {
+      handleSkillSetupRequest(unavailableSelected[0]);
+      return;
+    }
+
     chatError = null; // Clear previous error on retry
     inputValue = "";
     sending = true;
@@ -753,6 +767,56 @@
         error instanceof Error ? error.message : "Failed to send message.";
       sending = false;
       sessionStartedAt = null;
+    }
+  }
+
+  function handleSkillSetupRequest(skill: ViberSkill) {
+    setupSkill = skill;
+    setupSkillError = null;
+    showSkillSetupDialog = true;
+  }
+
+  async function startSkillSetup() {
+    if (!setupSkill || !viber?.nodeId) {
+      setupSkillError = "Node is unavailable for this viber.";
+      return;
+    }
+
+    settingUpSkill = true;
+    setupSkillError = null;
+    try {
+      const response = await fetch("/api/skills/provision", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          skillId: setupSkill.id,
+          nodeId: viber.nodeId,
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload?.error || "Failed to start skill setup.");
+      }
+
+      if (payload.ready) {
+        if (!selectedSkillIds.includes(setupSkill.id)) {
+          selectedSkillIds = [...selectedSkillIds, setupSkill.id];
+        }
+        showSkillSetupDialog = false;
+        await fetchViber();
+        return;
+      }
+
+      if (payload.setupViberId) {
+        showSkillSetupDialog = false;
+        await goto(`/vibers/${payload.setupViberId}`);
+        return;
+      }
+    } catch (error) {
+      setupSkillError =
+        error instanceof Error ? error.message : "Failed to start skill setup.";
+    } finally {
+      settingUpSkill = false;
     }
   }
 
@@ -1185,6 +1249,7 @@
           environments={composerEnvironments}
           skills={viber?.skills ?? []}
           bind:selectedSkillIds
+          onsetupskill={handleSkillSetupRequest}
           onsubmit={() => sendMessage()}
         >
           {#snippet beforeInput()}
@@ -1266,6 +1331,55 @@
     </div>
   </Sheet.Content>
 </Sheet.Root>
+
+<Dialog.Root bind:open={showSkillSetupDialog}>
+  <Dialog.Content class="max-w-md">
+    <Dialog.Header>
+      <Dialog.Title>Set up {setupSkill?.name || "skill"}?</Dialog.Title>
+      <Dialog.Description>
+        {setupSkill?.name || "This skill"} is not ready on this node yet.
+        Should I start guided setup now?
+      </Dialog.Description>
+    </Dialog.Header>
+
+    {#if setupSkill?.healthSummary}
+      <p class="rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+        {setupSkill.healthSummary}
+      </p>
+    {/if}
+
+    {#if setupSkillError}
+      <p class="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+        {setupSkillError}
+      </p>
+    {/if}
+
+    <Dialog.Footer class="mt-2">
+      <button
+        type="button"
+        class="rounded-md border border-border px-3 py-2 text-sm text-foreground hover:bg-muted"
+        onclick={() => {
+          showSkillSetupDialog = false;
+          setupSkillError = null;
+        }}
+      >
+        Not now
+      </button>
+      <button
+        type="button"
+        class="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60"
+        disabled={settingUpSkill}
+        onclick={() => void startSkillSetup()}
+      >
+        {#if settingUpSkill}
+          Starting setup...
+        {:else}
+          Yes, set it up
+        {/if}
+      </button>
+    </Dialog.Footer>
+  </Dialog.Content>
+</Dialog.Root>
 
 {#snippet toolOutputContent()}
   <div class="border-b border-border/60 px-3 py-2.5 shrink-0">

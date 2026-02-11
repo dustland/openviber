@@ -18,11 +18,12 @@ export const GET: RequestHandler = async ({ params, locals }) => {
   }
 
   try {
-    const [viber, enabledSkills, accountSkillRows, environmentId] = await Promise.all([
+    const [viber, enabledSkills, accountSkillRows, environmentId, gatewayNodes] = await Promise.all([
       gatewayClient.getViber(params.id),
       getViberSkills(params.id),
       listSkills(locals.user.id),
       getViberEnvironmentForUser(locals.user.id, params.id),
+      gatewayClient.getNodes(),
     ]);
 
     if (!viber) {
@@ -37,12 +38,39 @@ export const GET: RequestHandler = async ({ params, locals }) => {
       });
     }
 
-    // Use account-level skills as the full available list
-    const skills = accountSkillRows.map((row) => ({
-      id: row.skill_id,
-      name: row.name,
-      description: row.description || "",
-    }));
+    // Build per-node skill availability map so chat UI can proactively
+    // prompt setup when a selected skill is missing on the current node.
+    const nodeSkillMap = new Map<
+      string,
+      { available: boolean; status: string; healthSummary?: string }
+    >();
+    const nodeInfo = gatewayNodes.nodes.find((node) => node.id === viber.nodeId);
+    for (const skill of nodeInfo?.skills ?? []) {
+      nodeSkillMap.set(skill.id, {
+        available: skill.available,
+        status: skill.status,
+        healthSummary: skill.healthSummary,
+      });
+      nodeSkillMap.set(skill.name, {
+        available: skill.available,
+        status: skill.status,
+        healthSummary: skill.healthSummary,
+      });
+    }
+
+    // Use account-level skills as the list, annotated with node readiness.
+    const skills = accountSkillRows.map((row) => {
+      const fromNode =
+        nodeSkillMap.get(row.skill_id) || nodeSkillMap.get(row.name);
+      return {
+        id: row.skill_id,
+        name: row.name,
+        description: row.description || "",
+        available: fromNode?.available,
+        status: fromNode?.status,
+        healthSummary: fromNode?.healthSummary,
+      };
+    });
 
     return json({
       id: viber.id,

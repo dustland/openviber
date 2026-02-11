@@ -1,7 +1,7 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { env } from "$env/dynamic/private";
-import { hubClient } from "$lib/server/hub-client";
+import { gatewayClient } from "$lib/server/gateway-client";
 import { homedir } from "os";
 import path from "path";
 import fs from "fs/promises";
@@ -52,7 +52,7 @@ async function loadConfig(viberId: string): Promise<{ config: AgentConfig; confi
 export const GET: RequestHandler = async ({ params }) => {
   try {
     const { config, configPath } = await loadConfig(params.id);
-    const { nodes } = await hubClient.getNodes();
+    const { nodes } = await gatewayClient.getNodes();
 
     const skillOptions = Array.from(
       new Set(

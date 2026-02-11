@@ -1,7 +1,7 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { hubClient } from "$lib/server/hub-client";
-import type { ViberEnvironmentContext } from "$lib/server/hub-client";
+import { gatewayClient } from "$lib/server/gateway-client";
+import type { ViberEnvironmentContext } from "$lib/server/gateway-client";
 import {
   getViberEnvironmentForUser,
   getEnvironmentForUser,
@@ -11,7 +11,7 @@ import { getSettingsForUser } from "$lib/server/user-settings";
 import { getDecryptedOAuthConnections } from "$lib/server/oauth";
 import { writeLog } from "$lib/server/logs";
 
-const HUB_URL = process.env.VIBER_HUB_URL || "http://localhost:6007";
+const GATEWAY_URL = process.env.VIBER_GATEWAY_URL || process.env.VIBER_BOARD_URL || process.env.VIBER_HUB_URL || "http://localhost:6007";
 
 /**
  * POST /api/vibers/[id]/chat
@@ -42,7 +42,7 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
       return json({ error: "No user message found" }, { status: 400 });
     }
 
-    // Convert AI SDK UIMessage format to simple message format for the hub
+    // Convert AI SDK UIMessage format to simple message format for the gateway
     const simpleMessages = messages
       .map((m: any) => ({
         role: m.role,
@@ -130,7 +130,7 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
       }
     }
 
-    const existingViber = await hubClient.getViber(params.id);
+    const existingViber = await gatewayClient.getViber(params.id);
     let viberId: string;
     const userId = locals.user?.id;
     const modelLabel = typeof model === "string" && model ? model : "default";
@@ -138,7 +138,7 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
     if (existingViber) {
       const viberModel = typeof model === "string" && model ? model : undefined;
       try {
-        const result = await hubClient.sendMessage(
+        const result = await gatewayClient.sendMessage(
           params.id,
           simpleMessages,
           goal,
@@ -148,7 +148,7 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
           viberModel,
         );
         if (!result) {
-          const errMsg = "Failed to send message to viber (no response from hub)";
+          const errMsg = "Failed to send message to viber (no response from gateway)";
           if (userId) {
             writeLog({
               user_id: userId,
@@ -163,9 +163,9 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
           return json({ error: errMsg }, { status: 503 });
         }
         viberId = result.viberId;
-      } catch (hubError) {
-        const errMsg = hubError instanceof Error ? hubError.message : String(hubError);
-        console.error("[Chat] Hub sendMessage failed:", errMsg);
+      } catch (gatewayError) {
+        const errMsg = gatewayError instanceof Error ? gatewayError.message : String(gatewayError);
+        console.error("[Chat] Gateway sendMessage failed:", errMsg);
         if (userId) {
           writeLog({
             user_id: userId,
@@ -177,7 +177,7 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
             metadata: {
               goal: goal.slice(0, 200),
               model: modelLabel,
-              hubError: errMsg,
+              gatewayError: errMsg,
               phase: "send_message",
             },
           });
@@ -187,7 +187,7 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
     } else {
       const viberModel = typeof model === "string" && model ? model : undefined;
       try {
-        const result = await hubClient.createViber(
+        const result = await gatewayClient.createViber(
           goal,
           undefined,
           simpleMessages,
@@ -197,7 +197,7 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
           viberModel,
         );
         if (!result) {
-          const errMsg = "Failed to create viber on hub (no response)";
+          const errMsg = "Failed to create viber on gateway (no response)";
           if (userId) {
             writeLog({
               user_id: userId,
@@ -212,9 +212,9 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
           return json({ error: errMsg }, { status: 503 });
         }
         viberId = result.viberId;
-      } catch (hubError) {
-        const errMsg = hubError instanceof Error ? hubError.message : String(hubError);
-        console.error("[Chat] Hub createViber failed:", errMsg);
+      } catch (gatewayError) {
+        const errMsg = gatewayError instanceof Error ? gatewayError.message : String(gatewayError);
+        console.error("[Chat] Gateway createViber failed:", errMsg);
         if (userId) {
           writeLog({
             user_id: userId,
@@ -226,7 +226,7 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
             metadata: {
               goal: goal.slice(0, 200),
               model: modelLabel,
-              hubError: errMsg,
+              gatewayError: errMsg,
               phase: "create_viber",
             },
           });
@@ -235,11 +235,11 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
       }
     }
 
-    // Connect to hub's SSE stream for this viber
+    // Connect to gateway's SSE stream for this viber
     // Small delay to let the daemon start processing
     await new Promise((resolve) => setTimeout(resolve, 100));
 
-    const streamUrl = `${HUB_URL}/api/vibers/${viberId}/stream`;
+    const streamUrl = `${GATEWAY_URL}/api/vibers/${viberId}/stream`;
     const streamResponse = await fetch(streamUrl, {
       headers: { Accept: "text/event-stream" },
     });
@@ -266,8 +266,8 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
       return json({ error: errMsg }, { status: 502 });
     }
 
-    // 3. Pipe the hub SSE stream to the frontend
-    // The hub already sets the correct SSE format (AI SDK data stream protocol)
+    // 3. Pipe the gateway SSE stream to the frontend
+    // The gateway already sets the correct SSE format (AI SDK data stream protocol)
     return new Response(streamResponse.body as any, {
       headers: {
         "Content-Type": "text/event-stream",

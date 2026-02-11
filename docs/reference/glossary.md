@@ -43,15 +43,17 @@ The complete record of messages between users and vibers within a Space. History
 
 ### Daemon (Node Runtime)
 
-The local process running on a Viber Node that executes tasks and connects outbound to the Hub
-control plane. In docs, "daemon" and "node runtime" are used interchangeably.
+The local process running on a Viber Node that executes tasks and connects outbound to the
+Gateway. In docs, "daemon" and "node runtime" are used interchangeably.
 
 ## G
 
 ### Gateway
 
-The enterprise channel gateway started with `viber gateway` (DingTalk, WeCom, etc.). This is
-distinct from the Hub's gateway control plane role.
+The central coordinator that routes messages between node runtimes (daemons) and the web app.
+Started via `viber gateway`. Nodes connect outbound to the gateway via WebSocket; the web app
+(Viber Board) talks to the gateway via REST and SSE. This is distinct from the **Channels**
+server (enterprise channel webhooks) and from the **Skill Hub** (external skill registry).
 
 ## H
 
@@ -59,10 +61,17 @@ distinct from the Hub's gateway control plane role.
 
 See [Conversation History](#conversation-history).
 
-### Hub (Gateway Control Plane)
+### Hub (Skill Hub)
 
-The central coordinator that routes messages between node runtimes (daemons) and the web app.
-This is the "gateway control plane" role in OpenClaw terminology.
+The external skill registry for discovering and importing skills from sources like OpenClaw,
+GitHub, npm, and others. See `src/skills/hub/` for the implementation. Not to be confused with
+the Gateway (central coordinator).
+
+### Channels (enterprise channel server)
+
+The HTTP server that receives webhooks from enterprise channels (DingTalk, WeCom, Discord,
+Feishu). Started via `viber channels`. Implemented by `ChannelGateway` in `src/channels/gateway.ts`.
+Distinct from the Gateway (central coordinator for vibers).
 
 ## J
 
@@ -178,7 +187,7 @@ Vibers are configured through YAML files in `~/.openviber/vibers/`.
 
 A machine running the OpenViber runtime that hosts one or more vibers. A Viber Node provides:
 
-- **Runtime** — The node runtime (daemon) process that executes viber tasks and connects to the Hub
+- **Runtime** — The node runtime (daemon) process that executes viber tasks and connects to the Gateway
 - **Scheduler** — Cron-based job scheduling for automated tasks
 - **Credentials** — Shared account access for hosted vibers
 - **Config** — Identity and viber settings at `~/.openviber/` (lightweight, portable)

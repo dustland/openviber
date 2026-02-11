@@ -1,11 +1,8 @@
-/**
- * @deprecated Use /api/board instead. This route is kept for backward compatibility.
- */
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { gatewayClient } from "$lib/server/gateway-client";
 
-// GET /api/hub - Deprecated, use /api/board instead
+// GET /api/gateway - Check gateway connection status
 export const GET: RequestHandler = async () => {
   try {
     const health = await gatewayClient.checkHealth();

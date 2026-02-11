@@ -98,7 +98,7 @@ viber chat
 
 ```bash
 # 启动企业网关
-viber gateway
+viber channels
 ```
 
 ---

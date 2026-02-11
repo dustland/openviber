@@ -1,6 +1,6 @@
 ---
 title: "Protocol"
-description: "Communication protocol between OpenViber components: hub, node runtime (daemon), and web app"
+description: "Communication protocol between OpenViber components: gateway, node runtime (daemon), and web app"
 ---
 
 # Protocol
@@ -8,12 +8,12 @@ description: "Communication protocol between OpenViber components: hub, node run
 OpenViber's runtime has three components that communicate:
 
 1. **Node runtime (daemon)** — runs on the user's machine, executes AI tasks.
-2. **Hub (gateway control plane)** — central coordinator that routes messages between node runtimes and the web app.
-3. **Web App** — SvelteKit frontend that operators use to interact with vibers.
+2. **Gateway** — central coordinator that routes messages between node runtimes and the web app.
+3. **Web App (Viber Board)** — SvelteKit frontend that operators use to interact with vibers.
 
-Terminology note: in this doc, "daemon" refers to the node runtime process. "Gateway" refers
-to the control plane role implemented by the Hub; it is distinct from the enterprise channel
-gateway (`viber gateway`).
+Terminology note: in this doc, "daemon" refers to the node runtime process. "Gateway" is the
+central coordinator (started with `viber gateway`). This is distinct from the **Channels** server
+(`viber channels`, enterprise channel webhooks) and the **Skill Hub** (`src/skills/hub/`).
 
 The protocol is intentionally simple. The AI SDK handles the complex parts (streaming, tool calls, message formatting). OpenViber's protocol is just the plumbing that connects them.
 
@@ -23,11 +23,11 @@ The protocol is intentionally simple. The AI SDK handles the complex parts (stre
 
 ```
 ┌──────────┐   HTTP/SSE   ┌──────────┐   WebSocket   ┌──────────┐    AI SDK    ┌─────┐
-│ Browser  │ ←──────────→ │ Web App  │ ←───────────→ │   Hub    │ ←──────────→ │Daemon│
+│ Browser  │ ←──────────→ │ Web App  │ ←───────────→ │ Gateway  │ ←──────────→ │Daemon│
 │ (Svelte) │              │(SvelteKit)│               │ (Node)   │              │(Node)│
 └──────────┘              └──────────┘               └──────────┘              └──────┘
   @ai-sdk/svelte            API routes                REST + WS             streamText()
-  Chat class                hub-client               task routing         toUIMessageStream
+  Chat class            gateway-client               task routing         toUIMessageStream
 ```
 
 ### Transport Summary
@@ -35,16 +35,16 @@ The protocol is intentionally simple. The AI SDK handles the complex parts (stre
 | Path | Transport | Protocol |
 |------|-----------|----------|
 | Browser ↔ Web App | HTTP + SSE | AI SDK UI Message Stream |
-| Web App → Hub | HTTP (REST) | JSON API |
-| Hub → Web App | HTTP (SSE) | AI SDK UI Message Stream (passthrough) |
-| Daemon → Hub | WebSocket (outbound) | JSON messages |
-| Hub → Daemon | WebSocket | JSON messages |
+| Web App → Gateway | HTTP (REST) | JSON API |
+| Gateway → Web App | HTTP (SSE) | AI SDK UI Message Stream (passthrough) |
+| Daemon → Gateway | WebSocket (outbound) | JSON messages |
+| Gateway → Daemon | WebSocket | JSON messages |
 
 ---
 
-## 2. Hub REST API
+## 2. Gateway REST API
 
-The hub exposes a REST API for the web app (via `hub-client.ts`):
+The gateway exposes a REST API for the web app (via `gateway-client.ts`):
 
 | Method | Endpoint | Purpose |
 |--------|----------|---------|
@@ -69,9 +69,9 @@ The stream closes when the task completes, errors, or is stopped.
 
 ---
 
-## 3. Hub ↔ Node Runtime (Daemon) WebSocket Protocol
+## 3. Gateway ↔ Node Runtime (Daemon) WebSocket Protocol
 
-Node runtimes (daemons) connect outbound to the hub at `ws://{hub}/ws` with auth headers:
+Node runtimes (daemons) connect outbound to the gateway at `ws://{gateway}/ws` with auth headers:
 
 ```
 Authorization: Bearer {token}
@@ -79,7 +79,7 @@ X-Viber-Id: {viberId}
 X-Viber-Version: {version}
 ```
 
-### Node Runtime → Hub Messages
+### Node Runtime → Gateway Messages
 
 | Type | Payload | When |
 |------|---------|------|
@@ -93,7 +93,7 @@ X-Viber-Version: {version}
 | `pong` | `{}` | Response to ping |
 | `terminal:*` | Various | Terminal streaming responses |
 
-### Hub → Node Runtime Messages
+### Gateway → Node Runtime Messages
 
 | Type | Payload | When |
 |------|---------|------|
@@ -118,7 +118,16 @@ interface ViberInfo {
   platform: string;
   capabilities: string[];
   runningTasks: string[];
-  skills?: { id: string; name: string; description: string }[];
+  skills?: ViberSkillInfo[];
+}
+
+interface ViberSkillInfo {
+  id: string;
+  name: string;
+  description: string;
+  available: boolean;
+  status: "AVAILABLE" | "NOT_AVAILABLE" | "UNKNOWN";
+  healthSummary?: string;
 }
 ```
 
@@ -158,15 +167,15 @@ When an operator sends a follow-up message during a running task, the `injection
 
 ## 6. Terminal Streaming
 
-Terminal I/O uses the same WebSocket connection between node runtime (daemon) and hub, with a dedicated message namespace (`terminal:*`). The hub relays terminal data to the web app via a separate WebSocket connection on port 6008 (not through the SSE stream).
+Terminal I/O uses the same WebSocket connection between node runtime (daemon) and gateway, with a dedicated message namespace (`terminal:*`). The gateway relays terminal data to the web app via a separate WebSocket connection on port 6008 (not through the SSE stream).
 
 ---
 
 ## 7. Security
 
-- **Outbound-only**: Node runtimes (daemons) connect outbound to the hub. No inbound ports needed.
+- **Outbound-only**: Node runtimes (daemons) connect outbound to the gateway. No inbound ports needed.
 - **Auth headers**: WebSocket connections include `Authorization` and `X-Viber-Id` headers.
-- **CORS**: Hub sets `Access-Control-Allow-Origin: *` for development (should be restricted in production).
+- **CORS**: Gateway sets `Access-Control-Allow-Origin: *` for development (should be restricted in production).
 - **No secrets in stream**: The SSE stream contains only AI response content, never API keys or credentials.
 
 ---
@@ -176,7 +185,7 @@ Terminal I/O uses the same WebSocket connection between node runtime (daemon) an
 | Decision | Rationale |
 |----------|-----------|
 | Passthrough SSE relay | Avoids re-encoding; the AI SDK format is the source of truth |
-| Hub as stateless coordinator | Hub can restart without losing node runtime (daemon) connections (daemons auto-reconnect) |
+| Gateway as stateless coordinator | Gateway can restart without losing node runtime (daemon) connections (daemons auto-reconnect) |
 | WebSocket for node runtime, SSE for browser | WebSocket is bidirectional (needed for task control); SSE is simpler for browser consumption |
 | Simple task states | The AI SDK manages the complex agent loop; OpenViber just tracks the outer lifecycle |
-| Chunk buffering in hub | Late-connecting SSE subscribers need to catch up without data loss |
+| Chunk buffering in gateway | Late-connecting SSE subscribers need to catch up without data loss |

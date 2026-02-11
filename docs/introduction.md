@@ -54,7 +54,7 @@ openviber run jobs/morning-standup.yaml
 Connect to DingTalk or WeCom for team collaboration:
 
 ```bash
-openviber gateway
+openviber channels
 ```
 
 > **Note:** Requires configuration of API keys in environment variables. See documentation for details.

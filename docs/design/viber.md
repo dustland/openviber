@@ -239,12 +239,12 @@ This single command:
 
 ---
 
-## 9. Gateway Control Plane (Hub)
+## 9. Gateway (Central Coordinator)
 
-After onboarding, the node communicates with the Board via a WebSocket control plane.
-In this repo, that control plane is implemented by the **Hub** service and aligns with
-OpenClaw's "gateway" naming. This is distinct from the **enterprise channel gateway**
-(`viber gateway`) and from the **node runtime** (often called the daemon).
+After onboarding, the node communicates with the Viber Board (web app) via a WebSocket control plane.
+In this repo, that control plane is implemented by the **Gateway** (`viber gateway`). This is distinct
+from the **Channels** server (`viber channels`, enterprise channel webhooks) and from the **node runtime**
+(often called the daemon).
 
 - **Single gateway per host** — one node is the authority for channel connections and viber runs on that machine.
 - **WebSocket control plane** — all clients (Board, CLI, automation) connect over a typed WS protocol, declaring **role + scopes** at handshake.

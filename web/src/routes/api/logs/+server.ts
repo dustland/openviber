@@ -1,10 +1,10 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { queryLogs } from "$lib/server/logs";
-import { hubClient, type HubEvent } from "$lib/server/hub-client";
+import { gatewayClient, type GatewayEvent } from "$lib/server/gateway-client";
 
 /**
- * GET /api/logs - Fetch logs from Supabase (history) + hub (live events), merged.
+ * GET /api/logs - Fetch logs from Supabase (history) + board server (live events), merged.
  *
  * Query params:
  *   category  - "activity" | "system" (optional)
@@ -12,7 +12,7 @@ import { hubClient, type HubEvent } from "$lib/server/hub-client";
  *   limit     - max rows (default 100, max 500)
  *   before    - ISO timestamp cursor for pagination
  *   search    - text filter on message
- *   source    - "all" (default) | "db" | "hub"
+ *   source    - "all" (default) | "db" | "board"
  */
 export const GET: RequestHandler = async ({ locals, url }) => {
   if (!locals.user) {
@@ -34,8 +34,8 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 
   try {
     // Fetch from both sources in parallel
-    const [dbLogs, hubResult] = await Promise.all([
-      source !== "hub"
+    const [dbLogs, gatewayResult] = await Promise.all([
+      source !== "gateway" && source !== "board" && source !== "hub" // support legacy "hub" source value
         ? queryLogs(locals.user.id, {
             category: category ?? undefined,
             level,
@@ -45,12 +45,12 @@ export const GET: RequestHandler = async ({ locals, url }) => {
           })
         : Promise.resolve([]),
       source !== "db"
-        ? hubClient.getEvents(limit)
-        : Promise.resolve({ events: [] as HubEvent[] }),
+        ? gatewayClient.getEvents(limit)
+        : Promise.resolve({ events: [] as GatewayEvent[] }),
     ]);
 
-    // Normalize hub events into the same shape as DB logs
-    const hubLogs = hubResult.events
+    // Normalize board server events into the same shape as DB logs
+    const gatewayLogs = gatewayResult.events
       .filter((e) => {
         if (category && e.category !== category) return false;
         if (level) {
@@ -66,7 +66,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
         return true;
       })
       .map((e) => ({
-        id: `hub-${e.at}-${e.viberId || e.nodeId || "sys"}`,
+        id: `gateway-${e.at}-${e.viberId || e.nodeId || "sys"}`,
         user_id: locals.user!.id,
         level: e.level || inferLevel(e),
         category: e.category,
@@ -77,7 +77,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
         node_id: e.nodeId || null,
         metadata: e.event || e.metadata || null,
         created_at: e.at,
-        source: "hub" as const,
+        source: "gateway" as const,
       }));
 
     // Mark DB logs with source
@@ -90,7 +90,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
     const seen = new Set(dbLogsWithSource.map((r) => r.id));
     const merged = [
       ...dbLogsWithSource,
-      ...hubLogs.filter((h) => !seen.has(h.id)),
+      ...gatewayLogs.filter((h) => !seen.has(h.id)),
     ];
     merged.sort(
       (a, b) =>
@@ -109,20 +109,20 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 
 // ── Helpers to normalize hub events ──────────────────────────────────────────
 
-function inferLevel(e: HubEvent): string {
+function inferLevel(e: GatewayEvent): string {
   if (e.event?.kind === "error" || e.viberStatus === "error") return "error";
   if (e.event?.kind === "status" && e.event?.phase === "warning") return "warn";
   return "info";
 }
 
-function inferComponent(e: HubEvent): string {
+function inferComponent(e: GatewayEvent): string {
   if (e.category === "system") return e.component || "node";
   if (e.event?.kind === "tool-call" || e.event?.kind === "tool-result")
     return "skill";
   return "task";
 }
 
-function eventMessage(e: HubEvent): string {
+function eventMessage(e: GatewayEvent): string {
   if (e.message) return e.message;
   if (e.category === "system") return `System event from ${e.nodeName || e.nodeId || "unknown"}`;
 

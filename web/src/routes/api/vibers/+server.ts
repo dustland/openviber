@@ -1,6 +1,6 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { hubClient } from "$lib/server/hub-client";
+import { gatewayClient } from "$lib/server/gateway-client";
 import {
   listViberEnvironmentAssignmentsForUser,
   listEnvironmentsForUser,
@@ -38,7 +38,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     }
 
     // Look up environment context if provided
-    let environment: import("$lib/server/hub-client").ViberEnvironmentContext | undefined;
+    let environment: import("$lib/server/gateway-client").ViberEnvironmentContext | undefined;
     if (environmentId && locals.user?.id) {
       try {
         const envDetail = await getEnvironmentForUser(locals.user.id, environmentId, {
@@ -83,7 +83,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       ? skills.filter((s: unknown) => typeof s === "string" && s.length > 0)
       : undefined;
 
-    const result = await hubClient.createViber(
+    const result = await gatewayClient.createViber(
       goal,
       nodeId,
       undefined,
@@ -99,7 +99,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       viberModel,
     );
     if (!result) {
-      const errMsg = "No node available or hub unreachable";
+      const errMsg = "No node available or gateway unreachable";
       writeLog({
         user_id: locals.user.id,
         level: "error",
@@ -111,7 +111,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       return json({ error: errMsg }, { status: 503 });
     }
 
-    // Persist viber to Supabase so it survives hub restarts; set environment and node
+    // Persist viber to Supabase so it survives gateway restarts; set environment and node
     // Use explicit title if provided (e.g. intent name), otherwise extract
     // the first meaningful line from the goal as the display name.
     const displayName = typeof title === "string" && title.trim()
@@ -171,7 +171,7 @@ interface PersistedViberRow {
   node_id: string | null;
 }
 
-// GET /api/vibers - List vibers: Supabase as source of truth, hub for live state
+// GET /api/vibers - List vibers: Supabase as source of truth, gateway for live state
 export const GET: RequestHandler = async ({ locals, url }) => {
   if (!locals.user) {
     return json({ error: "Unauthorized" }, { status: 401 });
@@ -188,7 +188,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
           order: "created_at.desc",
         },
       }),
-      hubClient.getVibers(),
+      gatewayClient.getVibers(),
       listEnvironmentsForUser(locals.user.id),
     ]);
 

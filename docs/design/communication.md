@@ -21,15 +21,15 @@ Communication in OpenViber connects operators to their vibers. The primary inter
 
 ## 2. Board Communication Flow
 
-The Board is a SvelteKit app that communicates with vibers through the hub:
+The Viber Board (web app) is a SvelteKit app that communicates with vibers through the gateway:
 
 ```
 Operator types message
   → @ai-sdk/svelte Chat class sends POST to /api/vibers/[id]/chat
-    → SvelteKit API route forwards to hub: hubClient.submitTask()
-      → Hub creates task, sends task:submit to node runtime (daemon) over WebSocket
+    → SvelteKit API route forwards to gateway: gatewayClient.submitTask()
+      → Gateway creates task, sends task:submit to node runtime (daemon) over WebSocket
         → Node runtime (daemon) runs AI SDK streamText(), streams response back
-      → Hub relays SSE stream to web app
+      → Gateway relays SSE stream to web app
     → Web app pipes SSE to browser
   → Chat class renders streaming response
 ```
@@ -37,7 +37,7 @@ Operator types message
 ### Message Persistence
 
 Messages are persisted to SQLite alongside the streaming flow:
-- **User message**: Saved to DB before submitting to hub.
+- **User message**: Saved to DB before submitting to the gateway.
 - **Assistant message**: Saved to DB in the `Chat.onFinish` callback after streaming completes.
 - **Thread scoping**: Messages are grouped by thread ID for conversation continuity.
 
@@ -55,14 +55,14 @@ When the operator returns to a viber's chat page:
 ### Terminal Streaming
 
 Operators can watch viber terminal sessions in real time:
-- Terminal I/O flows over the node runtime (daemon) ↔ hub WebSocket (separate from the AI stream).
-- The Board renders terminal output using xterm.js.
+- Terminal I/O flows over the node runtime (daemon) ↔ gateway WebSocket (separate from the AI stream).
+- The Viber Board renders terminal output using xterm.js.
 - Operators can send keyboard input to terminals.
 - tmux is the default terminal runtime.
 
 ### Task Status
 
-The Board polls the hub for viber status:
+The Viber Board polls the gateway for viber status:
 - Which vibers are connected.
 - Which tasks are running.
 - Running task count and uptime.
@@ -115,7 +115,7 @@ Reporting cadence is natural to conversation — the viber reports when it has s
 Enterprise channel support (DingTalk, WeCom, Slack) will add asynchronous communication:
 
 - **Block streaming** — coalesce tokens into complete message blocks for channels that don't support SSE.
-- **Channel adapters** — translate between channel APIs and the hub's task submission format.
+- **Channel adapters** — translate between channel APIs and the gateway's task submission format.
 - **Workspace-first** — channels deliver messages, but durable context lives in `~/.openviber/` (see [personalization.md](./personalization.md)).
 - **Bidirectional** — operators send tasks via channel; vibers report progress back to the same channel.
 

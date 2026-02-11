@@ -12,7 +12,7 @@ import {
   describeCron,
   type JobEntry,
 } from "$lib/server/jobs";
-import { hubClient } from "$lib/server/hub-client";
+import { gatewayClient } from "$lib/server/gateway-client";
 
 export interface ViberJobsGroup {
   viberId: string;
@@ -77,7 +77,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         ? nodeId.trim()
         : null;
     if (targetNodeId) {
-      const pushed = await hubClient.pushJobToNode(targetNodeId, {
+      const pushed = await gatewayClient.pushJobToNode(targetNodeId, {
         name: name.trim(),
         schedule: schedule.trim(),
         prompt: prompt.trim(),
@@ -86,7 +86,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         nodeId: targetNodeId,
       });
       if (!pushed) {
-        console.warn("[Jobs API] Job saved locally but push to node failed (hub or node may be unavailable)");
+        console.warn("[Jobs API] Job saved locally but push to node failed (gateway or node may be unavailable)");
       }
     }
 
@@ -117,10 +117,10 @@ export const GET: RequestHandler = async ({ locals }) => {
   }
 
   try {
-    const [globalJobs, viberIds, hubJobsResult] = await Promise.all([
+    const [globalJobs, viberIds, boardJobsResult] = await Promise.all([
       listGlobalJobs(),
       listViberConfigIds(),
-      hubClient.getNodeJobs(),
+      gatewayClient.getNodeJobs(),
     ]);
 
     const perViber: ViberJobsGroup[] = [];
@@ -135,8 +135,8 @@ export const GET: RequestHandler = async ({ locals }) => {
     // Build set of global job names so we can flag which node jobs are already known
     const globalJobNames = new Set(globalJobs.map((j) => j.name));
 
-    // Convert hub node jobs to JobEntry format
-    const nodeJobGroups: NodeJobsGroup[] = (hubJobsResult.nodeJobs ?? []).map(
+    // Convert board server node jobs to JobEntry format
+    const nodeJobGroups: NodeJobsGroup[] = (boardJobsResult.nodeJobs ?? []).map(
       (group) => ({
         nodeId: group.nodeId,
         nodeName: group.nodeName,

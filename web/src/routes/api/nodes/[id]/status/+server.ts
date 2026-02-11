@@ -1,10 +1,10 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { hubClient } from "$lib/server/hub-client";
+import { gatewayClient } from "$lib/server/gateway-client";
 
 /**
  * GET /api/nodes/:id/status - Get detailed observability status for a node.
- * Proxies to the hub's /api/nodes/:id/status endpoint.
+ * Proxies to the board server's /api/nodes/:id/status endpoint.
  */
 export const GET: RequestHandler = async ({ params, locals }) => {
   if (!locals.user) {
@@ -17,11 +17,11 @@ export const GET: RequestHandler = async ({ params, locals }) => {
   }
 
   try {
-    const result = await hubClient.getNodeStatus(nodeId);
+    const result = await gatewayClient.getNodeStatus(nodeId);
 
     if (!result) {
       return json(
-        { error: "Node not found or hub unreachable" },
+        { error: "Node not found or gateway unreachable" },
         { status: 404 },
       );
     }

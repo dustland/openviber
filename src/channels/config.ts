@@ -17,6 +17,10 @@ interface SavedCliConfig {
   mode?: string;
   nodeId?: string;
   name?: string;
+  gatewayUrl?: string;
+  /** @deprecated Use gatewayUrl instead */
+  boardUrl?: string;
+  /** @deprecated Use gatewayUrl instead */
   hubUrl?: string;
   authToken?: string;
   webUrl?: string;

@@ -7,5 +7,6 @@ export {
   BoardServer,
   HubServer,
   type GatewayConfig,
+  type BoardConfig,
   type HubConfig,
 } from "./gateway";

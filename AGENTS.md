@@ -100,8 +100,8 @@ The daemon (`viber start`) is the main runtime path:
 ### Local Dev URLs (Do Not Guess)
 
 - Web app default: `http://localhost:6006`
-- Hub REST API: `http://localhost:6007`
-- Hub WebSocket: `ws://localhost:6007/ws`
+- Gateway REST API: `http://localhost:6007`
+- Gateway WebSocket: `ws://localhost:6007/ws`
 - Viber local WebSocket: `ws://localhost:6008`
 - Before any browser test, verify active ports from `/Users/hugh/.cursor/projects/Users-hugh-dustland-openviber/terminals/1.txt`.
 - Never assume Vite default port `5173` in this workspace.

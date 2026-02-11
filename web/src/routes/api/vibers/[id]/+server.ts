@@ -1,6 +1,6 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { hubClient } from "$lib/server/hub-client";
+import { gatewayClient } from "$lib/server/gateway-client";
 import { getSettingsForUser } from "$lib/server/user-settings";
 import { getViberSkills, listSkills } from "$lib/server/environments";
 import { supabaseRequest } from "$lib/server/supabase-rest";
@@ -14,7 +14,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 
   try {
     const [viber, enabledSkills, accountSkillRows] = await Promise.all([
-      hubClient.getViber(params.id),
+      gatewayClient.getViber(params.id),
       getViberSkills(params.id),
       listSkills(locals.user.id),
     ]);
@@ -69,15 +69,15 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
     }
 
     const settings = await getSettingsForUser(locals.user.id);
-    const viber = await hubClient.getViber(params.id);
+    const viber = await gatewayClient.getViber(params.id);
     const nodeId = viber?.nodeId;
 
-    const result = await hubClient.createViber(goal, nodeId, messages, undefined, {
+    const result = await gatewayClient.createViber(goal, nodeId, messages, undefined, {
       primaryCodingCli: settings.primaryCodingCli ?? undefined,
     });
 
     if (!result) {
-      const errMsg = "Failed to create viber (no response from hub)";
+      const errMsg = "Failed to create viber (no response from gateway)";
       writeLog({
         user_id: locals.user.id,
         level: "error",
@@ -114,9 +114,9 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
   }
 
   try {
-    // Try to stop the viber on the hub first (best-effort)
+    // Try to stop the viber on the gateway first (best-effort)
     try {
-      await hubClient.stopViber(params.id);
+      await gatewayClient.stopViber(params.id);
     } catch {
       // Ignore — viber may already be stopped or hub unreachable
     }

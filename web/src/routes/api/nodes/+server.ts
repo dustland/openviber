@@ -7,10 +7,10 @@ import {
   deleteViberNode,
   ensureDevNode,
 } from "$lib/server/viber-nodes";
-import { hubClient } from "$lib/server/hub-client";
+import { gatewayClient } from "$lib/server/gateway-client";
 import { upsertSkillsBatch } from "$lib/server/environments";
 
-// GET /api/nodes - List user's viber nodes (with live hub status)
+// GET /api/nodes - List user's viber nodes (with live gateway status)
 export const GET: RequestHandler = async ({ locals }) => {
   if (!locals.user) {
     return json({ error: "Unauthorized" }, { status: 401 });
@@ -27,14 +27,14 @@ export const GET: RequestHandler = async ({ locals }) => {
       );
     }
 
-    const [nodes, hubData] = await Promise.all([
+    const [nodes, gatewayData] = await Promise.all([
       listViberNodes(locals.user.id),
-      hubClient.getNodes(),
+      gatewayClient.getNodes(),
     ]);
 
-    // Build a map of connected node IDs from the hub
+    // Build a map of connected node IDs from the gateway
     const connectedDaemons = new Map(
-      hubData.nodes.map((n) => [n.id, n]),
+      gatewayData.nodes.map((n) => [n.id, n]),
     );
 
     // Track which daemon IDs are claimed by DB nodes
@@ -53,7 +53,7 @@ export const GET: RequestHandler = async ({ locals }) => {
           : node.node_id
             ? "offline" as const
             : "pending" as const,
-        // Attach hub observability metrics
+        // Attach gateway observability metrics
         version: daemon?.version,
         platform: daemon?.platform,
         capabilities: daemon?.capabilities,
@@ -65,7 +65,7 @@ export const GET: RequestHandler = async ({ locals }) => {
       };
     });
 
-    // Add hub-connected daemons that aren't linked to any DB node as virtual nodes
+    // Add gateway-connected daemons that aren't linked to any DB node as virtual nodes
     for (const [daemonId, daemon] of connectedDaemons) {
       if (!claimedDaemonIds.has(daemonId)) {
         enrichedNodes.push({
@@ -82,7 +82,7 @@ export const GET: RequestHandler = async ({ locals }) => {
           last_seen_at: daemon.connectedAt,
           created_at: daemon.connectedAt,
           updated_at: daemon.connectedAt,
-          // Attach hub observability metrics
+          // Attach gateway observability metrics
           version: daemon.version,
           platform: daemon.platform,
           capabilities: daemon.capabilities,
@@ -96,9 +96,9 @@ export const GET: RequestHandler = async ({ locals }) => {
     }
 
     // Backfill: sync node-reported skills into the account-level skills table
-    // so that pre-existing skills are registered even if never imported via hub.
+    // so that pre-existing skills are registered even if never imported via the skill hub.
     try {
-      const allNodeSkills = hubData.nodes.flatMap((n) =>
+      const allNodeSkills = gatewayData.nodes.flatMap((n) =>
         (n.skills ?? []).map((s: { id?: string; name: string; description?: string }) => ({
           skill_id: s.id || s.name,
           name: s.name,

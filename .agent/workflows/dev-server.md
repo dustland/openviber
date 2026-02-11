@@ -36,7 +36,7 @@ http://localhost:6006
 
 Run services separately if needed:
 ```bash
-pnpm dev:hub    # Hub only
+pnpm dev:gateway  # Gateway only (or pnpm dev:hub for deprecated alias)
 pnpm dev:web    # Web UI only
 pnpm dev:viber  # Viber daemon only
 pnpm dev:setup  # Re-run setup (create default agent config)

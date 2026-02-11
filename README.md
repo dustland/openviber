@@ -99,8 +99,8 @@ A modern, visual interface to manage your viber nodes, monitor jobs, and chat in
 Deploy your vibers to where your team works. Support for **DingTalk** and **WeCom** is built-in.
 
 ```bash
-# Start the enterprise gateway
-viber gateway
+# Start the enterprise channel server
+viber channels
 ```
 
 ---

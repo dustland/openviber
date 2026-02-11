@@ -9,9 +9,10 @@ import "dotenv/config";
  * Commands:
  *   viber start    - Start the viber daemon (connect to command center)
  *   viber run      - Run a task locally without connection to command center
- *   viber chat     - Chat with a running viber via the local hub (terminal-first)
+ *   viber chat     - Chat with a running viber via the local gateway (terminal-first)
  *   viber term     - List/attach/send input to tmux panes via local WS (port 6008)
- *   viber gateway  - Start the API gateway server (legacy)
+ *   viber gateway  - Start the gateway (central coordinator for vibers)
+ *   viber channels - Start the enterprise channel server (DingTalk, WeCom, etc.)
  */
 
 import { program } from "commander";
@@ -91,10 +92,12 @@ program
     // Load saved config from ~/.openviber/config.yaml if it exists
     const savedConfig = await loadSavedConfig();
 
-    // Determine connection mode: CLI flags > saved config > local hub
+    // Determine connection mode: CLI flags > saved config > local board server
     const serverUrl =
       options.server ||
-      savedConfig?.hubUrl ||
+      savedConfig?.gatewayUrl ||
+      savedConfig?.boardUrl ||
+      savedConfig?.hubUrl || // deprecated fallbacks
       "ws://localhost:6007/ws";
     const authToken =
       options.token ||
@@ -102,8 +105,8 @@ program
       savedConfig?.authToken ||
       "local-dev-token";
 
-    const isConnectedMode = !!(options.server || savedConfig?.hubUrl);
-    const isLocalHub = !isConnectedMode;
+    const isConnectedMode = !!(options.server || savedConfig?.gatewayUrl || savedConfig?.boardUrl || savedConfig?.hubUrl);
+    const isLocalGateway = !isConnectedMode;
 
     if (isConnectedMode) {
       console.log("[Viber] Connected mode — using saved config");
@@ -177,7 +180,7 @@ program
 ╔═══════════════════════════════════════════════════════════╗
 ║                     VIBER RUNNING                          ║
 ╠═══════════════════════════════════════════════════════════╣
-║  Mode:         ${isLocalHub ? "Local Hub".padEnd(41) : "Connected".padEnd(41)
+║  Mode:         ${isLocalGateway ? "Local Gateway".padEnd(41) : "Connected".padEnd(41)
         }║
 ║  Viber ID:     ${viberId.slice(0, 40).padEnd(40)}║
 ║  Server:       ${serverUrl.slice(0, 40).padEnd(40)}║
@@ -194,9 +197,9 @@ Press Ctrl+C to stop.
     });
 
     controller.on("disconnected", () => {
-      if (isLocalHub) {
+      if (isLocalGateway) {
         console.log(
-          "[Viber] Disconnected from hub. Is the hub running? (pnpm dev:hub)",
+          "[Viber] Disconnected from gateway. Is the gateway running? (pnpm dev:gateway)",
         );
       } else {
         console.log("[Viber] Connection lost. Reconnecting...");
@@ -236,37 +239,33 @@ Press Ctrl+C to stop.
     await controller.start();
   });
 
-// ==================== viber hub ====================
+// ==================== viber gateway (central coordinator) ====================
 
-program
-  .command("hub")
-  .description("Start the hub server (coordinator for viber daemons)")
-  .option("-p, --port <port>", "Port to listen on", "6007")
-  .action(async (options) => {
-    const { HubServer } = await import("../daemon/hub");
+const gatewayAction = async (options: { port: string }) => {
+  const { GatewayServer } = await import("../daemon/gateway");
 
-    const hub = new HubServer({
-      port: parseInt(options.port, 10),
-    });
+  const gateway = new GatewayServer({
+    port: parseInt(options.port, 10),
+  });
 
-    // Handle graceful shutdown
-    process.on("SIGINT", async () => {
-      console.log("\n[Hub] Shutting down...");
-      await hub.stop();
-      process.exit(0);
-    });
+  // Handle graceful shutdown
+  process.on("SIGINT", async () => {
+    console.log("\n[Gateway] Shutting down...");
+    await gateway.stop();
+    process.exit(0);
+  });
 
-    process.on("SIGTERM", async () => {
-      console.log("\n[Hub] Shutting down...");
-      await hub.stop();
-      process.exit(0);
-    });
+  process.on("SIGTERM", async () => {
+    console.log("\n[Gateway] Shutting down...");
+    await gateway.stop();
+    process.exit(0);
+  });
 
-    await hub.start();
+  await gateway.start();
 
-    console.log(`
+  console.log(`
 ╔═══════════════════════════════════════════════════════════╗
-║                      HUB RUNNING                          ║
+║                   GATEWAY RUNNING                         ║
 ╠═══════════════════════════════════════════════════════════╣
 ║  REST API:     http://localhost:${options.port.padEnd(27)}║
 ║  WebSocket:    ws://localhost:${options.port}/ws${" ".repeat(21)}║
@@ -275,8 +274,27 @@ program
 
 Waiting for viber daemons to connect...
 Press Ctrl+C to stop.
-    `);
-  });
+  `);
+};
+
+program
+  .command("gateway")
+  .description("Start the gateway (central coordinator for viber daemons)")
+  .option("-p, --port <port>", "Port to listen on", "6007")
+  .action(gatewayAction);
+
+// Deprecated aliases
+program
+  .command("board", { hidden: true })
+  .description("(deprecated: use 'gateway') Start the gateway")
+  .option("-p, --port <port>", "Port to listen on", "6007")
+  .action(gatewayAction);
+
+program
+  .command("hub", { hidden: true })
+  .description("(deprecated: use 'gateway') Start the gateway")
+  .option("-p, --port <port>", "Port to listen on", "6007")
+  .action(gatewayAction);
 
 // ==================== viber run ====================
 
@@ -316,11 +334,19 @@ program
 program
   .command("chat")
   .description(
-    "Chat with a running viber via the local hub (works great inside tmux)",
+    "Chat with a running viber via the local gateway (works great inside tmux)",
+  )
+  .option(
+    "--gateway <url>",
+    "Gateway URL (defaults to VIBER_GATEWAY_URL or http://localhost:6007)",
+  )
+  .option(
+    "--board <url>",
+    "(deprecated: use --gateway) Gateway URL",
   )
   .option(
     "--hub <url>",
-    "Hub base URL (defaults to VIBER_HUB_URL or http://localhost:6007)",
+    "(deprecated: use --gateway) Gateway URL",
   )
   .option("-v, --viber <id>", "Target viber ID (defaults to first connected)")
   .option(
@@ -329,8 +355,8 @@ program
   )
   .option("--no-save", "Do not write chat history to disk")
   .action(async (options) => {
-    const hubUrl: string =
-      options.hub || process.env.VIBER_HUB_URL || "http://localhost:6007";
+    const gatewayUrl: string =
+      options.gateway || options.board || options.hub || process.env.VIBER_GATEWAY_URL || process.env.VIBER_BOARD_URL || process.env.VIBER_HUB_URL || "http://localhost:6007";
     const agentId = "default";
 
     const sessionsDir = path.join(
@@ -349,11 +375,11 @@ program
       await fs.mkdir(sessionsDir, { recursive: true });
     }
 
-    const vibers = await hubGetVibers(hubUrl);
+    const vibers = await hubGetVibers(gatewayUrl);
     if (!vibers.connected || vibers.vibers.length === 0) {
-      console.error(`[Chat] No vibers connected to hub at ${hubUrl}`);
-      console.error("[Chat] Start the hub + viber in another terminal:");
-      console.error("  pnpm dev  (or: pnpm dev:hub + pnpm dev:viber)");
+      console.error(`[Chat] No vibers connected to gateway at ${gatewayUrl}`);
+      console.error("[Chat] Start the gateway + viber in another terminal:");
+      console.error("  pnpm dev  (or: pnpm dev:gateway + pnpm dev:viber)");
       process.exit(1);
     }
 
@@ -377,7 +403,7 @@ program
       [...persistedMessages];
 
     console.log(
-      `[Chat] Hub: ${hubUrl}\n[Chat] Viber: ${activeViberId}\n[Chat] Session: ${options.save !== false ? sessionPath : "(not saved)"}\n`,
+      `[Chat] Gateway: ${gatewayUrl}\n[Chat] Viber: ${activeViberId}\n[Chat] Session: ${options.save !== false ? sessionPath : "(not saved)"}\n`,
     );
     console.log("Type your message and press Enter.");
     console.log("Commands: /help, /exit, /vibers, /use <viberId>, /reset\n");
@@ -408,7 +434,7 @@ program
 
       if (input.startsWith("/")) {
         const handled = await handleChatCommand(input, {
-          hubUrl,
+          hubUrl: gatewayUrl,
           vibers,
           getActiveViberId: () => activeViberId!,
           setActiveViberId: (id) => {
@@ -430,7 +456,7 @@ program
         await appendJsonlMessage(sessionPath, { role: "user", content: input });
       }
 
-      const submit = await hubSubmitTask(hubUrl, {
+      const submit = await hubSubmitTask(gatewayUrl, {
         goal: input,
         viberId: activeViberId!,
         messages,
@@ -441,7 +467,7 @@ program
       }
 
       process.stdout.write("viber> ");
-      const result = await pollHubTask(hubUrl, submit.taskId, {
+      const result = await pollHubTask(gatewayUrl, submit.taskId, {
         pollIntervalMs: 1200,
         maxAttempts: 120,
       });
@@ -735,10 +761,12 @@ program
 program
   .command("status")
   .description("Check viber status, machine resources, and configuration")
-  .option("--hub <url>", "Hub URL to query for node status")
+  .option("--gateway <url>", "Gateway URL to query for node status")
+  .option("--board <url>", "(deprecated: use --gateway) Gateway URL")
+  .option("--hub <url>", "(deprecated: use --gateway) Gateway URL")
   .option("--node <id>", "Node ID to query (defaults to local viber-id)")
   .option("--json", "Output in JSON format")
-  .option("--local", "Show local machine resources only (no hub connection)")
+  .option("--local", "Show local machine resources only (no gateway connection)")
   .action(async (options) => {
     const viberId = await getViberId();
     const hasToken = !!process.env.VIBER_TOKEN;
@@ -778,22 +806,22 @@ Viber Status
     const machineStatus = collectMachineResourceStatus();
 
     if (options.json) {
-      // Try to get hub status if available
-      const hubUrl =
-        options.hub ||
-        process.env.VIBER_HUB_URL ||
+      // Try to get gateway status if available
+      const statusGatewayUrl =
+        options.gateway || options.board || options.hub ||
+        process.env.VIBER_GATEWAY_URL || process.env.VIBER_BOARD_URL || process.env.VIBER_HUB_URL ||
         "http://localhost:6007";
 
-      let hubNodeStatus = null;
+      let gatewayNodeStatus = null;
       if (!options.local) {
         try {
           const nodeId = options.node || viberId;
-          const res = await fetch(`${hubUrl}/api/nodes/${nodeId}/status`);
+          const res = await fetch(`${statusGatewayUrl}/api/nodes/${nodeId}/status`);
           if (res.ok) {
-            hubNodeStatus = await res.json();
+            gatewayNodeStatus = await res.json();
           }
         } catch {
-          // Hub not reachable, proceed with local only
+          // Gateway not reachable, proceed with local only
         }
       }
 
@@ -808,7 +836,7 @@ Viber Status
             },
             skills: skillHealthReport,
             machine: machineStatus,
-            hub: hubNodeStatus,
+            gateway: gatewayNodeStatus,
           },
           null,
           2,
@@ -867,16 +895,16 @@ Machine Resources
 
     console.log("────────────────────────────────────");
 
-    // Try to get hub-based viber running status
+    // Try to get gateway-based viber running status
     if (!options.local) {
-      const hubUrl =
-        options.hub ||
-        process.env.VIBER_HUB_URL ||
+      const statusGatewayUrl2 =
+        options.gateway || options.board || options.hub ||
+        process.env.VIBER_GATEWAY_URL || process.env.VIBER_BOARD_URL || process.env.VIBER_HUB_URL ||
         "http://localhost:6007";
 
       try {
         const nodeId = options.node || viberId;
-        const res = await fetch(`${hubUrl}/api/nodes/${nodeId}/status`);
+        const res = await fetch(`${statusGatewayUrl2}/api/nodes/${nodeId}/status`);
         if (res.ok) {
           const data = await res.json() as any;
           if (data.status?.viber) {
@@ -915,7 +943,9 @@ program
   .command("onboard")
   .description("Set up OpenViber on this machine (use --token to connect to OpenViber Web)")
   .option("-t, --token <token>", "Onboard token from OpenViber Web (connect mode)")
-  .option("--hub <url>", "Hub URL override (default: auto from web)")
+  .option("--gateway <url>", "Gateway URL override (default: auto from web)")
+  .option("--board <url>", "(deprecated: use --gateway) Gateway URL override")
+  .option("--hub <url>", "(deprecated: use --gateway) Gateway URL override")
   .action(async (options) => {
     const configDir = OPENVIBER_DIR;
     const vibersDir = path.join(configDir, "vibers");
@@ -941,10 +971,10 @@ program
       console.log("\nConnecting to OpenViber Web...");
 
       // Determine the web URL to call
-      const hubBaseUrl = options.hub || process.env.OPENVIBER_WEB_URL || "http://localhost:6006";
+      const webBaseUrl = options.gateway || options.board || options.hub || process.env.OPENVIBER_WEB_URL || "http://localhost:6006";
 
       try {
-        const response = await fetch(`${hubBaseUrl}/api/nodes/onboard`, {
+        const response = await fetch(`${webBaseUrl}/api/nodes/onboard`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ token: options.token }),
@@ -965,36 +995,38 @@ program
           config: Record<string, unknown>;
         };
 
-        // Determine the hub WebSocket URL from the web URL
-        const hubWsUrl = options.hub
-          ? options.hub.replace(/^http/, "ws") + "/ws"
-          : hubBaseUrl.replace(/^http/, "ws").replace(":6006", ":6007") + "/ws";
+        // Determine the board server WebSocket URL from the web URL
+        const gatewayWsUrl = (options.gateway || options.board || options.hub)
+          ? (options.gateway || options.board || options.hub).replace(/^http/, "ws") + "/ws"
+          : webBaseUrl.replace(/^http/, "ws").replace(":6006", ":6007") + "/ws";
 
         // Save config for future `openviber start` calls
         const savedConfig = {
           mode: "connected",
           nodeId: data.nodeId,
           name: data.name,
-          hubUrl: hubWsUrl,
+          gatewayUrl: gatewayWsUrl,
+          boardUrl: gatewayWsUrl, // deprecated compat
+          hubUrl: gatewayWsUrl, // deprecated compat
           authToken: data.authToken,
-          webUrl: hubBaseUrl,
+          webUrl: webBaseUrl,
           onboardedAt: new Date().toISOString(),
         };
 
         await fs.writeFile(
           CONFIG_FILE,
           `# OpenViber Config — auto-generated by 'openviber onboard --token'
-# Do not edit manually. Manage your viber at ${hubBaseUrl}
+# Do not edit manually. Manage your viber at ${webBaseUrl}
 ${YAML.stringify(savedConfig)}`,
         );
 
-        console.log(`  ✓ Connected to ${hubBaseUrl}`);
+        console.log(`  ✓ Connected to ${webBaseUrl}`);
         console.log(`  ✓ Node: ${data.name} (${data.nodeId.slice(0, 8)}...)`);
         console.log(`  ✓ Config saved to ${CONFIG_FILE}`);
 
       } catch (error: any) {
         console.error(`\n  ✗ Failed to connect: ${error.message}`);
-        console.error(`\n  Make sure the OpenViber web is running at ${options.hub || "http://localhost:6006"}.`);
+        console.error(`\n  Make sure the OpenViber web is running at ${options.gateway || options.board || options.hub || "http://localhost:6006"}.`);
         process.exit(1);
       }
     } else {
@@ -1435,12 +1467,12 @@ skillCommand
     }
   });
 
-// ==================== viber gateway ====================
+// ==================== viber channels (enterprise channel webhooks) ====================
 
 program
-  .command("gateway")
-  .description("Start the enterprise channel gateway (DingTalk, WeCom, etc.)")
-  .option("-p, --port <port>", "Gateway port", "6009")
+  .command("channels")
+  .description("Start the enterprise channel server (DingTalk, WeCom, Discord, Feishu webhooks)")
+  .option("-p, --port <port>", "Channel server port", "6009")
   .action(async (options) => {
     const { channelManager } = await import("../channels/manager");
     const { ChannelGateway } = await import("../channels/gateway");
@@ -1452,7 +1484,7 @@ program
 
     console.log(`
 ╔═══════════════════════════════════════════════════════════╗
-║                   GATEWAY STARTING                        ║
+║                  CHANNELS STARTING                        ║
 ╚═══════════════════════════════════════════════════════════╝
 `);
 
@@ -1487,7 +1519,7 @@ Discord:
 Feishu:
   FEISHU_APP_ID, FEISHU_APP_SECRET (optional: FEISHU_VERIFICATION_TOKEN, FEISHU_DOMAIN)
 
-Or configure channels from the OpenViber web and re-run gateway.
+Or configure channels from the OpenViber web and re-run: viber channels
 `);
       process.exit(1);
     }
@@ -1498,13 +1530,13 @@ Or configure channels from the OpenViber web and re-run gateway.
 
     // Handle graceful shutdown
     process.on("SIGINT", async () => {
-      console.log("\n[Gateway] Shutting down...");
+      console.log("\n[Channels] Shutting down...");
       await gateway.stop();
       process.exit(0);
     });
 
     process.on("SIGTERM", async () => {
-      console.log("\n[Gateway] Shutting down...");
+      console.log("\n[Channels] Shutting down...");
       await gateway.stop();
       process.exit(0);
     });
@@ -1513,7 +1545,7 @@ Or configure channels from the OpenViber web and re-run gateway.
 
     console.log(`
 ╔═══════════════════════════════════════════════════════════╗
-║                   GATEWAY RUNNING                         ║
+║                  CHANNELS RUNNING                         ║
 ╠═══════════════════════════════════════════════════════════╣
 ║  Channels:     ${channelNames.join(", ").padEnd(41)}║
 ║  Webhooks:     ${`${bootstrap.gateway.host}:${bootstrap.gateway.port}${basePath}`.slice(0, 41).padEnd(41)}║
@@ -1599,6 +1631,10 @@ interface SavedConfig {
   mode?: string;
   nodeId?: string;
   name?: string;
+  gatewayUrl?: string;
+  /** @deprecated Use gatewayUrl instead */
+  boardUrl?: string;
+  /** @deprecated Use gatewayUrl instead */
   hubUrl?: string;
   authToken?: string;
   webUrl?: string;

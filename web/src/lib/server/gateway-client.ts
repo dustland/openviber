@@ -460,6 +460,19 @@ export const gatewayClient = {
     }
   },
 
+  /** Push config to a node (triggers config:push WebSocket message) */
+  async pushConfigToNode(nodeId: string): Promise<boolean> {
+    try {
+      const response = await gatewayFetch(`/api/nodes/${encodeURIComponent(nodeId)}/config-push`, {
+        method: "POST",
+      });
+      return response.ok;
+    } catch (error) {
+      console.error("[GatewayClient] Failed to push config to node:", error);
+      return false;
+    }
+  },
+
   async checkHealth(): Promise<{
     status: string;
     nodes: number;

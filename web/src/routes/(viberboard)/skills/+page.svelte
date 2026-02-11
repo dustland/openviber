@@ -24,6 +24,7 @@
   import * as Dialog from "$lib/components/ui/dialog";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import { Button } from "$lib/components/ui/button";
+  import { Textarea } from "$lib/components/ui/textarea";
 
   interface UnmetRequirement {
     type: "oauth" | "env" | "bin";
@@ -125,6 +126,7 @@
   let playgroundRunning = $state(false);
   let playgroundError = $state<string | null>(null);
   let playgroundResult = $state<PlaygroundResult | null>(null);
+  let playgroundScenario = $state("");
 
   const enabledSources = $derived(sources.filter((s) => s.enabled));
   const enabledSourcesCount = $derived(enabledSources.length);
@@ -371,6 +373,7 @@
         body: JSON.stringify({
           skillId: playgroundSkill.id,
           nodeId: selectedNode?.node_id || selectedNode?.id,
+          scenario: playgroundScenario.trim() || undefined,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -393,6 +396,7 @@
     playgroundSkill = null;
     playgroundError = null;
     playgroundResult = null;
+    playgroundScenario = "";
   }
 
   $effect(() => {
@@ -866,6 +870,20 @@
         <div class="rounded-md border border-border bg-muted/20 p-3 text-xs text-muted-foreground">
           This creates a temporary viber on the selected node and asks it to run the playground verification flow for the selected skill.
         </div>
+
+
+        <div class="space-y-2">
+          <p class="text-xs font-medium text-muted-foreground">Scenario (optional)</p>
+          <Textarea
+            bind:value={playgroundScenario}
+            class="min-h-24"
+            placeholder="Optional: describe a specific user flow or edge case you want this skill to execute."
+          />
+          <p class="text-[11px] text-muted-foreground">
+            Leave blank to run the default verification flow.
+          </p>
+        </div>
+
       {/if}
 
       {#if playgroundError}
@@ -885,6 +903,18 @@
           <p><span class="font-medium">Viber:</span> {playgroundResult.viberId}</p>
           {#if playgroundResult.message}
             <p><span class="font-medium">Message:</span> {playgroundResult.message}</p>
+          {/if}
+          {#if playgroundResult.partialText}
+            <div class="space-y-1">
+              <p class="font-medium">Model summary</p>
+              <pre class="max-h-56 overflow-auto rounded-md border border-border bg-background p-2 text-[11px] whitespace-pre-wrap">{playgroundResult.partialText}</pre>
+            </div>
+          {/if}
+          {#if playgroundResult.result}
+            <details>
+              <summary class="cursor-pointer font-medium">Raw result payload</summary>
+              <pre class="mt-2 max-h-64 overflow-auto rounded-md border border-border bg-background p-2 text-[11px]">{JSON.stringify(playgroundResult.result, null, 2)}</pre>
+            </details>
           {/if}
         </div>
       {/if}

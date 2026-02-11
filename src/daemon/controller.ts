@@ -66,6 +66,16 @@ export interface ViberSkillInfo {
   status: "AVAILABLE" | "NOT_AVAILABLE" | "UNKNOWN";
   /** Human-readable summary of health check results (e.g. "Missing: gh CLI") */
   healthSummary?: string;
+  /** Full health check details with actionType for UI */
+  checks?: Array<{
+    id: string;
+    label: string;
+    ok: boolean;
+    required?: boolean;
+    message?: string;
+    hint?: string;
+    actionType?: "env" | "oauth" | "binary" | "auth_cli" | "manual";
+  }>;
 }
 
 export interface ViberInfo {
@@ -841,6 +851,7 @@ export class ViberController extends EventEmitter {
   /**
    * Build extended skill info array with availability from the cached health report.
    * Uses the cached report (refreshes if stale) to annotate each loaded skill.
+   * Includes full health check details with actionType for UI.
    */
   private async buildSkillsWithHealth(): Promise<ViberSkillInfo[]> {
     try {
@@ -860,6 +871,15 @@ export class ViberController extends EventEmitter {
           available: health?.available ?? false,
           status: (health?.status ?? "UNKNOWN") as ViberSkillInfo["status"],
           healthSummary: health?.summary,
+          checks: health?.checks?.map((c) => ({
+            id: c.id,
+            label: c.label,
+            ok: c.ok,
+            required: c.required,
+            message: c.message,
+            hint: c.hint,
+            actionType: c.actionType,
+          })),
         };
       });
     } catch (err) {

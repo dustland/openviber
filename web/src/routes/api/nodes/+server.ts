@@ -62,6 +62,7 @@ export const GET: RequestHandler = async ({ locals }) => {
         runningVibers: daemon?.runningVibers,
         machine: daemon?.machine,
         viber: daemon?.viber,
+        config_sync_state: node.config_sync_state,
       };
     });
 
@@ -91,6 +92,7 @@ export const GET: RequestHandler = async ({ locals }) => {
           runningVibers: daemon.runningVibers,
           machine: daemon.machine,
           viber: daemon.viber,
+          config_sync_state: undefined, // Virtual nodes don't have DB state
         });
       }
     }

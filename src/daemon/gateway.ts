@@ -1164,7 +1164,7 @@ export class GatewayServer {
   /**
    * Handle a config:ack message from a node (response to config:push).
    */
-  private handleConfigAck(
+  private async handleConfigAck(
     ws: WebSocket,
     configVersion: string,
     validations: Array<{
@@ -1173,14 +1173,48 @@ export class GatewayServer {
       message?: string;
       checkedAt: string;
     }>,
-  ): void {
+  ): Promise<void> {
     for (const node of this.nodes.values()) {
       if (node.ws === ws) {
         console.log(`[Gateway] Node ${node.id} acknowledged config push`, {
           configVersion,
           validationsCount: validations.length,
         });
-        // TODO: In Step 5, persist this to Supabase
+
+        // Persist config sync state to Supabase via web API
+        // The web app URL is typically on port 6006 (gateway is on 6007)
+        const webAppUrl = process.env.VIBER_WEB_URL || "http://localhost:6006";
+        const gatewayToken = process.env.VIBER_GATEWAY_API_TOKEN || process.env.VIBER_BOARD_API_TOKEN || process.env.VIBER_HUB_API_TOKEN;
+
+        if (webAppUrl && gatewayToken) {
+          try {
+            const syncState = {
+              configVersion,
+              lastConfigPullAt: new Date().toISOString(),
+              validations,
+            };
+
+            const response = await fetch(`${webAppUrl}/api/nodes/${node.id}/config-sync-state`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${gatewayToken}`,
+              },
+              body: JSON.stringify({ syncState }),
+            });
+
+            if (response.ok) {
+              console.log(`[Gateway] Persisted config sync state for node ${node.id}`);
+            } else {
+              console.warn(`[Gateway] Failed to persist config sync state: ${response.status}`);
+            }
+          } catch (error) {
+            console.error(`[Gateway] Error persisting config sync state:`, error);
+          }
+        } else {
+          console.warn("[Gateway] Web app URL or gateway token not configured, skipping config sync state persistence");
+        }
+
         break;
       }
     }

@@ -164,15 +164,15 @@ The `antigravity_check_and_heal` tool is an all-in-one health check. It scans al
 
 ### cursor-agent
 
-**Purpose:** Run the Cursor CLI (`agent`) for software engineering tasks via tmux-backed automation.
+**Purpose:** Run the Cursor CLI (`agent`) for software engineering tasks via terminal-backed automation.
 
 | | |
 |---|---|
 | **Tools** | `cursor_agent_run` |
 | **Use case** | Delegate coding tasks to Cursor CLI from a viber |
-| **Depends on** | Cursor CLI installed, tmux installed |
+| **Depends on** | Cursor CLI installed, terminal skill available |
 
-**Critical:** The Cursor CLI requires a real TTY. Running it directly from a subprocess will hang. This skill runs the agent inside a tmux session to provide a pseudo-terminal. The `cursor_agent_run` tool handles session creation, command execution, workspace trust acceptance, and output capture.
+**Critical:** The Cursor CLI requires a real TTY. Running it directly from a subprocess will hang. This skill runs the agent inside a persistent terminal session to provide a pseudo-terminal. The `cursor_agent_run` tool handles session creation, command execution, workspace trust acceptance, and output capture.
 
 **Parameters:**
 - `goal` — The coding task to send to Cursor
@@ -189,7 +189,7 @@ The `antigravity_check_and_heal` tool is an all-in-one health check. It scans al
 | **Use case** | Delegate coding tasks to Codex CLI from a viber |
 | **Depends on** | Codex CLI installed (`pnpm add -g @openai/codex`), authenticated |
 
-Unlike cursor-agent, codex-cli uses the non-interactive `codex exec` command, which works reliably from Node.js tool calls without tmux. The tool returns structured, chat-friendly results:
+Unlike cursor-agent, codex-cli uses the non-interactive `codex exec` command, which works reliably from Node.js tool calls without a persistent terminal session. The tool returns structured, chat-friendly results:
 
 - `summary` — Status, cwd, mode, exit code (compact one-liner)
 - `stdoutTail` / `stderrTail` — Last ~80 lines of output
@@ -221,23 +221,23 @@ The github skill provides a complete workflow chain for autonomous issue fixing:
 5. `gh_commit_and_push` → Commit and push the fix
 6. `gh_create_pr` → Create a PR referencing the issue
 
-### tmux
+### terminal
 
-**Purpose:** Terminal multiplexing for TTY-dependent CLIs, persistent terminal sessions, and process monitoring.
+**Purpose:** Persistent terminal sessions for TTY-dependent CLIs, multi-terminal workspaces, and process monitoring.
 
 | | |
 |---|---|
-| **Tools** | `tmux_install_check`, `tmux_new_session`, `tmux_kill_session`, `tmux_rename_session`, `tmux_new_window`, `tmux_kill_window`, `tmux_rename_window`, `tmux_split_pane`, `tmux_send_keys`, `tmux_capture_pane`, `tmux_list`, `tmux_run` |
+| **Tools** | `terminal_check`, `terminal_new_session`, `terminal_kill_session`, `terminal_rename_session`, `terminal_new_window`, `terminal_kill_window`, `terminal_rename_window`, `terminal_split_pane`, `terminal_send_keys`, `terminal_read`, `terminal_list`, `terminal_run` |
 | **Use case** | Multi-terminal layouts, running CLIs that need a PTY, monitoring long-running processes |
-| **Depends on** | tmux installed on the system |
+| **Depends on** | tmux installed on the system (implementation detail) |
 
-The tmux skill supports three modes:
+The terminal skill supports three modes:
 
-- **Single command** — Use `tmux_run` to run a command and capture output
-- **Multi-terminal layout** — Use `tmux_new_session`, `tmux_new_window`, `tmux_split_pane`, `tmux_send_keys`, and `tmux_list` to build complex terminal layouts (e.g., 3 Cursor agents + 2 dev servers)
-- **Process monitoring** — Use `tmux_capture_pane` to read pane content without sending commands, ideal for monitoring builds, dev servers, or AI agents
+- **Single command** — Use `terminal_run` to run a command and capture output
+- **Multi-terminal layout** — Use `terminal_new_session`, `terminal_new_window`, `terminal_split_pane`, `terminal_send_keys`, and `terminal_list` to build complex terminal layouts (e.g., 3 Cursor agents + 2 dev servers)
+- **Process monitoring** — Use `terminal_read` to read pane content without sending commands, ideal for monitoring builds, dev servers, or AI agents
 
-Full session lifecycle: create → populate → operate → reorganize → clean up, with `tmux_kill_session`/`tmux_kill_window` for cleanup and `tmux_rename_session`/`tmux_rename_window` for reorganization.
+Full session lifecycle: create → populate → operate → reorganize → clean up, with `terminal_kill_session`/`terminal_kill_window` for cleanup and `terminal_rename_session`/`terminal_rename_window` for reorganization.
 
 **Target format:** `session` → `session:window` → `session:window.pane`
 
@@ -267,7 +267,7 @@ skills:
   - cursor-agent
   - codex-cli
   - github
-  - tmux
+  - terminal
 ```
 
 ### Skills in Jobs

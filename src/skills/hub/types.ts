@@ -31,7 +31,7 @@ export interface EnvRequirement {
 
 /** Binary/CLI tool requirement */
 export interface BinaryRequirement {
-  /** Binary name (e.g. "gh", "tmux") */
+  /** Binary name (e.g. "gh", "node") */
   name: string;
   /** Install commands per platform */
   install?: Record<string, string>;

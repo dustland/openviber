@@ -59,7 +59,7 @@ tools:
 
 # Skills (provide tools + domain knowledge)
 skills:
-  - tmux         # Terminal session management (required for cursor-agent)
+  - terminal     # Persistent terminal session management (required for cursor-agent)
   - github       # GitHub CLI tools (issues, branches, PRs)
   - codex-cli    # Codex CLI integration (non-interactive coding)
   - cursor-agent # Cursor CLI agent (TTY-based AI coding)

@@ -46,6 +46,27 @@ export const GET: RequestHandler = async ({ locals }) => {
       const daemon = node.node_id ? connectedDaemons.get(node.node_id) : undefined;
       const isConnected = !!daemon;
       if (isConnected && node.node_id) claimedDaemonIds.add(node.node_id);
+
+      // Merge config sync state from gateway if available (more recent than DB)
+      let configSyncState = node.config_sync_state;
+      const gatewayState = daemon?.configState || (daemon as any)?.pendingConfigSyncState;
+      if (gatewayState && gatewayState.configVersion) {
+        // Gateway has more recent state, use it
+        configSyncState = {
+          configVersion: gatewayState.configVersion,
+          lastConfigPullAt: gatewayState.lastConfigPullAt,
+          validations: gatewayState.validations,
+        };
+
+        // Persist to Supabase in background (non-blocking)
+        if (node.id && node.node_id) {
+          const { updateConfigSyncState } = await import("$lib/server/viber-nodes");
+          updateConfigSyncState(node.id, configSyncState).catch((err) => {
+            console.warn("[Nodes API] Failed to persist config sync state:", err);
+          });
+        }
+      }
+
       return {
         ...node,
         status: isConnected
@@ -62,6 +83,8 @@ export const GET: RequestHandler = async ({ locals }) => {
         runningVibers: daemon?.runningVibers,
         machine: daemon?.machine,
         viber: daemon?.viber,
+        // Include config sync state (from DB or gateway)
+        config_sync_state: configSyncState,
       };
     });
 

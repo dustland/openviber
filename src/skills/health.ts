@@ -5,6 +5,17 @@ import { defaultRegistry } from "./registry";
 
 export type SkillHealthStatus = "AVAILABLE" | "NOT_AVAILABLE" | "UNKNOWN";
 
+/**
+ * Classifies what kind of interactive action can resolve a failing check.
+ *
+ * - `"env"` — Missing environment variable (prompt user to paste a key)
+ * - `"oauth"` — OAuth connection needed (run browser/headless OAuth flow)
+ * - `"binary"` — CLI binary not found (show install command, offer retry)
+ * - `"auth_cli"` — CLI auth needed (show login command, offer retry)
+ * - `"manual"` — Requires manual/external setup (show hint only)
+ */
+export type HealthCheckActionType = "env" | "oauth" | "binary" | "auth_cli" | "manual";
+
 export interface SkillHealthCheck {
   id: string;
   label: string;
@@ -12,6 +23,8 @@ export interface SkillHealthCheck {
   required?: boolean;
   message?: string;
   hint?: string;
+  /** What kind of interactive action can resolve this check (for onboarding wizard). */
+  actionType?: HealthCheckActionType;
 }
 
 export interface SkillHealthResult {
@@ -164,6 +177,7 @@ function buildCommandCheck(args: {
       required: true,
       message: command ? `Found: ${command}` : "Not found in PATH",
       hint: command ? undefined : args.hint,
+      actionType: "binary",
     },
   };
 }
@@ -173,6 +187,7 @@ function buildEnvCheck(args: {
   label: string;
   envVars: string[];
   hint: string;
+  actionType?: HealthCheckActionType;
 }): SkillHealthCheck {
   const found = args.envVars.find((key) => !!process.env[key]?.trim());
   return {
@@ -182,6 +197,7 @@ function buildEnvCheck(args: {
     required: true,
     message: found ? `${found} set` : `${args.envVars.join(" or ")} not set`,
     hint: found ? undefined : args.hint,
+    actionType: args.actionType ?? "env",
   };
 }
 
@@ -200,6 +216,7 @@ function buildAuthCheck(args: {
         label: args.label,
         envVars: args.envVars,
         hint: args.hint,
+        actionType: "auth_cli",
       })
       : null;
 
@@ -215,6 +232,7 @@ function buildAuthCheck(args: {
       required: true,
       message: "Authentication not verified",
       hint: args.hint,
+      actionType: "auth_cli",
     };
   }
 
@@ -226,6 +244,7 @@ function buildAuthCheck(args: {
       ok: true,
       required: true,
       message: "Authenticated via CLI",
+      actionType: "auth_cli",
     };
   }
 
@@ -237,6 +256,7 @@ function buildAuthCheck(args: {
     required: true,
     message: detail,
     hint: args.hint,
+    actionType: "auth_cli",
   };
 }
 
@@ -271,6 +291,7 @@ async function checkAntigravityHealth(skill: SkillInfo): Promise<SkillHealthResu
       hint: ok
         ? undefined
         : `Start Chrome with --remote-debugging-port=${port}`,
+      actionType: "manual",
     },
   ];
 
@@ -389,16 +410,51 @@ async function checkTmuxHealth(skill: SkillInfo): Promise<SkillHealthResult> {
 }
 
 async function checkGmailHealth(skill: SkillInfo): Promise<SkillHealthResult> {
-  // Gmail uses Google OAuth — check for GOOGLE_CLIENT_ID env var
-  // The actual token is stored in the DB, but having the client configured
-  // on the server side is the prerequisite for the OAuth flow.
-  const clientIdCheck = buildEnvCheck({
-    id: "google-client-id",
-    label: "Google OAuth configured",
-    envVars: ["GOOGLE_CLIENT_ID"],
-    hint: "Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET env vars, then connect via Settings > Integrations",
-  });
-  return buildResult(skill, [clientIdCheck]);
+  // Gmail uses Google OAuth.  Three ways to satisfy this:
+  //  1. Connected mode: tokens in Supabase (requires GOOGLE_CLIENT_ID on the web server)
+  //  2. Standalone: local OAuth tokens in settings.yaml
+  //  3. Standalone: tokens passed via CLI flags
+
+  // Check for local OAuth tokens first (standalone mode)
+  let hasLocalTokens = false;
+  try {
+    const { loadSettings } = await import("./hub/settings");
+    const settings = await loadSettings();
+    hasLocalTokens = !!settings.oauthTokens?.google?.accessToken;
+  } catch {
+    // settings load failed — skip
+  }
+
+  if (hasLocalTokens) {
+    return buildResult(skill, [
+      {
+        id: "google-oauth",
+        label: "Google OAuth",
+        ok: true,
+        required: true,
+        message: "Local OAuth tokens configured",
+        actionType: "oauth",
+      },
+    ]);
+  }
+
+  // Fall back to checking for server-side OAuth config or env vars
+  const hasClientId = !!process.env.GOOGLE_CLIENT_ID?.trim();
+  return buildResult(skill, [
+    {
+      id: "google-oauth",
+      label: "Google OAuth",
+      ok: hasClientId,
+      required: true,
+      message: hasClientId
+        ? "GOOGLE_CLIENT_ID set — connect via web or run `viber auth google`"
+        : "Google account not connected",
+      hint: hasClientId
+        ? undefined
+        : "Run `viber auth google` to connect your Google account",
+      actionType: "oauth",
+    },
+  ]);
 }
 
 const SKILL_CHECKERS: Record<

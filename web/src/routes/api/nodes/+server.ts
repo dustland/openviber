@@ -6,6 +6,7 @@ import {
   listViberNodes,
   deleteViberNode,
   ensureDevNode,
+  updateConfigSyncState,
 } from "$lib/server/viber-nodes";
 import { gatewayClient } from "$lib/server/gateway-client";
 import { upsertSkillsBatch } from "$lib/server/environments";
@@ -42,28 +43,43 @@ export const GET: RequestHandler = async ({ locals }) => {
 
     // Compute status at runtime: if node's daemon is connected, it's active
     // Also attach hub metrics for visualization
-    const enrichedNodes = nodes.map((node) => {
-      const daemon = node.node_id ? connectedDaemons.get(node.node_id) : undefined;
-      const isConnected = !!daemon;
-      if (isConnected && node.node_id) claimedDaemonIds.add(node.node_id);
-      return {
-        ...node,
-        status: isConnected
-          ? "active" as const
-          : node.node_id
-            ? "offline" as const
-            : "pending" as const,
-        // Attach gateway observability metrics
-        version: daemon?.version,
-        platform: daemon?.platform,
-        capabilities: daemon?.capabilities,
-        skills: daemon?.skills,
-        lastHeartbeat: daemon?.lastHeartbeat,
-        runningVibers: daemon?.runningVibers,
-        machine: daemon?.machine,
-        viber: daemon?.viber,
-      };
-    });
+    const enrichedNodes = await Promise.all(
+      nodes.map(async (node) => {
+        const daemon = node.node_id ? connectedDaemons.get(node.node_id) : undefined;
+        const isConnected = !!daemon;
+        if (isConnected && node.node_id) claimedDaemonIds.add(node.node_id);
+
+        // Persist config sync state from gateway to Supabase if available
+        if (isConnected && daemon?.configState && node.id) {
+          try {
+            await updateConfigSyncState(node.id, daemon.configState);
+          } catch (error) {
+            // Non-fatal - config state is still available from gateway
+            console.warn(`[Nodes API] Failed to persist config sync state for node ${node.id}:`, error);
+          }
+        }
+
+        return {
+          ...node,
+          status: isConnected
+            ? "active" as const
+            : node.node_id
+              ? "offline" as const
+              : "pending" as const,
+          // Attach gateway observability metrics
+          version: daemon?.version,
+          platform: daemon?.platform,
+          capabilities: daemon?.capabilities,
+          skills: daemon?.skills,
+          lastHeartbeat: daemon?.lastHeartbeat,
+          runningVibers: daemon?.runningVibers,
+          machine: daemon?.machine,
+          viber: daemon?.viber,
+          // Include config sync state (from gateway or Supabase)
+          config_sync_state: daemon?.configState || node.config_sync_state,
+        };
+      })
+    );
 
     // Add gateway-connected daemons that aren't linked to any DB node as virtual nodes
     for (const [daemonId, daemon] of connectedDaemons) {
@@ -91,6 +107,7 @@ export const GET: RequestHandler = async ({ locals }) => {
           runningVibers: daemon.runningVibers,
           machine: daemon.machine,
           viber: daemon.viber,
+          config_sync_state: daemon.configState,
         });
       }
     }

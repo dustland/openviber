@@ -101,6 +101,17 @@ export interface ConnectedNode {
   machine?: NodeMachineMetrics;
   /** Viber daemon metrics (from heartbeat) */
   viber?: NodeViberMetrics;
+  /** Config sync state (from heartbeat or config:ack) */
+  configState?: {
+    configVersion: string;
+    lastConfigPullAt: string;
+    validations: Array<{
+      category: string;
+      status: string;
+      message?: string;
+      checkedAt: string;
+    }>;
+  };
 }
 
 /** Full machine resource status snapshot (from node status request) */

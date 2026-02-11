@@ -47,6 +47,7 @@ export interface ViberNode {
   hub_url: string | null;
   auth_token: string | null;
   config: Record<string, unknown>;
+  config_sync_state: Record<string, unknown> | null;
   last_seen_at: string | null;
   created_at: string;
   updated_at: string;
@@ -367,6 +368,45 @@ export async function updateNodeName(
     },
     body: JSON.stringify({
       name,
+      updated_at: new Date().toISOString(),
+    }),
+  });
+
+  if (!response.ok) return null;
+
+  const rows = (await response.json()) as ViberNode[];
+  return rows[0] ?? null;
+}
+
+/**
+ * Update a viber node's config sync state (from node's config:ack).
+ */
+export async function updateConfigSyncState(
+  nodeId: string,
+  syncState: {
+    configVersion: string;
+    lastConfigPullAt: string;
+    validations: Array<{
+      category: string;
+      status: string;
+      message?: string;
+      checkedAt: string;
+    }>;
+  },
+): Promise<ViberNode | null> {
+  const url = restUrl("viber_nodes", {
+    id: `eq.${nodeId}`,
+    select: "*",
+  });
+
+  const response = await fetch(url, {
+    method: "PATCH",
+    headers: {
+      ...serviceHeaders(),
+      Prefer: "return=representation",
+    },
+    body: JSON.stringify({
+      config_sync_state: syncState,
       updated_at: new Date().toISOString(),
     }),
   });

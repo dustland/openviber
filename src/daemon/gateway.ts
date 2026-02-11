@@ -64,7 +64,16 @@ interface ConnectedNode {
   /** Latest viber running status from heartbeat */
   viberStatus?: ViberRunningStatus;
   /** Latest config sync state from heartbeat or config:ack */
-  configState?: { configVersion: string; lastConfigPullAt: string; validations: Array<{ category: string; status: string; message?: string; checkedAt: string }> };
+  configState?: {
+    configVersion: string;
+    lastConfigPullAt: string;
+    validations: Array<{
+      category: string;
+      status: string;
+      message?: string;
+      checkedAt: string;
+    }>;
+  };
   /** Pending status:request resolver (for on-demand status requests) */
   pendingStatusResolvers?: Array<(status: NodeObservabilityStatus) => void>;
 }
@@ -333,6 +342,8 @@ export class GatewayServer {
       connectedAt: n.connectedAt.toISOString(),
       lastHeartbeat: n.lastHeartbeat.toISOString(),
       runningVibers: n.runningVibers,
+      // Config sync state
+      configState: n.configState,
       // Enriched observability data from heartbeats
       machine: n.machineStatus
         ? {

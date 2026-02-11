@@ -21,6 +21,7 @@ function sleep(seconds: number): Promise<void> {
 /**
  * Capture the current contents of a tmux pane.
  * Tries ANSI-aware capture first, falls back to plain capture.
+ * Throws if all capture strategies fail (e.g. pane does not exist).
  */
 function capturePaneOutput(target: string, lines = 200): string {
   const cmds = [
@@ -28,14 +29,15 @@ function capturePaneOutput(target: string, lines = 200): string {
     `tmux capture-pane -t '${target}' -pe -S -${lines}`,
     `tmux capture-pane -t '${target}' -p -S -${lines}`,
   ];
+  let lastError: Error | undefined;
   for (const cmd of cmds) {
     try {
       return execSync(cmd, { encoding: "utf8", stdio: "pipe" });
-    } catch {
-      // try next fallback
+    } catch (err: any) {
+      lastError = err;
     }
   }
-  return "";
+  throw lastError ?? new Error(`Failed to capture pane: ${target}`);
 }
 
 /**

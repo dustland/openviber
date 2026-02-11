@@ -347,7 +347,7 @@ async function checkGeminiHealth(skill: SkillInfo): Promise<SkillHealthResult> {
     id: "gemini-cli",
     label: "Gemini CLI installed",
     candidates: ["gemini"],
-    hint: "Install with: npm install -g @google/gemini-cli",
+    hint: "Install with: pnpm add -g @google/gemini-cli",
   });
   const authCheck = buildAuthCheck({
     id: "gemini-auth",
@@ -385,7 +385,7 @@ async function checkRailwayHealth(skill: SkillInfo): Promise<SkillHealthResult> 
     id: "railway-cli",
     label: "Railway CLI installed",
     candidates: ["railway"],
-    hint: "Install with: npm install -g @railway/cli",
+    hint: "Install with: pnpm add -g @railway/cli",
   });
   const authCheck = buildAuthCheck({
     id: "railway-auth",

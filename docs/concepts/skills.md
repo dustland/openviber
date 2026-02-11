@@ -227,7 +227,7 @@ The github skill provides a complete workflow chain for autonomous issue fixing:
 
 | | |
 |---|---|
-| **Tools** | `terminal_check`, `terminal_new_session`, `terminal_kill_session`, `terminal_rename_session`, `terminal_new_window`, `terminal_kill_window`, `terminal_rename_window`, `terminal_split_pane`, `terminal_send_keys`, `terminal_read`, `terminal_list`, `terminal_run` |
+| **Tools** | `terminal_check`, `terminal_prepare_skill_prerequisites`, `terminal_new_session`, `terminal_kill_session`, `terminal_rename_session`, `terminal_new_window`, `terminal_kill_window`, `terminal_rename_window`, `terminal_split_pane`, `terminal_send_keys`, `terminal_read`, `terminal_list`, `terminal_run` |
 | **Use case** | Multi-terminal layouts, running CLIs that need a PTY, monitoring long-running processes |
 | **Depends on** | tmux installed on the system (implementation detail) |
 

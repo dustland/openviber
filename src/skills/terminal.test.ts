@@ -32,6 +32,66 @@ describe("terminal skill helpers", () => {
     expect(result.version).toBe("tmux 3.4");
     execSyncMock.mockReset();
   });
+
+  it("selects pnpm install commands for node-based CLIs", () => {
+    const env = {
+      hasBrew: false,
+      hasApt: false,
+      hasCurl: false,
+      isRoot: false,
+    };
+
+    expect(__private.selectInstallCommand("codex-cli", env)).toBe(
+      "pnpm add -g @openai/codex",
+    );
+    expect(__private.selectInstallCommand("gemini-cli", env)).toBe(
+      "pnpm add -g @google/gemini-cli",
+    );
+    expect(__private.selectInstallCommand("railway-cli", env)).toBe(
+      "pnpm add -g @railway/cli",
+    );
+  });
+
+  it("selects OS-specific install command fallbacks", () => {
+    expect(
+      __private.selectInstallCommand("gh-cli", {
+        hasBrew: true,
+        hasApt: true,
+        hasCurl: false,
+        isRoot: true,
+      }),
+    ).toBe("brew install gh");
+
+    expect(
+      __private.selectInstallCommand("gh-cli", {
+        hasBrew: false,
+        hasApt: true,
+        hasCurl: false,
+        isRoot: true,
+      }),
+    ).toBe("apt-get update && apt-get install -y gh");
+
+    expect(
+      __private.selectInstallCommand("cursor-cli", {
+        hasBrew: false,
+        hasApt: false,
+        hasCurl: true,
+        isRoot: false,
+      }),
+    ).toBe("curl https://cursor.com/install -fsS | bash");
+  });
+
+  it("builds auth commands from resolved binaries", () => {
+    const resolver = (candidates: string[]) => candidates[0] || null;
+    expect(__private.selectAuthCommand("cursor-auth", resolver)).toBe("agent login");
+    expect(__private.selectAuthCommand("codex-auth", resolver)).toBe("codex login");
+    expect(__private.selectAuthCommand("gh-auth", resolver)).toBe(
+      "gh auth login -h github.com",
+    );
+    expect(__private.selectAuthCommand("railway-auth", resolver)).toBe(
+      "railway login",
+    );
+  });
 });
 
 describe("terminal skill tools", () => {
@@ -327,10 +387,11 @@ describe("terminal skill tools", () => {
   });
 
   describe("tool registry completeness", () => {
-    it("exports all 12 expected tools", () => {
+    it("exports all expected tools", () => {
       const tools = getTools();
       const expectedTools = [
         "terminal_check",
+        "terminal_prepare_skill_prerequisites",
         "terminal_new_session",
         "terminal_kill_session",
         "terminal_rename_session",

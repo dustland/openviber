@@ -17,6 +17,7 @@ Manage persistent terminal sessions that survive disconnections and can be viewe
 ### Health check
 
 - **terminal_check** — Verify the terminal backend is available. Call before using other terminal tools.
+- **terminal_prepare_skill_prerequisites** — Plan/apply prerequisite setup for built-in skills (install missing CLIs and run interactive auth in a terminal session).
 
 ### Session management
 
@@ -79,6 +80,16 @@ This is useful for:
 - Checking if a dev server has finished starting
 - Reading build/test output
 - Monitoring AI agent progress
+
+## Automated skill prerequisite setup
+
+When users ask to set up dependencies automatically instead of copy/pasting commands:
+
+1. `terminal_prepare_skill_prerequisites({ skillId: "<skill>", mode: "plan" })` to preview actions
+2. `terminal_prepare_skill_prerequisites({ skillId: "<skill>", mode: "apply" })` to execute installs and auth flows
+3. If auth is pending, continue in the returned `authTarget` using `terminal_send_keys`
+
+Supported skill IDs: `cursor-agent`, `codex-cli`, `gemini-cli`, `github`, `railway`, `terminal`.
 
 ## Session lifecycle
 

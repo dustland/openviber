@@ -13,7 +13,7 @@ Run Google Gemini CLI (`gemini`) from Viber for autonomous coding and general ta
 Install Gemini CLI globally:
 
 ```bash
-npm install -g @google/gemini-cli
+pnpm add -g @google/gemini-cli
 ```
 
 Then authenticate (one of):

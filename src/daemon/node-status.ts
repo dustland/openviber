@@ -154,6 +154,24 @@ export interface NodeObservabilityStatus {
   viber: ViberRunningStatus;
 }
 
+/** Configuration validation result for a category */
+export interface ConfigValidation {
+  category: "llm_keys" | "oauth" | "env_secrets" | "skills" | "binary_deps";
+  status: "verified" | "failed" | "unchecked";
+  message?: string;
+  checkedAt: string;
+}
+
+/** Configuration sync state reported by the node */
+export interface ConfigState {
+  /** Hash of current config (for versioning) */
+  configVersion: string;
+  /** ISO timestamp when config was last pulled from Supabase */
+  lastConfigPullAt: string;
+  /** Validation results for different config categories */
+  validations: ConfigValidation[];
+}
+
 // ==================== CPU Usage Tracking ====================
 
 let previousCpuTimes: os.CpuInfo[] | null = null;
@@ -413,6 +431,21 @@ export function collectNodeStatus(params: {
   return {
     machine: collectMachineResourceStatus(),
     viber: collectViberRunningStatus(params),
+  };
+}
+
+/**
+ * Collect config sync state. Returns empty state if no config has been pulled yet.
+ */
+export function collectConfigState(params: {
+  configVersion?: string;
+  lastConfigPullAt?: string;
+  validations?: ConfigValidation[];
+}): ConfigState {
+  return {
+    configVersion: params.configVersion || "",
+    lastConfigPullAt: params.lastConfigPullAt || "",
+    validations: params.validations || [],
   };
 }
 

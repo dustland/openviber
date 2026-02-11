@@ -55,6 +55,7 @@ The gateway exposes a REST API for the web app (via `gateway-client.ts`):
 | `GET` | `/api/tasks/:id` | Get task status and events |
 | `POST` | `/api/tasks/:id/stop` | Stop a running task |
 | `GET` | `/api/tasks/:id/stream` | SSE stream of AI SDK response chunks |
+| `POST` | `/api/nodes/:id/config-push` | Push config to node (triggers config:push message) |
 
 ### SSE Stream Endpoint
 
@@ -91,6 +92,7 @@ X-Viber-Version: {version}
 | `task:error` | `{ taskId, error }` | Task failed |
 | `heartbeat` | `{ status: ViberStatus }` | Periodic health (every 30s) |
 | `pong` | `{}` | Response to ping |
+| `config:ack` | `{ configVersion, validations }` | Response to config:push |
 | `terminal:*` | Various | Terminal streaming responses |
 
 ### Gateway → Node Runtime Messages
@@ -101,7 +103,8 @@ X-Viber-Version: {version}
 | `task:stop` | `{ taskId }` | Stop a running task |
 | `task:message` | `{ taskId, message, injectionMode? }` | Follow-up message during task |
 | `ping` | `{}` | Keepalive |
-| `config:update` | `{ config }` | Runtime config change |
+| `config:update` | `{ config }` | Runtime config change (deprecated) |
+| `config:push` | `{}` | Request node to pull and validate latest config |
 | `terminal:list` | `{}` | Request terminal list |
 | `terminal:attach` | `{ target, appId? }` | Attach to terminal |
 | `terminal:detach` | `{ target, appId? }` | Detach from terminal |
@@ -128,6 +131,19 @@ interface ViberSkillInfo {
   available: boolean;
   status: "AVAILABLE" | "NOT_AVAILABLE" | "UNKNOWN";
   healthSummary?: string;
+}
+
+interface ConfigState {
+  configVersion: string;
+  lastConfigPullAt: string;
+  validations: ConfigValidation[];
+}
+
+interface ConfigValidation {
+  category: "llm_keys" | "oauth" | "env_secrets" | "skills" | "binary_deps";
+  status: "verified" | "failed" | "unchecked";
+  message?: string;
+  checkedAt: string;
 }
 ```
 

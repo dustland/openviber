@@ -276,6 +276,12 @@ export class GatewayServer {
     ) {
       const nodeId = decodeURIComponent(url.pathname.split("/")[3]);
       this.handlePushJobToNode(nodeId, req, res);
+    } else if (
+      url.pathname.match(/^\/api\/nodes\/[^/]+\/config-push$/) &&
+      method === "POST"
+    ) {
+      const nodeId = decodeURIComponent(url.pathname.split("/")[3]);
+      this.handleConfigPush(nodeId, res);
     } else {
       res.writeHead(404, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: "Not found" }));
@@ -897,6 +903,10 @@ export class GatewayServer {
         this.handleStatusReport(ws, msg.status);
         break;
 
+      case "config:ack":
+        this.handleConfigAck(ws, msg.configVersion, msg.validations);
+        break;
+
       default:
         console.log(`[Gateway] Unknown message type: ${msg.type}`);
     }
@@ -1133,6 +1143,49 @@ export class GatewayServer {
         break;
       }
     }
+  }
+
+  /**
+   * Handle a config:ack message from a node (response to config:push).
+   */
+  private handleConfigAck(
+    ws: WebSocket,
+    configVersion: string,
+    validations: Array<{
+      category: string;
+      status: string;
+      message?: string;
+      checkedAt: string;
+    }>,
+  ): void {
+    for (const node of this.nodes.values()) {
+      if (node.ws === ws) {
+        console.log(`[Gateway] Node ${node.id} acknowledged config push`, {
+          configVersion,
+          validationsCount: validations.length,
+        });
+        // TODO: In Step 5, persist this to Supabase
+        break;
+      }
+    }
+  }
+
+  /**
+   * POST /api/nodes/:id/config-push - Push config to a node via WebSocket.
+   */
+  private handleConfigPush(nodeId: string, res: ServerResponse): void {
+    const node = this.nodes.get(nodeId);
+    if (!node) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Node not found or not connected" }));
+      return;
+    }
+
+    // Send config:push message to the node
+    node.ws.send(JSON.stringify({ type: "config:push" }));
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, message: "Config push sent to node" }));
   }
 
   /**

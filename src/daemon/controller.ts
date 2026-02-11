@@ -22,10 +22,13 @@ import {
   collectMachineResourceStatus,
   collectViberRunningStatus,
   collectNodeStatus,
+  collectConfigState,
   type MachineResourceStatus,
   type ViberRunningStatus as ViberNodeRunningStatus,
   type RunningTaskInfo,
   type NodeObservabilityStatus,
+  type ConfigState,
+  type ConfigValidation,
 } from "./node-status";
 import type { SkillHealthReport } from "../skills/health";
 
@@ -82,6 +85,8 @@ export interface ViberStatus {
   viberStatus?: ViberNodeRunningStatus;
   /** Extended skill info with availability (updated periodically) */
   skills?: ViberSkillInfo[];
+  /** Configuration sync state (version, last pull, validations) */
+  configState?: ConfigState;
 }
 
 // Server -> Viber messages (messages = full chat history from Viber Board for context)
@@ -120,6 +125,7 @@ export type ControllerServerMessage =
   }
   | { type: "ping" }
   | { type: "config:update"; config: Partial<ViberControllerConfig> }
+  | { type: "config:push" }
   // Terminal streaming messages
   | { type: "terminal:list" }
   | { type: "terminal:attach"; target: string; appId?: string }
@@ -144,9 +150,10 @@ export type ControllerClientMessage =
   | { type: "task:progress"; taskId: string; event: any }
   | { type: "task:stream-chunk"; taskId: string; chunk: string }
   | { type: "task:completed"; taskId: string; result: any }
-  | { type: "task:error"; taskId: string; error: string }
+  | { type: "task:error"; taskId: string; error: string; model?: string }
   | { type: "heartbeat"; status: ViberStatus }
   | { type: "pong" }
+  | { type: "config:ack"; configVersion: string; validations: ConfigValidation[] }
   // Terminal streaming messages
   | { type: "terminal:list"; apps: any[]; sessions: any[]; panes: any[] }
   | { type: "terminal:attached"; target: string; appId?: string; ok: boolean; error?: string }
@@ -214,6 +221,8 @@ export class ViberController extends EventEmitter {
   private skillHealthCache?: SkillHealthReport;
   private skillHealthCachedAt?: number;
   private skillHealthInFlight?: Promise<SkillHealthReport>;
+  /** Current config sync state */
+  private configState?: ConfigState;
   private log = createLogger("controller");
 
   constructor(private config: ViberControllerConfig) {
@@ -477,6 +486,10 @@ export class ViberController extends EventEmitter {
         case "config:update":
           Object.assign(this.config, message.config);
           this.emit("config:update", message.config);
+          break;
+
+        case "config:push":
+          await this.handleConfigPush();
           break;
 
         // Terminal streaming
@@ -990,6 +1003,7 @@ export class ViberController extends EventEmitter {
         machine: machineStatus,
         viberStatus,
         skills: skillsWithHealth.length > 0 ? skillsWithHealth : undefined,
+        configState: this.configState,
       };
 
       this.lastHeartbeatAt = new Date().toISOString();
@@ -1001,6 +1015,123 @@ export class ViberController extends EventEmitter {
     if (this.heartbeatTimer) {
       clearInterval(this.heartbeatTimer);
       this.heartbeatTimer = null;
+    }
+  }
+
+  // ==================== Config Management ====================
+
+  /**
+   * Handle config:push message - pull latest config from Supabase and validate it.
+   */
+  private async handleConfigPush(): Promise<void> {
+    this.log.info("Received config:push, pulling latest config");
+    try {
+      // Pull config from Supabase via the web API
+      // The web app URL is typically on port 6006, gateway is on 6007
+      // We construct it from the gateway URL
+      const gatewayUrl = this.config.serverUrl?.replace("/ws", "") || "";
+      if (!gatewayUrl) {
+        this.log.warn("No server URL configured, cannot pull config");
+        return;
+      }
+
+      // Convert gateway URL to web app URL (assume same host, different port)
+      let webAppUrl = gatewayUrl.replace("ws://", "http://").replace("wss://", "https://");
+      const url = new URL(webAppUrl);
+      // If gateway is on 6007, web app is likely on 6006
+      if (url.port === "6007" || (!url.port && url.hostname === "localhost")) {
+        url.port = "6006";
+      }
+      webAppUrl = url.toString().replace(/\/$/, ""); // Remove trailing slash
+
+      const response = await fetch(`${webAppUrl}/api/nodes/${this.config.viberId}/config`, {
+        headers: {
+          Authorization: `Bearer ${this.config.token || ""}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to pull config: ${response.status}`);
+      }
+
+      const configData = await response.json();
+      const configVersion = configData.configVersion || String(Date.now());
+      const lastConfigPullAt = new Date().toISOString();
+
+      // Validate config (basic validation for now, will be enhanced in Step 2)
+      const validations: ConfigValidation[] = [];
+      
+      // Validate LLM keys
+      if (configData.globalSettings?.aiProviders) {
+        const hasAnyKey = Object.values(configData.globalSettings.aiProviders).some(
+          (p: any) => !!p?.apiKey?.trim()
+        );
+        validations.push({
+          category: "llm_keys",
+          status: hasAnyKey ? "verified" : "failed",
+          message: hasAnyKey ? "At least one LLM provider key configured" : "No LLM provider keys found",
+          checkedAt: lastConfigPullAt,
+        });
+      } else {
+        validations.push({
+          category: "llm_keys",
+          status: "unchecked",
+          message: "LLM provider settings not provided",
+          checkedAt: lastConfigPullAt,
+        });
+      }
+
+      // Validate OAuth tokens
+      if (configData.oauthConnections && Array.isArray(configData.oauthConnections)) {
+        const hasOAuth = configData.oauthConnections.some((c: any) => c.connected);
+        validations.push({
+          category: "oauth",
+          status: hasOAuth ? "verified" : "unchecked",
+          message: hasOAuth ? "OAuth connections available" : "No OAuth connections",
+          checkedAt: lastConfigPullAt,
+        });
+      } else {
+        validations.push({
+          category: "oauth",
+          status: "unchecked",
+          message: "OAuth connections not checked",
+          checkedAt: lastConfigPullAt,
+        });
+      }
+
+      // Update config state
+      this.configState = collectConfigState({
+        configVersion,
+        lastConfigPullAt,
+        validations,
+      });
+
+      // Send ack to gateway
+      this.send({
+        type: "config:ack",
+        configVersion,
+        validations,
+      });
+
+      this.log.info("Config pulled and validated", { configVersion, validationsCount: validations.length });
+    } catch (error) {
+      this.log.error("Failed to pull/validate config", { error: String(error) });
+      
+      // Send ack with failed validation
+      const validations: ConfigValidation[] = [
+        {
+          category: "llm_keys",
+          status: "failed",
+          message: `Config pull failed: ${error instanceof Error ? error.message : String(error)}`,
+          checkedAt: new Date().toISOString(),
+        },
+      ];
+      
+      this.send({
+        type: "config:ack",
+        configVersion: "",
+        validations,
+      });
     }
   }
 

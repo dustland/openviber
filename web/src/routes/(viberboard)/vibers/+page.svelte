@@ -185,7 +185,7 @@
   {:else if vibers.length > 0}
     <div class="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
       {#each vibers as viber (viber.id)}
-        <a href="/vibers/{viber.id}" class="block group/card">
+        <a href={`/vibers/${viber.id}`} class="block group/card">
           <Card
             class="overflow-hidden hover:shadow-md transition-shadow cursor-pointer {viber.archivedAt
               ? 'opacity-60'

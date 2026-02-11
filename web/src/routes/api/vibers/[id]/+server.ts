@@ -2,7 +2,12 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { gatewayClient } from "$lib/server/gateway-client";
 import { getSettingsForUser } from "$lib/server/user-settings";
-import { getViberSkills, listSkills } from "$lib/server/environments";
+import {
+  getViberEnvironmentForUser,
+  getViberSkills,
+  listSkills,
+  setViberEnvironmentForUser,
+} from "$lib/server/environments";
 import { supabaseRequest } from "$lib/server/supabase-rest";
 import { writeLog } from "$lib/server/logs";
 
@@ -13,19 +18,22 @@ export const GET: RequestHandler = async ({ params, locals }) => {
   }
 
   try {
-    const [viber, enabledSkills, accountSkillRows] = await Promise.all([
+    const [viber, enabledSkills, accountSkillRows, environmentId] = await Promise.all([
       gatewayClient.getViber(params.id),
       getViberSkills(params.id),
       listSkills(locals.user.id),
+      getViberEnvironmentForUser(locals.user.id, params.id),
     ]);
 
     if (!viber) {
       return json({
         id: params.id,
+        name: params.id,
         nodeId: null,
         goal: "",
         status: "unknown",
         nodeConnected: null,
+        environmentId,
       });
     }
 
@@ -38,6 +46,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 
     return json({
       id: viber.id,
+      name: viber.goal,
       nodeId: viber.nodeId,
       nodeName: viber.nodeName ?? viber.nodeId,
       goal: viber.goal,
@@ -46,12 +55,82 @@ export const GET: RequestHandler = async ({ params, locals }) => {
       nodeConnected: viber.isNodeConnected !== false,
       createdAt: viber.createdAt,
       completedAt: viber.completedAt,
+      environmentId,
       skills,
       enabledSkills,
     });
   } catch (error) {
     console.error("Failed to fetch viber:", error);
     return json({ error: "Failed to fetch viber" }, { status: 500 });
+  }
+};
+
+// PATCH /api/vibers/[id] - Update persisted viber metadata (environment assignment)
+export const PATCH: RequestHandler = async ({ params, request, locals }) => {
+  if (!locals.user) {
+    return json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const body = await request.json();
+    if (!Object.prototype.hasOwnProperty.call(body, "environmentId")) {
+      return json({ error: "environmentId is required" }, { status: 400 });
+    }
+
+    const rawEnvironmentId = body.environmentId;
+    const normalizedEnvironmentId =
+      typeof rawEnvironmentId === "string"
+        ? rawEnvironmentId.trim() || null
+        : rawEnvironmentId === null
+          ? null
+          : undefined;
+
+    if (normalizedEnvironmentId === undefined) {
+      return json(
+        { error: "environmentId must be a string or null" },
+        { status: 400 },
+      );
+    }
+
+    const viber = await gatewayClient.getViber(params.id);
+    const assignment = await setViberEnvironmentForUser(
+      locals.user.id,
+      params.id,
+      normalizedEnvironmentId,
+      viber?.goal || params.id,
+      viber?.nodeId ?? null,
+    );
+
+    if (!assignment) {
+      return json(
+        {
+          error:
+            "Invalid environment. Make sure it exists and belongs to your account.",
+        },
+        { status: 400 },
+      );
+    }
+
+    writeLog({
+      user_id: locals.user.id,
+      level: "info",
+      category: "activity",
+      component: "task",
+      message: `Updated viber environment: ${params.id}`,
+      viber_id: params.id,
+      metadata: {
+        environmentId: assignment.environmentId,
+      },
+    });
+
+    return json({
+      ok: true,
+      viberId: assignment.viberId,
+      environmentId: assignment.environmentId,
+    });
+  } catch (error) {
+    console.error("Failed to update viber:", error);
+    return json({ error: "Failed to update viber" }, { status: 500 });
   }
 };
 

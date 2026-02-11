@@ -25,7 +25,17 @@ const GATEWAY_URL = process.env.VIBER_GATEWAY_URL || process.env.VIBER_BOARD_URL
 export const POST: RequestHandler = async ({ params, request, locals }) => {
   try {
     const body = await request.json();
-    const { messages, model, skills: requestSkills } = body;
+    const {
+      messages,
+      model,
+      skills: requestSkills,
+      environmentId: requestEnvironmentId,
+    } = body;
+    const selectedEnvironmentId =
+      typeof requestEnvironmentId === "string" &&
+      requestEnvironmentId.trim().length > 0
+        ? requestEnvironmentId.trim()
+        : null;
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return json({ error: "Missing messages" }, { status: 400 });
@@ -60,7 +70,9 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
     let environment: ViberEnvironmentContext | undefined;
     if (locals.user?.id) {
       try {
-        const envId = await getViberEnvironmentForUser(locals.user.id, params.id);
+        const envId =
+          selectedEnvironmentId ||
+          (await getViberEnvironmentForUser(locals.user.id, params.id));
         if (envId) {
           const envDetail = await getEnvironmentForUser(locals.user.id, envId, {
             includeSecretValues: true,

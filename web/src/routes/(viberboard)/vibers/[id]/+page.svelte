@@ -35,9 +35,19 @@
 
   // Markdown → HTML for message content (GFM, line breaks)
   marked.setOptions({ gfm: true, breaks: true });
+  function sanitizeRenderedHtml(html: string): string {
+    return html
+      .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
+      .replace(/\son\w+="[^"]*"/gi, "")
+      .replace(/\son\w+='[^']*'/gi, "")
+      .replace(/href="javascript:[^"]*"/gi, 'href="#"')
+      .replace(/href='javascript:[^']*'/gi, "href='#'");
+  }
+
   function renderMarkdown(text: string): string {
     if (!text) return "";
-    return marked.parse(text) as string;
+    const rendered = marked.parse(text) as string;
+    return sanitizeRenderedHtml(rendered);
   }
 
   /**
@@ -390,13 +400,6 @@
     environmentId?: string | null;
   }
 
-  interface ComposerNodeInfo {
-    id: string;
-    name: string;
-    node_id: string | null;
-    status: "pending" | "active" | "offline";
-  }
-
   interface ComposerEnvInfo {
     id: string;
     name: string;
@@ -475,9 +478,7 @@
   let inputValue = $state("");
   let selectedModelId = $state("");
   let selectedSkillIds = $state<string[]>([]);
-  let composerNodes = $state<ComposerNodeInfo[]>([]);
   let composerEnvironments = $state<ComposerEnvInfo[]>([]);
-  let selectedNodeId = $state<string | null>(null);
   let selectedEnvironmentId = $state<string | null>(null);
   let sending = $state(false);
   let messagesContainer = $state<HTMLDivElement | null>(null);
@@ -630,12 +631,7 @@
         if (data.enabledSkills && selectedSkillIds.length === 0) {
           selectedSkillIds = data.enabledSkills;
         }
-        // Sync node/environment selection from viber data (first load)
-        if (data.nodeId && !selectedNodeId) {
-          // Match by node_id (daemon ID) since the viber's nodeId is the daemon's ID
-          const match = composerNodes.find((n) => n.node_id === data.nodeId || n.id === data.nodeId);
-          if (match) selectedNodeId = match.id;
-        }
+        // Sync environment selection from viber data (first load)
         if (data.environmentId && !selectedEnvironmentId) {
           selectedEnvironmentId = data.environmentId;
         }
@@ -687,6 +683,9 @@
           body: {
             ...(selectedModelId ? { model: selectedModelId } : {}),
             ...(selectedSkillIds.length > 0 ? { skills: selectedSkillIds } : {}),
+            ...(selectedEnvironmentId
+              ? { environmentId: selectedEnvironmentId }
+              : {}),
           },
         }),
         // Seed with existing DB messages as initial messages
@@ -857,21 +856,11 @@
 
   async function fetchComposerContext() {
     try {
-      const [nodesRes, envsRes, settingsRes] = await Promise.all([
-        fetch("/api/nodes"),
+      const [envsRes, settingsRes] = await Promise.all([
         fetch("/api/environments"),
         fetch("/api/settings"),
       ]);
 
-      if (nodesRes.ok) {
-        const data = await nodesRes.json();
-        composerNodes = (data.nodes ?? []).map((n: any) => ({
-          id: n.id,
-          name: n.name,
-          node_id: n.node_id ?? n.id,
-          status: n.status ?? "offline",
-        }));
-      }
       if (envsRes.ok) {
         const data = await envsRes.json();
         composerEnvironments = (data.environments ?? []).map((e: any) => ({
@@ -954,6 +943,27 @@
                 The node that hosts this viber is not connected. Start the viber
                 daemon on that node to chat.
               </p>
+              <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
+                <a
+                  href="/nodes"
+                  class="inline-flex items-center rounded-md border border-border bg-card px-3 py-1.5 text-xs text-foreground hover:bg-accent"
+                >
+                  Open Nodes
+                </a>
+                <a
+                  href="/vibers/new"
+                  class="inline-flex items-center rounded-md border border-border bg-card px-3 py-1.5 text-xs text-foreground hover:bg-accent"
+                >
+                  Start New Chat
+                </a>
+                <button
+                  type="button"
+                  class="inline-flex items-center rounded-md border border-border bg-card px-3 py-1.5 text-xs text-foreground hover:bg-accent"
+                  onclick={() => void fetchViber()}
+                >
+                  Retry
+                </button>
+              </div>
             </div>
           </div>
         {:else if displayMessages.length === 0}
@@ -1165,14 +1175,13 @@
           bind:value={inputValue}
           bind:inputElement={inputEl}
           bind:selectedModelId
-          bind:selectedNodeId
           bind:selectedEnvironmentId
           placeholder={viber?.nodeConnected === true
             ? "Send a task or command..."
             : "Node is offline"}
           disabled={viber?.nodeConnected !== true}
           {sending}
-          nodes={composerNodes}
+          nodes={[]}
           environments={composerEnvironments}
           skills={viber?.skills ?? []}
           bind:selectedSkillIds

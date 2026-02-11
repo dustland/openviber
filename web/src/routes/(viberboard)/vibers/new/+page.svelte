@@ -139,12 +139,38 @@
         }
       }
 
-      // Auto-select if only one environment
-      if (environments.length === 1 && !selectedEnvironmentId) {
+      const requestedEnvironmentId =
+        $page.url.searchParams.get("environment") || null;
+      const requestedNodeId = $page.url.searchParams.get("node") || null;
+
+      if (requestedEnvironmentId) {
+        const matchedEnvironment = environments.find(
+          (environment) => environment.id === requestedEnvironmentId,
+        );
+        if (matchedEnvironment) {
+          selectedEnvironmentId = matchedEnvironment.id;
+        }
+      } else if (environments.length === 1 && !selectedEnvironmentId) {
+        // Auto-select if only one environment
         selectedEnvironmentId = environments[0].id;
       }
 
-      // Auto-select if only one active node
+      if (requestedNodeId) {
+        const matchedNode = activeNodes.find(
+          (node) => node.id === requestedNodeId || node.node_id === requestedNodeId,
+        );
+        if (matchedNode) {
+          selectedNodeId = matchedNode.id;
+        }
+      }
+
+      // Auto-select if only one active node, or recover from stale selection.
+      if (
+        selectedNodeId &&
+        !activeNodes.some((node) => node.id === selectedNodeId)
+      ) {
+        selectedNodeId = null;
+      }
       if (activeNodes.length === 1 && !selectedNodeId) {
         selectedNodeId = activeNodes[0].id;
       }
@@ -199,7 +225,18 @@
   async function submitTask(overrideContent?: string) {
     const content = (overrideContent ?? taskInput).trim();
     const node = nodes.find((n) => n.id === selectedNodeId);
-    if (!content || !node || node.status !== "active" || creating) return;
+    if (!content) {
+      error = "Add a task message or choose an intent to get started.";
+      return;
+    }
+    if (creating) return;
+    if (!node || node.status !== "active") {
+      error =
+        activeNodes.length > 0
+          ? "Select an active node to start this viber."
+          : "No active node found. Start a node first, then retry.";
+      return;
+    }
 
     creating = true;
     error = null;
@@ -278,9 +315,44 @@
           What would you like to build?
         </h1>
         <p class="mt-2 text-base text-muted-foreground">
-          Pick an intent to get started, or describe your own task below.
+          Pick an intent to launch immediately, or describe your own task below.
         </p>
       </div>
+
+      {#if activeNodes.length === 0}
+        <section class="mb-6 w-full rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+          <p class="text-sm font-medium text-amber-900 dark:text-amber-100">
+            Action needed: connect a node
+          </p>
+          <p class="mt-1 text-xs text-amber-900/80 dark:text-amber-100/80">
+            Start a viber daemon first, then come back here to launch with one click.
+          </p>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <a
+              href="/nodes"
+              class="inline-flex items-center rounded-md border border-amber-700/30 bg-background/70 px-3 py-1.5 text-xs text-foreground hover:bg-background"
+            >
+              Open Nodes
+            </a>
+            <button
+              type="button"
+              class="inline-flex items-center rounded-md border border-amber-700/30 bg-background/70 px-3 py-1.5 text-xs text-foreground hover:bg-background"
+              onclick={() => void fetchData()}
+            >
+              Retry
+            </button>
+          </div>
+        </section>
+      {:else if activeNodes.length > 1 && !selectedNodeId}
+        <section class="mb-6 w-full rounded-xl border border-border bg-card/70 p-4">
+          <p class="text-sm font-medium text-foreground">
+            Choose where this runs
+          </p>
+          <p class="mt-1 text-xs text-muted-foreground">
+            Multiple nodes are active. Pick one from the Node selector in the chat bar.
+          </p>
+        </section>
+      {/if}
 
       <!-- Start with Intents -->
       <div class="w-full">
@@ -357,6 +429,31 @@
                 {/if}
               </button>
             {/each}
+          </div>
+        {/if}
+
+        {#if enabledChannels.length > 0}
+          <div class="mt-5">
+            <p
+              class="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
+            >
+              Deliver updates to channels
+            </p>
+            <div class="flex flex-wrap gap-2">
+              {#each enabledChannels as channel (channel.id)}
+                <button
+                  type="button"
+                  class="rounded-full border px-2.5 py-1 text-xs transition-colors {selectedChannelIds.includes(
+                  channel.id,
+                )
+                    ? 'border-primary/35 bg-primary/10 text-primary'
+                    : 'border-border bg-background text-muted-foreground hover:text-foreground'}"
+                  onclick={() => toggleChannel(channel.id)}
+                >
+                  {channel.label}
+                </button>
+              {/each}
+            </div>
           </div>
         {/if}
       </div>

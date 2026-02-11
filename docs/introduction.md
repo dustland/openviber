@@ -5,9 +5,9 @@ description: "You Imagine It. Vibers Build It."
 
 # Introduction
 
-**You Imagine It. Vibers Build It.**
+**You Imagine It. Tasks Build It.**
 
-**OpenViber** is an open-source platform that turns your machine into a **Viber Node** — hosting role-scoped AI workers called **vibers** that handle real tasks autonomously. Runs locally with full privacy, connects to your channels, and works while you sleep.
+**OpenViber** is an open-source platform that turns your machine into a **Viber** — hosting role-scoped AI workers called **tasks** that handle real work autonomously. Runs locally with full privacy, connects to your channels, and works while you sleep.
 
 The CLI is available as both `openviber` and the shorter alias `viber` (when installed).
 
@@ -29,7 +29,7 @@ OpenViber handles tasks that require multiple steps, file operations, web browsi
 Open the browser-based interface to chat with your viber:
 
 ```bash
-# Start the full stack (Gateway, Viber Node, and Web UI)
+# Start the full stack (Gateway, Viber runtime, and Web UI)
 pnpm dev
 # Open http://localhost:6006
 ```
@@ -63,9 +63,9 @@ openviber channels
 
 | Concept | What It Is |
 |---------|------------|
-| **Viber** | A role-scoped AI worker with its own persona, goals, and tools |
-| **Viber Node** | Your machine running OpenViber — hosts one or more vibers |
-| **Tools** | Actions vibers can take (file, search, web, browser, desktop, schedule, notify) |
+| **Task** | A role-scoped AI worker with its own persona, goals, and tools |
+| **Viber** | Your machine running OpenViber — hosts one or more tasks |
+| **Tools** | Actions tasks can take (file, search, web, browser, desktop, schedule, notify) |
 | **Skills** | Domain knowledge bundles (`SKILL.md` + optional tools) — antigravity, cursor-agent, codex-cli, github, tmux |
 | **Jobs** | Cron-scheduled YAML tasks that run agents autonomously on a timer |
 
@@ -75,16 +75,16 @@ OpenViber supports three levels of autonomy:
 
 | Mode | Behavior |
 |------|----------|
-| **Always Ask** | Viber asks before each action — you approve everything |
-| **Viber Decides** | Viber acts within policy, escalates risky actions |
+| **Always Ask** | Task asks before each action — you approve everything |
+| **Task Decides** | Task acts within policy, escalates risky actions |
 | **Always Execute** | Maximum autonomy, intervene by exception |
 
 Start with "Always Ask" and gradually increase autonomy as you build trust.
 
 ## Next Steps
 
-1. **[Quick Start](/docs/getting-started/quick-start)** — Run your first viber in minutes
-2. **[Viber](/docs/concepts/viber)** — Configure viber behavior
+1. **[Quick Start](/docs/getting-started/quick-start)** — Run your first task in minutes
+2. **[Viber Runtime](/docs/concepts/viber)** — Configure task behavior on your machine
 3. **[Jobs](/docs/concepts/jobs)** — Set up scheduled tasks
 4. **[Tools](/docs/concepts/tools)** — Available actions
 5. **[Skills](/docs/concepts/skills)** — Add domain knowledge

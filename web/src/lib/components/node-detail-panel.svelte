@@ -111,10 +111,20 @@
   interface Props {
     nodeId: string;
     nodeName: string;
+    configSyncState?: {
+      configVersion?: string;
+      lastConfigPullAt?: string;
+      validations?: Array<{
+        category: string;
+        status: string;
+        message?: string;
+        checkedAt: string;
+      }>;
+    };
     onClose: () => void;
   }
 
-  let { nodeId, nodeName, onClose }: Props = $props();
+  let { nodeId, nodeName, configSyncState, onClose }: Props = $props();
 
   let status = $state<DetailedStatus | null>(null);
   let loading = $state(true);
@@ -141,6 +151,45 @@
     if (minutes > 0) parts.push(`${minutes}m`);
     if (parts.length === 0) parts.push(`${secs}s`);
     return parts.join(" ");
+  }
+
+  function formatTimeAgo(isoString: string): string {
+    const date = new Date(isoString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return "just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return `${diffDays}d ago`;
+  }
+
+  function getConfigSyncStatus(syncState: {
+    configVersion?: string;
+    lastConfigPullAt?: string;
+    validations?: Array<{ status: string }>;
+  }): { label: string; badgeClass: string } {
+    if (!syncState.configVersion) {
+      return { label: "Pending", badgeClass: "bg-muted text-muted-foreground" };
+    }
+
+    const validations = syncState.validations || [];
+    const failed = validations.filter((v) => v.status === "failed");
+    const verified = validations.filter((v) => v.status === "verified");
+
+    if (failed.length > 0) {
+      return { label: "Failed", badgeClass: "bg-rose-500/10 text-rose-600" };
+    }
+    if (verified.length > 0 && failed.length === 0) {
+      return { label: "Verified", badgeClass: "bg-emerald-500/10 text-emerald-600" };
+    }
+    if (syncState.lastConfigPullAt) {
+      return { label: "Delivered", badgeClass: "bg-amber-500/10 text-amber-600" };
+    }
+    return { label: "Pending", badgeClass: "bg-muted text-muted-foreground" };
   }
 
   function usageColor(percent: number): string {
@@ -267,6 +316,79 @@
         </div>
       {:else}
         <div class="space-y-6">
+          <!-- Config Sync State Section -->
+          {#if configSyncState || (status?.viber && !status.viber.connected)}
+            <section>
+              <h3 class="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                <RefreshCw class="size-4" />
+                Config Sync State
+              </h3>
+
+              {#if !status?.viber?.connected}
+                <div class="rounded-lg border border-amber-500/50 bg-amber-500/10 p-4 mb-3">
+                  <div class="flex items-center gap-2 text-sm text-amber-600">
+                    <X class="size-4" />
+                    <span class="font-medium">Node is offline</span>
+                  </div>
+                  <p class="text-xs text-amber-600/80 mt-1">
+                    Config sync state may be stale. Last known state shown below.
+                  </p>
+                </div>
+              {/if}
+
+              {#if configSyncState}
+                <div class="rounded-lg border border-border p-4 mb-3">
+                  <div class="flex items-center justify-between mb-3">
+                    <div class="text-xs font-medium text-foreground">Sync Status</div>
+                    {@const syncStatus = getConfigSyncStatus(configSyncState)}
+                    <span class={`inline-flex items-center rounded-md px-2 py-1 text-[10px] font-medium ${syncStatus.badgeClass}`}>
+                      {syncStatus.label}
+                    </span>
+                  </div>
+
+                  {#if configSyncState.configVersion}
+                    <div class="text-[11px] text-muted-foreground mb-2">
+                      <div>Version: <span class="font-mono">{configSyncState.configVersion}</span></div>
+                      {#if configSyncState.lastConfigPullAt}
+                        <div class="mt-1">
+                          Last verified: {formatTimeAgo(configSyncState.lastConfigPullAt)}
+                        </div>
+                      {/if}
+                    </div>
+                  {/if}
+
+                  {#if configSyncState.validations && configSyncState.validations.length > 0}
+                    <div class="mt-3 space-y-2">
+                      <div class="text-[11px] font-medium text-foreground">Validations:</div>
+                      {#each configSyncState.validations as validation}
+                        <div class="flex items-start justify-between gap-2 text-[11px]">
+                          <div class="flex-1">
+                            <span class="font-medium">{validation.category}:</span>
+                            <span class={`ml-1 ${validation.status === "verified" ? "text-emerald-600" : validation.status === "failed" ? "text-rose-600" : "text-amber-600"}`}>
+                              {validation.status}
+                            </span>
+                            {#if validation.message}
+                              <div class="text-muted-foreground mt-0.5">{validation.message}</div>
+                            {/if}
+                          </div>
+                          {#if validation.checkedAt}
+                            <div class="text-muted-foreground/60 text-[10px]">
+                              {formatTimeAgo(validation.checkedAt)}
+                            </div>
+                          {/if}
+                        </div>
+                      {/each}
+                    </div>
+                  {/if}
+                </div>
+              {:else}
+                <div class="rounded-lg border border-border bg-muted/30 p-4 text-center text-sm text-muted-foreground">
+                  No config sync state available
+                </div>
+              {/if}
+            </section>
+          {/if}
+
           <!-- Machine Resources Section -->
           {#if status.machine}
             <section>

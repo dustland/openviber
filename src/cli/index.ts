@@ -24,6 +24,7 @@ import WebSocket from "ws";
 import YAML from "yaml";
 import { getOpenViberVersion } from "../utils/version";
 import type { ChannelRuntimeContext, InboundMessage, InterruptSignal } from "../channels/channel";
+import { loadSettings, saveSettings } from "../skills/hub/settings";
 
 const VERSION = getOpenViberVersion();
 const OPENVIBER_DIR = path.join(os.homedir(), ".openviber");
@@ -76,6 +77,11 @@ program
   .option("--desktop", "Enable desktop control (UI-TARS)")
   .option("--disable-app <apps...>", "Disable specific apps (comma-separated)")
   .option("--no-apps", "Disable all apps")
+  .option("--standalone", "Run without connecting to gateway/board")
+  .option("--skills <skills>", "Comma-separated extra skills for standalone runtime")
+  .option("--primary-coding-cli <skillId>", "Preferred coding CLI skill (codex-cli|cursor-agent|gemini-cli)")
+  .option("--google-access-token <token>", "Google OAuth access token for standalone skills (e.g. gmail)")
+  .option("--google-refresh-token <token>", "Google OAuth refresh token for standalone skills")
   .option("--reconnect-interval <ms>", "Reconnect interval in ms", "5000")
   .option("--heartbeat-interval <ms>", "Heartbeat interval in ms", "30000")
   .action(async (options) => {
@@ -92,24 +98,60 @@ program
     // Load saved config from ~/.openviber/config.yaml if it exists
     const savedConfig = await loadSavedConfig();
 
-    // Determine connection mode: CLI flags > saved config > local board server
-    const serverUrl =
+    // Determine connection mode: CLI flags > saved config; otherwise standalone.
+    const configuredServerUrl =
       options.server ||
       savedConfig?.gatewayUrl ||
       savedConfig?.boardUrl ||
-      savedConfig?.hubUrl || // deprecated fallbacks
-      "ws://localhost:6007/ws";
+      savedConfig?.hubUrl;
+    const serverUrl = options.standalone ? undefined : configuredServerUrl;
     const authToken =
       options.token ||
       process.env.VIBER_TOKEN ||
-      savedConfig?.authToken ||
-      "local-dev-token";
+      savedConfig?.authToken;
 
-    const isConnectedMode = !!(options.server || savedConfig?.gatewayUrl || savedConfig?.boardUrl || savedConfig?.hubUrl);
-    const isLocalGateway = !isConnectedMode;
+    const cliSkills = typeof options.skills === "string"
+      ? options.skills
+        .split(",")
+        .map((s: string) => s.trim())
+        .filter((s: string) => s.length > 0)
+      : [];
+    if (
+      cliSkills.length > 0 ||
+      options.primaryCodingCli ||
+      options.googleAccessToken ||
+      options.googleRefreshToken
+    ) {
+      const settings = await loadSettings();
+      if (cliSkills.length > 0) {
+        settings.standaloneSkills = Array.from(new Set(cliSkills));
+      }
+      if (typeof options.primaryCodingCli === "string" && options.primaryCodingCli.trim().length > 0) {
+        settings.primaryCodingCli = options.primaryCodingCli.trim();
+      }
+      if (typeof options.googleAccessToken === "string" && options.googleAccessToken.trim().length > 0) {
+        settings.oauthTokens = {
+          ...(settings.oauthTokens || {}),
+          google: {
+            accessToken: options.googleAccessToken.trim(),
+            ...(typeof options.googleRefreshToken === "string"
+              ? { refreshToken: options.googleRefreshToken.trim() || null }
+              : settings.oauthTokens?.google?.refreshToken !== undefined
+                ? { refreshToken: settings.oauthTokens.google.refreshToken }
+                : {}),
+          },
+        };
+      }
+      await saveSettings(settings);
+    }
+
+    const isConnectedMode = !!serverUrl;
+    const isStandaloneMode = !isConnectedMode;
 
     if (isConnectedMode) {
       console.log("[Viber] Connected mode — using saved config");
+    } else {
+      console.log("[Viber] Standalone mode — gateway/board connection is optional");
     }
 
     // Initialize Scheduler from ~/.openviber/jobs (or OPENVIBER_JOBS_DIR)
@@ -180,29 +222,31 @@ program
 ╔═══════════════════════════════════════════════════════════╗
 ║                     VIBER RUNNING                          ║
 ╠═══════════════════════════════════════════════════════════╣
-║  Mode:         ${isLocalGateway ? "Local Gateway".padEnd(41) : "Connected".padEnd(41)
+║  Mode:         ${isStandaloneMode ? "Standalone".padEnd(41) : "Connected".padEnd(41)
         }║
 ║  Viber ID:     ${viberId.slice(0, 40).padEnd(40)}║
-║  Server:       ${serverUrl.slice(0, 40).padEnd(40)}║
+║  Server:       ${(serverUrl || "(not configured)").slice(0, 40).padEnd(40)}║
 ║  Local WS:     ws://localhost:6008                        ║
-║  Status:       ● Connected                                ║
+║  Status:       ● ${isStandaloneMode ? "Running (standalone)".padEnd(40) : "Connected".padEnd(40)}║
 ╚═══════════════════════════════════════════════════════════╝
 
 Waiting for tasks...
 Press Ctrl+C to stop.
       `);
 
-      // Report current job list to hub on connect
-      controller.reportJobs(scheduler.getLoadedJobs());
+      // Report current job list only when connected to hub/gateway
+      if (isConnectedMode) {
+        controller.reportJobs(scheduler.getLoadedJobs());
+      }
     });
 
     controller.on("disconnected", () => {
-      if (isLocalGateway) {
+      if (isStandaloneMode) {
+        console.log("[Viber] Standalone mode active.");
+      } else {
         console.log(
           "[Viber] Disconnected from gateway. Is the gateway running? (pnpm dev:gateway)",
         );
-      } else {
-        console.log("[Viber] Connection lost. Reconnecting...");
       }
     });
 

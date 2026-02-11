@@ -54,6 +54,19 @@ export interface NodeSkillInfo {
   status: "AVAILABLE" | "NOT_AVAILABLE" | "UNKNOWN";
   /** Human-readable summary (e.g. "Missing: gh CLI") */
   healthSummary?: string;
+  /** Full health check details with actionType for UI actions */
+  healthChecks?: SkillHealthCheck[];
+}
+
+export interface SkillHealthCheck {
+  id: string;
+  label: string;
+  ok: boolean;
+  required?: boolean;
+  message?: string;
+  hint?: string;
+  /** What kind of interactive action can resolve this check */
+  actionType?: "env" | "oauth" | "binary" | "auth_cli" | "manual";
 }
 
 /** Summary machine resource metrics (from heartbeat) */
@@ -170,14 +183,7 @@ export interface ViberRunningStatus {
   collectedAt: string;
 }
 
-export interface SkillHealthCheck {
-  id: string;
-  label: string;
-  ok: boolean;
-  required?: boolean;
-  message?: string;
-  hint?: string;
-}
+// SkillHealthCheck moved above NodeSkillInfo
 
 export interface SkillHealthResult {
   id: string;

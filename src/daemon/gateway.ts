@@ -52,7 +52,23 @@ interface ConnectedNode {
   version: string;
   platform: string;
   capabilities: string[];
-  skills?: { id: string; name: string; description: string; available: boolean; status: "AVAILABLE" | "NOT_AVAILABLE" | "UNKNOWN"; healthSummary?: string }[];
+  skills?: {
+    id: string;
+    name: string;
+    description: string;
+    available: boolean;
+    status: "AVAILABLE" | "NOT_AVAILABLE" | "UNKNOWN";
+    healthSummary?: string;
+    healthChecks?: Array<{
+      id: string;
+      label: string;
+      ok: boolean;
+      required?: boolean;
+      message?: string;
+      hint?: string;
+      actionType?: "env" | "oauth" | "binary" | "auth_cli" | "manual";
+    }>;
+  }[];
   ws: WebSocket;
   connectedAt: Date;
   lastHeartbeat: Date;

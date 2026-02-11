@@ -91,6 +91,8 @@
     required?: boolean;
     message?: string;
     hint?: string;
+    /** What kind of interactive action can resolve this check */
+    actionType?: "env" | "oauth" | "binary" | "auth_cli" | "manual";
   }
 
   interface SkillHealthResult {
@@ -563,13 +565,51 @@
                           </span>
                         </div>
                         {#if skill.status !== "AVAILABLE"}
-                          <div class="mt-2 space-y-1 text-[11px] text-muted-foreground">
+                          <div class="mt-2 space-y-1.5">
                             {#if missingChecks.length === 0}
-                              <div>{skill.summary}</div>
+                              <div class="text-[11px] text-muted-foreground">{skill.summary}</div>
                             {:else}
                               {#each missingChecks as check}
-                                <div>
-                                  - {check.label}: {check.hint || check.message || "missing"}
+                                <div class="flex items-start justify-between gap-2">
+                                  <div class="text-[11px] text-muted-foreground flex-1">
+                                    <div class="font-medium">{check.label}</div>
+                                    {#if check.hint || check.message}
+                                      <div class="text-muted-foreground/70 mt-0.5">
+                                        {check.hint || check.message}
+                                      </div>
+                                    {/if}
+                                  </div>
+                                  {#if check.actionType === "oauth" && check.hint?.includes("connect")}
+                                    <button
+                                      class="shrink-0 inline-flex items-center rounded-md bg-primary px-2 py-1 text-[10px] font-medium text-primary-foreground hover:bg-primary/90"
+                                      onclick={() => {
+                                        // Navigate to OAuth connect page
+                                        window.location.href = `/auth/${skill.id === "gmail" ? "google" : skill.id}`;
+                                      }}
+                                    >
+                                      Connect
+                                    </button>
+                                  {:else if check.actionType === "binary" && check.hint}
+                                    <button
+                                      class="shrink-0 inline-flex items-center rounded-md bg-muted px-2 py-1 text-[10px] font-medium text-foreground hover:bg-muted/80"
+                                      onclick={() => {
+                                        // Copy install command to clipboard
+                                        navigator.clipboard.writeText(check.hint || "");
+                                      }}
+                                    >
+                                      Copy Cmd
+                                    </button>
+                                  {:else if check.actionType === "env" && check.hint}
+                                    <button
+                                      class="shrink-0 inline-flex items-center rounded-md bg-muted px-2 py-1 text-[10px] font-medium text-foreground hover:bg-muted/80"
+                                      onclick={() => {
+                                        // Show env var setup hint
+                                        alert(check.hint);
+                                      }}
+                                    >
+                                      Setup
+                                    </button>
+                                  {/if}
                                 </div>
                               {/each}
                             {/if}

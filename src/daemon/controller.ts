@@ -31,7 +31,7 @@ import {
   type ConfigState,
   type ConfigValidation,
 } from "./node-status";
-import type { SkillHealthReport } from "../skills/health";
+import type { SkillHealthReport, SkillHealthCheck } from "../skills/health";
 
 // ==================== Types ====================
 
@@ -62,6 +62,8 @@ export interface ViberSkillInfo {
   status: "AVAILABLE" | "NOT_AVAILABLE" | "UNKNOWN";
   /** Human-readable summary of health check results (e.g. "Missing: gh CLI") */
   healthSummary?: string;
+  /** Full health check details with actionType for UI actions */
+  healthChecks?: SkillHealthCheck[];
 }
 
 export interface ViberInfo {
@@ -414,6 +416,7 @@ export class ViberController extends EventEmitter {
           available: health?.available ?? false,
           status: health?.status ?? "UNKNOWN",
           healthSummary: health?.summary,
+          healthChecks: health?.checks,
         };
       });
     } catch (err) {
@@ -856,6 +859,7 @@ export class ViberController extends EventEmitter {
           available: health?.available ?? false,
           status: (health?.status ?? "UNKNOWN") as ViberSkillInfo["status"],
           healthSummary: health?.summary,
+          healthChecks: health?.checks,
         };
       });
     } catch (err) {

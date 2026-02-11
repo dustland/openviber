@@ -70,6 +70,16 @@
     runningVibers?: string[];
     machine?: MachineMetrics;
     viber?: ViberMetrics;
+    config_sync_state?: {
+      configVersion: string;
+      lastConfigPullAt: string;
+      validations: Array<{
+        category: "llm_keys" | "oauth" | "env_secrets" | "skills" | "binary_deps";
+        status: "verified" | "failed" | "unchecked";
+        message?: string;
+        checkedAt: string;
+      }>;
+    };
   }
 
   let nodes = $state<ViberNode[]>([]);
@@ -486,9 +496,11 @@
 
 <!-- Node Detail Panel -->
 {#if selectedNodeId}
+  {@const selectedNode = nodes.find(n => n.id === selectedNodeId)}
   <NodeDetailPanel
     nodeId={selectedNodeId}
     nodeName={selectedNodeName}
+    configSyncState={selectedNode?.config_sync_state}
     onClose={() => { selectedNodeId = null; }}
   />
 {/if}

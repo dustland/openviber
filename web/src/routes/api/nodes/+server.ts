@@ -62,6 +62,8 @@ export const GET: RequestHandler = async ({ locals }) => {
         runningVibers: daemon?.runningVibers,
         machine: daemon?.machine,
         viber: daemon?.viber,
+        // Include config sync state from Supabase
+        config_sync_state: node.config_sync_state,
       };
     });
 

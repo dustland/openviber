@@ -114,20 +114,20 @@
 </script>
 
 <svelte:head>
-  <title>Vibers - OpenViber</title>
+  <title>Tasks - OpenViber</title>
 </svelte:head>
 
 <div class="p-6 h-full overflow-y-auto flex flex-col">
   <div class="flex items-center justify-between mb-6">
     <div>
-      <h1 class="text-2xl font-semibold text-foreground">Vibers</h1>
+      <h1 class="text-2xl font-semibold text-foreground">Tasks</h1>
       <p class="text-sm mt-0.5 text-muted-foreground flex items-center gap-2">
         {#if hubConnected}
           <span class="flex items-center gap-1">
             <Circle class="size-2 fill-green-500 text-green-500" />
             Hub connected
           </span>
-          · {vibers.length} viber{vibers.length !== 1 ? "s" : ""}
+          · {vibers.length} task{vibers.length !== 1 ? "s" : ""}
         {:else}
           <span class="flex items-center gap-1">
             <Circle class="size-2 fill-red-500 text-red-500" />
@@ -147,7 +147,7 @@
       </Button>
       <Button variant="outline" size="sm" href="/vibers/new">
         <Plus class="size-4 mr-1" />
-        New Viber
+        New Task
       </Button>
       <Button
         variant="outline"
@@ -226,7 +226,7 @@
                       variant="ghost"
                       size="icon"
                       class="size-7"
-                      title="Archive viber"
+                      title="Archive task"
                       disabled={busyViberIds.has(viber.id)}
                       onclick={(e: MouseEvent) => archiveViber(viber.id, e)}
                     >
@@ -261,10 +261,10 @@
   {:else}
     <div class="flex-1 flex flex-col items-center justify-center text-center">
       <Server class="size-12 mb-4 text-muted-foreground/50" />
-      <p class="text-lg font-medium text-muted-foreground">No Vibers Yet</p>
+      <p class="text-lg font-medium text-muted-foreground">No Tasks Yet</p>
       <p class="text-sm mt-2 max-w-md text-muted-foreground">
-        Create a new viber from the
-        <a href="/vibers/new" class="text-primary hover:underline">New Viber</a>
+        Create a new task from the
+        <a href="/vibers/new" class="text-primary hover:underline">New Task</a>
         page to get started.
       </p>
     </div>

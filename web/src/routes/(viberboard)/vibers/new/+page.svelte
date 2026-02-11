@@ -528,7 +528,7 @@
 
       const payload = await response.json();
       if (!response.ok) {
-        throw new Error(payload?.error || "Failed to create viber.");
+        throw new Error(payload?.error || "Failed to create task.");
       }
 
       const viberId = payload.viberId;
@@ -545,7 +545,7 @@
       // Navigate to the new viber's chat page
       await goto(`/vibers/${viberId}`);
     } catch (e) {
-      error = e instanceof Error ? e.message : "Failed to create viber.";
+      error = e instanceof Error ? e.message : "Failed to create task.";
       creating = false;
     }
   }
@@ -557,7 +557,7 @@
 </script>
 
 <svelte:head>
-  <title>New Viber - OpenViber</title>
+  <title>New Task - OpenViber</title>
 </svelte:head>
 
 <div class="new-task-page flex h-full min-h-0 flex-col overflow-hidden">

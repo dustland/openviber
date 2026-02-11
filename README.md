@@ -4,7 +4,7 @@
 
 # OpenViber
 
-### You Imagine It. Vibers Build It.
+### You Imagine It. Tasks Build It.
 
 [![Download][download-shield]][viber-npm]
 [![GitHub Stars][github-star]][viber-github]
@@ -17,12 +17,12 @@
 
 ---
 
-**OpenViber** is an open-source platform that turns your machine into a **Viber Node** — hosting role-scoped AI workers called **vibers** that automate real work. Unlike cloud-based agent frameworks, OpenViber runs locally with full privacy, connects outbound to your enterprise channels, and works autonomously while you sleep.
+**OpenViber** is an open-source platform that turns your machine into a **Viber** — hosting role-scoped AI workers called **tasks** that automate real work. Unlike cloud-based agent frameworks, OpenViber runs locally with full privacy, connects outbound to your enterprise channels, and works autonomously while you sleep.
 
 ### ⭐ 100% Open Source · 🥇 Local Deployment · 🏆 MCP Integration
 
 - ✅ **Zero Setup** — No servers to host, just `npx openviber start`
-- ✅ **Viber Workforce** — Role-scoped vibers working in parallel
+- ✅ **Task Workforce** — Role-scoped tasks working in parallel
 - ✅ **Human-in-the-Loop** — Enterprise messaging channels (DingTalk, WeCom)
 - ✅ **Privacy First** — 100% local execution, data never leaves your machine
 
@@ -69,7 +69,7 @@ cp .env.example .env
 
 ### 3. Launch full stack
 ```bash
-# Starts Hub, Viber Node, and Web UI
+# Starts Hub, Viber runtime, and Web UI
 pnpm dev
 ```
 - **Viber Board (Web UI)**: [http://localhost:6006](http://localhost:6006)
@@ -93,7 +93,7 @@ viber chat
 ```
 
 ### 🌐 Viber Board (Web UI)
-A modern, visual interface to manage your viber nodes, monitor jobs, and chat in real-time. Accessible at `http://localhost:6006` when running `pnpm dev`.
+A modern, visual interface to manage your vibers, monitor jobs, and chat in real-time. Accessible at `http://localhost:6006` when running `pnpm dev`.
 
 ### 🏢 Enterprise Channels
 Deploy your vibers to where your team works. Support for **DingTalk** and **WeCom** is built-in.
@@ -107,13 +107,13 @@ viber channels
 
 ## 🧠 Personalization (The Three-File Pattern)
 
-OpenViber follows a standardized configuration pattern for AI personality. Three markdown files define your viber's complete behavior:
+OpenViber follows a standardized configuration pattern for AI personality. Three markdown files define your task's complete behavior:
 
 | File | Scope | Purpose | Update Frequency |
 |------|-------|---------|------------------|
 | **`user.md`** | Shared | Who you are, current projects, priorities | Daily/Weekly |
-| **`soul.md`** | Per-viber | Communication style, boundaries, rules | Monthly |
-| **`memory.md`** | Per-viber | Decisions, learned patterns, corrections | Grows organically |
+| **`soul.md`** | Per-task | Communication style, boundaries, rules | Monthly |
+| **`memory.md`** | Per-task | Decisions, learned patterns, corrections | Grows organically |
 
 Location: `~/.openviber/vibers/default/`
 
@@ -131,7 +131,7 @@ prompt: "Check GitHub notifications, summarize what needs my attention."
 ```
 
 ### 🔧 Zero Configuration Skills
-Capabilities are defined in `SKILL.md` files. No complex code required to extend your viber.
+Capabilities are defined in `SKILL.md` files. No complex code required to extend your tasks.
 ```markdown
 ---
 name: git-commit
@@ -141,10 +141,10 @@ git add . && git commit -m "$message"
 ```
 
 ### 🌐 Model Context Protocol (MCP)
-Seamlessly connect to any MCP server to give your vibers access to external tools like Google Maps, Slack, or custom internal APIs.
+Seamlessly connect to any MCP server to give your tasks access to external tools like Google Maps, Slack, or custom internal APIs.
 
 ### 👤 Human-in-the-Loop
-Maintain control with approval gates. Vibers can be configured to pause and ask for permission before executing sensitive actions (e.g., deleting files, making payments).
+Maintain control with approval gates. Tasks can be configured to pause and ask for permission before executing sensitive actions (e.g., deleting files, making payments).
 
 ---
 
@@ -152,7 +152,7 @@ Maintain control with approval gates. Vibers can be configured to pause and ask 
 
 ```
 ┌─────────────────────────────────────────────────┐
-│                  Viber Node                     │
+│                    Viber                        │
 │                                                 │
 │  ┌────────────────────────────────────────────┐  │
 │  │  dev-viber │ researcher-viber │ pm-viber   │  │
@@ -181,7 +181,7 @@ Maintain control with approval gates. Vibers can be configured to pause and ask 
 
 | Feature | OpenViber | Cloud Agents | IDE Plugins |
 | :--- | :---: | :---: | :---: |
-| **Deployment** | Local Node | Cloud Server | Editor Only |
+| **Deployment** | Local Viber | Cloud Server | Editor Only |
 | **Connectivity** | Outbound | Inbound/Cloud | None |
 | **Autonomy** | Full (Jobs/Cron) | Managed | Manual Trigger |
 | **Privacy** | 100% Local | Data Leaves | Limited |

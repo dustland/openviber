@@ -7,11 +7,11 @@ import "dotenv/config";
  * Viber CLI - Command line interface for the Viber framework
  *
  * Commands:
- *   viber start    - Start the viber daemon (connect to command center)
+ *   viber start    - Start the Viber runtime (connect to command center)
  *   viber run      - Run a task locally without connection to command center
- *   viber chat     - Chat with a running viber via the local gateway (terminal-first)
- *   viber term     - List/attach/send input to tmux panes via local WS (port 6008)
- *   viber gateway  - Start the gateway (central coordinator for vibers)
+ *   viber chat     - Chat with a running task via the local gateway (terminal-first)
+ *   viber term     - List/attach/send input to terminal panes via local WS (port 6008)
+ *   viber gateway  - Start the gateway (central coordinator for tasks)
  *   viber channels - Start the enterprise channel server (DingTalk, WeCom, etc.)
  */
 
@@ -62,7 +62,7 @@ function getCliName(): string {
 
 program
   .name(getCliName())
-  .description("OpenViber - Workspace-first assistant runtime (vibers on your machines)")
+  .description("OpenViber - Workspace-first assistant runtime (tasks on your Viber)")
   .version(VERSION);
 
 // ==================== viber start ====================
@@ -70,7 +70,7 @@ program
 program
   .command("start")
   .description(
-    "Start viber daemon (auto-connects if previously onboarded with --token)",
+    "Start Viber runtime daemon (auto-connects if previously onboarded with --token)",
   )
   .option("-s, --server <url>", "Command center URL (overrides saved config)")
   .option("-t, --token <token>", "Authentication token (overrides saved config)")
@@ -352,17 +352,17 @@ const gatewayAction = async (options: { port: string }) => {
 +-------------------------------------------------------+
 | REST API:     ${("http://localhost:" + options.port).padEnd(43).slice(0, 43)} |
 | WebSocket:    ${("ws://localhost:" + options.port + "/ws").padEnd(43).slice(0, 43)} |
-| Status:       * Ready for viber connections             |
+| Status:       * Ready for task connections              |
 +-------------------------------------------------------+
 
-Waiting for viber daemons to connect...
+Waiting for Viber runtimes to connect...
 Press Ctrl+C to stop.
   `);
 };
 
 program
   .command("gateway")
-  .description("Start the gateway (central coordinator for viber daemons)")
+  .description("Start the gateway (central coordinator for Viber runtimes)")
   .option("-p, --port <port>", "Port to listen on", "6007")
   .action(gatewayAction);
 
@@ -421,7 +421,7 @@ program
 program
   .command("chat")
   .description(
-    "Chat with a running viber via the local gateway (works great inside tmux)",
+    "Chat with a running task via the local gateway (works great inside a terminal session)",
   )
   .option(
     "--gateway <url>",
@@ -435,7 +435,7 @@ program
     "--hub <url>",
     "(deprecated: use --gateway) Gateway URL",
   )
-  .option("-v, --viber <id>", "Target viber ID (defaults to first connected)")
+  .option("-v, --viber <id>", "Target task runtime ID (defaults to first connected)")
   .option(
     "-s, --session <name>",
     "Session name for local history (saved under ~/.openviber/vibers/default/sessions/)",
@@ -473,10 +473,11 @@ program
           process.exit(await runSubcommand(["onboard"]));
         }
       }
-      console.error(`[Chat] No vibers connected to gateway at ${gatewayUrl}`);
+      console.error(`[Chat] No tasks connected to gateway at ${gatewayUrl}`);
       console.error("[Chat] Start setup with one of:");
       console.error("  openviber onboard");
       console.error("  openviber start");
+      console.error("  pnpm dev  (or: pnpm dev:gateway + pnpm dev:viber)");
       process.exit(1);
     }
 
@@ -484,9 +485,9 @@ program
     if (activeViberId) {
       const exists = vibers.vibers.some((v) => v.id === activeViberId);
       if (!exists) {
-        console.error(`[Chat] Viber not found: ${activeViberId}`);
+        console.error(`[Chat] Task runtime not found: ${activeViberId}`);
         console.error(
-          `[Chat] Connected vibers:\n${vibers.vibers.map((v) => `  - ${v.id} (${v.name})`).join("\n")}`,
+          `[Chat] Connected tasks:\n${vibers.vibers.map((v) => `  - ${v.id} (${v.name})`).join("\n")}`,
         );
         process.exit(1);
       }
@@ -613,7 +614,7 @@ program
 
 const termCommand = program
   .command("term")
-  .description("Interact with tmux panes via the viber local WS server (port 6008)")
+  .description("Interact with terminal panes via the viber local WS server (port 6008)")
   .addHelpText(
     "after",
     `
@@ -627,7 +628,7 @@ Examples:
 
 termCommand
   .command("list")
-  .description("List tmux sessions and panes")
+  .description("List terminal sessions and panes")
   .option("--ws <url>", "Local WS URL", "ws://localhost:6008")
   .action(async (options) => {
     try {
@@ -645,7 +646,7 @@ termCommand
       const panes = Array.isArray(msg?.panes) ? msg.panes : [];
 
       if (sessions.length === 0 && panes.length === 0) {
-        console.log("No tmux sessions found (or tmux not installed).");
+        console.log("No terminal sessions found (is the terminal backend installed?).");
         return;
       }
 
@@ -677,7 +678,7 @@ termCommand
 
 termCommand
   .command("create-session [sessionName]")
-  .description("Create a detached tmux session (used for web-managed terminals)")
+  .description("Create a terminal session (used for web-managed terminals)")
   .option("--ws <url>", "Local WS URL", "ws://localhost:6008")
   .option("--window <name>", "First window name", "main")
   .option("--cwd <dir>", "Start directory for first window")
@@ -702,7 +703,7 @@ termCommand
 
       if (msg?.ok) {
         console.log(
-          `Session '${msg.sessionName}' ${msg.created ? "created" : "exists"}. Attach with: tmux attach -t ${msg.sessionName}`,
+          `Session '${msg.sessionName}' ${msg.created ? "created" : "already exists"}.`,
         );
       } else {
         console.error(
@@ -720,7 +721,7 @@ termCommand
 
 termCommand
   .command("attach <target>")
-  .description("Attach to a tmux pane target and stream output to stdout")
+  .description("Attach to a terminal pane and stream output to stdout")
   .option("--ws <url>", "Local WS URL", "ws://localhost:6008")
   .action(async (target, options) => {
     let ws: WebSocket;
@@ -767,7 +768,7 @@ termCommand
 
 termCommand
   .command("send <target> [keys...]")
-  .description("Send keys to a tmux pane (use --enter to press Enter after)")
+  .description("Send keys to a terminal pane (use --enter to press Enter after)")
   .option("--ws <url>", "Local WS URL", "ws://localhost:6008")
   .option("--enter", "Send Enter after the keys", false)
   .action(async (target, keys, options) => {
@@ -789,7 +790,7 @@ termCommand
 
 termCommand
   .command("resize <target>")
-  .description("Resize a tmux pane (cols/rows)")
+  .description("Resize a terminal pane (cols/rows)")
   .requiredOption("--cols <n>", "Columns", (v) => parseInt(v, 10))
   .requiredOption("--rows <n>", "Rows", (v) => parseInt(v, 10))
   .option("--ws <url>", "Local WS URL", "ws://localhost:6008")
@@ -2103,8 +2104,8 @@ async function handleChatCommand(
           "Commands:",
           "  /help                 Show help",
           "  /exit                 Exit chat",
-          "  /vibers               List connected vibers",
-          "  /use <viberId>        Switch viber",
+          "  /vibers               List connected tasks",
+          "  /use <viberId>        Switch active task runtime",
           "  /reset                Clear local history (and session file)",
         ].join("\n"),
       );
@@ -2112,10 +2113,10 @@ async function handleChatCommand(
     case "vibers": {
       const vibers = await hubGetVibers(ctx.hubUrl);
       if (!vibers.connected || vibers.vibers.length === 0) {
-        console.log("No vibers connected.");
+        console.log("No tasks connected.");
         return "continue";
       }
-      console.log("Connected vibers:");
+      console.log("Connected tasks:");
       for (const v of vibers.vibers) {
         const active = v.id === ctx.getActiveViberId() ? " (active)" : "";
         console.log(`  - ${v.id} (${v.name})${active}`);
@@ -2131,11 +2132,11 @@ async function handleChatCommand(
       const vibers = await hubGetVibers(ctx.hubUrl);
       const exists = vibers.vibers.some((v) => v.id === next);
       if (!exists) {
-        console.log(`Viber not found: ${next}`);
+        console.log(`Task runtime not found: ${next}`);
         return "continue";
       }
       ctx.setActiveViberId(next);
-      console.log(`Active viber: ${next}`);
+      console.log(`Active task runtime: ${next}`);
       return "continue";
     }
     case "reset":

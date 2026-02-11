@@ -1,9 +1,9 @@
 /**
- * Node Status Collector - Machine Resource & Viber Running Status
+ * Node Status Collector - Machine Resource & Task Runtime Status
  *
- * Collects comprehensive observability data for a viber node including:
+ * Collects comprehensive observability data for a Viber runtime including:
  * - Machine resources: CPU, memory, disk, load, network
- * - Viber running status: tasks, uptime, connection health
+ * - Task runtime status: tasks, uptime, connection health
  *
  * Uses only Node.js built-in modules (os, fs, child_process) — no extra deps.
  */
@@ -14,6 +14,21 @@ import { execSync } from "child_process";
 import type { SkillHealthReport } from "../skills/health";
 
 // ==================== Types ====================
+
+/** Config validation result for a specific category */
+export interface ConfigValidation {
+  category: "llm_keys" | "oauth" | "env_secrets" | "skills" | "binary_deps";
+  status: "verified" | "failed" | "unchecked";
+  message?: string;
+  checkedAt: string;
+}
+
+/** Config sync state reported by the node */
+export interface ConfigState {
+  configVersion: string;       // hash of current config
+  lastConfigPullAt: string;    // ISO timestamp
+  validations: ConfigValidation[];
+}
 
 /** CPU usage snapshot (percentage-based) */
 export interface CpuStatus {
@@ -97,7 +112,7 @@ export interface MachineResourceStatus {
   collectedAt: string;
 }
 
-/** Information about a running task on this viber */
+/** Information about a running task on this Viber runtime */
 export interface RunningTaskInfo {
   /** Task ID */
   taskId: string;
@@ -152,6 +167,7 @@ export interface ViberRunningStatus {
 export interface NodeObservabilityStatus {
   machine: MachineResourceStatus;
   viber: ViberRunningStatus;
+  configState?: ConfigState;
 }
 
 // ==================== CPU Usage Tracking ====================
@@ -491,9 +507,9 @@ export function formatNodeStatus(status: NodeObservabilityStatus): string {
 
   // Viber section
   lines.push(border);
-  lines.push(line("VIBER RUNNING STATUS"));
+  lines.push(line("TASK RUNTIME STATUS"));
   lines.push(border);
-  lines.push(line("Viber ID:    " + v.viberId.slice(0, 42)));
+  lines.push(line("Runtime ID:  " + v.viberId.slice(0, 42)));
   lines.push(line("Name:        " + v.viberName.slice(0, 42)));
   lines.push(line("Version:     " + v.version.slice(0, 42)));
   lines.push(line("Connected:   " + (v.connected ? "* Yes" : "o No")));

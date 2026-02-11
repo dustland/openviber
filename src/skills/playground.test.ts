@@ -16,7 +16,7 @@ describe("skill-playground tool", () => {
 
   it("returns an error when no playground is defined", async () => {
     const result = await getTools().skill_playground_verify.execute({
-      skillId: "tmux",
+      skillId: "terminal",
       waitSeconds: 10,
       refreshRepo: false,
     });

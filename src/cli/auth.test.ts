@@ -485,9 +485,9 @@ describe("HealthCheckActionType annotations", () => {
   }, 30_000);
 
   it("binary checks have actionType binary", () => {
-    const tmux = report.skills.find((s) => s.id === "tmux");
-    expect(tmux).toBeDefined();
-    const cmdCheck = tmux!.checks.find((c) => c.id === "tmux");
+    const terminal = report.skills.find((s) => s.id === "terminal");
+    expect(terminal).toBeDefined();
+    const cmdCheck = terminal!.checks.find((c) => c.id === "tmux");
     expect(cmdCheck?.actionType).toBe("binary");
   });
 

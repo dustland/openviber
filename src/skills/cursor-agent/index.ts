@@ -332,7 +332,7 @@ export function getTools(): Record<string, import("../../core/tool").CoreTool> {
   return {
     cursor_agent_run: {
       description:
-        "Run the Cursor CLI (agent) with the given prompt for AI-powered coding tasks. Call this whenever the user says 'use cursor-agent', 'cursor agent', 'run the Cursor CLI', or asks to delegate a coding task to Cursor. Provide a detailed, specific goal with context about the codebase. For coding tasks in git repositories, the tool automatically enhances the prompt to include branch creation and PR creation instructions. The Cursor agent can execute git commands directly. Runs in tmux (TTY required). Requires tmux and Cursor CLI installed.",
+        "Run the Cursor CLI (agent) with the given prompt for AI-powered coding tasks. Call this whenever the user says 'use cursor-agent', 'cursor agent', 'run the Cursor CLI', or asks to delegate a coding task to Cursor. Provide a detailed, specific goal with context about the codebase. For coding tasks in git repositories, the tool automatically enhances the prompt to include branch creation and PR creation instructions. The Cursor agent can execute git commands directly. Runs in a persistent terminal session (requires terminal skill).",
       inputSchema: z.object({
         goal: z
           .string()
@@ -419,7 +419,7 @@ export function getTools(): Record<string, import("../../core/tool").CoreTool> {
             sessionName: safeSession(sessionName),
             ...(completed ? {} : {
               error: `Agent did not complete within ${waitSeconds}s (may still be running).`,
-              hint: "Check with tmux_list or increase waitSeconds.",
+              hint: "Check with terminal_list or increase waitSeconds.",
             }),
           };
         } catch (err: any) {
@@ -429,7 +429,7 @@ export function getTools(): Record<string, import("../../core/tool").CoreTool> {
             error: err?.message || String(err),
             cwd,
             sessionName: safeSession(sessionName),
-            hint: "Ensure tmux is installed (tmux_install_check) and Cursor CLI is in PATH (agent --version).",
+            hint: "Ensure the terminal backend is available (terminal_check) and Cursor CLI is in PATH (agent --version).",
           };
         }
       },

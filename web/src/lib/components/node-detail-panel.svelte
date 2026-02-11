@@ -91,6 +91,7 @@
     required?: boolean;
     message?: string;
     hint?: string;
+    actionType?: "env" | "oauth" | "binary" | "auth_cli" | "manual";
   }
 
   interface SkillHealthResult {
@@ -563,16 +564,75 @@
                           </span>
                         </div>
                         {#if skill.status !== "AVAILABLE"}
-                          <div class="mt-2 space-y-1 text-[11px] text-muted-foreground">
-                            {#if missingChecks.length === 0}
-                              <div>{skill.summary}</div>
-                            {:else}
-                              {#each missingChecks as check}
-                                <div>
-                                  - {check.label}: {check.hint || check.message || "missing"}
-                                </div>
-                              {/each}
-                            {/if}
+                          <div class="mt-2 space-y-2">
+                            <div class="space-y-1 text-[11px] text-muted-foreground">
+                              {#if missingChecks.length === 0}
+                                <div>{skill.summary}</div>
+                              {:else}
+                                {#each missingChecks as check}
+                                  <div class="flex items-start justify-between gap-2">
+                                    <div class="flex-1">
+                                      <span class="font-medium">{check.label}:</span> {check.hint || check.message || "missing"}
+                                    </div>
+                                    {#if check.actionType && !check.ok}
+                                      <div class="shrink-0">
+                                        {#if check.actionType === "oauth"}
+                                          <button
+                                            type="button"
+                                            class="text-[10px] px-2 py-0.5 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                                            onclick={() => {
+                                              // TODO: Trigger OAuth flow
+                                              alert(`Connect ${skill.name} OAuth`);
+                                            }}
+                                          >
+                                            Connect
+                                          </button>
+                                        {:else if check.actionType === "binary"}
+                                          <button
+                                            type="button"
+                                            class="text-[10px] px-2 py-0.5 rounded bg-muted text-foreground hover:bg-muted/80 transition-colors"
+                                            onclick={() => {
+                                              if (check.hint) {
+                                                // Copy install command to clipboard
+                                                const cmd = check.hint.match(/Install with: (.+)/)?.[1] || check.hint;
+                                                navigator.clipboard.writeText(cmd);
+                                                alert(`Copied: ${cmd}`);
+                                              }
+                                            }}
+                                          >
+                                            Copy cmd
+                                          </button>
+                                        {:else if check.actionType === "env"}
+                                          <button
+                                            type="button"
+                                            class="text-[10px] px-2 py-0.5 rounded bg-muted text-foreground hover:bg-muted/80 transition-colors"
+                                            onclick={() => {
+                                              alert(`Add environment variable: ${check.label}`);
+                                            }}
+                                          >
+                                            Add env var
+                                          </button>
+                                        {:else if check.actionType === "auth_cli"}
+                                          <button
+                                            type="button"
+                                            class="text-[10px] px-2 py-0.5 rounded bg-muted text-foreground hover:bg-muted/80 transition-colors"
+                                            onclick={() => {
+                                              if (check.hint) {
+                                                const cmd = check.hint.match(/Run `(.+)`/)?.[1] || check.hint;
+                                                navigator.clipboard.writeText(cmd);
+                                                alert(`Copied: ${cmd}`);
+                                              }
+                                            }}
+                                          >
+                                            Copy cmd
+                                          </button>
+                                        {/if}
+                                      </div>
+                                    {/if}
+                                  </div>
+                                {/each}
+                              {/if}
+                            </div>
                           </div>
                         {/if}
                       </div>

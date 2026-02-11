@@ -61,6 +61,16 @@
     onboard_token: string | null;
     token_expires_at: string | null;
     created_at: string;
+    config_sync_state?: {
+      configVersion?: string;
+      lastConfigPullAt?: string;
+      validations?: Array<{
+        category: string;
+        status: string;
+        message?: string;
+        checkedAt: string;
+      }>;
+    };
     // Enriched hub data
     version?: string;
     platform?: string;
@@ -357,6 +367,25 @@
                         {formatTimeAgo(node.lastHeartbeat)}
                       </span>
                     {/if}
+                  </div>
+                {/if}
+                
+                <!-- Config Sync State Badge -->
+                {#if node.config_sync_state?.lastConfigPullAt}
+                  {@const syncState = node.config_sync_state}
+                  {@const hasFailed = syncState.validations?.some(v => v.status === "failed")}
+                  {@const allVerified = syncState.validations?.every(v => v.status === "verified")}
+                  <div class="mt-2 flex items-center gap-1.5">
+                    <span class={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-medium ${
+                      hasFailed ? "bg-rose-500/10 text-rose-600" :
+                      allVerified ? "bg-emerald-500/10 text-emerald-600" :
+                      "bg-amber-500/10 text-amber-600"
+                    }`}>
+                      {hasFailed ? "Failed" : allVerified ? "Verified" : "Pending"}
+                    </span>
+                    <span class="text-[10px] text-muted-foreground">
+                      {formatTimeAgo(syncState.lastConfigPullAt)}
+                    </span>
                   </div>
                 {/if}
               </CardHeader>

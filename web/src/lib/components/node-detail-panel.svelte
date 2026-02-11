@@ -81,6 +81,15 @@
       totalTasksExecuted: number;
       lastHeartbeatAt?: string;
       collectedAt: string;
+      configState?: {
+      configVersion?: string;
+      lastConfigPullAt?: string;
+      validations?: Array<{
+        category: string;
+        status: string;
+        message?: string;
+        checkedAt: string;
+      }>;
     };
   }
 
@@ -129,6 +138,17 @@
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     const value = bytes / Math.pow(k, i);
     return `${value.toFixed(1)} ${units[i]}`;
+  }
+
+  function formatTimeAgo(dateStr: string) {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
   }
 
   function formatUptime(seconds: number): string {
@@ -668,6 +688,94 @@
                   <span class="ml-3">Collected: {new Date(status.viber.collectedAt).toLocaleTimeString()}</span>
                 {/if}
               </div>
+            </section>
+          {/if}
+
+          <!-- Config Sync State Section -->
+          {#if status.configState || (status.viber && !status.viber.connected)}
+            <section>
+              <h3 class="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                <RefreshCw class="size-4" />
+                Config Sync State
+              </h3>
+
+              {#if !status.viber.connected}
+                <div class="rounded-lg border border-amber-500/50 bg-amber-500/10 p-4 mb-3">
+                  <div class="flex items-center gap-2 text-sm font-medium text-amber-600">
+                    <span class="size-2 rounded-full bg-amber-500"></span>
+                    Node is offline
+                  </div>
+                  <p class="text-xs text-amber-600/80 mt-1">
+                    Config changes will be applied when the node reconnects.
+                  </p>
+                </div>
+              {/if}
+
+              {#if status.configState}
+                {@const syncState = status.configState}
+                {@const hasFailed = syncState.validations?.some(v => v.status === "failed")}
+                {@const allVerified = syncState.validations?.every(v => v.status === "verified")}
+                {@const hasUnchecked = syncState.validations?.some(v => v.status === "unchecked")}
+
+                <div class="rounded-lg border border-border p-4 mb-3">
+                  <div class="flex items-center justify-between mb-3">
+                    <div>
+                      <div class="text-sm font-medium text-foreground">Config Version</div>
+                      <div class="text-xs text-muted-foreground font-mono mt-0.5">
+                        {syncState.configVersion || "Not set"}
+                      </div>
+                    </div>
+                    <span class={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${
+                      hasFailed ? "bg-rose-500/10 text-rose-600" :
+                      allVerified ? "bg-emerald-500/10 text-emerald-600" :
+                      "bg-amber-500/10 text-amber-600"
+                    }`}>
+                      {hasFailed ? "Failed" : allVerified ? "Verified" : hasUnchecked ? "Pending" : "Delivered"}
+                    </span>
+                  </div>
+
+                  {#if syncState.lastConfigPullAt}
+                    <div class="text-xs text-muted-foreground mb-3">
+                      Last verified: {formatTimeAgo(syncState.lastConfigPullAt)}
+                      <span class="text-muted-foreground/60 ml-1">
+                        ({new Date(syncState.lastConfigPullAt).toLocaleString()})
+                      </span>
+                    </div>
+                  {/if}
+
+                  {#if syncState.validations && syncState.validations.length > 0}
+                    <div class="space-y-2">
+                      <div class="text-xs font-medium text-foreground mb-2">Validations</div>
+                      {#each syncState.validations as validation}
+                        <div class="flex items-start justify-between gap-2 rounded-md border border-border bg-muted/20 p-2">
+                          <div class="flex-1">
+                            <div class="text-xs font-medium text-foreground">{validation.category}</div>
+                            {#if validation.message}
+                              <div class="text-[11px] text-muted-foreground mt-0.5">{validation.message}</div>
+                            {/if}
+                            {#if validation.checkedAt}
+                              <div class="text-[10px] text-muted-foreground/60 mt-1">
+                                {new Date(validation.checkedAt).toLocaleString()}
+                              </div>
+                            {/if}
+                          </div>
+                          <span class={`shrink-0 inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-medium ${
+                            validation.status === "verified" ? "bg-emerald-500/10 text-emerald-600" :
+                            validation.status === "failed" ? "bg-rose-500/10 text-rose-600" :
+                            "bg-amber-500/10 text-amber-600"
+                          }`}>
+                            {validation.status}
+                          </span>
+                        </div>
+                      {/each}
+                    </div>
+                  {/if}
+                </div>
+              {:else if status.viber.connected}
+                <div class="rounded-lg border border-border bg-muted/20 p-4 text-sm text-muted-foreground">
+                  No config sync state available. Config will be validated on next push.
+                </div>
+              {/if}
             </section>
           {/if}
 

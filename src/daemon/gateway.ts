@@ -79,6 +79,17 @@ interface ConnectedNode {
   machineStatus?: MachineResourceStatus;
   /** Latest viber running status from heartbeat */
   viberStatus?: ViberRunningStatus;
+  /** Latest config sync state from heartbeat */
+  configState?: {
+    configVersion?: string;
+    lastConfigPullAt?: string;
+    validations?: Array<{
+      category: string;
+      status: string;
+      message?: string;
+      checkedAt: string;
+    }>;
+  };
   /** Pending status:request resolver (for on-demand status requests) */
   pendingStatusResolvers?: Array<(status: NodeObservabilityStatus) => void>;
 }
@@ -727,9 +738,10 @@ export class GatewayServer {
       node.viberStatus.skillHealth
     ) {
       // Return cached status from last heartbeat
-      const status: NodeObservabilityStatus = {
+      const status: NodeObservabilityStatus & { configState?: any } = {
         machine: node.machineStatus,
         viber: node.viberStatus,
+        configState: node.configState,
       };
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ nodeId, status, source: "heartbeat-cache" }));
@@ -749,9 +761,10 @@ export class GatewayServer {
       }
 
       if (node.machineStatus || node.viberStatus) {
-        const status: Partial<NodeObservabilityStatus> = {};
+        const status: Partial<NodeObservabilityStatus> & { configState?: any } = {};
         if (node.machineStatus) status.machine = node.machineStatus;
         if (node.viberStatus) status.viber = node.viberStatus;
+        if (node.configState) status.configState = node.configState;
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ nodeId, status, source: "heartbeat-stale" }));
       } else {
@@ -1153,6 +1166,10 @@ export class GatewayServer {
           // Update skill availability info from heartbeat
           if (heartbeatStatus.skills) {
             node.skills = heartbeatStatus.skills;
+          }
+          // Update config sync state from heartbeat
+          if (heartbeatStatus.configState) {
+            node.configState = heartbeatStatus.configState;
           }
         }
 

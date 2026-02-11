@@ -1,7 +1,14 @@
+import { createClient } from "@supabase/supabase-js";
 import { env } from "$env/dynamic/private";
 
 const SUPABASE_URL = env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = env.SUPABASE_SERVICE_ROLE_KEY;
+
+/** Server-side Supabase client (service role). Use for upserts and operations that need correct conflict handling. */
+export function getServerSupabase() {
+  const { supabaseUrl, serviceRoleKey } = requireSupabaseServiceConfig();
+  return createClient(supabaseUrl, serviceRoleKey);
+}
 
 export function requireSupabaseServiceConfig() {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {

@@ -176,17 +176,18 @@ program
     });
 
     controller.on("connected", () => {
+      const w = 55;
+      const line = (s: string) => `| ${s.padEnd(w)} |`;
       console.log(`
-╔═══════════════════════════════════════════════════════════╗
-║                     VIBER RUNNING                          ║
-╠═══════════════════════════════════════════════════════════╣
-║  Mode:         ${isLocalGateway ? "Local Gateway".padEnd(41) : "Connected".padEnd(41)
-        }║
-║  Viber ID:     ${viberId.slice(0, 40).padEnd(40)}║
-║  Server:       ${serverUrl.slice(0, 40).padEnd(40)}║
-║  Local WS:     ws://localhost:6008                        ║
-║  Status:       ● Connected                                ║
-╚═══════════════════════════════════════════════════════════╝
++${"-".repeat(w + 2)}+
+| ${"VIBER RUNNING".padStart(Math.floor((w + 12) / 2)).padEnd(w)} |
++${"-".repeat(w + 2)}+
+${line(isLocalGateway ? "Mode:         Local Gateway" : "Mode:         Connected")}
+${line("Viber ID:     " + viberId.slice(0, 42))}
+${line("Server:       " + serverUrl.slice(0, 42))}
+${line("Local WS:     ws://localhost:6008")}
+${line("Status:       * Connected")}
++${"-".repeat(w + 2)}+
 
 Waiting for tasks...
 Press Ctrl+C to stop.
@@ -264,13 +265,13 @@ const gatewayAction = async (options: { port: string }) => {
   await gateway.start();
 
   console.log(`
-╔═══════════════════════════════════════════════════════════╗
-║                   GATEWAY RUNNING                         ║
-╠═══════════════════════════════════════════════════════════╣
-║  REST API:     http://localhost:${options.port.padEnd(27)}║
-║  WebSocket:    ws://localhost:${options.port}/ws${" ".repeat(21)}║
-║  Status:       ● Ready for viber connections              ║
-╚═══════════════════════════════════════════════════════════╝
++-------------------------------------------------------+
+|                   GATEWAY RUNNING                       |
++-------------------------------------------------------+
+| REST API:     ${("http://localhost:" + options.port).padEnd(43).slice(0, 43)} |
+| WebSocket:    ${("ws://localhost:" + options.port + "/ws").padEnd(43).slice(0, 43)} |
+| Status:       * Ready for viber connections             |
++-------------------------------------------------------+
 
 Waiting for viber daemons to connect...
 Press Ctrl+C to stop.
@@ -952,9 +953,9 @@ program
     const skillsDir = path.join(configDir, "skills");
 
     console.log(`
-╔═══════════════════════════════════════════════════════════╗
-║               OPENVIBER SETUP                             ║
-╚═══════════════════════════════════════════════════════════╝
++-------------------------------------------------------+
+|               OPENVIBER SETUP                           |
++-------------------------------------------------------+
 `);
 
     // Create directories
@@ -1483,9 +1484,9 @@ program
     } = await import("../channels/builtin");
 
     console.log(`
-╔═══════════════════════════════════════════════════════════╗
-║                  CHANNELS STARTING                        ║
-╚═══════════════════════════════════════════════════════════╝
++-------------------------------------------------------+
+|                  CHANNELS STARTING                      |
++-------------------------------------------------------+
 `);
 
     const bootstrap = await loadGatewayBootstrapConfig({
@@ -1544,13 +1545,13 @@ Or configure channels from the OpenViber web and re-run: viber channels
     const basePath = bootstrap.gateway.basePath || "/";
 
     console.log(`
-╔═══════════════════════════════════════════════════════════╗
-║                  CHANNELS RUNNING                         ║
-╠═══════════════════════════════════════════════════════════╣
-║  Channels:     ${channelNames.join(", ").padEnd(41)}║
-║  Webhooks:     ${`${bootstrap.gateway.host}:${bootstrap.gateway.port}${basePath}`.slice(0, 41).padEnd(41)}║
-║  Status:       ● Ready                                    ║
-╚═══════════════════════════════════════════════════════════╝
++-------------------------------------------------------+
+|                  CHANNELS RUNNING                        |
++-------------------------------------------------------+
+| Channels:     ${channelNames.join(", ").slice(0, 43).padEnd(43)} |
+| Webhooks:     ${`${bootstrap.gateway.host}:${bootstrap.gateway.port}${basePath}`.slice(0, 43).padEnd(43)} |
+| Status:       * Ready                                     |
++-------------------------------------------------------+
 
 Listening for messages from enterprise channels...
 Press Ctrl+C to stop.

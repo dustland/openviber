@@ -102,6 +102,9 @@ importers:
       '@ai-sdk/svelte':
         specifier: ^4.0.77
         version: 4.0.77(svelte@5.49.2)(zod@3.25.76)
+      '@supabase/supabase-js':
+        specifier: ^2.49.1
+        version: 2.95.3
       '@sveltejs/kit':
         specifier: ^2.15.0
         version: 2.50.2(@opentelemetry/api@1.9.0)(@sveltejs/vite-plugin-svelte@5.1.1(svelte@5.49.2)(vite@6.4.1(@types/node@22.19.9)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2)))(svelte@5.49.2)(typescript@5.9.3)(vite@6.4.1(@types/node@22.19.9)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))

@@ -3,9 +3,7 @@
   import { page } from "$app/stores";
   import { goto } from "$app/navigation";
   import { getVibersStore } from "$lib/stores/vibers";
-  import {
-    Sparkles,
-  } from "@lucide/svelte";
+  import { Sparkles } from "@lucide/svelte";
   import * as Dialog from "$lib/components/ui/dialog";
   import ChatComposer from "$lib/components/chat-composer.svelte";
   import type { Intent } from "$lib/data/intents";
@@ -70,7 +68,7 @@
   );
   const selectedIntent = $derived(
     selectedIntentId
-      ? intents.find((i) => i.id === selectedIntentId) ?? null
+      ? (intents.find((i) => i.id === selectedIntentId) ?? null)
       : null,
   );
 
@@ -110,20 +108,25 @@
       }
       if (skillsRes.ok) {
         const data = await skillsRes.json();
-        accountSkills = (data.skills ?? []).map((s: { id: string; name: string; description?: string }) => ({
-          id: s.id,
-          name: s.name,
-          description: s.description || "",
-        }));
+        accountSkills = (data.skills ?? []).map(
+          (s: { id: string; name: string; description?: string }) => ({
+            id: s.id,
+            name: s.name,
+            description: s.description || "",
+          }),
+        );
       }
       if (settingsRes.ok) {
         const data = await settingsRes.json();
         const channels = data.channels ?? {};
         channelOptions = Object.entries(channels).map(([id, channel]) => ({
           id,
-          label: (channel as Record<string, unknown>).displayName as string ?? id,
-          description: (channel as Record<string, unknown>).description as string ?? "",
-          enabled: ((channel as Record<string, unknown>).enabled as boolean) ?? false,
+          label:
+            ((channel as Record<string, unknown>).displayName as string) ?? id,
+          description:
+            ((channel as Record<string, unknown>).description as string) ?? "",
+          enabled:
+            ((channel as Record<string, unknown>).enabled as boolean) ?? false,
         }));
         if (selectedChannelIds.length === 0) {
           selectedChannelIds = channelOptions
@@ -217,7 +220,8 @@
           title,
           nodeId: nodeId ?? undefined,
           environmentId: selectedEnvironmentId ?? undefined,
-          channelIds: selectedChannelIds.length > 0 ? selectedChannelIds : undefined,
+          channelIds:
+            selectedChannelIds.length > 0 ? selectedChannelIds : undefined,
           model: selectedModelId || undefined,
           skills: selectedSkillIds.length > 0 ? selectedSkillIds : undefined,
         }),
@@ -316,7 +320,10 @@
           <div
             class="rounded-xl border border-dashed border-border bg-card/40 px-4 py-8 text-center text-sm text-muted-foreground"
           >
-            No intents found. <a href="/settings/intents" class="text-primary hover:underline">Create one</a> to get started.
+            No intents found. <a
+              href="/settings/intents"
+              class="text-primary hover:underline">Create one</a
+            > to get started.
           </div>
         {:else}
           <div
@@ -325,7 +332,7 @@
             {#each previewIntents as intent (intent.id)}
               <button
                 type="button"
-                class="w-[260px] shrink-0 snap-start rounded-xl border p-4 text-left transition-all sm:w-auto sm:min-w-0 {selectedIntentId ===
+                class="cursor-pointer w-[260px] shrink-0 snap-start rounded-xl border p-4 text-left transition-all sm:w-auto sm:min-w-0 {selectedIntentId ===
                 intent.id
                   ? 'border-primary/40 bg-primary/5 ring-1 ring-primary/20'
                   : 'border-border bg-card hover:border-primary/30 hover:bg-accent/40'}"
@@ -338,13 +345,18 @@
                   {intent.description}
                 </p>
                 {#if intent.body}
-                  <p class="mt-2 text-[11px] leading-relaxed text-muted-foreground/70 line-clamp-3 whitespace-pre-line">
-                    {intent.body.split('\n').filter(Boolean).slice(0, 3).join('\n')}
+                  <p
+                    class="mt-2 text-[11px] leading-relaxed text-muted-foreground/70 line-clamp-3 whitespace-pre-line"
+                  >
+                    {intent.body
+                      .split("\n")
+                      .filter(Boolean)
+                      .slice(0, 3)
+                      .join("\n")}
                   </p>
                 {/if}
               </button>
             {/each}
-
           </div>
         {/if}
       </div>
@@ -388,7 +400,7 @@
         {#each intents as intent (intent.id)}
           <button
             type="button"
-            class="w-full rounded-xl border p-4 text-left transition-all {selectedIntentId ===
+            class="cursor-pointer w-full rounded-xl border p-4 text-left transition-all {selectedIntentId ===
             intent.id
               ? 'border-primary/40 bg-primary/5 ring-1 ring-primary/20'
               : 'border-border bg-card hover:border-primary/30 hover:bg-accent/40'}"
@@ -427,4 +439,3 @@
     </Dialog.Footer>
   </Dialog.Content>
 </Dialog.Root>
-

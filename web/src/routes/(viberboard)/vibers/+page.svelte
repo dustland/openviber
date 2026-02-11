@@ -23,6 +23,7 @@
     getVibersStore,
     type ViberListItem,
   } from "$lib/stores/vibers";
+  import TaskStepIndicator from "$lib/components/vibers/task-step-indicator.svelte";
 
   const vibersStore = getVibersStore();
   let hubConnected = $state(false);
@@ -202,6 +203,10 @@
                   <CardTitle class="text-sm font-medium leading-snug truncate">
                     {viber.goal || viber.id}
                   </CardTitle>
+                  <TaskStepIndicator
+                    status={viber.status}
+                    archived={Boolean(viber.archivedAt)}
+                  />
                   <CardDescription class="text-xs mt-1 truncate">
                     <Badge
                       variant="outline"

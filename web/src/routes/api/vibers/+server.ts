@@ -10,18 +10,7 @@ import {
 import { getSettingsForUser } from "$lib/server/user-settings";
 import { supabaseRequest, toInFilter } from "$lib/server/supabase-rest";
 import { writeLog } from "$lib/server/logs";
-
-/**
- * Extract a short display name from a potentially long goal text.
- * Takes the first non-empty line and trims it.
- */
-function extractDisplayName(goal: string): string {
-  const firstLine = goal
-    .split("\n")
-    .map((l) => l.trim())
-    .find((l) => l.length > 0);
-  return firstLine || goal;
-}
+import { summarizeTaskTitle } from "$lib/server/task-title";
 
 // POST /api/vibers - Create a new viber on a node
 export const POST: RequestHandler = async ({ request, locals }) => {
@@ -116,7 +105,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     // the first meaningful line from the goal as the display name.
     const displayName = typeof title === "string" && title.trim()
       ? title.trim()
-      : extractDisplayName(goal);
+      : await summarizeTaskTitle(goal, viberModel);
 
     if (locals.user?.id) {
       try {

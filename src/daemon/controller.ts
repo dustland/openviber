@@ -22,10 +22,13 @@ import {
   collectMachineResourceStatus,
   collectViberRunningStatus,
   collectNodeStatus,
+  collectConfigState,
   type MachineResourceStatus,
   type ViberRunningStatus as ViberNodeRunningStatus,
   type RunningTaskInfo,
   type NodeObservabilityStatus,
+  type ConfigState,
+  type ConfigValidation,
 } from "./node-status";
 import type { SkillHealthReport } from "../skills/health";
 
@@ -82,6 +85,8 @@ export interface ViberStatus {
   viberStatus?: ViberNodeRunningStatus;
   /** Extended skill info with availability (updated periodically) */
   skills?: ViberSkillInfo[];
+  /** Configuration sync state (version, last pull, validations) */
+  configState?: ConfigState;
 }
 
 // Server -> Viber messages (messages = full chat history from Viber Board for context)
@@ -120,6 +125,7 @@ export type ControllerServerMessage =
   }
   | { type: "ping" }
   | { type: "config:update"; config: Partial<ViberControllerConfig> }
+  | { type: "config:push" }
   // Terminal streaming messages
   | { type: "terminal:list" }
   | { type: "terminal:attach"; target: string; appId?: string }
@@ -144,9 +150,10 @@ export type ControllerClientMessage =
   | { type: "task:progress"; taskId: string; event: any }
   | { type: "task:stream-chunk"; taskId: string; chunk: string }
   | { type: "task:completed"; taskId: string; result: any }
-  | { type: "task:error"; taskId: string; error: string }
+  | { type: "task:error"; taskId: string; error: string; model?: string }
   | { type: "heartbeat"; status: ViberStatus }
   | { type: "pong" }
+  | { type: "config:ack"; configVersion: string; validations: ConfigValidation[] }
   // Terminal streaming messages
   | { type: "terminal:list"; apps: any[]; sessions: any[]; panes: any[] }
   | { type: "terminal:attached"; target: string; appId?: string; ok: boolean; error?: string }
@@ -214,6 +221,10 @@ export class ViberController extends EventEmitter {
   private skillHealthCache?: SkillHealthReport;
   private skillHealthCachedAt?: number;
   private skillHealthInFlight?: Promise<SkillHealthReport>;
+  /** Current config sync state */
+  private configState?: ConfigState;
+  /** Web API URL for pulling config (derived from serverUrl or set separately) */
+  private webApiUrl?: string;
   private log = createLogger("controller");
 
   constructor(private config: ViberControllerConfig) {
@@ -346,6 +357,11 @@ export class ViberController extends EventEmitter {
     this.log.info("Connected to command center");
     this.isConnected = true;
 
+    // Initialize config state with default "unknown" state
+    if (!this.configState) {
+      this.configState = collectConfigState("unknown", new Date().toISOString(), []);
+    }
+
     const { capabilities, skills } = await this.initializeLocalStatus();
 
     this.send({
@@ -474,9 +490,8 @@ export class ViberController extends EventEmitter {
           this.send({ type: "pong" });
           break;
 
-        case "config:update":
-          Object.assign(this.config, message.config);
-          this.emit("config:update", message.config);
+        case "config:push":
+          await this.handleConfigPush();
           break;
 
         // Terminal streaming
@@ -942,6 +957,91 @@ export class ViberController extends EventEmitter {
     this.send({ type: "terminal:resized", target, appId, ok });
   }
 
+  // ==================== Config Management ====================
+
+  /**
+   * Handle config:push message - pull latest config from web API, validate, and send ack.
+   */
+  private async handleConfigPush(): Promise<void> {
+    this.log.info("Received config:push, pulling latest config");
+    try {
+      // Derive web API URL from gateway URL
+      // For localhost: replace gateway port (6007) with web port (6006)
+      // For remote: assume same host, replace /ws path with /api
+      let webApiUrl = this.webApiUrl;
+      if (!webApiUrl && this.config.serverUrl) {
+        try {
+          const gatewayUrl = new URL(this.config.serverUrl.replace(/\/ws$/, ""));
+          if (gatewayUrl.hostname === "localhost" || gatewayUrl.hostname === "127.0.0.1") {
+            gatewayUrl.port = "6006";
+          }
+          gatewayUrl.pathname = "";
+          webApiUrl = gatewayUrl.toString();
+        } catch {
+          // Fallback: try to construct from serverUrl pattern
+          webApiUrl = this.config.serverUrl.replace(/\/ws$/, "").replace(/:\d+/, ":6006");
+        }
+      }
+
+      if (!webApiUrl) {
+        this.log.warn("Cannot determine web API URL for config pull");
+        this.send({
+          type: "config:ack",
+          configVersion: this.configState?.configVersion || "unknown",
+          validations: [],
+        });
+        return;
+      }
+
+      // Pull config from web API
+      const configUrl = `${webApiUrl}/api/nodes/${this.config.viberId}/config`;
+      const response = await fetch(configUrl, {
+        headers: {
+          Authorization: `Bearer ${this.config.token || ""}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Config pull failed: ${response.status} ${response.statusText}`);
+      }
+
+      const configData = await response.json();
+      const configVersion = String(configData.configVersion || Date.now());
+      const lastConfigPullAt = new Date().toISOString();
+
+      // TODO: Step 2 - Run config validator here
+      // For now, send empty validations
+      const validations: ConfigValidation[] = [];
+
+      // Update config state
+      this.configState = collectConfigState(configVersion, lastConfigPullAt, validations);
+
+      // Send ack
+      this.send({
+        type: "config:ack",
+        configVersion,
+        validations,
+      });
+
+      this.log.info("Config pulled and acknowledged", { configVersion });
+    } catch (error) {
+      this.log.error("Failed to pull config", { error: String(error) });
+      // Send ack with error state
+      this.send({
+        type: "config:ack",
+        configVersion: this.configState?.configVersion || "error",
+        validations: [
+          {
+            category: "llm_keys",
+            status: "failed",
+            message: `Config pull failed: ${error instanceof Error ? error.message : String(error)}`,
+            checkedAt: new Date().toISOString(),
+          },
+        ],
+      });
+    }
+  }
+
   // ==================== Job Reporting ====================
 
   /**
@@ -990,6 +1090,7 @@ export class ViberController extends EventEmitter {
         machine: machineStatus,
         viberStatus,
         skills: skillsWithHealth.length > 0 ? skillsWithHealth : undefined,
+        configState: this.configState,
       };
 
       this.lastHeartbeatAt = new Date().toISOString();

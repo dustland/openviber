@@ -91,6 +91,7 @@ X-Viber-Version: {version}
 | `task:error` | `{ taskId, error }` | Task failed |
 | `heartbeat` | `{ status: ViberStatus }` | Periodic health (every 30s) |
 | `pong` | `{}` | Response to ping |
+| `config:ack` | `{ configVersion, validations }` | Config pull/validation acknowledgment |
 | `terminal:*` | Various | Terminal streaming responses |
 
 ### Gateway → Node Runtime Messages
@@ -101,7 +102,7 @@ X-Viber-Version: {version}
 | `task:stop` | `{ taskId }` | Stop a running task |
 | `task:message` | `{ taskId, message, injectionMode? }` | Follow-up message during task |
 | `ping` | `{}` | Keepalive |
-| `config:update` | `{ config }` | Runtime config change |
+| `config:push` | `{}` | Request node to pull latest config from web API |
 | `terminal:list` | `{}` | Request terminal list |
 | `terminal:attach` | `{ target, appId? }` | Attach to terminal |
 | `terminal:detach` | `{ target, appId? }` | Detach from terminal |

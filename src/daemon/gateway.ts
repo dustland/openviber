@@ -63,6 +63,8 @@ interface ConnectedNode {
   machineStatus?: MachineResourceStatus;
   /** Latest viber running status from heartbeat */
   viberStatus?: ViberRunningStatus;
+  /** Latest config sync state from heartbeat or config:ack */
+  configState?: { configVersion: string; lastConfigPullAt: string; validations: Array<{ category: string; status: string; message?: string; checkedAt: string }> };
   /** Pending status:request resolver (for on-demand status requests) */
   pendingStatusResolvers?: Array<(status: NodeObservabilityStatus) => void>;
 }
@@ -276,6 +278,12 @@ export class GatewayServer {
     ) {
       const nodeId = decodeURIComponent(url.pathname.split("/")[3]);
       this.handlePushJobToNode(nodeId, req, res);
+    } else if (
+      url.pathname.match(/^\/api\/nodes\/[^/]+\/config-push$/) &&
+      method === "POST"
+    ) {
+      const nodeId = decodeURIComponent(url.pathname.split("/")[3]);
+      this.handlePushConfigToNode(nodeId, res);
     } else {
       res.writeHead(404, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: "Not found" }));
@@ -620,6 +628,26 @@ export class GatewayServer {
   }
 
   /**
+   * POST /api/nodes/:id/config-push - Push config update to a node via WebSocket.
+   */
+  private handlePushConfigToNode(
+    nodeId: string,
+    res: ServerResponse,
+  ): void {
+    const node = this.nodes.get(nodeId);
+    if (!node) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Node not found or not connected" }));
+      return;
+    }
+
+    // Send config:push message to the node
+    node.ws.send(JSON.stringify({ type: "config:push" }));
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, message: "Config push sent to node" }));
+  }
+
+  /**
    * POST /api/nodes/:nodeId/job - Push a job config to a node. The node writes it to its local jobs dir and reloads the scheduler.
    */
   private handlePushJobToNode(
@@ -897,6 +925,10 @@ export class GatewayServer {
         this.handleStatusReport(ws, msg.status);
         break;
 
+      case "config:ack":
+        this.handleConfigAck(ws, msg.configVersion, msg.validations);
+        break;
+
       default:
         console.log(`[Gateway] Unknown message type: ${msg.type}`);
     }
@@ -1128,8 +1160,33 @@ export class GatewayServer {
           if (heartbeatStatus.skills) {
             node.skills = heartbeatStatus.skills;
           }
+          // Update config sync state from heartbeat
+          if (heartbeatStatus.configState) {
+            node.configState = heartbeatStatus.configState;
+          }
         }
 
+        break;
+      }
+    }
+  }
+
+  /**
+   * Handle config:ack message from a node — store config sync state.
+   */
+  private handleConfigAck(
+    ws: WebSocket,
+    configVersion: string,
+    validations: Array<{ category: string; status: string; message?: string; checkedAt: string }>,
+  ): void {
+    for (const node of this.nodes.values()) {
+      if (node.ws === ws) {
+        node.configState = {
+          configVersion,
+          lastConfigPullAt: new Date().toISOString(),
+          validations,
+        };
+        console.log(`[Gateway] Node ${node.id} acknowledged config version ${configVersion}`);
         break;
       }
     }

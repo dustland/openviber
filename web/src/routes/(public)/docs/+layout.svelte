@@ -59,35 +59,30 @@
       title: "Concepts",
       items: [
         { title: "Viber", href: "/docs/concepts/viber" },
-        { title: "Agents", href: "/docs/concepts/agents" },
-        { title: "Spaces", href: "/docs/concepts/spaces" },
         { title: "Jobs", href: "/docs/concepts/jobs" },
         { title: "Skills", href: "/docs/concepts/skills" },
         { title: "Tools", href: "/docs/concepts/tools" },
         { title: "Memory", href: "/docs/concepts/memory" },
-        { title: "Context", href: "/docs/concepts/state" },
       ],
     },
     {
       title: "Design",
       items: [
-        { title: "Architecture", href: "/docs/design/arch" },
+        { title: "Viber Runtime", href: "/docs/design/viber" },
+        { title: "Protocol", href: "/docs/design/protocol" },
         {
           title: "Environments and Threads",
           href: "/docs/design/environments-and-threads",
         },
-        {
-          title: "Multi-Agent Collaboration",
-          href: "/docs/design/multi-agent-collaboration",
-        },
-        {
-          title: "Plan & Artifacts",
-          href: "/docs/design/plan-and-artifacts",
-        },
         { title: "Task Lifecycle", href: "/docs/design/task-lifecycle" },
         { title: "Communication", href: "/docs/design/communication" },
-        { title: "Security", href: "/docs/design/security" },
+        { title: "Context Management", href: "/docs/design/context-management" },
+        { title: "Memory", href: "/docs/design/memory" },
+        { title: "Personalization", href: "/docs/design/personalization" },
         { title: "Streaming", href: "/docs/design/streaming" },
+        { title: "Security", href: "/docs/design/security" },
+        { title: "Error Handling", href: "/docs/design/error-handling" },
+        { title: "MCP Integration", href: "/docs/design/mcp-integration" },
       ],
     },
     {
@@ -103,7 +98,10 @@
     },
     {
       title: "Reference",
-      items: [{ title: "Glossary", href: "/docs/reference/glossary" }],
+      items: [
+        { title: "Glossary", href: "/docs/reference/glossary" },
+        { title: "Config Schema", href: "/docs/reference/config-schema" },
+      ],
     },
   ];
 
@@ -326,9 +324,8 @@
       api.initialize({
         startOnLoad: false,
         securityLevel: "loose",
-        theme: document.documentElement.classList.contains("dark")
-          ? "dark"
-          : "default",
+        // Use a neutral Mermaid theme and style diagrams from global CSS tokens.
+        theme: "base",
       });
       mermaidApi = api;
       return mermaidApi;

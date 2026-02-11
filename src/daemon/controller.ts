@@ -31,6 +31,11 @@ import {
   type ConfigValidation,
 } from "./node-status";
 import type { SkillHealthReport } from "../skills/health";
+import {
+  validateLlmKey,
+  validateOAuthToken,
+  validateEnvSecrets,
+} from "./config-validator";
 
 // ==================== Types ====================
 
@@ -1052,21 +1057,36 @@ export class ViberController extends EventEmitter {
       const configData = await response.json();
       const configHash = this.computeConfigHash(configData);
 
-      // Validate config (placeholder - will be implemented in Step 2)
+      // Validate config
       const validations: ConfigValidation[] = [];
-      const now = new Date().toISOString();
 
-      // For now, just mark as unchecked - Step 2 will add real validation
+      // Validate LLM API keys
       if (configData.globalSettings?.aiProviders) {
-        const providers = Object.keys(configData.globalSettings.aiProviders);
-        for (const provider of providers) {
-          validations.push({
-            category: "llm_keys",
-            status: "unchecked",
-            checkedAt: now,
-          });
+        const providers = configData.globalSettings.aiProviders;
+        for (const [provider, config] of Object.entries(providers as Record<string, { apiKey?: string; baseUrl?: string }>)) {
+          if (config?.apiKey) {
+            const result = await validateLlmKey(provider, config.apiKey, config.baseUrl);
+            validations.push(result);
+          }
         }
       }
+
+      // Validate OAuth tokens
+      if (configData.oauthConnections && Array.isArray(configData.oauthConnections)) {
+        for (const conn of configData.oauthConnections) {
+          if (conn.provider && conn.accessToken) {
+            const result = await validateOAuthToken(
+              conn.provider,
+              conn.accessToken,
+              conn.expiresAt,
+            );
+            validations.push(result);
+          }
+        }
+      }
+
+      // Validate env secrets (if any are expected - this would come from skill requirements)
+      // For now, we skip this as it requires knowing which secrets are needed
 
       // Update config state
       this.configState = collectConfigState({

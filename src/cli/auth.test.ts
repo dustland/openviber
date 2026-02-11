@@ -2,10 +2,11 @@
  * Tests for CLI auth module
  *
  * Covers: headless detection, URL parsing, Google OAuth URL building,
- * API key .env persistence, local callback server, and token storage.
+ * API key .env persistence, local callback server, token storage,
+ * action type categorization, skill picker display, and LLM key detection.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
 import * as fs from "fs/promises";
 import * as path from "path";
 import * as http from "http";
@@ -346,5 +347,170 @@ describe("CLI Auth Module", () => {
         `http://localhost:${LOCAL_CALLBACK_PORT}${LOCAL_CALLBACK_PATH}`,
       );
     });
+  });
+
+  // ──────────────────────────────────────────────────────────
+  // LLM key detection
+  // ──────────────────────────────────────────────────────────
+
+  describe("hasAnyLlmKey()", () => {
+    it("returns false when no provider keys are set", async () => {
+      const origKeys = {
+        OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
+        ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+        OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+        DEEPSEEK_API_KEY: process.env.DEEPSEEK_API_KEY,
+      };
+      delete process.env.OPENROUTER_API_KEY;
+      delete process.env.ANTHROPIC_API_KEY;
+      delete process.env.OPENAI_API_KEY;
+      delete process.env.DEEPSEEK_API_KEY;
+
+      const { hasAnyLlmKey } = await import("./auth");
+      expect(hasAnyLlmKey()).toBe(false);
+
+      // Restore
+      for (const [k, v] of Object.entries(origKeys)) {
+        if (v === undefined) delete process.env[k];
+        else process.env[k] = v;
+      }
+    });
+
+    it("returns true when any provider key is set", async () => {
+      const origKey = process.env.OPENROUTER_API_KEY;
+      process.env.OPENROUTER_API_KEY = "sk-test";
+
+      const { hasAnyLlmKey } = await import("./auth");
+      expect(hasAnyLlmKey()).toBe(true);
+
+      if (origKey === undefined) delete process.env.OPENROUTER_API_KEY;
+      else process.env.OPENROUTER_API_KEY = origKey;
+    });
+  });
+
+  // ──────────────────────────────────────────────────────────
+  // Skill picker display
+  // ──────────────────────────────────────────────────────────
+
+  describe("getSkillStatusLabel()", () => {
+    it("returns READY for available skills", async () => {
+      const { getSkillStatusLabel } = await import("./auth");
+      const result = getSkillStatusLabel({
+        id: "github",
+        name: "github",
+        status: "AVAILABLE",
+        available: true,
+        checks: [{ id: "gh-cli", label: "GitHub CLI", ok: true }],
+        summary: "All prerequisites satisfied.",
+      });
+      expect(result.label).toBe("READY");
+      expect(result.detail).toBe("");
+    });
+
+    it("returns NEEDS SETUP for skills needing OAuth", async () => {
+      const { getSkillStatusLabel } = await import("./auth");
+      const result = getSkillStatusLabel({
+        id: "gmail",
+        name: "gmail",
+        status: "NOT_AVAILABLE",
+        available: false,
+        checks: [
+          {
+            id: "google-oauth",
+            label: "Google OAuth",
+            ok: false,
+            actionType: "oauth",
+          },
+        ],
+        summary: "Missing: Google OAuth",
+      });
+      expect(result.label).toBe("NEEDS SETUP");
+      expect(result.detail).toBe("Google OAuth");
+    });
+
+    it("returns MISSING for skills missing a binary", async () => {
+      const { getSkillStatusLabel } = await import("./auth");
+      const result = getSkillStatusLabel({
+        id: "codex-cli",
+        name: "codex-cli",
+        status: "NOT_AVAILABLE",
+        available: false,
+        checks: [
+          {
+            id: "codex-cli",
+            label: "Codex CLI installed",
+            ok: false,
+            actionType: "binary",
+          },
+          {
+            id: "codex-auth",
+            label: "Codex auth",
+            ok: false,
+            actionType: "auth_cli",
+          },
+        ],
+        summary: "Missing: Codex CLI installed, Codex auth",
+      });
+      expect(result.label).toBe("MISSING");
+      expect(result.detail).toBe("Codex CLI installed");
+    });
+
+    it("returns UNKNOWN for unknown status", async () => {
+      const { getSkillStatusLabel } = await import("./auth");
+      const result = getSkillStatusLabel({
+        id: "custom",
+        name: "custom",
+        status: "UNKNOWN",
+        available: false,
+        checks: [],
+        summary: "No automated health checks defined.",
+      });
+      expect(result.label).toBe("UNKNOWN");
+    });
+  });
+});
+
+// ──────────────────────────────────────────────────────────
+// Health check action types
+// ──────────────────────────────────────────────────────────
+
+describe("HealthCheckActionType annotations", () => {
+  // Run the full health report once and share across all assertions
+  // (health checks involve spawnSync + HTTP calls that are slow)
+  let report: import("../skills/health").SkillHealthReport;
+
+  beforeAll(async () => {
+    const { getSkillHealthReport } = await import("../skills/health");
+    report = await getSkillHealthReport();
+  }, 30_000);
+
+  it("binary checks have actionType binary", () => {
+    const tmux = report.skills.find((s) => s.id === "tmux");
+    expect(tmux).toBeDefined();
+    const cmdCheck = tmux!.checks.find((c) => c.id === "tmux");
+    expect(cmdCheck?.actionType).toBe("binary");
+  });
+
+  it("gmail has actionType oauth", () => {
+    const gmail = report.skills.find((s) => s.id === "gmail");
+    expect(gmail).toBeDefined();
+    const oauthCheck = gmail!.checks.find((c) => c.id === "google-oauth");
+    expect(oauthCheck?.actionType).toBe("oauth");
+  });
+
+  it("github has binary and auth_cli actionTypes", () => {
+    const github = report.skills.find((s) => s.id === "github");
+    expect(github).toBeDefined();
+    const cliCheck = github!.checks.find((c) => c.id === "gh-cli");
+    expect(cliCheck?.actionType).toBe("binary");
+    const authCheck = github!.checks.find((c) => c.id === "gh-auth");
+    expect(authCheck?.actionType).toBe("auth_cli");
+  });
+
+  it("antigravity has actionType manual", () => {
+    const ag = report.skills.find((s) => s.id === "antigravity");
+    expect(ag).toBeDefined();
+    const cdpCheck = ag!.checks.find((c) => c.id === "cdp");
+    expect(cdpCheck?.actionType).toBe("manual");
   });
 });

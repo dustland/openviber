@@ -1071,6 +1071,7 @@ program
   .option("--gateway <url>", "Gateway URL override (default: auto from web)")
   .option("--board <url>", "(deprecated: use --gateway) Gateway URL override")
   .option("--hub <url>", "(deprecated: use --gateway) Gateway URL override")
+  .option("--no-interactive", "Skip interactive prompts (just scaffold and show health report)")
   .action(async (options) => {
     const configDir = OPENVIBER_DIR;
     const vibersDir = path.join(configDir, "vibers");
@@ -1241,65 +1242,79 @@ workingMode: viber-decides
     // Generate viber ID
     const viberId = await getViberId();
 
-    try {
-      const { getSkillHealthReport } = await import("../skills/health");
-      const report = await getSkillHealthReport();
-      const lines = formatSkillHealthReport(report);
-      if (lines.length > 0) {
-        console.log(lines.join("\n"));
+    // Load any previously saved API keys from ~/.openviber/.env
+    const { loadOpenViberEnv, runOnboardingWizard } = await import("./auth");
+    await loadOpenViberEnv();
+
+    // Interactive onboarding wizard (LLM key, skill picker, skill setup)
+    // or passive health report with --no-interactive
+    let selectedSkills: string[] = [];
+
+    if (options.interactive === false) {
+      // Non-interactive: just show the health report (legacy behavior)
+      try {
+        const { getSkillHealthReport } = await import("../skills/health");
+        const report = await getSkillHealthReport();
+        const lines = formatSkillHealthReport(report);
+        if (lines.length > 0) {
+          console.log(lines.join("\n"));
+        }
+      } catch (err: any) {
+        console.warn(
+          `[onboard] Skill health check failed: ${err?.message || String(err)}`,
+        );
       }
-    } catch (err: any) {
-      console.warn(
-        `[onboard] Skill health check failed: ${err?.message || String(err)}`,
-      );
-    }
-
-    if (options.token) {
-      console.log(`
-────────────────────────────────────────────────────────────
-Setup complete! Your viber is connected to OpenViber Web.
-
-Your viber ID: ${viberId}
-Config directory: ${configDir}
-
-Next steps:
-  1. Set your API key:
-     export OPENROUTER_API_KEY="sk-or-v1-xxx"
-
-  2. Start your viber:
-     openviber start
-
-  Your viber will auto-connect. No extra flags needed.
-  Manage config on the web — your viber will pull updates.
-
-Get an API key at: https://openrouter.ai/keys
-────────────────────────────────────────────────────────────
-`);
     } else {
-      console.log(`
+      // Interactive: full wizard
+      try {
+        selectedSkills = await runOnboardingWizard();
+
+        // Save selected skills to settings.yaml
+        if (selectedSkills.length > 0) {
+          const settings = await loadSettings();
+          settings.standaloneSkills = Array.from(
+            new Set([...(settings.standaloneSkills || []), ...selectedSkills]),
+          );
+          await saveSettings(settings);
+        }
+      } catch (err: any) {
+        console.warn(
+          `[onboard] Interactive setup failed: ${err?.message || String(err)}`,
+        );
+        // Fall back to passive health report
+        try {
+          const { getSkillHealthReport } = await import("../skills/health");
+          const report = await getSkillHealthReport();
+          const lines = formatSkillHealthReport(report);
+          if (lines.length > 0) {
+            console.log(lines.join("\n"));
+          }
+        } catch {
+          // ignore
+        }
+      }
+    }
+
+    const mode = options.token ? "connected" : "standalone";
+    const nextCmd = options.token
+      ? "openviber start"
+      : "openviber start  (or: openviber run \"Hello!\")";
+    const connectHint = options.token
+      ? ""
+      : "\n  To connect to OpenViber Web later:\n     openviber onboard --token <token-from-web>\n";
+
+    console.log(`
 ────────────────────────────────────────────────────────────
-Setup complete! (standalone mode)
+Setup complete! (${mode} mode)
 
 Your viber ID: ${viberId}
 Config directory: ${configDir}
 
-Next steps:
-  1. Set your API key:
-     export OPENROUTER_API_KEY="sk-or-v1-xxx"
-
-  2. Start your viber:
-     openviber start
-
-  3. Or run a quick task:
-     openviber run "Hello, what can you do?"
-
-  To connect to OpenViber Web later:
-     openviber onboard --token <token-from-web>
-
-Get an API key at: https://openrouter.ai/keys
+Next step:
+  ${nextCmd}
+${connectHint}
 ────────────────────────────────────────────────────────────
 `);
-    }
   });
 
 // ==================== viber skill ====================

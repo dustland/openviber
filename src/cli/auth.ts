@@ -806,6 +806,460 @@ export async function loadOpenViberEnv(): Promise<void> {
 }
 
 // ────────────────────────────────────────────────────────────
+// Prompt helpers
+// ────────────────────────────────────────────────────────────
+
+/**
+ * Prompt user for a yes/no answer.  Defaults to `defaultValue` on empty input.
+ */
+export function promptYesNo(
+  rl: readline.Interface,
+  question: string,
+  defaultValue = true,
+): Promise<boolean> {
+  const suffix = defaultValue ? "[Y/n]" : "[y/N]";
+  return new Promise((resolve) => {
+    rl.question(`${question} ${suffix} `, (answer) => {
+      const a = answer.trim().toLowerCase();
+      if (a === "") resolve(defaultValue);
+      else resolve(a === "y" || a === "yes");
+    });
+  });
+}
+
+/**
+ * Prompt user to retry (after external action) or skip.
+ * Returns `true` to retry, `false` to skip.
+ */
+export function promptRetryOrSkip(
+  rl: readline.Interface,
+  instruction: string,
+): Promise<boolean> {
+  return new Promise((resolve) => {
+    console.log(`\n    ${instruction}`);
+    rl.question("    Press Enter to retry, or s to skip: ", (answer) => {
+      resolve(answer.trim().toLowerCase() !== "s");
+    });
+  });
+}
+
+// ────────────────────────────────────────────────────────────
+// LLM API key detection & prompt
+// ────────────────────────────────────────────────────────────
+
+/**
+ * Check whether any LLM provider API key is configured.
+ */
+export function hasAnyLlmKey(): boolean {
+  return Object.values(PROVIDER_ENV_KEYS).some(
+    (info) => !!process.env[info.envVar]?.trim(),
+  );
+}
+
+/**
+ * Prompt the user to set up an LLM API key if none is configured.
+ * This is the first step of the onboarding wizard.
+ */
+export async function runLlmKeyPrompt(): Promise<void> {
+  if (hasAnyLlmKey()) {
+    const configured = Object.entries(PROVIDER_ENV_KEYS)
+      .filter(([, info]) => !!process.env[info.envVar]?.trim())
+      .map(([name]) => name);
+    console.log(`\n  LLM API key: ${configured.join(", ")} configured`);
+    return;
+  }
+
+  console.log("\n  No LLM API key detected. OpenViber needs one to power its AI.\n");
+
+  const rl = createRl();
+  const providers = Object.keys(PROVIDER_ENV_KEYS);
+
+  providers.forEach((p, i) => {
+    const rec = p === "openrouter" ? " (recommended)" : "";
+    console.log(`    ${i + 1}. ${p}${rec}`);
+  });
+  console.log();
+
+  const choice = await ask(
+    rl,
+    `  Select provider [1-${providers.length}] or Enter to skip: `,
+  );
+
+  if (!choice) {
+    rl.close();
+    console.log(
+      "  Skipped. You can set it later with: viber auth apikey\n",
+    );
+    return;
+  }
+
+  let providerName: string | undefined;
+  const choiceNum = parseInt(choice, 10);
+  if (choiceNum >= 1 && choiceNum <= providers.length) {
+    providerName = providers[choiceNum - 1];
+  } else {
+    providerName = providers.find(
+      (p) => p.toLowerCase() === choice.toLowerCase(),
+    );
+  }
+
+  if (!providerName) {
+    rl.close();
+    console.log(`  Unknown provider: ${choice}. Skipping.\n`);
+    return;
+  }
+
+  const provider = PROVIDER_ENV_KEYS[providerName];
+  console.log(`\n  Get your API key at: ${provider.url}\n`);
+
+  const apiKey = await ask(rl, `  Paste your ${providerName} API key: `);
+  rl.close();
+
+  if (!apiKey) {
+    console.log("  No key provided. Skipping.\n");
+    return;
+  }
+
+  await saveApiKeyToEnv(provider.envVar, apiKey);
+  process.env[provider.envVar] = apiKey;
+  console.log(`\n  Saved ${provider.envVar} to ${getEnvFile()}\n`);
+}
+
+// ────────────────────────────────────────────────────────────
+// Skill picker
+// ────────────────────────────────────────────────────────────
+
+/** Status label for display in the skill picker. */
+export function getSkillStatusLabel(
+  result: import("../skills/health").SkillHealthResult,
+): { label: string; detail: string } {
+  if (result.status === "AVAILABLE") {
+    return { label: "READY", detail: "" };
+  }
+  if (result.status === "UNKNOWN") {
+    return { label: "UNKNOWN", detail: "" };
+  }
+
+  // Categorize the failure
+  const failed = result.checks.filter(
+    (c) => (c.required ?? true) && !c.ok,
+  );
+  const hasOAuth = failed.some((c) => c.actionType === "oauth");
+  const hasBinary = failed.some((c) => c.actionType === "binary");
+
+  if (hasOAuth && !hasBinary) {
+    const oauthCheck = failed.find((c) => c.actionType === "oauth");
+    return {
+      label: "NEEDS SETUP",
+      detail: oauthCheck?.label || "OAuth required",
+    };
+  }
+
+  // Show the first failing check as detail
+  const firstFail = failed[0];
+  return {
+    label: "MISSING",
+    detail: firstFail?.label || result.summary,
+  };
+}
+
+/**
+ * Interactive skill picker.
+ *
+ * Displays all skills with live health status, lets the user toggle selection
+ * with numbers, refresh with `r`, and confirm with Enter.
+ *
+ * Returns the IDs of the selected skills.
+ */
+export async function runSkillPicker(
+  report: import("../skills/health").SkillHealthReport,
+  refreshFn: () => Promise<import("../skills/health").SkillHealthReport>,
+): Promise<{ selectedIds: string[]; report: import("../skills/health").SkillHealthReport }> {
+  let currentReport = report;
+  // Pre-select skills that are AVAILABLE
+  const selected = new Set<string>(
+    currentReport.skills
+      .filter((s) => s.status === "AVAILABLE")
+      .map((s) => s.id),
+  );
+
+  const rl = createRl();
+
+  const printList = () => {
+    console.log(
+      "\n  Select skills to enable (toggle with number, r=refresh, Enter=confirm):\n",
+    );
+    currentReport.skills.forEach((skill, i) => {
+      const check = selected.has(skill.id) ? "x" : " ";
+      const num = String(i + 1).padStart(2);
+      const name = (skill.name || skill.id).padEnd(18);
+      const { label, detail } = getSkillStatusLabel(skill);
+      const detailStr = detail ? `  (${detail})` : "";
+      console.log(`    [${check}] ${num}. ${name} ${label}${detailStr}`);
+    });
+    console.log();
+  };
+
+  printList();
+
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const input = await ask(rl, "  > ");
+
+    if (input === "") {
+      // Confirm
+      break;
+    }
+
+    if (input.toLowerCase() === "r") {
+      console.log("    Refreshing...");
+      currentReport = await refreshFn();
+      printList();
+      continue;
+    }
+
+    const num = parseInt(input, 10);
+    if (num >= 1 && num <= currentReport.skills.length) {
+      const skillId = currentReport.skills[num - 1].id;
+      if (selected.has(skillId)) {
+        selected.delete(skillId);
+      } else {
+        selected.add(skillId);
+      }
+      printList();
+      continue;
+    }
+
+    console.log(
+      `    Invalid input. Enter 1-${currentReport.skills.length}, r, or Enter.`,
+    );
+  }
+
+  rl.close();
+  return {
+    selectedIds: Array.from(selected),
+    report: currentReport,
+  };
+}
+
+// ────────────────────────────────────────────────────────────
+// Skill setup walker
+// ────────────────────────────────────────────────────────────
+
+/**
+ * Walk selected skills that have unmet requirements and interactively
+ * resolve them (prompt for keys, run OAuth, show install commands with retry).
+ */
+export async function runSkillSetup(
+  selectedIds: string[],
+  report: import("../skills/health").SkillHealthReport,
+): Promise<void> {
+  const selectedWithIssues = report.skills.filter(
+    (s) => selectedIds.includes(s.id) && s.status !== "AVAILABLE",
+  );
+
+  if (selectedWithIssues.length === 0) {
+    console.log("\n  All selected skills are ready!\n");
+    return;
+  }
+
+  console.log(`\n  Setting up ${selectedWithIssues.length} skill(s)...\n`);
+
+  const rl = createRl();
+
+  for (const skill of selectedWithIssues) {
+    const failedChecks = skill.checks.filter(
+      (c) => (c.required ?? true) && !c.ok,
+    );
+
+    if (failedChecks.length === 0) continue;
+
+    console.log(`  ── ${skill.name || skill.id} ──`);
+
+    for (const check of failedChecks) {
+      switch (check.actionType) {
+        case "oauth": {
+          console.log(`    ${check.label}`);
+          const wantOAuth = await promptYesNo(
+            rl,
+            "    Connect now?",
+            true,
+          );
+          if (wantOAuth) {
+            rl.close();
+            // Run the Google OAuth flow (reuses existing auth module)
+            await runGoogleAuth({ noBrowser: isHeadless() });
+            // Re-create rl since runGoogleAuth may have used stdin
+            const newRl = createRl();
+            Object.assign(rl, newRl);
+          } else {
+            console.log(
+              "    Skipped. Run `viber auth google` later.\n",
+            );
+          }
+          break;
+        }
+
+        case "env": {
+          console.log(`    ${check.label}: ${check.message || "not set"}`);
+          // Try to extract the env var name from the check
+          const envVarMatch = check.message?.match(
+            /^(\w+)\s+(not set|or)/,
+          );
+          const envVarName = envVarMatch?.[1];
+          if (envVarName) {
+            const value = await ask(
+              rl,
+              `    Paste ${envVarName} (or Enter to skip): `,
+            );
+            if (value) {
+              await saveApiKeyToEnv(envVarName, value);
+              process.env[envVarName] = value;
+              console.log(`    Saved to ${getEnvFile()}\n`);
+            } else {
+              console.log("    Skipped.\n");
+            }
+          } else {
+            console.log(`    ${check.hint || "Set the required env var."}\n`);
+          }
+          break;
+        }
+
+        case "binary": {
+          console.log(
+            `    ${check.label}: ${check.message || "not found"}`,
+          );
+          if (check.hint) {
+            const shouldRetry = await promptRetryOrSkip(
+              rl,
+              check.hint,
+            );
+            if (shouldRetry) {
+              // Re-check after user claims to have installed
+              const { checkSkillHealth } = await import(
+                "../skills/health"
+              );
+              const recheck = await checkSkillHealth({
+                id: skill.id,
+                name: skill.name,
+              });
+              const recheckItem = recheck.checks.find(
+                (c) => c.id === check.id,
+              );
+              if (recheckItem?.ok) {
+                console.log(`    ${check.label}: OK\n`);
+              } else {
+                console.log(
+                  `    Still not found. You can install it later.\n`,
+                );
+              }
+            }
+          } else {
+            console.log("    Skipped (no install instructions).\n");
+          }
+          break;
+        }
+
+        case "auth_cli": {
+          console.log(
+            `    ${check.label}: ${check.message || "not authenticated"}`,
+          );
+          if (check.hint) {
+            const shouldRetry = await promptRetryOrSkip(
+              rl,
+              check.hint,
+            );
+            if (shouldRetry) {
+              const { checkSkillHealth } = await import(
+                "../skills/health"
+              );
+              const recheck = await checkSkillHealth({
+                id: skill.id,
+                name: skill.name,
+              });
+              const recheckItem = recheck.checks.find(
+                (c) => c.id === check.id,
+              );
+              if (recheckItem?.ok) {
+                console.log(`    ${check.label}: OK\n`);
+              } else {
+                console.log(
+                  `    Still not authenticated. You can set it up later.\n`,
+                );
+              }
+            }
+          } else {
+            console.log("    Skipped.\n");
+          }
+          break;
+        }
+
+        case "manual":
+        default: {
+          console.log(`    ${check.label}: ${check.hint || check.message || "manual setup required"}`);
+          console.log();
+          break;
+        }
+      }
+    }
+  }
+
+  rl.close();
+}
+
+// ────────────────────────────────────────────────────────────
+// Onboarding wizard orchestrator
+// ────────────────────────────────────────────────────────────
+
+/**
+ * Run the full interactive onboarding wizard:
+ *   Step 1: LLM API key prompt
+ *   Step 2: Skill picker with live health status
+ *   Step 3: Setup selected skills with unmet requirements
+ *   Step 4: Final health report
+ *
+ * Returns the list of selected skill IDs (to be saved by the caller).
+ */
+export async function runOnboardingWizard(): Promise<string[]> {
+  // Step 1: LLM API key
+  await runLlmKeyPrompt();
+
+  // Step 2: Skill picker
+  const { getSkillHealthReport } = await import("../skills/health");
+  const initialReport = await getSkillHealthReport();
+
+  const { selectedIds, report: latestReport } = await runSkillPicker(
+    initialReport,
+    getSkillHealthReport,
+  );
+
+  if (selectedIds.length === 0) {
+    console.log("  No skills selected.\n");
+    return [];
+  }
+
+  console.log(
+    `  Selected ${selectedIds.length} skill(s): ${selectedIds.join(", ")}`,
+  );
+
+  // Step 3: Setup skills that need it
+  await runSkillSetup(selectedIds, latestReport);
+
+  // Step 4: Final health report
+  console.log("  Running final health check...");
+  const finalReport = await getSkillHealthReport();
+  const selectedFinal = finalReport.skills.filter((s) =>
+    selectedIds.includes(s.id),
+  );
+  const ready = selectedFinal.filter((s) => s.status === "AVAILABLE").length;
+  const total = selectedFinal.length;
+
+  console.log(`\n  ${ready}/${total} selected skills ready.\n`);
+
+  return selectedIds;
+}
+
+// ────────────────────────────────────────────────────────────
 // Utility
 // ────────────────────────────────────────────────────────────
 

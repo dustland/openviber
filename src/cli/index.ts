@@ -224,7 +224,7 @@ program
 +${"-".repeat(w + 2)}+
 | ${"VIBER RUNNING".padStart(Math.floor((w + 12) / 2)).padEnd(w)} |
 +${"-".repeat(w + 2)}+
-${line(isLocalGateway ? "Mode:         Local Gateway" : "Mode:         Connected")}
+${line(isStandaloneMode ? "Mode:         Standalone" : "Mode:         Connected")}
 ${line("Viber ID:     " + viberId.slice(0, 42))}
 ${line("Server:       " + serverUrl.slice(0, 42))}
 ${line("Local WS:     ws://localhost:6008")}

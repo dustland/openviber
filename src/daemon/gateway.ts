@@ -29,6 +29,10 @@ import type {
 
 export interface GatewayConfig {
   port: number;
+  /** Web API base URL for persisting config sync state (optional) */
+  webApiUrl?: string;
+  /** API token for authenticating with web API (optional) */
+  webApiToken?: string;
 }
 
 /** @deprecated Use GatewayConfig instead */
@@ -1234,7 +1238,38 @@ export class GatewayServer {
         console.log(
           `[Gateway] Node ${node.id} acknowledged config push: version=${configVersion}, validations=${validations.length}`,
         );
-        // TODO: In Step 5, persist this to Supabase
+        
+        // Persist config sync state to Supabase via web API
+        const webApiUrl = this.config.webApiUrl || process.env.OPENVIBER_WEB_API_URL;
+        const webApiToken = this.config.webApiToken || process.env.VIBER_GATEWAY_API_TOKEN;
+        
+        if (webApiUrl && webApiToken) {
+          const syncState = {
+            configVersion,
+            lastConfigPullAt: new Date().toISOString(),
+            validations,
+          };
+          
+          // Call web API asynchronously (don't block)
+          fetch(`${webApiUrl}/api/nodes/${encodeURIComponent(node.id)}/config-sync-state`, {
+            method: "PUT",
+            headers: {
+              Authorization: `Bearer ${webApiToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ config_sync_state: syncState }),
+          }).catch((error) => {
+            console.error(
+              `[Gateway] Failed to persist config sync state for node ${node.id}:`,
+              error,
+            );
+          });
+        } else {
+          console.warn(
+            `[Gateway] Cannot persist config sync state: web API URL or token not configured`,
+          );
+        }
+        
         break;
       }
     }

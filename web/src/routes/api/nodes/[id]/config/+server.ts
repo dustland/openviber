@@ -5,6 +5,7 @@ import { getNodeByAuthToken, getViberNode, updateNodeConfig, updateNodeName } fr
 import { listEnvironmentConfigForNode } from "$lib/server/environments";
 import { getDecryptedOAuthConnections } from "$lib/server/oauth";
 import { getSettingsForUser, getPersonalizationForUser } from "$lib/server/user-settings";
+import { gatewayClient } from "$lib/server/gateway-client";
 
 /**
  * GET /api/nodes/[id]/config
@@ -163,6 +164,18 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
       if (!updated) {
         return json({ error: "Failed to update config" }, { status: 500 });
       }
+
+      // After saving to Supabase, push config to the node via gateway
+      // This ensures the node pulls and validates the latest config
+      if (node.node_id) {
+        try {
+          await gatewayClient.pushConfigToNode(node.node_id);
+        } catch (error) {
+          // Non-fatal: config is saved to Supabase, node will get it on next pull
+          console.warn(`[Config API] Failed to push config to node ${node.node_id}:`, error);
+        }
+      }
+
       return json({ ok: true, config: updated.config });
     }
 

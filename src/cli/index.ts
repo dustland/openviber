@@ -7,11 +7,11 @@ import "dotenv/config";
  * Viber CLI - Command line interface for the Viber framework
  *
  * Commands:
- *   viber start    - Start the viber daemon (connect to command center)
+ *   viber start    - Start the Viber runtime (connect to command center)
  *   viber run      - Run a task locally without connection to command center
- *   viber chat     - Chat with a running viber via the local gateway (terminal-first)
+ *   viber chat     - Chat with a running task via the local gateway (terminal-first)
  *   viber term     - List/attach/send input to tmux panes via local WS (port 6008)
- *   viber gateway  - Start the gateway (central coordinator for vibers)
+ *   viber gateway  - Start the gateway (central coordinator for tasks)
  *   viber channels - Start the enterprise channel server (DingTalk, WeCom, etc.)
  */
 
@@ -61,7 +61,7 @@ function getCliName(): string {
 
 program
   .name(getCliName())
-  .description("OpenViber - Workspace-first assistant runtime (vibers on your machines)")
+  .description("OpenViber - Workspace-first assistant runtime (tasks on your Viber)")
   .version(VERSION);
 
 // ==================== viber start ====================
@@ -69,7 +69,7 @@ program
 program
   .command("start")
   .description(
-    "Start viber daemon (auto-connects if previously onboarded with --token)",
+    "Start Viber runtime daemon (auto-connects if previously onboarded with --token)",
   )
   .option("-s, --server <url>", "Command center URL (overrides saved config)")
   .option("-t, --token <token>", "Authentication token (overrides saved config)")
@@ -82,9 +82,14 @@ program
   .option("--primary-coding-cli <skillId>", "Preferred coding CLI skill (codex-cli|cursor-agent|gemini-cli)")
   .option("--google-access-token <token>", "Google OAuth access token for standalone skills (e.g. gmail)")
   .option("--google-refresh-token <token>", "Google OAuth refresh token for standalone skills")
+  .option("--api-port <port>", "Local API port (embedded gateway)", "6009")
   .option("--reconnect-interval <ms>", "Reconnect interval in ms", "5000")
   .option("--heartbeat-interval <ms>", "Heartbeat interval in ms", "30000")
   .action(async (options) => {
+    // Load API keys from ~/.openviber/.env (does not override existing env vars)
+    const { loadOpenViberEnv } = await import("./auth");
+    await loadOpenViberEnv();
+
     const { JobScheduler } = await import("../daemon/scheduler");
     const { ViberController } = await import("../daemon/controller");
     const { EventEmitter } = await import("events");
@@ -178,15 +183,24 @@ program
       process.exit(0);
     });
 
+    // Start embedded gateway so the node is a self-contained unit.
+    // `viber chat` and other tooling connect to this local API.
+    const apiPort = parseInt(options.apiPort || "6009", 10);
+    const { GatewayServer } = await import("../daemon/gateway");
+    const embeddedGateway = new GatewayServer({ port: apiPort });
+    await embeddedGateway.start();
+    console.log(`[Viber] Local API ready on http://localhost:${apiPort}`);
+
     // Start local WebSocket server for terminal streaming (always, both modes)
     const { LocalServer } = await import("../daemon/local-server");
     const localServer = new LocalServer({ port: 6008 });
     await localServer.start();
 
-    // Update cleanup to also stop local server
+    // Update cleanup to also stop local server and embedded gateway
     const fullCleanup = async () => {
       console.log("\n[Viber] Shutting down...");
       await localServer.stop();
+      await embeddedGateway.stop();
       await scheduler.stop();
     };
 
@@ -201,8 +215,10 @@ program
       process.exit(0);
     });
 
+    // Controller always connects to the embedded gateway.
+    // In connected mode it also connects to the cloud gateway (future).
     const controller = new ViberController({
-      serverUrl,
+      serverUrl: `ws://localhost:${apiPort}`,
       token: authToken,
       viberId,
       viberName: options.name || savedConfig?.name || os.hostname(),
@@ -226,9 +242,10 @@ program
 +${"-".repeat(w + 2)}+
 ${line(isStandaloneMode ? "Mode:         Standalone" : "Mode:         Connected")}
 ${line("Viber ID:     " + viberId.slice(0, 42))}
-${line("Server:       " + serverUrl.slice(0, 42))}
+${line("Local API:    http://localhost:" + apiPort)}
 ${line("Local WS:     ws://localhost:6008")}
-${line("Status:       * Connected")}
+${line("Server:       " + (serverUrl ? serverUrl.slice(0, 42) : "(none)"))}
+${line("Status:       " + (isConnectedMode ? "* Connected" : "* Running"))}
 +${"-".repeat(w + 2)}+
 
 Waiting for tasks...
@@ -314,17 +331,17 @@ const gatewayAction = async (options: { port: string }) => {
 +-------------------------------------------------------+
 | REST API:     ${("http://localhost:" + options.port).padEnd(43).slice(0, 43)} |
 | WebSocket:    ${("ws://localhost:" + options.port + "/ws").padEnd(43).slice(0, 43)} |
-| Status:       * Ready for viber connections             |
+| Status:       * Ready for task connections              |
 +-------------------------------------------------------+
 
-Waiting for viber daemons to connect...
+Waiting for Viber runtimes to connect...
 Press Ctrl+C to stop.
   `);
 };
 
 program
   .command("gateway")
-  .description("Start the gateway (central coordinator for viber daemons)")
+  .description("Start the gateway (central coordinator for Viber runtimes)")
   .option("-p, --port <port>", "Port to listen on", "6007")
   .action(gatewayAction);
 
@@ -349,6 +366,10 @@ program
   .option("-m, --model <model>", "LLM model to use", "deepseek/deepseek-chat")
   .option("-a, --agent <agent>", "Agent config to use", "default")
   .action(async (goal, options) => {
+    // Load API keys from ~/.openviber/.env (does not override existing env vars)
+    const { loadOpenViberEnv } = await import("./auth");
+    await loadOpenViberEnv();
+
     const { runTask } = await import("../daemon/runtime");
 
     console.log(`[Viber] Running task: ${goal}`);
@@ -379,7 +400,7 @@ program
 program
   .command("chat")
   .description(
-    "Chat with a running viber via the local gateway (works great inside tmux)",
+    "Chat with a running task via the local gateway (works great inside tmux)",
   )
   .option(
     "--gateway <url>",
@@ -393,7 +414,7 @@ program
     "--hub <url>",
     "(deprecated: use --gateway) Gateway URL",
   )
-  .option("-v, --viber <id>", "Target viber ID (defaults to first connected)")
+  .option("-v, --viber <id>", "Target task runtime ID (defaults to first connected)")
   .option(
     "-s, --session <name>",
     "Session name for local history (saved under ~/.openviber/vibers/default/sessions/)",
@@ -401,7 +422,7 @@ program
   .option("--no-save", "Do not write chat history to disk")
   .action(async (options) => {
     const gatewayUrl: string =
-      options.gateway || options.board || options.hub || process.env.VIBER_GATEWAY_URL || process.env.VIBER_BOARD_URL || process.env.VIBER_HUB_URL || "http://localhost:6007";
+      options.gateway || options.board || options.hub || process.env.VIBER_GATEWAY_URL || process.env.VIBER_BOARD_URL || process.env.VIBER_HUB_URL || "http://localhost:6009";
     const agentId = "default";
 
     const sessionsDir = path.join(
@@ -422,8 +443,8 @@ program
 
     const vibers = await hubGetVibers(gatewayUrl);
     if (!vibers.connected || vibers.vibers.length === 0) {
-      console.error(`[Chat] No vibers connected to gateway at ${gatewayUrl}`);
-      console.error("[Chat] Start the gateway + viber in another terminal:");
+      console.error(`[Chat] No tasks connected to gateway at ${gatewayUrl}`);
+      console.error("[Chat] Start the gateway + Viber runtime in another terminal:");
       console.error("  pnpm dev  (or: pnpm dev:gateway + pnpm dev:viber)");
       process.exit(1);
     }
@@ -432,9 +453,9 @@ program
     if (activeViberId) {
       const exists = vibers.vibers.some((v) => v.id === activeViberId);
       if (!exists) {
-        console.error(`[Chat] Viber not found: ${activeViberId}`);
+        console.error(`[Chat] Task runtime not found: ${activeViberId}`);
         console.error(
-          `[Chat] Connected vibers:\n${vibers.vibers.map((v) => `  - ${v.id} (${v.name})`).join("\n")}`,
+          `[Chat] Connected tasks:\n${vibers.vibers.map((v) => `  - ${v.id} (${v.name})`).join("\n")}`,
         );
         process.exit(1);
       }
@@ -801,6 +822,65 @@ program
     }
   });
 
+// ==================== viber auth ====================
+
+const authCommand = program
+  .command("auth")
+  .description("Manage API keys and OAuth connections (Google, etc.)")
+  .addHelpText(
+    "after",
+    `
+Subcommands:
+  google     Connect Google account (Gmail OAuth)
+  apikey     Interactive API key setup
+  status     Show current auth status (keys + OAuth connections)
+  revoke     Disconnect an OAuth provider
+
+Examples:
+  viber auth google           # Connect Google (opens browser or shows URL)
+  viber auth google --no-browser  # Headless: print URL to paste on another machine
+  viber auth apikey           # Interactively set an LLM API key
+  viber auth status           # Show all configured credentials
+  viber auth revoke google    # Remove local Google OAuth tokens
+`,
+  );
+
+authCommand
+  .command("google")
+  .description("Connect a Google account for Gmail and other Google services")
+  .option("--no-browser", "Headless mode: print URL instead of opening browser")
+  .action(async (options) => {
+    const { runGoogleAuth, loadOpenViberEnv } = await import("./auth");
+    await loadOpenViberEnv();
+    await runGoogleAuth({ noBrowser: options.browser === false });
+  });
+
+authCommand
+  .command("apikey")
+  .description("Interactively configure an LLM provider API key")
+  .action(async () => {
+    const { runApiKeySetup } = await import("./auth");
+    await runApiKeySetup();
+  });
+
+authCommand
+  .command("status")
+  .description("Show current API keys and OAuth connection status")
+  .action(async () => {
+    const { showAuthStatus, loadOpenViberEnv } = await import("./auth");
+    await loadOpenViberEnv();
+    await showAuthStatus();
+  });
+
+authCommand
+  .command("revoke")
+  .description("Disconnect a local OAuth provider")
+  .argument("<provider>", "OAuth provider to revoke (e.g. google)")
+  .action(async (provider: string) => {
+    const { revokeOAuthProvider } = await import("./auth");
+    await revokeOAuthProvider(provider);
+  });
+
 // ==================== viber status ====================
 
 program
@@ -991,6 +1071,7 @@ program
   .option("--gateway <url>", "Gateway URL override (default: auto from web)")
   .option("--board <url>", "(deprecated: use --gateway) Gateway URL override")
   .option("--hub <url>", "(deprecated: use --gateway) Gateway URL override")
+  .option("--no-interactive", "Skip interactive prompts (just scaffold and show health report)")
   .action(async (options) => {
     const configDir = OPENVIBER_DIR;
     const vibersDir = path.join(configDir, "vibers");
@@ -1161,65 +1242,79 @@ workingMode: viber-decides
     // Generate viber ID
     const viberId = await getViberId();
 
-    try {
-      const { getSkillHealthReport } = await import("../skills/health");
-      const report = await getSkillHealthReport();
-      const lines = formatSkillHealthReport(report);
-      if (lines.length > 0) {
-        console.log(lines.join("\n"));
+    // Load any previously saved API keys from ~/.openviber/.env
+    const { loadOpenViberEnv, runOnboardingWizard } = await import("./auth");
+    await loadOpenViberEnv();
+
+    // Interactive onboarding wizard (LLM key, skill picker, skill setup)
+    // or passive health report with --no-interactive
+    let selectedSkills: string[] = [];
+
+    if (options.interactive === false) {
+      // Non-interactive: just show the health report (legacy behavior)
+      try {
+        const { getSkillHealthReport } = await import("../skills/health");
+        const report = await getSkillHealthReport();
+        const lines = formatSkillHealthReport(report);
+        if (lines.length > 0) {
+          console.log(lines.join("\n"));
+        }
+      } catch (err: any) {
+        console.warn(
+          `[onboard] Skill health check failed: ${err?.message || String(err)}`,
+        );
       }
-    } catch (err: any) {
-      console.warn(
-        `[onboard] Skill health check failed: ${err?.message || String(err)}`,
-      );
-    }
-
-    if (options.token) {
-      console.log(`
-────────────────────────────────────────────────────────────
-Setup complete! Your viber is connected to OpenViber Web.
-
-Your viber ID: ${viberId}
-Config directory: ${configDir}
-
-Next steps:
-  1. Set your API key:
-     export OPENROUTER_API_KEY="sk-or-v1-xxx"
-
-  2. Start your viber:
-     openviber start
-
-  Your viber will auto-connect. No extra flags needed.
-  Manage config on the web — your viber will pull updates.
-
-Get an API key at: https://openrouter.ai/keys
-────────────────────────────────────────────────────────────
-`);
     } else {
-      console.log(`
+      // Interactive: full wizard
+      try {
+        selectedSkills = await runOnboardingWizard();
+
+        // Save selected skills to settings.yaml
+        if (selectedSkills.length > 0) {
+          const settings = await loadSettings();
+          settings.standaloneSkills = Array.from(
+            new Set([...(settings.standaloneSkills || []), ...selectedSkills]),
+          );
+          await saveSettings(settings);
+        }
+      } catch (err: any) {
+        console.warn(
+          `[onboard] Interactive setup failed: ${err?.message || String(err)}`,
+        );
+        // Fall back to passive health report
+        try {
+          const { getSkillHealthReport } = await import("../skills/health");
+          const report = await getSkillHealthReport();
+          const lines = formatSkillHealthReport(report);
+          if (lines.length > 0) {
+            console.log(lines.join("\n"));
+          }
+        } catch {
+          // ignore
+        }
+      }
+    }
+
+    const mode = options.token ? "connected" : "standalone";
+    const nextCmd = options.token
+      ? "openviber start"
+      : "openviber start  (or: openviber run \"Hello!\")";
+    const connectHint = options.token
+      ? ""
+      : "\n  To connect to OpenViber Web later:\n     openviber onboard --token <token-from-web>\n";
+
+    console.log(`
 ────────────────────────────────────────────────────────────
-Setup complete! (standalone mode)
+Setup complete! (${mode} mode)
 
 Your viber ID: ${viberId}
 Config directory: ${configDir}
 
-Next steps:
-  1. Set your API key:
-     export OPENROUTER_API_KEY="sk-or-v1-xxx"
-
-  2. Start your viber:
-     openviber start
-
-  3. Or run a quick task:
-     openviber run "Hello, what can you do?"
-
-  To connect to OpenViber Web later:
-     openviber onboard --token <token-from-web>
-
-Get an API key at: https://openrouter.ai/keys
+Next step:
+  ${nextCmd}
+${connectHint}
 ────────────────────────────────────────────────────────────
 `);
-    }
   });
 
 // ==================== viber skill ====================
@@ -1828,8 +1923,8 @@ async function handleChatCommand(
           "Commands:",
           "  /help                 Show help",
           "  /exit                 Exit chat",
-          "  /vibers               List connected vibers",
-          "  /use <viberId>        Switch viber",
+          "  /vibers               List connected tasks",
+          "  /use <viberId>        Switch active task runtime",
           "  /reset                Clear local history (and session file)",
         ].join("\n"),
       );
@@ -1837,10 +1932,10 @@ async function handleChatCommand(
     case "vibers": {
       const vibers = await hubGetVibers(ctx.hubUrl);
       if (!vibers.connected || vibers.vibers.length === 0) {
-        console.log("No vibers connected.");
+        console.log("No tasks connected.");
         return "continue";
       }
-      console.log("Connected vibers:");
+      console.log("Connected tasks:");
       for (const v of vibers.vibers) {
         const active = v.id === ctx.getActiveViberId() ? " (active)" : "";
         console.log(`  - ${v.id} (${v.name})${active}`);
@@ -1856,11 +1951,11 @@ async function handleChatCommand(
       const vibers = await hubGetVibers(ctx.hubUrl);
       const exists = vibers.vibers.some((v) => v.id === next);
       if (!exists) {
-        console.log(`Viber not found: ${next}`);
+        console.log(`Task runtime not found: ${next}`);
         return "continue";
       }
       ctx.setActiveViberId(next);
-      console.log(`Active viber: ${next}`);
+      console.log(`Active task runtime: ${next}`);
       return "continue";
     }
     case "reset":

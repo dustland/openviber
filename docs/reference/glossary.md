@@ -171,9 +171,9 @@ A capability that extends what vibers can do. Tools allow vibers to:
 
 ## V
 
-### Viber
+### Task
 
-A role-scoped AI worker that runs on a Viber Node. Each viber has its own:
+A role-scoped AI worker that runs on a Viber. Each task has its own:
 
 - **Persona** — Name, personality, communication style
 - **Goals** — What it's designed to accomplish
@@ -181,19 +181,19 @@ A role-scoped AI worker that runs on a Viber Node. Each viber has its own:
 - **Skills** — Domain knowledge it applies
 - **Model** — Which LLM provider it uses
 
-Vibers are configured through YAML files in `~/.openviber/vibers/`.
+Tasks are configured through YAML files in `~/.openviber/vibers/`.
 
-### Viber Node
+### Viber
 
-A machine running the OpenViber runtime that hosts one or more vibers. A Viber Node provides:
+A machine running the OpenViber runtime that hosts one or more tasks. A Viber provides:
 
 - **Runtime** — The node runtime (daemon) process that executes viber tasks and connects to the Gateway
 - **Scheduler** — Cron-based job scheduling for automated tasks
-- **Credentials** — Shared account access for hosted vibers
+- **Credentials** — Shared account access for hosted tasks
 - **Config** — Identity and viber settings at `~/.openviber/` (lightweight, portable)
 - **Spaces** — Working data at `~/openviber_spaces/` (repos, research, outputs)
 
-Nodes connect to the OpenViber Board via a one-time token command (`npx openviber connect --token ...`). Multiple vibers on one node coordinate through external systems (GitHub, email) rather than direct inter-viber messaging.
+Nodes connect to the OpenViber Board via a one-time token command (`npx openviber connect --token ...`). Multiple tasks on one machine coordinate through external systems (GitHub, email) rather than direct inter-viber messaging.
 
 ### ViberAgent
 
@@ -212,8 +212,8 @@ The core class that orchestrates a viber's task execution. ViberAgent:
 
 | Concept | Definition |
 |---------|-----------|
-| **Viber** | A role-scoped AI worker with persona, goals, tools, and skills |
-| **Viber Node** | A machine running OpenViber, hosting one or more vibers |
+| **Task** | A role-scoped AI worker with persona, goals, tools, and skills |
+| **Viber** | A machine running OpenViber, hosting one or more tasks |
 | **Space** | A persistent workspace container for a viber's work |
 | **Skill** | Domain knowledge bundle (`SKILL.md` + optional tools) that teaches agents domain-specific approaches |
 | **Tool** | An action capability (file ops, terminal, browser, search) |
@@ -223,8 +223,8 @@ The core class that orchestrates a viber's task execution. ViberAgent:
 
 | Pattern | Description |
 |---------|-------------|
-| **Single Viber** | One viber per node for general-purpose use |
-| **Multi-Viber Team** | Multiple role-scoped vibers on one node coordinating via GitHub |
+| **Single Task** | One task per machine for general-purpose use |
+| **Multi-Task Team** | Multiple role-scoped tasks on one machine coordinating via GitHub |
 | **Scheduled Jobs** | Cron-triggered tasks using skills for automated workflows (health checks, daily summaries) |
 | **Skill Chains** | Combining skills (e.g., github + codex-cli) for end-to-end autonomous workflows |
 | **Chat-Created Jobs** | Creating scheduled jobs via natural language in the Viber Board |

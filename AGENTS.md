@@ -28,16 +28,14 @@ Guidelines for AI agents working on the OpenViber codebase.
 ```text
 src/
 ├── cli/            # CLI entrypoints
-├── core/           # Core abstractions (agent, task, plan, provider)
-├── daemon/         # Runtime/controller/gateway/hub
+├── daemon/         # Runtime, controller, scheduler, gateway/hub
+├── gateway/        # Central coordinator (REST + WebSocket)
 ├── channels/       # Channel integrations (web, dingtalk, wecom, discord)
 ├── skills/         # Skill implementations and registry
 ├── tools/          # Built-in tools (shell, file, browser, etc.)
-├── storage/        # Storage abstraction and adapters
-├── data/           # Data manager and adapters
-├── state/          # State management
-├── utils/          # Shared utilities
-└── config.ts       # Global path/config helpers
+├── viber/          # Agent, provider, config, context, task, plan, tool abstractions
+├── types/          # Shared types
+└── utils/          # Shared utilities
 
 docs/
 ├── design/         # Architecture and protocol docs

@@ -5,6 +5,9 @@ import * as yaml from "yaml";
 import { Skill, SkillModule } from "./types";
 import { CoreTool } from "../viber/tool";
 import type { SkillRequirements } from "./hub/types";
+import { createLogger } from "../utils/logger";
+
+const log = createLogger("SkillRegistry");
 
 export class SkillRegistry {
   private skills: Map<string, Skill> = new Map();
@@ -24,7 +27,9 @@ export class SkillRegistry {
         await this.loadSkill(dirName);
       }
     } catch (error) {
-      console.warn(`[SkillRegistry] Failed to scan skills at ${this.skillsRoot}:`, error);
+      log.warn("Failed to scan skills", {
+        data: { skillsRoot: this.skillsRoot, error: String(error) },
+      });
     }
   }
 
@@ -50,7 +55,7 @@ export class SkillRegistry {
       // Simple parse: split by ---
       const parts = content.split(/^---$/m);
       if (parts.length < 3) {
-        console.warn(`[SkillRegistry] Invalid SKILL.md format in ${dirName}`);
+        log.warn("Invalid SKILL.md format", { data: { dirName } });
         return undefined;
       }
 
@@ -75,7 +80,9 @@ export class SkillRegistry {
       return skill;
 
     } catch (error) {
-      console.error(`[SkillRegistry] Failed to load skill ${dirName}:`, error);
+      log.error("Failed to load skill", {
+        data: { dirName, error: String(error) },
+      });
       return undefined;
     }
   }
@@ -113,7 +120,9 @@ export class SkillRegistry {
       this.loadedTools.set(skillId, tools);
       return tools;
     } catch (error) {
-      console.error(`[SkillRegistry] Failed to load tools for ${skillId}:`, error);
+      log.error("Failed to load tools for skill", {
+        data: { skillId, error: String(error) },
+      });
       return {};
     }
   }
@@ -168,10 +177,10 @@ const __dirname = getModuleDirname();
 function getDefaultSkillsPath(): string {
   // Option 1: User's config directory (~/.openviber/skills)
   const userSkillsPath = path.join(getViberRoot(), "skills");
-  try {
-    fsSync.accessSync(userSkillsPath);
-    console.log(`[SkillRegistry] Using skills path (user): ${userSkillsPath}`);
-    return userSkillsPath;
+    try {
+      fsSync.accessSync(userSkillsPath);
+      log.info("Using skills path (user)", { data: { path: userSkillsPath } });
+      return userSkillsPath;
   } catch {
     // Option 2: Bundled skills (relative to this file - works for dist/)
     const bundledPath = path.resolve(__dirname, ".");
@@ -183,7 +192,7 @@ function getDefaultSkillsPath(): string {
         try { fsSync.accessSync(skillMd); return true; } catch { return false; }
       });
       if (hasSkillDirs) {
-        console.log(`[SkillRegistry] Using skills path (bundled): ${bundledPath}`);
+        log.info("Using skills path (bundled)", { data: { path: bundledPath } });
         return bundledPath;
       }
     } catch { /* continue */ }
@@ -192,11 +201,13 @@ function getDefaultSkillsPath(): string {
     const devPath = path.resolve(process.cwd(), "src/skills");
     try {
       fsSync.accessSync(devPath);
-      console.log(`[SkillRegistry] Using skills path (dev): ${devPath}`);
+      log.info("Using skills path (dev)", { data: { path: devPath } });
       return devPath;
     } catch {
       // Fallback: just return user path (will be created on demand)
-      console.log(`[SkillRegistry] Using skills path (default): ${userSkillsPath}`);
+      log.info("Using skills path (default)", {
+        data: { path: userSkillsPath },
+      });
       return userSkillsPath;
     }
   }

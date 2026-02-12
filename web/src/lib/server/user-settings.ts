@@ -127,6 +127,22 @@ export async function getPersonalizationForUser(userId: string): Promise<Persona
 }
 
 /**
+ * Return default settings without hitting Supabase.
+ * Useful for anonymous / unauthenticated requests.
+ */
+export function getDefaultSettings(): UserSettings {
+  return {
+    skillSources: DEFAULT_SKILL_SOURCES,
+    channelIntegrations: DEFAULT_CHANNEL_INTEGRATIONS,
+    primaryCodingCli: null,
+    chatModel: null,
+    aiProviders: {},
+    timezone: null,
+    onboardingCompletedAt: null,
+  };
+}
+
+/**
  * Fetch settings for a user from Supabase. Returns defaults if no row exists.
  */
 export async function getSettingsForUser(userId: string): Promise<UserSettings> {

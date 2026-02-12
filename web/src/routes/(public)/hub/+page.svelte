@@ -106,6 +106,7 @@
   });
   let previewLoading = $state(false);
   let importStates = $state<Record<string, ImportState>>({});
+  let authenticated = $state(false);
   let installedSkillNames = $state<Set<string>>(new Set());
   let skillCardMetadata = $state<Record<string, SkillCardMetadata>>({});
   let skillPreviewDialog = $state<SkillPreviewDialogState>({
@@ -188,7 +189,9 @@
     });
   }
 
-  function toBoolean(value: string | string[] | undefined): boolean | undefined {
+  function toBoolean(
+    value: string | string[] | undefined,
+  ): boolean | undefined {
     if (typeof value !== "string") return undefined;
     const normalized = value.trim().toLowerCase();
     if (normalized === "true") return true;
@@ -196,7 +199,9 @@
     return undefined;
   }
 
-  function toStringValue(value: string | string[] | undefined): string | undefined {
+  function toStringValue(
+    value: string | string[] | undefined,
+  ): string | undefined {
     if (typeof value !== "string") return undefined;
     const trimmed = value.trim();
     if (!trimmed) return undefined;
@@ -260,6 +265,9 @@
       }
       const data = await res.json();
       applyCategoriesFromResponse(data);
+      if (typeof data.authenticated === "boolean") {
+        authenticated = data.authenticated;
+      }
       if (Array.isArray(data.installed)) {
         installedSkillNames = new Set(
           data.installed.map((n: string) => n.toLowerCase()),
@@ -324,6 +332,9 @@
 
       const data = await res.json();
       applyCategoriesFromResponse(data);
+      if (typeof data.authenticated === "boolean") {
+        authenticated = data.authenticated;
+      }
       if (Array.isArray(data.installed)) {
         installedSkillNames = new Set(
           data.installed.map((n: string) => n.toLowerCase()),
@@ -426,11 +437,7 @@
       }
 
       const listItem = line.match(/^-\s+(.+)$/);
-      if (
-        listItem &&
-        currentKey &&
-        Array.isArray(frontmatter[currentKey])
-      ) {
+      if (listItem && currentKey && Array.isArray(frontmatter[currentKey])) {
         (frontmatter[currentKey] as string[]).push(listItem[1]);
       }
     }
@@ -476,7 +483,9 @@
   }
 
   function getSkillDescription(skill: DiscoverSkill): string {
-    return skillCardMetadata[getSkillKey(skill)]?.description || skill.description;
+    return (
+      skillCardMetadata[getSkillKey(skill)]?.description || skill.description
+    );
   }
 
   function getSkillVersion(skill: DiscoverSkill): string {
@@ -495,7 +504,10 @@
 
   async function fetchSkillCardMetadata(skill: DiscoverSkill) {
     const key = getSkillKey(skill);
-    if (fetchedSkillMetadataKeys.has(key) || fetchingSkillMetadataKeys.has(key)) {
+    if (
+      fetchedSkillMetadataKeys.has(key) ||
+      fetchingSkillMetadataKeys.has(key)
+    ) {
       return;
     }
     fetchingSkillMetadataKeys.add(key);
@@ -513,7 +525,8 @@
 
       const { frontmatter } = parseFrontmatter(data.markdown);
       const metadata: SkillCardMetadata = {
-        emoji: toStringValue(frontmatter.emoji) || toStringValue(frontmatter.icon),
+        emoji:
+          toStringValue(frontmatter.emoji) || toStringValue(frontmatter.icon),
         name: toStringValue(frontmatter.name),
         description: toStringValue(frontmatter.description),
         version: toStringValue(frontmatter.version),
@@ -622,7 +635,9 @@
   }
 
   $effect(() => {
-    const activeSkills = hasActiveSearch ? searchResults : combinedPreviewResults;
+    const activeSkills = hasActiveSearch
+      ? searchResults
+      : combinedPreviewResults;
     const limit = hasActiveSearch ? 24 : 16;
     for (const skill of activeSkills.slice(0, limit)) {
       void fetchSkillCardMetadata(skill);
@@ -669,7 +684,8 @@
               >
                 <span class="max-w-[180px] truncate">
                   {selectedCategoryTag
-                    ? categories.find((c) => c.tag === selectedCategoryTag)?.name ?? "All categories"
+                    ? (categories.find((c) => c.tag === selectedCategoryTag)
+                        ?.name ?? "All categories")
                     : "All categories"}
                 </span>
                 <ChevronDown class="size-3.5 text-muted-foreground shrink-0" />
@@ -684,7 +700,9 @@
                   onSelect={() => handleCategoryChange("")}
                 >
                   All categories
-                  {#if !selectedCategoryTag}<Check class="size-4 ml-auto text-primary" />{/if}
+                  {#if !selectedCategoryTag}<Check
+                      class="size-4 ml-auto text-primary"
+                    />{/if}
                 </DropdownMenuItem>
                 {#each categories as category (category.tag)}
                   <DropdownMenuItem
@@ -692,8 +710,12 @@
                     onSelect={() => handleCategoryChange(category.tag)}
                   >
                     <span class="flex-1">{category.name}</span>
-                    <span class="text-xs text-muted-foreground">{category.count}</span>
-                    {#if selectedCategoryTag === category.tag}<Check class="size-4 ml-auto text-primary" />{/if}
+                    <span class="text-xs text-muted-foreground"
+                      >{category.count}</span
+                    >
+                    {#if selectedCategoryTag === category.tag}<Check
+                        class="size-4 ml-auto text-primary"
+                      />{/if}
                   </DropdownMenuItem>
                 {/each}
               </DropdownMenuContent>
@@ -814,7 +836,9 @@
                           {getSkillName(skill)}
                         </h3>
                         {#if getSkillDescription(skill)}
-                          <p class="mt-1 text-sm text-muted-foreground skill-description">
+                          <p
+                            class="mt-1 text-sm text-muted-foreground skill-description"
+                          >
                             {getSkillDescription(skill)}
                           </p>
                         {/if}
@@ -852,26 +876,36 @@
                     {/each}
                   </div>
                   <div class="mt-3 flex flex-wrap items-center gap-3">
-                    <button
-                      type="button"
-                      onclick={() => importSkill(skill)}
-                      disabled={isImporting || isImported}
-                      class="inline-flex items-center gap-2 rounded-md border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                    >
-                      {#if isImported}
-                        <CheckCircle class="size-3.5" />
-                        Imported
-                      {:else if isImporting}
-                        <Loader2 class="size-3.5 animate-spin" />
-                        Importing...
-                      {:else if hasError}
+                    {#if authenticated}
+                      <button
+                        type="button"
+                        onclick={() => importSkill(skill)}
+                        disabled={isImporting || isImported}
+                        class="inline-flex items-center gap-2 rounded-md border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
+                        {#if isImported}
+                          <CheckCircle class="size-3.5" />
+                          Imported
+                        {:else if isImporting}
+                          <Loader2 class="size-3.5 animate-spin" />
+                          Importing...
+                        {:else if hasError}
+                          <Download class="size-3.5" />
+                          Retry
+                        {:else}
+                          <Download class="size-3.5" />
+                          Import
+                        {/if}
+                      </button>
+                    {:else}
+                      <a
+                        href="/login?redirect=/hub"
+                        class="inline-flex items-center gap-2 rounded-md border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 transition-colors"
+                      >
                         <Download class="size-3.5" />
-                        Retry
-                      {:else}
-                        <Download class="size-3.5" />
-                        Import
-                      {/if}
-                    </button>
+                        Sign in to import
+                      </a>
+                    {/if}
                     <button
                       type="button"
                       onclick={() => openSkillPreview(skill)}
@@ -909,7 +943,7 @@
               <Pagination.Pagination
                 count={total}
                 perPage={SEARCH_LIMIT}
-                page={page}
+                {page}
                 onPageChange={(p) => {
                   void runSearch(p);
                 }}
@@ -927,7 +961,10 @@
                         </Pagination.PaginationItem>
                       {:else}
                         <Pagination.PaginationItem>
-                          <Pagination.PaginationLink page={p} isActive={currentPage === p.value}>
+                          <Pagination.PaginationLink
+                            page={p}
+                            isActive={currentPage === p.value}
+                          >
                             {p.value}
                           </Pagination.PaginationLink>
                         </Pagination.PaginationItem>
@@ -979,7 +1016,9 @@
                           {getSkillEmoji(skill) || "🧩"}
                         </div>
                         <div class="min-w-0 flex-1">
-                          <h3 class="text-sm font-semibold text-card-foreground">
+                          <h3
+                            class="text-sm font-semibold text-card-foreground"
+                          >
                             {getSkillName(skill)}
                           </h3>
                           {#if getSkillDescription(skill)}
@@ -1023,26 +1062,36 @@
                       {/each}
                     </div>
                     <div class="mt-3 flex flex-wrap items-center gap-3">
-                      <button
-                        type="button"
-                        onclick={() => importSkill(skill)}
-                        disabled={isImporting || isImported}
-                        class="inline-flex items-center gap-2 rounded-md border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                      >
-                        {#if isImported}
-                          <CheckCircle class="size-3.5" />
-                          Imported
-                        {:else if isImporting}
-                          <Loader2 class="size-3.5 animate-spin" />
-                          Importing...
-                        {:else if hasError}
+                      {#if authenticated}
+                        <button
+                          type="button"
+                          onclick={() => importSkill(skill)}
+                          disabled={isImporting || isImported}
+                          class="inline-flex items-center gap-2 rounded-md border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                          {#if isImported}
+                            <CheckCircle class="size-3.5" />
+                            Imported
+                          {:else if isImporting}
+                            <Loader2 class="size-3.5 animate-spin" />
+                            Importing...
+                          {:else if hasError}
+                            <Download class="size-3.5" />
+                            Retry
+                          {:else}
+                            <Download class="size-3.5" />
+                            Import
+                          {/if}
+                        </button>
+                      {:else}
+                        <a
+                          href="/login?redirect=/hub"
+                          class="inline-flex items-center gap-2 rounded-md border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 transition-colors"
+                        >
                           <Download class="size-3.5" />
-                          Retry
-                        {:else}
-                          <Download class="size-3.5" />
-                          Import
-                        {/if}
-                      </button>
+                          Sign in to import
+                        </a>
+                      {/if}
                       <button
                         type="button"
                         onclick={() => openSkillPreview(skill)}
@@ -1098,7 +1147,10 @@
                           </Pagination.PaginationItem>
                         {:else}
                           <Pagination.PaginationItem>
-                            <Pagination.PaginationLink page={p} isActive={currentPage === p.value}>
+                            <Pagination.PaginationLink
+                              page={p}
+                              isActive={currentPage === p.value}
+                            >
                               {p.value}
                             </Pagination.PaginationLink>
                           </Pagination.PaginationItem>
@@ -1126,7 +1178,9 @@
     <Dialog.Header class="px-5 pt-4 pb-3 border-b border-border">
       <div class="flex items-center justify-between gap-3">
         <div class="min-w-0">
-          <Dialog.Title class="truncate">{skillPreviewDialog.title} - SKILL.md</Dialog.Title>
+          <Dialog.Title class="truncate"
+            >{skillPreviewDialog.title} - SKILL.md</Dialog.Title
+          >
           <Dialog.Description class="sr-only">
             Review skill instructions before importing.
           </Dialog.Description>
@@ -1139,26 +1193,36 @@
             {@const dialogImporting = dialogImportState?.status === "importing"}
             {@const dialogImported = dialogImportState?.status === "success"}
             {@const dialogHasError = dialogImportState?.status === "error"}
-            <button
-              type="button"
-              onclick={() => importSkill(dialogSkill)}
-              disabled={dialogImporting || dialogImported}
-              class="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {#if dialogImported}
-                <CheckCircle class="size-3.5" />
-                Imported
-              {:else if dialogImporting}
-                <Loader2 class="size-3.5 animate-spin" />
-                Importing...
-              {:else if dialogHasError}
+            {#if authenticated}
+              <button
+                type="button"
+                onclick={() => importSkill(dialogSkill)}
+                disabled={dialogImporting || dialogImported}
+                class="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {#if dialogImported}
+                  <CheckCircle class="size-3.5" />
+                  Imported
+                {:else if dialogImporting}
+                  <Loader2 class="size-3.5 animate-spin" />
+                  Importing...
+                {:else if dialogHasError}
+                  <Download class="size-3.5" />
+                  Retry
+                {:else}
+                  <Download class="size-3.5" />
+                  Import
+                {/if}
+              </button>
+            {:else}
+              <a
+                href="/login?redirect=/hub"
+                class="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+              >
                 <Download class="size-3.5" />
-                Retry
-              {:else}
-                <Download class="size-3.5" />
-                Import
-              {/if}
-            </button>
+                Sign in to import
+              </a>
+            {/if}
           {/if}
           {#if skillPreviewDialog.sourceRepoUrl}
             <a
@@ -1171,7 +1235,9 @@
               GitHub
             </a>
           {/if}
-          <div class="inline-flex rounded-md border border-border bg-muted/30 p-0.5">
+          <div
+            class="inline-flex rounded-md border border-border bg-muted/30 p-0.5"
+          >
             <button
               type="button"
               onclick={() => {
@@ -1213,17 +1279,15 @@
           <AlertCircle class="size-4 shrink-0" />
           {skillPreviewDialog.error}
         </div>
+      {:else if skillPreviewTab === "preview"}
+        <article class="skill-md-renderer text-sm text-foreground">
+          {@html skillPreviewDialog.renderedHtml}
+        </article>
       {:else}
-
-        {#if skillPreviewTab === "preview"}
-          <article class="skill-md-renderer text-sm text-foreground">
-            {@html skillPreviewDialog.renderedHtml}
-          </article>
-        {:else}
-          <pre
-            class="rounded-lg border border-border bg-muted/20 p-4 text-xs text-foreground overflow-x-auto whitespace-pre-wrap wrap-break-word"
-          ><code>{skillPreviewDialog.sourceMarkdown}</code></pre>
-        {/if}
+        <pre
+          class="rounded-lg border border-border bg-muted/20 p-4 text-xs text-foreground overflow-x-auto whitespace-pre-wrap wrap-break-word"><code
+            >{skillPreviewDialog.sourceMarkdown}</code
+          ></pre>
       {/if}
     </div>
   </Dialog.Content>

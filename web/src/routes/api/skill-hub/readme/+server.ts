@@ -1,6 +1,6 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { getSettingsForUser } from "$lib/server/user-settings";
+import { getSettingsForUser, getDefaultSettings } from "$lib/server/user-settings";
 
 const DEFAULT_HUB_URL = "https://hub.openclaw.org/api/v1";
 
@@ -61,10 +61,6 @@ function buildIdCandidates(skillId: string): string[] {
 }
 
 export const GET: RequestHandler = async ({ url, locals }) => {
-  if (!locals.user) {
-    return json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const source = url.searchParams.get("source")?.trim();
   const skillId = url.searchParams.get("skillId")?.trim();
   const skillUrl = url.searchParams.get("skillUrl")?.trim();
@@ -77,7 +73,9 @@ export const GET: RequestHandler = async ({ url, locals }) => {
   }
 
   try {
-    const settings = await getSettingsForUser(locals.user.id);
+    const settings = locals.user
+      ? await getSettingsForUser(locals.user.id)
+      : getDefaultSettings();
     const openclawSettings = settings.skillSources?.openclaw;
     if (openclawSettings?.enabled === false) {
       return json({ error: "Skill source disabled" }, { status: 403 });

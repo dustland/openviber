@@ -5,7 +5,7 @@ import {
   type SkillHubProviderType,
   type SkillSourcesConfig,
 } from "../../../../../src/skills/hub";
-import { getSettingsForUser } from "$lib/server/user-settings";
+import { getSettingsForUser, getDefaultSettings } from "$lib/server/user-settings";
 import {
   extractCuratedCategories,
   loadCuratedOpenClawSkills,
@@ -83,11 +83,12 @@ function sortCuratedSkills(
 /**
  * GET /api/skill-hub
  * Search for skills across external sources.
+ * Publicly accessible — anonymous users see default sources.
+ * Response includes `authenticated: boolean` so the frontend
+ * can conditionally show Import buttons.
  */
 export const GET: RequestHandler = async ({ url, locals }) => {
-  if (!locals.user) {
-    return json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const isAuthenticated = !!locals.user;
 
   try {
     const query = url.searchParams.get("q")?.trim() || undefined;
@@ -124,7 +125,9 @@ export const GET: RequestHandler = async ({ url, locals }) => {
       new Set(rawRequestedSources),
     ) as ProviderKey[];
 
-    const settings = await getSettingsForUser(locals.user.id);
+    const settings = locals.user
+      ? await getSettingsForUser(locals.user.id)
+      : getDefaultSettings();
     const sourcesConfig = buildSourcesConfig(settings.skillSources || {});
 
     const enabledSources = PROVIDERS.filter(
@@ -204,6 +207,7 @@ export const GET: RequestHandler = async ({ url, locals }) => {
       sources: selectedSources,
       categories,
       installed: Array.from(installedNames),
+      authenticated: isAuthenticated,
     });
   } catch (error: any) {
     console.error("[Skill Hub API] Search failed:", error);

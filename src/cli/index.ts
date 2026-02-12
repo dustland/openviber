@@ -214,7 +214,7 @@ program
 
     // Start local WebSocket server for terminal streaming (always, both modes)
     const { LocalServer } = await import("../daemon/local-server");
-    const localServer = new LocalServer({ port: 6008 });
+    const localServer = new LocalServer({ port: 6008, authToken });
     await localServer.start();
 
     // Update cleanup to also stop local server and embedded gateway
@@ -634,7 +634,8 @@ termCommand
   .option("--ws <url>", "Local WS URL", "ws://localhost:6008")
   .action(async (options) => {
     try {
-      const ws = await openWebSocket(options.ws);
+      const token = await getTermAuthToken();
+      const ws = await openWebSocket(options.ws, token);
       ws.send(JSON.stringify({ type: "terminal:list" }));
 
       const msg = await waitForWsMessage(
@@ -686,7 +687,8 @@ termCommand
   .option("--cwd <dir>", "Start directory for first window")
   .action(async (sessionName, options) => {
     try {
-      const ws = await openWebSocket(options.ws);
+      const token = await getTermAuthToken();
+      const ws = await openWebSocket(options.ws, token);
       ws.send(
         JSON.stringify({
           type: "terminal:create-session",
@@ -728,7 +730,8 @@ termCommand
   .action(async (target, options) => {
     let ws: WebSocket;
     try {
-      ws = await openWebSocket(options.ws);
+      const token = await getTermAuthToken();
+      ws = await openWebSocket(options.ws, token);
     } catch (err: any) {
       console.error(
         `[term] Failed to connect to ${options.ws}: ${err?.message || String(err)}`,
@@ -775,7 +778,8 @@ termCommand
   .option("--enter", "Send Enter after the keys", false)
   .action(async (target, keys, options) => {
     try {
-      const ws = await openWebSocket(options.ws);
+      const token = await getTermAuthToken();
+      const ws = await openWebSocket(options.ws, token);
       const text = Array.isArray(keys) ? keys.join(" ") : String(keys ?? "");
       ws.send(JSON.stringify({ type: "terminal:input", target, keys: text }));
       if (options.enter) {
@@ -798,7 +802,8 @@ termCommand
   .option("--ws <url>", "Local WS URL", "ws://localhost:6008")
   .action(async (target, options) => {
     try {
-      const ws = await openWebSocket(options.ws);
+      const token = await getTermAuthToken();
+      const ws = await openWebSocket(options.ws, token);
       ws.send(
         JSON.stringify({
           type: "terminal:resize",
@@ -1955,6 +1960,16 @@ async function runSubcommand(args: string[]): Promise<number> {
   });
 }
 
+/**
+ * Load auth token for term commands from environment or saved config.
+ */
+async function getTermAuthToken(): Promise<string | undefined> {
+  const { loadOpenViberEnv } = await import("./auth");
+  await loadOpenViberEnv();
+  const savedConfig = await loadSavedConfig();
+  return process.env.VIBER_TOKEN || savedConfig?.authToken;
+}
+
 async function promptNoVibersAction(
   gatewayUrl: string,
 ): Promise<"start" | "onboard" | "exit"> {
@@ -2187,9 +2202,16 @@ async function appendJsonlMessage(filePath: string, msg: JsonlMessage): Promise<
 
 // ==================== Terminal WS helpers ====================
 
-function openWebSocket(url: string): Promise<WebSocket> {
+function openWebSocket(url: string, token?: string): Promise<WebSocket> {
   return new Promise((resolve, reject) => {
-    const ws = new WebSocket(url);
+    const options = token
+      ? {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      : {};
+    const ws = new WebSocket(url, options);
     const timeout = setTimeout(() => {
       try {
         ws.close();

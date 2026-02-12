@@ -73,6 +73,32 @@ export interface ViberConfig {
   createServiceRoleClient?: () => any;
 }
 
+/**
+ * MCP Server Configuration
+ */
+export interface McpServerConfig {
+  name: string;
+  description?: string;
+  command: string;
+  args?: string[];
+  env?: Record<string, string>;
+  require_approval?: string[];
+}
+
+/**
+ * Global Configuration (config.yaml)
+ */
+export interface GlobalConfig {
+  daemon?: any;
+  defaults?: any;
+  providers?: Record<string, any>;
+  budget?: any;
+  channels?: Record<string, any>;
+  gateway?: any;
+  security?: any;
+  mcp_servers?: McpServerConfig[];
+}
+
 let config: ViberConfig | null = null;
 
 /**
@@ -123,6 +149,20 @@ export async function loadAgentConfig(agentId: string): Promise<AgentConfig | nu
     const config = yaml.parse(content) as AgentConfig;
     return { ...config, id: agentId };
   } catch (error) {
+    return null;
+  }
+}
+
+/**
+ * Load global configuration from ~/.openviber/config.yaml
+ */
+export async function loadGlobalConfig(): Promise<GlobalConfig | null> {
+  const configPath = path.join(os.homedir(), ".openviber", "config.yaml");
+  try {
+    const content = await fs.readFile(configPath, "utf-8");
+    return yaml.parse(content) as GlobalConfig;
+  } catch (error) {
+    // Return null if config doesn't exist or is invalid
     return null;
   }
 }

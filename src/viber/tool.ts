@@ -6,6 +6,7 @@
  */
 
 import { z } from "zod";
+import { loadGlobalConfig } from "./config";
 
 // Core tool interface that AI SDK expects
 export interface CoreTool {
@@ -48,7 +49,8 @@ export async function buildToolMap(
 
   // Load MCP server configurations to determine tool types
   // dataStore usage removed - simplified for now
-  const mcpServers: any[] = []; // TODO: Add logic to load MCP config from config.ts if needed
+  const globalConfig = await loadGlobalConfig();
+  const mcpServers: any[] = globalConfig?.mcp_servers?.map((s) => ({ ...s, id: s.name })) || [];
   const mcpServerIds = new Set(mcpServers.map((s: any) => s.id));
 
   // Separate custom tools and MCP tools

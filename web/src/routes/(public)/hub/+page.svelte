@@ -804,8 +804,28 @@
               {searchError}
             </div>
           {:else if searchLoading && searchResults.length === 0}
-            <div class="flex items-center justify-center py-12">
-              <Loader2 class="size-8 animate-spin text-muted-foreground/60" />
+            <div class="grid gap-4 lg:grid-cols-2">
+              {#each Array(4) as _}
+                <div
+                  class="rounded-xl border border-border bg-card p-4 animate-pulse"
+                >
+                  <div class="flex items-start gap-3">
+                    <div class="size-8 rounded-md bg-muted"></div>
+                    <div class="flex-1 space-y-2">
+                      <div class="h-4 w-1/3 rounded bg-muted"></div>
+                      <div class="h-3 w-2/3 rounded bg-muted"></div>
+                    </div>
+                  </div>
+                  <div class="mt-3 flex gap-2">
+                    <div class="h-3 w-16 rounded-full bg-muted"></div>
+                    <div class="h-3 w-12 rounded-full bg-muted"></div>
+                  </div>
+                  <div class="mt-3 flex items-center justify-between">
+                    <div class="h-3 w-16 rounded bg-muted"></div>
+                    <div class="h-7 w-20 rounded-md bg-muted"></div>
+                  </div>
+                </div>
+              {/each}
             </div>
           {:else if searchResults.length === 0}
             <div
@@ -875,7 +895,30 @@
                       </span>
                     {/each}
                   </div>
-                  <div class="mt-3 flex flex-wrap items-center gap-3">
+                  <div
+                    class="mt-3 flex flex-wrap items-center justify-between gap-3"
+                  >
+                    <div class="flex flex-wrap items-center gap-3">
+                      <button
+                        type="button"
+                        onclick={() => openSkillPreview(skill)}
+                        class="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                      >
+                        <BookText class="size-3.5" />
+                        SKILL.md
+                      </button>
+                      {#if getGitHubRepoUrl(skill)}
+                        <a
+                          href={getGitHubRepoUrl(skill)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                        >
+                          <ExternalLink class="size-3.5" />
+                          GitHub
+                        </a>
+                      {/if}
+                    </div>
                     {#if authenticated}
                       <button
                         type="button"
@@ -899,30 +942,11 @@
                       </button>
                     {:else}
                       <a
-                        href="/login?redirect=/hub"
+                        href="/auth/github?redirect=/hub"
                         class="inline-flex items-center gap-2 rounded-md border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 transition-colors"
                       >
                         <Download class="size-3.5" />
                         Sign in to import
-                      </a>
-                    {/if}
-                    <button
-                      type="button"
-                      onclick={() => openSkillPreview(skill)}
-                      class="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-                    >
-                      <BookText class="size-3.5" />
-                      SKILL.md
-                    </button>
-                    {#if getGitHubRepoUrl(skill)}
-                      <a
-                        href={getGitHubRepoUrl(skill)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-                      >
-                        <ExternalLink class="size-3.5" />
-                        GitHub
                       </a>
                     {/if}
                   </div>
@@ -982,8 +1006,28 @@
       {:else}
         <section class="space-y-4">
           {#if previewLoading && combinedPreviewResults.length === 0}
-            <div class="flex items-center justify-center py-12">
-              <Loader2 class="size-8 animate-spin text-muted-foreground/60" />
+            <div class="grid gap-4 lg:grid-cols-2">
+              {#each Array(6) as _}
+                <div
+                  class="rounded-xl border border-border bg-card p-4 animate-pulse"
+                >
+                  <div class="flex items-start gap-3">
+                    <div class="size-8 rounded-md bg-muted"></div>
+                    <div class="flex-1 space-y-2">
+                      <div class="h-4 w-1/3 rounded bg-muted"></div>
+                      <div class="h-3 w-2/3 rounded bg-muted"></div>
+                    </div>
+                  </div>
+                  <div class="mt-3 flex gap-2">
+                    <div class="h-3 w-16 rounded-full bg-muted"></div>
+                    <div class="h-3 w-12 rounded-full bg-muted"></div>
+                  </div>
+                  <div class="mt-3 flex items-center justify-between">
+                    <div class="h-3 w-16 rounded bg-muted"></div>
+                    <div class="h-7 w-20 rounded-md bg-muted"></div>
+                  </div>
+                </div>
+              {/each}
             </div>
           {:else}
             {#if previewState.error}
@@ -1061,7 +1105,30 @@
                         </span>
                       {/each}
                     </div>
-                    <div class="mt-3 flex flex-wrap items-center gap-3">
+                    <div
+                      class="mt-3 flex flex-wrap items-center justify-between gap-3"
+                    >
+                      <div class="flex flex-wrap items-center gap-3">
+                        <button
+                          type="button"
+                          onclick={() => openSkillPreview(skill)}
+                          class="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                        >
+                          <BookText class="size-3.5" />
+                          SKILL.md
+                        </button>
+                        {#if getGitHubRepoUrl(skill)}
+                          <a
+                            href={getGitHubRepoUrl(skill)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                          >
+                            <ExternalLink class="size-3.5" />
+                            GitHub
+                          </a>
+                        {/if}
+                      </div>
                       {#if authenticated}
                         <button
                           type="button"
@@ -1085,30 +1152,11 @@
                         </button>
                       {:else}
                         <a
-                          href="/login?redirect=/hub"
+                          href="/auth/github?redirect=/hub"
                           class="inline-flex items-center gap-2 rounded-md border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 transition-colors"
                         >
                           <Download class="size-3.5" />
                           Sign in to import
-                        </a>
-                      {/if}
-                      <button
-                        type="button"
-                        onclick={() => openSkillPreview(skill)}
-                        class="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-                      >
-                        <BookText class="size-3.5" />
-                        SKILL.md
-                      </button>
-                      {#if getGitHubRepoUrl(skill)}
-                        <a
-                          href={getGitHubRepoUrl(skill)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          class="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-                        >
-                          <ExternalLink class="size-3.5" />
-                          GitHub
                         </a>
                       {/if}
                     </div>
@@ -1216,7 +1264,7 @@
               </button>
             {:else}
               <a
-                href="/login?redirect=/hub"
+                href="/auth/github?redirect=/hub"
                 class="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
               >
                 <Download class="size-3.5" />
@@ -1269,8 +1317,18 @@
 
     <div class="flex-1 overflow-y-auto px-5 py-4">
       {#if skillPreviewDialog.loading}
-        <div class="flex items-center justify-center py-10">
-          <Loader2 class="size-6 animate-spin text-muted-foreground" />
+        <div class="space-y-4 animate-pulse">
+          <div class="h-5 w-2/5 rounded bg-muted"></div>
+          <div class="space-y-2">
+            <div class="h-3 w-full rounded bg-muted"></div>
+            <div class="h-3 w-5/6 rounded bg-muted"></div>
+            <div class="h-3 w-4/6 rounded bg-muted"></div>
+          </div>
+          <div class="h-5 w-1/4 rounded bg-muted mt-4"></div>
+          <div class="space-y-2">
+            <div class="h-3 w-full rounded bg-muted"></div>
+            <div class="h-3 w-3/4 rounded bg-muted"></div>
+          </div>
         </div>
       {:else if skillPreviewDialog.error}
         <div

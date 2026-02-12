@@ -18,6 +18,8 @@
     Home,
     BookOpen,
     Sparkles,
+    Settings,
+    LogOut,
   } from "@lucide/svelte";
 
   let { children, data } = $props();
@@ -114,20 +116,11 @@
             <DropdownMenuItem
               class="w-full rounded px-2.5 py-2 text-left text-sm hover:bg-accent flex items-center gap-2.5 outline-none cursor-pointer"
               onSelect={() => {
-                window.location.href = "/";
+                window.location.href = "/settings";
               }}
             >
-              <LayoutDashboard class="size-4" />
-              Go to Dashboard
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              class="w-full rounded px-2.5 py-2 text-left text-sm hover:bg-accent flex items-center gap-2.5 outline-none cursor-pointer"
-              onSelect={() => {
-                window.location.href = "/hub";
-              }}
-            >
-              <Sparkles class="size-4" />
-              Hub
+              <Settings class="size-4" />
+              Settings
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
@@ -140,13 +133,14 @@
                 form.submit();
               }}
             >
+              <LogOut class="size-4" />
               Sign out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       {:else}
         <a
-          href={isLogin ? "/auth/github?redirect=/" : "/login"}
+          href="/auth/github?redirect={encodeURIComponent($page.url.pathname)}"
           class="text-muted-foreground hover:text-foreground transition-colors shrink-0 px-2.5 py-1.5 rounded-md hover:bg-accent"
         >
           Sign in
@@ -155,18 +149,16 @@
 
       <DropdownMenu>
         <DropdownMenuTrigger
-          class="h-8 rounded-md border border-border bg-background px-2.5 text-sm text-foreground inline-flex items-center gap-1.5 hover:bg-accent hover:text-accent-foreground"
+          class="size-8 rounded-md border border-border bg-background inline-flex items-center justify-center hover:bg-accent hover:text-accent-foreground"
           aria-label="Theme menu"
         >
           {#if $themeStore === "light"}
-            <Sun class="size-4 shrink-0 text-muted-foreground" />
+            <Sun class="size-4 text-muted-foreground" />
           {:else if $themeStore === "dark"}
-            <Moon class="size-4 shrink-0 text-muted-foreground" />
+            <Moon class="size-4 text-muted-foreground" />
           {:else}
-            <Laptop class="size-4 shrink-0 text-muted-foreground" />
+            <Laptop class="size-4 text-muted-foreground" />
           {/if}
-          <span class="hidden sm:inline capitalize">{$themeStore}</span>
-          <ChevronDown class="size-3.5" />
         </DropdownMenuTrigger>
         <DropdownMenuContent
           sideOffset={6}

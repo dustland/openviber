@@ -16,6 +16,12 @@ export function registerBuiltinChannels(): void {
       id: "dingtalk",
       displayName: "DingTalk",
       description: "DingTalk enterprise bot integration",
+      capabilities: {
+        transport: "webhook",
+        supportsInboundAttachments: false,
+        auth: "appKey + appSecret (+ optional robotCode)",
+        productionReadiness: "ready",
+      },
       create: (config, context) => new DingTalkChannel(config as any, context),
     });
   }
@@ -25,6 +31,12 @@ export function registerBuiltinChannels(): void {
       id: "wecom",
       displayName: "WeCom",
       description: "WeCom (WeChat Work) enterprise integration",
+      capabilities: {
+        transport: "webhook",
+        supportsInboundAttachments: false,
+        auth: "corpId + agentId + secret + token + aesKey",
+        productionReadiness: "ready",
+      },
       create: (config, context) => new WeComChannel(config as any, context),
     });
   }
@@ -43,6 +55,12 @@ export function registerBuiltinChannels(): void {
       id: "web",
       displayName: "Web",
       description: "Local web channel (SSE)",
+      capabilities: {
+        transport: "sse",
+        supportsInboundAttachments: true,
+        auth: "session-based web app context",
+        productionReadiness: "ready",
+      },
       create: (config, _context) => new WebChannel(config as any),
     });
   }
@@ -52,6 +70,19 @@ export function registerBuiltinChannels(): void {
       id: "discord",
       displayName: "Discord",
       description: "Discord bot integration via gateway",
+      capabilities: {
+        transport: "websocket",
+        supportsInboundAttachments: true,
+        auth: "botToken (+ optional appId)",
+        controls: [
+          "allowGuildIds",
+          "allowChannelIds",
+          "allowUserIds",
+          "requireMention",
+          "replyMode",
+        ],
+        productionReadiness: "ready",
+      },
       create: (config, context) => new DiscordChannel(config as any, context),
     });
   }
@@ -61,6 +92,13 @@ export function registerBuiltinChannels(): void {
       id: "feishu",
       displayName: "Feishu",
       description: "Feishu/Lark bot integration",
+      capabilities: {
+        transport: "websocket",
+        supportsInboundAttachments: true,
+        auth: "appId + appSecret (+ optional verification/encryption keys)",
+        controls: ["allowGroupMessages", "requireMention"],
+        productionReadiness: "ready",
+      },
       create: (config, context) => new FeishuChannel(config as any, context),
     });
   }

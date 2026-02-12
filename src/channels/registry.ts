@@ -1,5 +1,20 @@
 import type { Channel, ChannelRuntimeContext, ChannelConfig } from "./channel";
 
+export type ChannelTransportType = "webhook" | "websocket" | "sse";
+
+export interface ChannelCapabilityMetadata {
+  /** Channel transport behavior. */
+  transport: ChannelTransportType;
+  /** Whether the channel supports inbound attachments natively. */
+  supportsInboundAttachments: boolean;
+  /** Primary authentication/configuration strategy summary. */
+  auth: string;
+  /** Optional controls for mention/scope/allowlist behavior. */
+  controls?: string[];
+  /** Production readiness guidance. */
+  productionReadiness: "ready" | "beta";
+}
+
 export interface ChannelFactory<TConfig extends ChannelConfig> {
   /** Unique channel identifier (e.g., "discord") */
   id: string;
@@ -7,6 +22,8 @@ export interface ChannelFactory<TConfig extends ChannelConfig> {
   displayName: string;
   /** Short description for UI/tooling */
   description?: string;
+  /** Structured channel capability metadata for docs/tooling. */
+  capabilities: ChannelCapabilityMetadata;
   /** Create a channel instance from config */
   create(config: TConfig, context: ChannelRuntimeContext): Channel;
 }
@@ -40,6 +57,22 @@ export class ChannelRegistry {
    */
   list(): ChannelFactory<any>[] {
     return Array.from(this.factories.values());
+  }
+
+  /**
+   * List capability metadata for all registered channels.
+   */
+  listCapabilities(): Array<
+    Pick<ChannelFactory<any>, "id" | "displayName" | "description"> & {
+      capabilities: ChannelCapabilityMetadata;
+    }
+  > {
+    return this.list().map((factory) => ({
+      id: factory.id,
+      displayName: factory.displayName,
+      description: factory.description,
+      capabilities: factory.capabilities,
+    }));
   }
 }
 

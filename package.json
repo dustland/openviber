@@ -34,7 +34,9 @@
     "test": "vitest",
     "test:run": "vitest run",
     "preview:web": "cd web && pnpm preview",
-    "verify:skills": "tsx scripts/verify-skills.ts"
+    "verify:skills": "tsx scripts/verify-skills.ts",
+    "verify:architecture": "tsx scripts/verify-architecture.ts",
+    "docs:channels": "tsx scripts/generate-channel-capability-matrix.ts"
   },
   "keywords": [
     "multi-agent",

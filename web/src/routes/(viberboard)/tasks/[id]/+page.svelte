@@ -213,7 +213,10 @@
         command = obj.command;
       }
 
-      if (typeof obj.exitCode === "number" || typeof obj.exitCode === "string") {
+      if (
+        typeof obj.exitCode === "number" ||
+        typeof obj.exitCode === "string"
+      ) {
         exitCode = String(obj.exitCode);
       }
       if (obj.timedOut === true) {
@@ -282,7 +285,11 @@
     }
 
     if (part?.errorText) {
-      const errorSection = formatToolOutputValue("error", part.errorText, "error");
+      const errorSection = formatToolOutputValue(
+        "error",
+        part.errorText,
+        "error",
+      );
       if (errorSection) {
         sections.push(errorSection);
       }
@@ -351,7 +358,10 @@
     };
   }
 
-  function buildToolOutputDisplay(part: any, toolName: string): ToolOutputDisplay {
+  function buildToolOutputDisplay(
+    part: any,
+    toolName: string,
+  ): ToolOutputDisplay {
     if (isTerminalToolOutput(toolName, part)) {
       return buildTerminalToolOutputDisplay(part);
     }
@@ -512,7 +522,11 @@
   let toolOutputHighlightTimeout: ReturnType<typeof setTimeout> | null = null;
   const toolOutputEntryElements = new Map<string, HTMLDivElement>();
 
-  function getToolOutputEntryId(messageId: string, partIndex: number, toolName: string): string {
+  function getToolOutputEntryId(
+    messageId: string,
+    partIndex: number,
+    toolName: string,
+  ): string {
     return `${messageId}:${partIndex}:${toolName}`;
   }
 
@@ -559,7 +573,6 @@
       triggerToolOutputHighlight(id);
     }
   }
-
 
   onDestroy(() => {
     if (toolOutputHighlightTimeout) {
@@ -661,7 +674,7 @@
 
   async function fetchMessages(viberId: string) {
     try {
-      const res = await fetch(`/api/vibers/${viberId}/messages`);
+      const res = await fetch(`/api/tasks/${viberId}/messages`);
       if (!res.ok) return;
       const data = await res.json();
       dbMessages = (data.messages || []).map(
@@ -690,7 +703,7 @@
   async function fetchViber() {
     const id = $page.params.id;
     try {
-      const response = await fetch(`/api/vibers/${id}`);
+      const response = await fetch(`/api/tasks/${id}`);
       if (response.ok) {
         const data = await response.json();
         viber = data;
@@ -742,7 +755,7 @@
 
     // Persist user message to DB
     try {
-      await fetch(`/api/vibers/${viber.id}/messages`, {
+      await fetch(`/api/tasks/${viber.id}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: "user", content }),
@@ -755,10 +768,12 @@
     {
       chat = new Chat({
         transport: new DefaultChatTransport({
-          api: `/api/vibers/${viber.id}/chat`,
+          api: `/api/tasks/${viber.id}/chat`,
           body: {
             ...(selectedModelId ? { model: selectedModelId } : {}),
-            ...(selectedSkillIds.length > 0 ? { skills: selectedSkillIds } : {}),
+            ...(selectedSkillIds.length > 0
+              ? { skills: selectedSkillIds }
+              : {}),
             ...(selectedEnvironmentId
               ? { environmentId: selectedEnvironmentId }
               : {}),
@@ -791,7 +806,7 @@
             : [];
           if (textParts || messageParts.length > 0) {
             try {
-              await fetch(`/api/vibers/${viber!.id}/messages`, {
+              await fetch(`/api/tasks/${viber!.id}/messages`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -842,7 +857,7 @@
 
   async function runSkillProvision(install: boolean) {
     if (!setupSkill || !viber?.nodeId) {
-      setupSkillError = "Node is unavailable for this viber.";
+      setupSkillError = "Viber is unavailable for this viber.";
       return;
     }
     const targetSkill = setupSkill;
@@ -880,7 +895,12 @@
         (viber?.skills ?? []).find((skill) => skill.id === targetSkill.id) ||
         targetSkill;
       const auth = payload?.auth as
-        | { required?: boolean; ready?: boolean; command?: string; message?: string }
+        | {
+            required?: boolean;
+            ready?: boolean;
+            command?: string;
+            message?: string;
+          }
         | undefined;
       if (auth?.required && !auth?.ready) {
         setupAuthCommand = auth.command || null;
@@ -918,7 +938,6 @@
       setupSkillError = "Failed to copy command. Please copy it manually.";
     }
   }
-
 
   // Derived: build activity steps from tool calls in the message stream
   let activitySteps = $derived.by((): ActivityStep[] => {
@@ -1074,364 +1093,376 @@
   class="chat-shell flex-1 flex w-full min-w-0 flex-col min-h-0 overflow-hidden"
 >
   {#key toolOutputEntries.length > 0}
-  <Resizable.PaneGroup
-    direction="horizontal"
-    class="flex-1 min-h-0 min-w-0 w-full overflow-hidden"
-  >
-    <Resizable.Pane
-      defaultSize={toolOutputEntries.length > 0 ? 55 : 100}
-      minSize={35}
-      class="min-h-0 min-w-0 overflow-hidden flex flex-col"
+    <Resizable.PaneGroup
+      direction="horizontal"
+      class="flex-1 min-h-0 min-w-0 w-full overflow-hidden"
     >
-      <!-- Messages -->
-      <div
-        bind:this={messagesContainer}
-        class="chat-scroll flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden"
-        onscroll={handleScroll}
+      <Resizable.Pane
+        defaultSize={toolOutputEntries.length > 0 ? 55 : 100}
+        minSize={35}
+        class="min-h-0 min-w-0 overflow-hidden flex flex-col"
       >
-        {#if loading}
-          <div
-            class="h-full flex items-center justify-center text-center text-muted-foreground"
-          >
-            Loading...
-          </div>
-        {:else if viber?.nodeConnected !== true}
-          <div
-            class="h-full flex items-center justify-center text-center text-muted-foreground p-4"
-          >
-            <div>
-              <Cpu class="size-12 mx-auto mb-4 opacity-50" />
-              <p class="text-lg font-medium">Node is offline</p>
-              <p class="text-sm mt-2 max-w-sm">
-                The node that hosts this viber is not connected. Start the viber
-                daemon on that node to chat.
-              </p>
-              <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
-                <a
-                  href="/nodes"
-                  class="inline-flex items-center rounded-md border border-border bg-card px-3 py-1.5 text-xs text-foreground hover:bg-accent"
+        <!-- Messages -->
+        <div
+          bind:this={messagesContainer}
+          class="chat-scroll flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-hidden"
+          onscroll={handleScroll}
+        >
+          {#if loading}
+            <div
+              class="h-full flex items-center justify-center text-center text-muted-foreground"
+            >
+              Loading...
+            </div>
+          {:else if viber?.nodeConnected !== true}
+            <div
+              class="h-full flex items-center justify-center text-center text-muted-foreground p-4"
+            >
+              <div>
+                <Cpu class="size-12 mx-auto mb-4 opacity-50" />
+                <p class="text-lg font-medium">Viber is offline</p>
+                <p class="text-sm mt-2 max-w-sm">
+                  The viber that hosts this task is not connected. Start the
+                  viber daemon to chat.
+                </p>
+                <div
+                  class="mt-4 flex flex-wrap items-center justify-center gap-2"
                 >
-                  Open Nodes
-                </a>
-                <a
-                  href="/vibers/new"
-                  class="inline-flex items-center rounded-md border border-border bg-card px-3 py-1.5 text-xs text-foreground hover:bg-accent"
+                  <a
+                    href="/vibers"
+                    class="inline-flex items-center rounded-md border border-border bg-card px-3 py-1.5 text-xs text-foreground hover:bg-accent"
+                  >
+                    Open Vibers
+                  </a>
+                  <a
+                    href="/tasks/new"
+                    class="inline-flex items-center rounded-md border border-border bg-card px-3 py-1.5 text-xs text-foreground hover:bg-accent"
+                  >
+                    Start New Chat
+                  </a>
+                  <button
+                    type="button"
+                    class="inline-flex items-center rounded-md border border-border bg-card px-3 py-1.5 text-xs text-foreground hover:bg-accent"
+                    onclick={() => void fetchViber()}
+                  >
+                    Retry
+                  </button>
+                </div>
+              </div>
+            </div>
+          {:else if displayMessages.length === 0}
+            <div
+              class="h-full flex flex-col items-center justify-center py-12 px-4"
+            >
+              <div class="text-center mb-8">
+                <div
+                  class="inline-flex items-center justify-center size-12 rounded-full bg-primary/10 text-primary mb-4"
                 >
-                  Start New Chat
-                </a>
+                  <Sparkles class="size-6" />
+                </div>
+                <h2 class="text-xl font-semibold text-foreground mb-2">
+                  What can I help you with?
+                </h2>
+                <p class="text-sm text-muted-foreground max-w-md">
+                  Start a conversation with your viber. Try one of the
+                  suggestions below or type your own message.
+                </p>
+              </div>
+
+              <div class="grid gap-2 w-full max-w-lg">
                 <button
                   type="button"
-                  class="inline-flex items-center rounded-md border border-border bg-card px-3 py-1.5 text-xs text-foreground hover:bg-accent"
-                  onclick={() => void fetchViber()}
+                  class="flex items-start gap-3 p-3 rounded-lg border border-border bg-card hover:bg-accent/50 text-left transition-colors group"
+                  onclick={() =>
+                    sendMessage("What can you do? List your capabilities.")}
                 >
-                  Retry
+                  <MessageSquare
+                    class="size-5 text-muted-foreground group-hover:text-foreground shrink-0 mt-0.5"
+                  />
+                  <div>
+                    <p class="text-sm font-medium text-foreground">
+                      What can you do?
+                    </p>
+                    <p class="text-xs text-muted-foreground">
+                      List your capabilities and available skills
+                    </p>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  class="flex items-start gap-3 p-3 rounded-lg border border-border bg-card hover:bg-accent/50 text-left transition-colors group"
+                  onclick={() =>
+                    sendMessage(
+                      "Help me understand the current project structure.",
+                    )}
+                >
+                  <MessageSquare
+                    class="size-5 text-muted-foreground group-hover:text-foreground shrink-0 mt-0.5"
+                  />
+                  <div>
+                    <p class="text-sm font-medium text-foreground">
+                      Explore the project
+                    </p>
+                    <p class="text-xs text-muted-foreground">
+                      Understand the current project structure
+                    </p>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  class="flex items-start gap-3 p-3 rounded-lg border border-border bg-card hover:bg-accent/50 text-left transition-colors group"
+                  onclick={() =>
+                    sendMessage("Run the dev server and show me the output.")}
+                >
+                  <MessageSquare
+                    class="size-5 text-muted-foreground group-hover:text-foreground shrink-0 mt-0.5"
+                  />
+                  <div>
+                    <p class="text-sm font-medium text-foreground">
+                      Run dev server
+                    </p>
+                    <p class="text-xs text-muted-foreground">
+                      Start the development server and monitor output
+                    </p>
+                  </div>
                 </button>
               </div>
             </div>
-          </div>
-        {:else if displayMessages.length === 0}
-          <div
-            class="h-full flex flex-col items-center justify-center py-12 px-4"
-          >
-            <div class="text-center mb-8">
-              <div
-                class="inline-flex items-center justify-center size-12 rounded-full bg-primary/10 text-primary mb-4"
-              >
-                <Sparkles class="size-6" />
-              </div>
-              <h2 class="text-xl font-semibold text-foreground mb-2">
-                What can I help you with?
-              </h2>
-              <p class="text-sm text-muted-foreground max-w-md">
-                Start a conversation with your viber. Try one of the suggestions
-                below or type your own message.
-              </p>
-            </div>
-
-            <div class="grid gap-2 w-full max-w-lg">
-              <button
-                type="button"
-                class="flex items-start gap-3 p-3 rounded-lg border border-border bg-card hover:bg-accent/50 text-left transition-colors group"
-                onclick={() =>
-                  sendMessage("What can you do? List your capabilities.")}
-              >
-                <MessageSquare
-                  class="size-5 text-muted-foreground group-hover:text-foreground shrink-0 mt-0.5"
-                />
-                <div>
-                  <p class="text-sm font-medium text-foreground">
-                    What can you do?
-                  </p>
-                  <p class="text-xs text-muted-foreground">
-                    List your capabilities and available skills
-                  </p>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                class="flex items-start gap-3 p-3 rounded-lg border border-border bg-card hover:bg-accent/50 text-left transition-colors group"
-                onclick={() =>
-                  sendMessage(
-                    "Help me understand the current project structure.",
-                  )}
-              >
-                <MessageSquare
-                  class="size-5 text-muted-foreground group-hover:text-foreground shrink-0 mt-0.5"
-                />
-                <div>
-                  <p class="text-sm font-medium text-foreground">
-                    Explore the project
-                  </p>
-                  <p class="text-xs text-muted-foreground">
-                    Understand the current project structure
-                  </p>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                class="flex items-start gap-3 p-3 rounded-lg border border-border bg-card hover:bg-accent/50 text-left transition-colors group"
-                onclick={() =>
-                  sendMessage("Run the dev server and show me the output.")}
-              >
-                <MessageSquare
-                  class="size-5 text-muted-foreground group-hover:text-foreground shrink-0 mt-0.5"
-                />
-                <div>
-                  <p class="text-sm font-medium text-foreground">
-                    Run dev server
-                  </p>
-                  <p class="text-xs text-muted-foreground">
-                    Start the development server and monitor output
-                  </p>
-                </div>
-              </button>
-
-            </div>
-          </div>
-        {:else}
-          <div class="px-3 py-6 sm:px-5">
-            <div class="w-full space-y-5">
-              {#each displayMessages as message (message.id)}
-                {#if message.role === "user"}
-                  <!-- User message: right-aligned bubble with subtle background -->
-                  <div class="flex justify-end items-end gap-1.5 group/msg">
-                    <button
-                      type="button"
-                      class="mb-1 shrink-0 rounded-full p-1.5 text-muted-foreground opacity-0 transition-all hover:bg-muted hover:text-foreground group-hover/msg:opacity-100"
-                      title="Resend message"
-                      disabled={sending}
-                      onclick={() => {
-                        const text = message.parts
-                          ?.filter((p: any) => p.type === "text" && p.text)
-                          .map((p: any) => p.text)
-                          .join("\n") || "";
-                        if (text.trim()) sendMessage(text.trim());
-                      }}
-                    >
-                      <RefreshCw class="size-3.5" />
-                    </button>
-                    <div
-                      class="user-bubble min-w-0 max-w-[95%] sm:max-w-[90%] rounded-2xl px-4 py-3 text-foreground"
-                    >
-                      {#each message.parts as part}
+          {:else}
+            <div class="px-3 py-6 sm:px-5">
+              <div class="w-full space-y-5">
+                {#each displayMessages as message (message.id)}
+                  {#if message.role === "user"}
+                    <!-- User message: right-aligned bubble with subtle background -->
+                    <div class="flex justify-end items-end gap-1.5 group/msg">
+                      <button
+                        type="button"
+                        class="mb-1 shrink-0 rounded-full p-1.5 text-muted-foreground opacity-0 transition-all hover:bg-muted hover:text-foreground group-hover/msg:opacity-100"
+                        title="Resend message"
+                        disabled={sending}
+                        onclick={() => {
+                          const text =
+                            message.parts
+                              ?.filter((p: any) => p.type === "text" && p.text)
+                              .map((p: any) => p.text)
+                              .join("\n") || "";
+                          if (text.trim()) sendMessage(text.trim());
+                        }}
+                      >
+                        <RefreshCw class="size-3.5" />
+                      </button>
+                      <div
+                        class="user-bubble min-w-0 max-w-[95%] sm:max-w-[90%] rounded-2xl px-4 py-3 text-foreground"
+                      >
+                        {#each message.parts as part}
+                          {#if part.type === "text" && (part as any).text}
+                            <div class="message-markdown">
+                              {@html renderMarkdown((part as any).text)}
+                            </div>
+                          {/if}
+                        {/each}
+                        <p class="text-[11px] mt-1.5 opacity-40 tracking-wide">
+                          {new Date(
+                            (message as any).createdAt || Date.now(),
+                          ).toLocaleTimeString()}
+                        </p>
+                      </div>
+                    </div>
+                  {:else}
+                    <!-- Assistant message: full-width, transparent background -->
+                    <div class="min-w-0 w-full">
+                      {#each message.parts as part, i}
                         {#if part.type === "text" && (part as any).text}
-                          <div class="message-markdown">
+                          <div class="message-markdown text-foreground">
                             {@html renderMarkdown((part as any).text)}
                           </div>
+                        {:else if part.type === "reasoning"}
+                          <Reasoning
+                            content={(part as any).reasoning ||
+                              (part as any).text ||
+                              ""}
+                            isStreaming={false}
+                          />
+                        {:else if isToolPart(part)}
+                          {@const toolName = getPartToolName(part)}
+                          {@const toolPart = part as any}
+                          {#if toolName}
+                            <div
+                              class="rounded-lg transition-shadow focus-within:ring-2 focus-within:ring-ring"
+                              role="button"
+                              tabindex="0"
+                              aria-label={`Focus ${toolName} output`}
+                              onclick={() =>
+                                void focusToolOutputEntry(
+                                  getToolOutputEntryId(message.id, i, toolName),
+                                )}
+                              onkeydown={(event) => {
+                                if (
+                                  event.key === "Enter" ||
+                                  event.key === " "
+                                ) {
+                                  event.preventDefault();
+                                  void focusToolOutputEntry(
+                                    getToolOutputEntryId(
+                                      message.id,
+                                      i,
+                                      toolName,
+                                    ),
+                                  );
+                                }
+                              }}
+                            >
+                              <ToolCall
+                                {toolName}
+                                toolState={toolPart.state || "input-available"}
+                                input={toolPart.input}
+                                output={toolPart.output}
+                                errorText={toolPart.errorText}
+                              />
+                            </div>
+                          {/if}
                         {/if}
                       {/each}
-                      <p class="text-[11px] mt-1.5 opacity-40 tracking-wide">
+                      <p class="text-[11px] mt-1.5 opacity-30 tracking-wide">
                         {new Date(
                           (message as any).createdAt || Date.now(),
                         ).toLocaleTimeString()}
                       </p>
                     </div>
-                  </div>
-                {:else}
-                  <!-- Assistant message: full-width, transparent background -->
+                  {/if}
+                {/each}
+
+                {#if sending && (!chat?.messages || chat.messages.length === 0 || chat.messages[chat.messages.length - 1]?.role === "user")}
                   <div class="min-w-0 w-full">
-                    {#each message.parts as part, i}
-                      {#if part.type === "text" && (part as any).text}
-                        <div class="message-markdown text-foreground">
-                          {@html renderMarkdown((part as any).text)}
-                        </div>
-                      {:else if part.type === "reasoning"}
-                        <Reasoning
-                          content={(part as any).reasoning ||
-                            (part as any).text ||
-                            ""}
-                          isStreaming={false}
-                        />
-                      {:else if isToolPart(part)}
-                        {@const toolName = getPartToolName(part)}
-                        {@const toolPart = part as any}
-                        {#if toolName}
-                          <div
-                            class="rounded-lg transition-shadow focus-within:ring-2 focus-within:ring-ring"
-                            role="button"
-                            tabindex="0"
-                            aria-label={`Focus ${toolName} output`}
-                            onclick={() =>
-                              void focusToolOutputEntry(
-                                getToolOutputEntryId(message.id, i, toolName),
-                              )}
-                            onkeydown={(event) => {
-                              if (event.key === "Enter" || event.key === " ") {
-                                event.preventDefault();
-                                void focusToolOutputEntry(
-                                  getToolOutputEntryId(message.id, i, toolName),
-                                );
-                              }
-                            }}
-                          >
-                            <ToolCall
-                              {toolName}
-                              toolState={toolPart.state || "input-available"}
-                              input={toolPart.input}
-                              output={toolPart.output}
-                              errorText={toolPart.errorText}
-                            />
-                          </div>
-                        {/if}
-                      {/if}
-                    {/each}
-                    <p class="text-[11px] mt-1.5 opacity-30 tracking-wide">
-                      {new Date(
-                        (message as any).createdAt || Date.now(),
-                      ).toLocaleTimeString()}
-                    </p>
+                    {#if sessionStartedAt}
+                      <SessionIndicator
+                        startedAt={sessionStartedAt}
+                        steps={activitySteps}
+                      />
+                    {:else}
+                      <div
+                        class="flex items-center gap-2 text-sm text-muted-foreground"
+                      >
+                        <Sparkles class="size-4 animate-pulse" />
+                        <span>Starting...</span>
+                      </div>
+                    {/if}
                   </div>
                 {/if}
-              {/each}
-
-              {#if sending && (!chat?.messages || chat.messages.length === 0 || chat.messages[chat.messages.length - 1]?.role === "user")}
-                <div class="min-w-0 w-full">
-                  {#if sessionStartedAt}
-                    <SessionIndicator
-                      startedAt={sessionStartedAt}
-                      steps={activitySteps}
-                    />
-                  {:else}
-                    <div
-                      class="flex items-center gap-2 text-sm text-muted-foreground"
-                    >
-                      <Sparkles class="size-4 animate-pulse" />
-                      <span>Starting...</span>
-                    </div>
-                  {/if}
-                </div>
-              {/if}
-            </div>
-          </div>
-        {/if}
-      </div>
-
-      <div class="chat-composer-wrap p-3 shrink-0 sm:p-4">
-        <!-- Mobile tool output toggle (visible < lg only) -->
-        {#if toolOutputEntries.length > 0}
-          <div class="flex lg:hidden mb-2">
-            <button
-              type="button"
-              class="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-muted/40 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-              onclick={() => (showMobileToolOutput = true)}
-            >
-              <TerminalSquare class="size-3.5" />
-              Tool Output
-              <span
-                class="rounded-full bg-primary/10 text-primary px-1.5 py-0.5 text-[10px] font-semibold"
-              >
-                {toolOutputEntries.length}
-              </span>
-              {#if sending}
-                <span
-                  class="rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-500"
-                  >Live</span
-                >
-              {/if}
-            </button>
-          </div>
-        {/if}
-        <ChatComposer
-          bind:value={inputValue}
-          bind:inputElement={inputEl}
-          bind:selectedModelId
-          bind:selectedEnvironmentId
-          placeholder={viber?.nodeConnected === true
-            ? "Send a task or command..."
-            : "Node is offline"}
-          disabled={viber?.nodeConnected !== true}
-          {sending}
-          nodes={[]}
-          environments={composerEnvironments}
-          skills={viber?.skills ?? []}
-          bind:selectedSkillIds
-          onsetupskill={handleSkillSetupRequest}
-          onsubmit={() => sendMessage()}
-        >
-          {#snippet beforeInput()}
-            <!-- Error banner -->
-            {#if chatError}
-              <div
-                class="flex items-start gap-3 rounded-xl border border-destructive/40 bg-destructive/5 px-4 py-3 animate-in fade-in slide-in-from-bottom-1 duration-200"
-              >
-                <AlertCircle class="size-4 text-destructive shrink-0 mt-0.5" />
-                <div class="flex-1 min-w-0">
-                  <p class="text-sm font-medium text-destructive">
-                    Task failed
-                  </p>
-                  <p class="text-xs text-destructive/80 mt-0.5 wrap-break-word">
-                    {chatError}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  class="shrink-0 p-0.5 text-destructive/60 hover:text-destructive transition-colors"
-                  onclick={() => (chatError = null)}
-                  aria-label="Dismiss error"
-                >
-                  <X class="size-3.5" />
-                </button>
               </div>
-            {/if}
+            </div>
+          {/if}
+        </div>
 
-            <!-- Persistent session activity bar for long-running tasks -->
-            {#if sending && sessionStartedAt}
-              <SessionIndicator
-                startedAt={sessionStartedAt}
-                steps={activitySteps}
-              />
-            {/if}
+        <div class="chat-composer-wrap p-3 shrink-0 sm:p-4">
+          <!-- Mobile tool output toggle (visible < lg only) -->
+          {#if toolOutputEntries.length > 0}
+            <div class="flex lg:hidden mb-2">
+              <button
+                type="button"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-muted/40 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                onclick={() => (showMobileToolOutput = true)}
+              >
+                <TerminalSquare class="size-3.5" />
+                Tool Output
+                <span
+                  class="rounded-full bg-primary/10 text-primary px-1.5 py-0.5 text-[10px] font-semibold"
+                >
+                  {toolOutputEntries.length}
+                </span>
+                {#if sending}
+                  <span
+                    class="rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-500"
+                    >Live</span
+                  >
+                {/if}
+              </button>
+            </div>
+          {/if}
+          <ChatComposer
+            bind:value={inputValue}
+            bind:inputElement={inputEl}
+            bind:selectedModelId
+            bind:selectedEnvironmentId
+            placeholder={viber?.nodeConnected === true
+              ? "Send a task or command..."
+              : "Viber is offline"}
+            disabled={viber?.nodeConnected !== true}
+            {sending}
+            nodes={[]}
+            environments={composerEnvironments}
+            skills={viber?.skills ?? []}
+            bind:selectedSkillIds
+            onsetupskill={handleSkillSetupRequest}
+            onsubmit={() => sendMessage()}
+          >
+            {#snippet beforeInput()}
+              <!-- Error banner -->
+              {#if chatError}
+                <div
+                  class="flex items-start gap-3 rounded-xl border border-destructive/40 bg-destructive/5 px-4 py-3 animate-in fade-in slide-in-from-bottom-1 duration-200"
+                >
+                  <AlertCircle
+                    class="size-4 text-destructive shrink-0 mt-0.5"
+                  />
+                  <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-destructive">
+                      Task failed
+                    </p>
+                    <p
+                      class="text-xs text-destructive/80 mt-0.5 wrap-break-word"
+                    >
+                      {chatError}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    class="shrink-0 p-0.5 text-destructive/60 hover:text-destructive transition-colors"
+                    onclick={() => (chatError = null)}
+                    aria-label="Dismiss error"
+                  >
+                    <X class="size-3.5" />
+                  </button>
+                </div>
+              {/if}
 
-          {/snippet}
-        </ChatComposer>
-        <p
-          class="flex items-center gap-1.5 px-1 mt-2 text-[11px] text-muted-foreground"
+              <!-- Persistent session activity bar for long-running tasks -->
+              {#if sending && sessionStartedAt}
+                <SessionIndicator
+                  startedAt={sessionStartedAt}
+                  steps={activitySteps}
+                />
+              {/if}
+            {/snippet}
+          </ChatComposer>
+          <p
+            class="flex items-center gap-1.5 px-1 mt-2 text-[11px] text-muted-foreground"
+          >
+            <CornerDownLeft class="size-3" />
+            Press Enter to send, Shift + Enter for a new line.
+          </p>
+        </div>
+      </Resizable.Pane>
+
+      {#if toolOutputEntries.length > 0}
+        <Resizable.Handle class="hidden lg:flex" />
+
+        <Resizable.Pane
+          defaultSize={45}
+          minSize={20}
+          maxSize={60}
+          class="hidden min-h-0 min-w-0 w-full overflow-hidden lg:block"
         >
-          <CornerDownLeft class="size-3" />
-          Press Enter to send, Shift + Enter for a new line.
-        </p>
-      </div>
-    </Resizable.Pane>
-
-    {#if toolOutputEntries.length > 0}
-    <Resizable.Handle class="hidden lg:flex" />
-
-    <Resizable.Pane
-      defaultSize={45}
-      minSize={20}
-      maxSize={60}
-      class="hidden min-h-0 min-w-0 w-full overflow-hidden lg:block"
-    >
-      <aside
-        class="tool-pane flex h-full w-full min-h-0 min-w-0 flex-col overflow-hidden bg-background/70"
-      >
-        {@render toolOutputContent()}
-      </aside>
-    </Resizable.Pane>
-    {/if}
-  </Resizable.PaneGroup>
+          <aside
+            class="tool-pane flex h-full w-full min-h-0 min-w-0 flex-col overflow-hidden bg-background/70"
+          >
+            {@render toolOutputContent()}
+          </aside>
+        </Resizable.Pane>
+      {/if}
+    </Resizable.PaneGroup>
   {/key}
 </div>
 
@@ -1455,23 +1486,28 @@
     <Dialog.Header>
       <Dialog.Title>Set up {setupSkill?.name || "skill"}?</Dialog.Title>
       <Dialog.Description>
-        {setupSkill?.name || "This skill"} is not ready on this node yet.
-        Should I start guided setup now?
+        {setupSkill?.name || "This skill"} is not ready on this viber yet. Should
+        I start guided setup now?
       </Dialog.Description>
     </Dialog.Header>
 
     {#if setupSkill?.healthSummary}
-      <p class="rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+      <p
+        class="rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground"
+      >
         {setupSkill.healthSummary}
       </p>
     {/if}
 
-    <div class="space-y-2 rounded-md border border-border bg-muted/20 px-3 py-2">
+    <div
+      class="space-y-2 rounded-md border border-border bg-muted/20 px-3 py-2"
+    >
       <p class="text-xs font-medium text-foreground">If auth is needed</p>
       <div class="flex flex-wrap gap-2">
         <button
           type="button"
-          class="rounded-md border px-2.5 py-1 text-xs transition-colors {setupAuthAction === 'copy'
+          class="rounded-md border px-2.5 py-1 text-xs transition-colors {setupAuthAction ===
+          'copy'
             ? 'border-primary/40 bg-primary/10 text-primary'
             : 'border-border bg-background text-muted-foreground hover:text-foreground'}"
           onclick={() => (setupAuthAction = "copy")}
@@ -1480,7 +1516,8 @@
         </button>
         <button
           type="button"
-          class="rounded-md border px-2.5 py-1 text-xs transition-colors {setupAuthAction === 'start'
+          class="rounded-md border px-2.5 py-1 text-xs transition-colors {setupAuthAction ===
+          'start'
             ? 'border-primary/40 bg-primary/10 text-primary'
             : 'border-border bg-background text-muted-foreground hover:text-foreground'}"
           onclick={() => (setupAuthAction = "start")}
@@ -1491,9 +1528,13 @@
     </div>
 
     {#if setupAuthCommand}
-      <div class="space-y-2 rounded-md border border-border bg-background px-3 py-2">
+      <div
+        class="space-y-2 rounded-md border border-border bg-background px-3 py-2"
+      >
         <p class="text-xs text-muted-foreground">Run this auth command:</p>
-        <code class="block rounded-md bg-muted px-2 py-1 text-[11px] text-foreground">
+        <code
+          class="block rounded-md bg-muted px-2 py-1 text-[11px] text-foreground"
+        >
           {setupAuthCommand}
         </code>
         <button
@@ -1507,7 +1548,9 @@
     {/if}
 
     {#if setupSkillError}
-      <p class="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+      <p
+        class="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+      >
         {setupSkillError}
       </p>
     {/if}
@@ -1619,9 +1662,7 @@
                     <CheckCircle2 class="size-3.5 shrink-0 text-emerald-500" />
                   {/if}
                   <div class="min-w-0 w-0 flex-1 overflow-hidden">
-                    <p
-                      class="truncate text-[12px] font-medium text-foreground"
-                    >
+                    <p class="truncate text-[12px] font-medium text-foreground">
                       {entry.toolName}
                     </p>
                     {#if entry.summary}
@@ -1645,9 +1686,7 @@
                     <pre
                       class="block box-border w-full min-w-0 max-w-full whitespace-pre-wrap wrap-anywhere p-3 font-mono text-[11px] leading-relaxed text-foreground/85">{entry.output}</pre>
                   {:else}
-                    <p
-                      class="p-3 text-[11px] text-muted-foreground"
-                    >
+                    <p class="p-3 text-[11px] text-muted-foreground">
                       Waiting for output...
                     </p>
                   {/if}

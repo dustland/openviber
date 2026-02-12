@@ -184,10 +184,16 @@
       return { label: "Failed", badgeClass: "bg-rose-500/10 text-rose-600" };
     }
     if (verified.length > 0 && failed.length === 0) {
-      return { label: "Verified", badgeClass: "bg-emerald-500/10 text-emerald-600" };
+      return {
+        label: "Verified",
+        badgeClass: "bg-emerald-500/10 text-emerald-600",
+      };
     }
     if (syncState.lastConfigPullAt) {
-      return { label: "Delivered", badgeClass: "bg-amber-500/10 text-amber-600" };
+      return {
+        label: "Delivered",
+        badgeClass: "bg-amber-500/10 text-amber-600",
+      };
     }
     return { label: "Pending", badgeClass: "bg-muted text-muted-foreground" };
   }
@@ -236,7 +242,9 @@
     loading = true;
     error = null;
     try {
-      const res = await fetch(`/api/nodes/${encodeURIComponent(nodeId)}/status`);
+      const res = await fetch(
+        `/api/vibers/${encodeURIComponent(nodeId)}/status`,
+      );
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || `Failed (${res.status})`);
@@ -259,12 +267,20 @@
   });
 </script>
 
-<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-  <div class="w-full max-w-2xl max-h-[85vh] rounded-xl border border-border bg-card shadow-2xl flex flex-col overflow-hidden">
+<div
+  class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+>
+  <div
+    class="w-full max-w-2xl max-h-[85vh] rounded-xl border border-border bg-card shadow-2xl flex flex-col overflow-hidden"
+  >
     <!-- Header -->
-    <div class="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
+    <div
+      class="flex items-center justify-between px-5 py-4 border-b border-border shrink-0"
+    >
       <div>
-        <h2 class="text-lg font-semibold text-foreground flex items-center gap-2">
+        <h2
+          class="text-lg font-semibold text-foreground flex items-center gap-2"
+        >
           <Monitor class="size-5" />
           {nodeName}
         </h2>
@@ -300,18 +316,21 @@
         <div class="flex items-center justify-center py-12">
           <div class="flex flex-col items-center gap-3">
             <Loader2 class="size-8 text-muted-foreground animate-spin" />
-            <p class="text-sm text-muted-foreground">Loading node status...</p>
+            <p class="text-sm text-muted-foreground">Loading viber status...</p>
           </div>
         </div>
       {:else if error}
-        <div class="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive text-sm">
+        <div
+          class="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive text-sm"
+        >
           {error}
         </div>
       {:else if !status}
         <div class="text-center py-12">
           <Server class="size-10 text-muted-foreground/50 mx-auto mb-3" />
           <p class="text-muted-foreground">
-            No status data available. The node may not have sent a heartbeat yet.
+            No status data available. The viber may not have sent a heartbeat
+            yet.
           </p>
         </div>
       {:else}
@@ -319,19 +338,24 @@
           <!-- Config Sync State Section -->
           {#if configSyncState || (status?.viber && !status.viber.connected)}
             <section>
-              <h3 class="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+              <h3
+                class="text-sm font-semibold text-foreground mb-3 flex items-center gap-2"
+              >
                 <RefreshCw class="size-4" />
                 Config Sync State
               </h3>
 
               {#if !status?.viber?.connected}
-                <div class="rounded-lg border border-amber-500/50 bg-amber-500/10 p-4 mb-3">
+                <div
+                  class="rounded-lg border border-amber-500/50 bg-amber-500/10 p-4 mb-3"
+                >
                   <div class="flex items-center gap-2 text-sm text-amber-600">
                     <X class="size-4" />
-                    <span class="font-medium">Node is offline</span>
+                    <span class="font-medium">Viber is offline</span>
                   </div>
                   <p class="text-xs text-amber-600/80 mt-1">
-                    Config sync state may be stale. Last known state shown below.
+                    Config sync state may be stale. Last known state shown
+                    below.
                   </p>
                 </div>
               {/if}
@@ -340,18 +364,28 @@
                 {@const syncStatus = getConfigSyncStatus(configSyncState)}
                 <div class="rounded-lg border border-border p-4 mb-3">
                   <div class="flex items-center justify-between mb-3">
-                    <div class="text-xs font-medium text-foreground">Sync Status</div>
-                    <span class={`inline-flex items-center rounded-md px-2 py-1 text-[10px] font-medium ${syncStatus.badgeClass}`}>
+                    <div class="text-xs font-medium text-foreground">
+                      Sync Status
+                    </div>
+                    <span
+                      class={`inline-flex items-center rounded-md px-2 py-1 text-[10px] font-medium ${syncStatus.badgeClass}`}
+                    >
                       {syncStatus.label}
                     </span>
                   </div>
 
                   {#if configSyncState.configVersion}
                     <div class="text-[11px] text-muted-foreground mb-2">
-                      <div>Version: <span class="font-mono">{configSyncState.configVersion}</span></div>
+                      <div>
+                        Version: <span class="font-mono"
+                          >{configSyncState.configVersion}</span
+                        >
+                      </div>
                       {#if configSyncState.lastConfigPullAt}
                         <div class="mt-1">
-                          Last verified: {formatTimeAgo(configSyncState.lastConfigPullAt)}
+                          Last verified: {formatTimeAgo(
+                            configSyncState.lastConfigPullAt,
+                          )}
                         </div>
                       {/if}
                     </div>
@@ -359,16 +393,26 @@
 
                   {#if configSyncState.validations && configSyncState.validations.length > 0}
                     <div class="mt-3 space-y-2">
-                      <div class="text-[11px] font-medium text-foreground">Validations:</div>
+                      <div class="text-[11px] font-medium text-foreground">
+                        Validations:
+                      </div>
                       {#each configSyncState.validations as validation}
-                        <div class="flex items-start justify-between gap-2 text-[11px]">
+                        <div
+                          class="flex items-start justify-between gap-2 text-[11px]"
+                        >
                           <div class="flex-1">
-                            <span class="font-medium">{validation.category}:</span>
-                            <span class={`ml-1 ${validation.status === "verified" ? "text-emerald-600" : validation.status === "failed" ? "text-rose-600" : "text-amber-600"}`}>
+                            <span class="font-medium"
+                              >{validation.category}:</span
+                            >
+                            <span
+                              class={`ml-1 ${validation.status === "verified" ? "text-emerald-600" : validation.status === "failed" ? "text-rose-600" : "text-amber-600"}`}
+                            >
                               {validation.status}
                             </span>
                             {#if validation.message}
-                              <div class="text-muted-foreground mt-0.5">{validation.message}</div>
+                              <div class="text-muted-foreground mt-0.5">
+                                {validation.message}
+                              </div>
                             {/if}
                           </div>
                           {#if validation.checkedAt}
@@ -382,7 +426,9 @@
                   {/if}
                 </div>
               {:else}
-                <div class="rounded-lg border border-border bg-muted/30 p-4 text-center text-sm text-muted-foreground">
+                <div
+                  class="rounded-lg border border-border bg-muted/30 p-4 text-center text-sm text-muted-foreground"
+                >
                   No config sync state available
                 </div>
               {/if}
@@ -392,7 +438,9 @@
           <!-- Machine Resources Section -->
           {#if status.machine}
             <section>
-              <h3 class="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+              <h3
+                class="text-sm font-semibold text-foreground mb-3 flex items-center gap-2"
+              >
                 <Server class="size-4" />
                 Machine Resources
               </h3>
@@ -400,23 +448,47 @@
               <!-- System Info Row -->
               <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
                 <div class="rounded-lg border border-border bg-muted/30 p-3">
-                  <div class="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Platform</div>
-                  <div class="text-sm font-medium text-foreground truncate" title={status.machine.platform}>
+                  <div
+                    class="text-[10px] text-muted-foreground uppercase tracking-wider mb-1"
+                  >
+                    Platform
+                  </div>
+                  <div
+                    class="text-sm font-medium text-foreground truncate"
+                    title={status.machine.platform}
+                  >
                     {status.machine.platform}
                   </div>
                 </div>
                 <div class="rounded-lg border border-border bg-muted/30 p-3">
-                  <div class="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Arch</div>
-                  <div class="text-sm font-medium text-foreground">{status.machine.arch}</div>
+                  <div
+                    class="text-[10px] text-muted-foreground uppercase tracking-wider mb-1"
+                  >
+                    Arch
+                  </div>
+                  <div class="text-sm font-medium text-foreground">
+                    {status.machine.arch}
+                  </div>
                 </div>
                 <div class="rounded-lg border border-border bg-muted/30 p-3">
-                  <div class="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Hostname</div>
-                  <div class="text-sm font-medium text-foreground truncate" title={status.machine.hostname}>
+                  <div
+                    class="text-[10px] text-muted-foreground uppercase tracking-wider mb-1"
+                  >
+                    Hostname
+                  </div>
+                  <div
+                    class="text-sm font-medium text-foreground truncate"
+                    title={status.machine.hostname}
+                  >
                     {status.machine.hostname}
                   </div>
                 </div>
                 <div class="rounded-lg border border-border bg-muted/30 p-3">
-                  <div class="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Uptime</div>
+                  <div
+                    class="text-[10px] text-muted-foreground uppercase tracking-wider mb-1"
+                  >
+                    Uptime
+                  </div>
                   <div class="text-sm font-medium text-foreground">
                     {formatUptime(status.machine.systemUptimeSeconds)}
                   </div>
@@ -426,35 +498,52 @@
               <!-- CPU -->
               <div class="rounded-lg border border-border p-4 mb-3">
                 <div class="flex items-center justify-between mb-2">
-                  <div class="flex items-center gap-2 text-sm font-medium text-foreground">
+                  <div
+                    class="flex items-center gap-2 text-sm font-medium text-foreground"
+                  >
                     <Cpu class="size-4" />
                     CPU
                     <span class="text-muted-foreground text-xs font-normal">
                       {status.machine.cpu.cores} cores - {status.machine.cpu.model.trim()}
                     </span>
                   </div>
-                  <span class={`text-sm font-bold tabular-nums ${usageTextColor(status.machine.cpu.averageUsage)}`}>
+                  <span
+                    class={`text-sm font-bold tabular-nums ${usageTextColor(status.machine.cpu.averageUsage)}`}
+                  >
                     {status.machine.cpu.averageUsage.toFixed(1)}%
                   </span>
                 </div>
-                <div class="h-2 w-full rounded-full bg-muted overflow-hidden mb-3">
+                <div
+                  class="h-2 w-full rounded-full bg-muted overflow-hidden mb-3"
+                >
                   <div
                     class={`h-full rounded-full transition-all duration-500 ${usageColor(status.machine.cpu.averageUsage)}`}
-                    style="width: {Math.min(status.machine.cpu.averageUsage, 100)}%"
+                    style="width: {Math.min(
+                      status.machine.cpu.averageUsage,
+                      100,
+                    )}%"
                   ></div>
                 </div>
                 <!-- Per-core usage bars -->
                 {#if status.machine.cpu.coreUsages && status.machine.cpu.coreUsages.length > 0}
                   <div class="grid grid-cols-4 sm:grid-cols-8 gap-1.5">
                     {#each status.machine.cpu.coreUsages as usage, i}
-                      <div class="flex flex-col items-center gap-0.5" title={`Core ${i}: ${usage.toFixed(1)}%`}>
-                        <div class="w-full h-8 rounded bg-muted overflow-hidden flex flex-col-reverse">
+                      <div
+                        class="flex flex-col items-center gap-0.5"
+                        title={`Core ${i}: ${usage.toFixed(1)}%`}
+                      >
+                        <div
+                          class="w-full h-8 rounded bg-muted overflow-hidden flex flex-col-reverse"
+                        >
                           <div
                             class={`w-full transition-all duration-500 ${usageColor(usage)}`}
                             style="height: {Math.min(usage, 100)}%"
                           ></div>
                         </div>
-                        <span class="text-[9px] text-muted-foreground tabular-nums">{i}</span>
+                        <span
+                          class="text-[9px] text-muted-foreground tabular-nums"
+                          >{i}</span
+                        >
                       </div>
                     {/each}
                   </div>
@@ -464,44 +553,71 @@
               <!-- Memory -->
               <div class="rounded-lg border border-border p-4 mb-3">
                 <div class="flex items-center justify-between mb-2">
-                  <div class="flex items-center gap-2 text-sm font-medium text-foreground">
+                  <div
+                    class="flex items-center gap-2 text-sm font-medium text-foreground"
+                  >
                     <MemoryStick class="size-4" />
                     Memory
                   </div>
-                  <span class={`text-sm font-bold tabular-nums ${usageTextColor(status.machine.memory.usagePercent)}`}>
+                  <span
+                    class={`text-sm font-bold tabular-nums ${usageTextColor(status.machine.memory.usagePercent)}`}
+                  >
                     {status.machine.memory.usagePercent.toFixed(1)}%
                   </span>
                 </div>
-                <div class="h-2 w-full rounded-full bg-muted overflow-hidden mb-2">
+                <div
+                  class="h-2 w-full rounded-full bg-muted overflow-hidden mb-2"
+                >
                   <div
                     class={`h-full rounded-full transition-all duration-500 ${usageColor(status.machine.memory.usagePercent)}`}
-                    style="width: {Math.min(status.machine.memory.usagePercent, 100)}%"
+                    style="width: {Math.min(
+                      status.machine.memory.usagePercent,
+                      100,
+                    )}%"
                   ></div>
                 </div>
                 <div class="flex justify-between text-xs text-muted-foreground">
-                  <span>Used: {formatBytes(status.machine.memory.usedBytes)}</span>
-                  <span>Free: {formatBytes(status.machine.memory.freeBytes)}</span>
-                  <span>Total: {formatBytes(status.machine.memory.totalBytes)}</span>
+                  <span
+                    >Used: {formatBytes(status.machine.memory.usedBytes)}</span
+                  >
+                  <span
+                    >Free: {formatBytes(status.machine.memory.freeBytes)}</span
+                  >
+                  <span
+                    >Total: {formatBytes(
+                      status.machine.memory.totalBytes,
+                    )}</span
+                  >
                 </div>
               </div>
 
               <!-- Load Average -->
-              <div class="flex items-center justify-between rounded-lg border border-border p-4 mb-3">
-                <div class="flex items-center gap-2 text-sm font-medium text-foreground">
+              <div
+                class="flex items-center justify-between rounded-lg border border-border p-4 mb-3"
+              >
+                <div
+                  class="flex items-center gap-2 text-sm font-medium text-foreground"
+                >
                   <Activity class="size-4" />
                   Load Average
                 </div>
                 <div class="flex gap-4 text-sm tabular-nums">
                   <div class="text-center">
-                    <div class="font-bold text-foreground">{status.machine.loadAverage[0].toFixed(2)}</div>
+                    <div class="font-bold text-foreground">
+                      {status.machine.loadAverage[0].toFixed(2)}
+                    </div>
                     <div class="text-[10px] text-muted-foreground">1 min</div>
                   </div>
                   <div class="text-center">
-                    <div class="font-bold text-foreground">{status.machine.loadAverage[1].toFixed(2)}</div>
+                    <div class="font-bold text-foreground">
+                      {status.machine.loadAverage[1].toFixed(2)}
+                    </div>
                     <div class="text-[10px] text-muted-foreground">5 min</div>
                   </div>
                   <div class="text-center">
-                    <div class="font-bold text-foreground">{status.machine.loadAverage[2].toFixed(2)}</div>
+                    <div class="font-bold text-foreground">
+                      {status.machine.loadAverage[2].toFixed(2)}
+                    </div>
                     <div class="text-[10px] text-muted-foreground">15 min</div>
                   </div>
                 </div>
@@ -510,7 +626,9 @@
               <!-- Disks -->
               {#if status.machine.disks && status.machine.disks.length > 0}
                 <div class="rounded-lg border border-border p-4 mb-3">
-                  <div class="flex items-center gap-2 text-sm font-medium text-foreground mb-3">
+                  <div
+                    class="flex items-center gap-2 text-sm font-medium text-foreground mb-3"
+                  >
                     <HardDrive class="size-4" />
                     Disk Usage
                   </div>
@@ -518,12 +636,20 @@
                     {#each status.machine.disks as disk}
                       <div>
                         <div class="flex items-center justify-between mb-1">
-                          <span class="text-xs text-muted-foreground font-mono">{disk.mount}</span>
-                          <span class={`text-xs font-medium tabular-nums ${usageTextColor(disk.usagePercent)}`}>
-                            {formatBytes(disk.usedBytes)} / {formatBytes(disk.totalBytes)}
+                          <span class="text-xs text-muted-foreground font-mono"
+                            >{disk.mount}</span
+                          >
+                          <span
+                            class={`text-xs font-medium tabular-nums ${usageTextColor(disk.usagePercent)}`}
+                          >
+                            {formatBytes(disk.usedBytes)} / {formatBytes(
+                              disk.totalBytes,
+                            )}
                           </span>
                         </div>
-                        <div class="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                        <div
+                          class="h-1.5 w-full rounded-full bg-muted overflow-hidden"
+                        >
                           <div
                             class={`h-full rounded-full transition-all duration-500 ${usageColor(disk.usagePercent)}`}
                             style="width: {Math.min(disk.usagePercent, 100)}%"
@@ -537,23 +663,31 @@
 
               <!-- Network -->
               {#if status.machine.network && status.machine.network.length > 0}
-                {@const externalIfaces = status.machine.network.filter(n => !n.internal)}
+                {@const externalIfaces = status.machine.network.filter(
+                  (n) => !n.internal,
+                )}
                 {#if externalIfaces.length > 0}
                   <div class="rounded-lg border border-border p-4">
-                    <div class="flex items-center gap-2 text-sm font-medium text-foreground mb-3">
+                    <div
+                      class="flex items-center gap-2 text-sm font-medium text-foreground mb-3"
+                    >
                       <Globe class="size-4" />
                       Network Interfaces
                     </div>
                     <div class="space-y-2">
                       {#each externalIfaces as iface}
                         <div class="flex items-center justify-between text-xs">
-                          <span class="font-medium text-foreground font-mono">{iface.name}</span>
+                          <span class="font-medium text-foreground font-mono"
+                            >{iface.name}</span
+                          >
                           <div class="text-muted-foreground space-x-3">
                             {#if iface.ipv4}
                               <span>{iface.ipv4}</span>
                             {/if}
                             {#if iface.mac}
-                              <span class="text-muted-foreground/60">{iface.mac}</span>
+                              <span class="text-muted-foreground/60"
+                                >{iface.mac}</span
+                              >
                             {/if}
                           </div>
                         </div>
@@ -568,62 +702,115 @@
           <!-- Viber Running Status Section -->
           {#if status.viber}
             <section>
-              <h3 class="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+              <h3
+                class="text-sm font-semibold text-foreground mb-3 flex items-center gap-2"
+              >
                 <Zap class="size-4" />
                 Viber Running Status
               </h3>
 
               <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
                 <div class="rounded-lg border border-border bg-muted/30 p-3">
-                  <div class="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Version</div>
-                  <div class="text-sm font-medium text-foreground">{status.viber.version}</div>
+                  <div
+                    class="text-[10px] text-muted-foreground uppercase tracking-wider mb-1"
+                  >
+                    Version
+                  </div>
+                  <div class="text-sm font-medium text-foreground">
+                    {status.viber.version}
+                  </div>
                 </div>
                 <div class="rounded-lg border border-border bg-muted/30 p-3">
-                  <div class="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Daemon Uptime</div>
+                  <div
+                    class="text-[10px] text-muted-foreground uppercase tracking-wider mb-1"
+                  >
+                    Daemon Uptime
+                  </div>
                   <div class="text-sm font-medium text-foreground">
                     {formatUptime(status.viber.daemonUptimeSeconds)}
                   </div>
                 </div>
                 <div class="rounded-lg border border-border bg-muted/30 p-3">
-                  <div class="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Running Tasks</div>
-                  <div class="text-sm font-medium {status.viber.runningTaskCount > 0 ? 'text-emerald-500' : 'text-foreground'}">
+                  <div
+                    class="text-[10px] text-muted-foreground uppercase tracking-wider mb-1"
+                  >
+                    Running Tasks
+                  </div>
+                  <div
+                    class="text-sm font-medium {status.viber.runningTaskCount >
+                    0
+                      ? 'text-emerald-500'
+                      : 'text-foreground'}"
+                  >
                     {status.viber.runningTaskCount}
                   </div>
                 </div>
                 <div class="rounded-lg border border-border bg-muted/30 p-3">
-                  <div class="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Total Executed</div>
-                  <div class="text-sm font-medium text-foreground">{status.viber.totalTasksExecuted}</div>
+                  <div
+                    class="text-[10px] text-muted-foreground uppercase tracking-wider mb-1"
+                  >
+                    Total Executed
+                  </div>
+                  <div class="text-sm font-medium text-foreground">
+                    {status.viber.totalTasksExecuted}
+                  </div>
                 </div>
               </div>
 
               <!-- Process Memory -->
               <div class="rounded-lg border border-border p-4 mb-3">
-                <div class="flex items-center gap-2 text-sm font-medium text-foreground mb-3">
+                <div
+                  class="flex items-center gap-2 text-sm font-medium text-foreground mb-3"
+                >
                   <MemoryStick class="size-4" />
                   Process Memory
                 </div>
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div>
-                    <div class="text-[10px] text-muted-foreground uppercase tracking-wider">RSS</div>
-                    <div class="text-sm font-medium text-foreground tabular-nums">
+                    <div
+                      class="text-[10px] text-muted-foreground uppercase tracking-wider"
+                    >
+                      RSS
+                    </div>
+                    <div
+                      class="text-sm font-medium text-foreground tabular-nums"
+                    >
                       {formatBytes(status.viber.processMemory.rss)}
                     </div>
                   </div>
                   <div>
-                    <div class="text-[10px] text-muted-foreground uppercase tracking-wider">Heap Total</div>
-                    <div class="text-sm font-medium text-foreground tabular-nums">
+                    <div
+                      class="text-[10px] text-muted-foreground uppercase tracking-wider"
+                    >
+                      Heap Total
+                    </div>
+                    <div
+                      class="text-sm font-medium text-foreground tabular-nums"
+                    >
                       {formatBytes(status.viber.processMemory.heapTotal)}
                     </div>
                   </div>
                   <div>
-                    <div class="text-[10px] text-muted-foreground uppercase tracking-wider">Heap Used</div>
-                    <div class="text-sm font-medium text-foreground tabular-nums">
+                    <div
+                      class="text-[10px] text-muted-foreground uppercase tracking-wider"
+                    >
+                      Heap Used
+                    </div>
+                    <div
+                      class="text-sm font-medium text-foreground tabular-nums"
+                    >
                       {formatBytes(status.viber.processMemory.heapUsed)}
                     </div>
                   </div>
                   <div>
-                    <div class="text-[10px] text-muted-foreground uppercase tracking-wider">External</div>
-                    <div class="text-sm font-medium text-foreground tabular-nums">
+                    <div
+                      class="text-[10px] text-muted-foreground uppercase tracking-wider"
+                    >
+                      External
+                    </div>
+                    <div
+                      class="text-sm font-medium text-foreground tabular-nums"
+                    >
                       {formatBytes(status.viber.processMemory.external)}
                     </div>
                   </div>
@@ -633,20 +820,30 @@
               <!-- Running Tasks -->
               {#if status.viber.runningTasks && status.viber.runningTasks.length > 0}
                 <div class="rounded-lg border border-border p-4 mb-3">
-                  <div class="flex items-center gap-2 text-sm font-medium text-foreground mb-3">
+                  <div
+                    class="flex items-center gap-2 text-sm font-medium text-foreground mb-3"
+                  >
                     <ListTodo class="size-4" />
                     Active Tasks ({status.viber.runningTasks.length})
                   </div>
                   <div class="space-y-2">
                     {#each status.viber.runningTasks as task}
-                      <div class="rounded-md border border-border bg-muted/20 p-3">
+                      <div
+                        class="rounded-md border border-border bg-muted/20 p-3"
+                      >
                         <div class="flex items-start justify-between gap-2">
                           <div class="min-w-0 flex-1">
-                            <div class="text-xs font-medium text-foreground truncate">
+                            <div
+                              class="text-xs font-medium text-foreground truncate"
+                            >
                               {task.goal || task.taskId}
                             </div>
-                            <div class="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-2">
-                              <span class="font-mono">{task.taskId.slice(0, 16)}...</span>
+                            <div
+                              class="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-2"
+                            >
+                              <span class="font-mono"
+                                >{task.taskId.slice(0, 16)}...</span
+                              >
                               {#if task.model}
                                 <span class="text-muted-foreground/60">|</span>
                                 <span>{task.model}</span>
@@ -655,8 +852,16 @@
                               <span>{task.messageCount} msgs</span>
                             </div>
                           </div>
-                          <span class="shrink-0 flex items-center gap-1 text-[10px] font-medium {task.isRunning ? 'text-emerald-500' : 'text-amber-500'}">
-                            <span class="size-1.5 rounded-full {task.isRunning ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}"></span>
+                          <span
+                            class="shrink-0 flex items-center gap-1 text-[10px] font-medium {task.isRunning
+                              ? 'text-emerald-500'
+                              : 'text-amber-500'}"
+                          >
+                            <span
+                              class="size-1.5 rounded-full {task.isRunning
+                                ? 'bg-emerald-500 animate-pulse'
+                                : 'bg-amber-500'}"
+                            ></span>
                             {task.isRunning ? "Running" : "Queued"}
                           </span>
                         </div>
@@ -669,32 +874,48 @@
               <!-- Skill Health -->
               {#if status.viber.skillHealth?.skills && status.viber.skillHealth.skills.length > 0}
                 <div class="rounded-lg border border-border p-4 mb-3">
-                  <div class="flex items-center gap-2 text-sm font-medium text-foreground mb-3">
+                  <div
+                    class="flex items-center gap-2 text-sm font-medium text-foreground mb-3"
+                  >
                     <Puzzle class="size-4" />
                     Skill Health
                   </div>
                   <div class="space-y-2">
                     {#each status.viber.skillHealth.skills as skill}
-                      {@const missingChecks = skill.checks?.filter((c) => (c.required ?? true) && !c.ok) || []}
-                      <div class="rounded-md border border-border bg-muted/20 p-3">
+                      {@const missingChecks =
+                        skill.checks?.filter(
+                          (c) => (c.required ?? true) && !c.ok,
+                        ) || []}
+                      <div
+                        class="rounded-md border border-border bg-muted/20 p-3"
+                      >
                         <div class="flex items-center justify-between gap-2">
                           <div class="text-xs font-medium text-foreground">
                             {skill.name || skill.id}
                           </div>
-                          <span class={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-medium ${healthBadgeClass(skill.status)}`}>
+                          <span
+                            class={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-medium ${healthBadgeClass(skill.status)}`}
+                          >
                             {healthLabel(skill.status)}
                           </span>
                         </div>
                         {#if skill.status !== "AVAILABLE"}
                           <div class="mt-2 space-y-2">
-                            <div class="space-y-1 text-[11px] text-muted-foreground">
+                            <div
+                              class="space-y-1 text-[11px] text-muted-foreground"
+                            >
                               {#if missingChecks.length === 0}
                                 <div>{skill.summary}</div>
                               {:else}
                                 {#each missingChecks as check}
-                                  <div class="flex items-start justify-between gap-2">
+                                  <div
+                                    class="flex items-start justify-between gap-2"
+                                  >
                                     <div class="flex-1">
-                                      <span class="font-medium">{check.label}:</span> {check.hint || check.message || "missing"}
+                                      <span class="font-medium"
+                                        >{check.label}:</span
+                                      >
+                                      {check.hint || check.message || "missing"}
                                     </div>
                                     {#if check.actionType && !check.ok}
                                       <div class="shrink-0">
@@ -704,7 +925,9 @@
                                             class="text-[10px] px-2 py-0.5 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
                                             onclick={() => {
                                               // TODO: Trigger OAuth flow
-                                              alert(`Connect ${skill.name} OAuth`);
+                                              alert(
+                                                `Connect ${skill.name} OAuth`,
+                                              );
                                             }}
                                           >
                                             Connect
@@ -716,8 +939,13 @@
                                             onclick={() => {
                                               if (check.hint) {
                                                 // Copy install command to clipboard
-                                                const cmd = check.hint.match(/Install with: (.+)/)?.[1] || check.hint;
-                                                navigator.clipboard.writeText(cmd);
+                                                const cmd =
+                                                  check.hint.match(
+                                                    /Install with: (.+)/,
+                                                  )?.[1] || check.hint;
+                                                navigator.clipboard.writeText(
+                                                  cmd,
+                                                );
                                                 alert(`Copied: ${cmd}`);
                                               }
                                             }}
@@ -729,7 +957,9 @@
                                             type="button"
                                             class="text-[10px] px-2 py-0.5 rounded bg-muted text-foreground hover:bg-muted/80 transition-colors"
                                             onclick={() => {
-                                              alert(`Add environment variable: ${check.label}`);
+                                              alert(
+                                                `Add environment variable: ${check.label}`,
+                                              );
                                             }}
                                           >
                                             Add env var
@@ -740,8 +970,13 @@
                                             class="text-[10px] px-2 py-0.5 rounded bg-muted text-foreground hover:bg-muted/80 transition-colors"
                                             onclick={() => {
                                               if (check.hint) {
-                                                const cmd = check.hint.match(/Run `(.+)`/)?.[1] || check.hint;
-                                                navigator.clipboard.writeText(cmd);
+                                                const cmd =
+                                                  check.hint.match(
+                                                    /Run `(.+)`/,
+                                                  )?.[1] || check.hint;
+                                                navigator.clipboard.writeText(
+                                                  cmd,
+                                                );
                                                 alert(`Copied: ${cmd}`);
                                               }
                                             }}
@@ -760,8 +995,12 @@
                       </div>
                     {/each}
                   </div>
-                  <div class="text-[11px] text-muted-foreground/60 text-right mt-2">
-                    Updated: {new Date(status.viber.skillHealth.generatedAt).toLocaleTimeString()}
+                  <div
+                    class="text-[11px] text-muted-foreground/60 text-right mt-2"
+                  >
+                    Updated: {new Date(
+                      status.viber.skillHealth.generatedAt,
+                    ).toLocaleTimeString()}
                   </div>
                 </div>
               {/if}
@@ -770,13 +1009,17 @@
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {#if status.viber.skills && status.viber.skills.length > 0}
                   <div class="rounded-lg border border-border p-4">
-                    <div class="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
+                    <div
+                      class="flex items-center gap-2 text-sm font-medium text-foreground mb-2"
+                    >
                       <Puzzle class="size-4" />
                       Skills ({status.viber.skills.length})
                     </div>
                     <div class="flex flex-wrap gap-1">
                       {#each status.viber.skills as skill}
-                        <span class="inline-flex items-center rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                        <span
+                          class="inline-flex items-center rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary"
+                        >
                           {skill}
                         </span>
                       {/each}
@@ -786,13 +1029,17 @@
 
                 {#if status.viber.capabilities && status.viber.capabilities.length > 0}
                   <div class="rounded-lg border border-border p-4">
-                    <div class="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
+                    <div
+                      class="flex items-center gap-2 text-sm font-medium text-foreground mb-2"
+                    >
                       <Network class="size-4" />
                       Capabilities ({status.viber.capabilities.length})
                     </div>
                     <div class="flex flex-wrap gap-1">
                       {#each status.viber.capabilities as cap}
-                        <span class="inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                        <span
+                          class="inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
+                        >
                           {cap}
                         </span>
                       {/each}
@@ -804,16 +1051,22 @@
               <!-- Last Heartbeat & Collection Time -->
               <div class="text-[11px] text-muted-foreground/60 text-right mt-2">
                 {#if status.viber.lastHeartbeatAt}
-                  Last heartbeat: {new Date(status.viber.lastHeartbeatAt).toLocaleTimeString()}
+                  Last heartbeat: {new Date(
+                    status.viber.lastHeartbeatAt,
+                  ).toLocaleTimeString()}
                 {/if}
                 {#if status.viber.collectedAt}
-                  <span class="ml-3">Collected: {new Date(status.viber.collectedAt).toLocaleTimeString()}</span>
+                  <span class="ml-3"
+                    >Collected: {new Date(
+                      status.viber.collectedAt,
+                    ).toLocaleTimeString()}</span
+                  >
                 {/if}
               </div>
             </section>
           {/if}
 
-          <ChannelConfigPanel nodeId={nodeId} />
+          <ChannelConfigPanel {nodeId} />
         </div>
       {/if}
     </div>

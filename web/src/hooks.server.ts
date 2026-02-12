@@ -4,14 +4,14 @@ import { getSettingsForUser } from "$lib/server/user-settings";
 
 // Only these routes require authentication
 const PROTECTED_PATHS = [
+  "/tasks",
   "/vibers",
   "/settings",
   "/skills",
   "/jobs",
-  "/nodes",
   "/environments",
+  "/api/tasks",
   "/api/vibers",
-  "/api/nodes",
   "/api/environments",
   "/api/threads",
   "/api/skills",
@@ -23,16 +23,16 @@ const PROTECTED_PATHS = [
 ];
 
 // These paths are excluded from auth even if they match a protected prefix
-const AUTH_EXCLUDED_PATHS = ["/api/nodes/onboard"];
+const AUTH_EXCLUDED_PATHS = ["/api/vibers/onboard"];
 
 // Paths that require onboarding to be completed first (non-API protected paths)
 const ONBOARDING_GATED_PATHS = [
   "/",
+  "/tasks",
   "/vibers",
   "/settings",
   "/skills",
   "/jobs",
-  "/nodes",
   "/environments",
 ];
 

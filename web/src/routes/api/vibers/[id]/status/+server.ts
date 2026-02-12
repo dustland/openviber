@@ -3,8 +3,8 @@ import type { RequestHandler } from "./$types";
 import { gatewayClient } from "$lib/server/gateway-client";
 
 /**
- * GET /api/nodes/:id/status - Get detailed observability status for a node.
- * Proxies to the board server's /api/nodes/:id/status endpoint.
+ * GET /api/vibers/:id/status - Get detailed observability status for a node.
+ * Proxies to the gateway's /api/nodes/:id/status endpoint.
  */
 export const GET: RequestHandler = async ({ params, locals }) => {
   if (!locals.user) {

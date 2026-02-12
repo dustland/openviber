@@ -24,18 +24,18 @@
     CollapsibleContent,
   } from "$lib/components/ui/collapsible";
   import AppSidebar from "$lib/components/layout/app-sidebar.svelte";
-  import { getVibersStore } from "$lib/stores/vibers";
+  import { getTasksStore } from "$lib/stores/tasks";
 
-  interface SidebarViber {
+  interface SidebarTask {
     id: string;
     goal: string;
-    nodeId: string | null;
-    nodeName: string | null;
+    viberId: string | null;
+    viberName: string | null;
     environmentId: string | null;
     environmentName: string | null;
     status: string;
-    /** Connection status of the node hosting this viber; null if no node */
-    nodeConnected: boolean | null;
+    /** Connection status of the viber running this task; null if no viber */
+    viberConnected: boolean | null;
   }
 
   interface SidebarEnvironment {
@@ -43,32 +43,32 @@
     name: string;
   }
 
-  interface ViberGroup {
+  interface TaskGroup {
     label: string;
     environmentId: string | null;
-    vibers: SidebarViber[];
+    tasks: SidebarTask[];
   }
 
   let { children } = $props();
 
-  const vibersStore = getVibersStore();
-  const vibersState = $derived($vibersStore);
-  const vibers = $derived(vibersState.vibers as SidebarViber[]);
+  const tasksStore = getTasksStore();
+  const tasksState = $derived($tasksStore);
+  const tasks = $derived(tasksState.tasks as SidebarTask[]);
   let environments = $state<SidebarEnvironment[]>([]);
 
-  const viberGroups = $derived.by(() => {
-    const groups = new Map<string, ViberGroup>();
+  const taskGroups = $derived.by(() => {
+    const groups = new Map<string, TaskGroup>();
 
-    for (const viber of vibers) {
-      const key = viber.environmentId ?? "__unassigned__";
+    for (const task of tasks) {
+      const key = task.environmentId ?? "__unassigned__";
       if (!groups.has(key)) {
         groups.set(key, {
-          label: viber.environmentName ?? "Unassigned",
-          environmentId: viber.environmentId,
-          vibers: [],
+          label: task.environmentName ?? "Unassigned",
+          environmentId: task.environmentId,
+          tasks: [],
         });
       }
-      groups.get(key)!.vibers.push(viber);
+      groups.get(key)!.tasks.push(task);
     }
 
     return Array.from(groups.values()).sort((a, b) => {
@@ -78,17 +78,15 @@
     });
   });
 
-  const allVibers = $derived(
-    viberGroups.flatMap((g) => g.vibers),
-  );
+  const allTasks = $derived(taskGroups.flatMap((g) => g.tasks));
 
   const pathname = $derived($page.url.pathname);
+  const isTasksRoute = $derived(
+    pathname === "/tasks" || pathname.startsWith("/tasks/"),
+  );
+  const isNewTaskRoute = $derived(pathname === "/tasks/new");
   const isVibersRoute = $derived(
     pathname === "/vibers" || pathname.startsWith("/vibers/"),
-  );
-  const isNewViberRoute = $derived(pathname === "/vibers/new");
-  const isNodesRoute = $derived(
-    pathname === "/nodes" || pathname.startsWith("/nodes/"),
   );
   const isEnvironmentsRoute = $derived(
     pathname === "/environments" || pathname.startsWith("/environments/"),
@@ -125,11 +123,11 @@
   }
 
   onMount(() => {
-    void vibersStore.getVibers();
+    void tasksStore.getTasks();
     void fetchEnvironments();
 
     const interval = setInterval(() => {
-      void vibersStore.getVibers();
+      void tasksStore.getTasks();
       void fetchEnvironments();
     }, 5000);
 
@@ -144,16 +142,16 @@
         <Sidebar.Menu>
           <Sidebar.MenuItem>
             <Sidebar.MenuButton
-              isActive={isNewViberRoute}
-              tooltipContent="New Viber"
+              isActive={isNewTaskRoute}
+              tooltipContent="New Task"
             >
               <a
-                href="/vibers/new"
+                href="/tasks/new"
                 class="w-full inline-flex items-center gap-2"
               >
                 <Plus class="size-4 shrink-0" />
                 <span class="truncate group-data-[collapsible=icon]:hidden"
-                  >New Viber</span
+                  >New Task</span
                 >
               </a>
             </Sidebar.MenuButton>
@@ -161,24 +159,27 @@
 
           <Sidebar.MenuItem>
             <Sidebar.MenuButton
-              isActive={isVibersRoute && !isNewViberRoute}
-              tooltipContent="Vibers"
+              isActive={isTasksRoute && !isNewTaskRoute}
+              tooltipContent="Tasks"
             >
-              <a href="/vibers" class="w-full inline-flex items-center gap-2">
+              <a href="/tasks" class="w-full inline-flex items-center gap-2">
                 <Cpu class="size-4 shrink-0" />
                 <span class="truncate group-data-[collapsible=icon]:hidden"
-                  >Vibers</span
+                  >Tasks</span
                 >
               </a>
             </Sidebar.MenuButton>
           </Sidebar.MenuItem>
 
           <Sidebar.MenuItem>
-            <Sidebar.MenuButton isActive={isNodesRoute} tooltipContent="Nodes">
-              <a href="/nodes" class="w-full inline-flex items-center gap-2">
+            <Sidebar.MenuButton
+              isActive={isVibersRoute}
+              tooltipContent="Vibers"
+            >
+              <a href="/vibers" class="w-full inline-flex items-center gap-2">
                 <Laptop class="size-4 shrink-0" />
                 <span class="truncate group-data-[collapsible=icon]:hidden"
-                  >Nodes</span
+                  >Vibers</span
                 >
               </a>
             </Sidebar.MenuButton>
@@ -227,10 +228,7 @@
           </Sidebar.MenuItem>
 
           <Sidebar.MenuItem>
-            <Sidebar.MenuButton
-              isActive={isLogsRoute}
-              tooltipContent="Logs"
-            >
+            <Sidebar.MenuButton isActive={isLogsRoute} tooltipContent="Logs">
               <a href="/logs" class="w-full inline-flex items-center gap-2">
                 <ScrollText class="size-4 shrink-0" />
                 <span class="truncate group-data-[collapsible=icon]:hidden"
@@ -239,41 +237,45 @@
               </a>
             </Sidebar.MenuButton>
           </Sidebar.MenuItem>
-
         </Sidebar.Menu>
       </Sidebar.GroupContent>
     </Sidebar.Group>
 
-    {#if viberGroups.length > 0}
+    {#if taskGroups.length > 0}
       <Sidebar.Separator />
 
       <!-- Collapsed view: flat icon list with tooltips -->
       <Sidebar.Group class="hidden group-data-[collapsible=icon]:block">
         <Sidebar.GroupContent>
           <Sidebar.Menu>
-            {#each allVibers as viber (viber.id)}
-              {@const goalText = viber.goal || viber.id}
-              {@const tooltipText = goalText.length > 120 ? goalText.slice(0, 117) + "…" : goalText}
+            {#each allTasks as task (task.id)}
+              {@const goalText = task.goal || task.id}
+              {@const tooltipText =
+                goalText.length > 120 ? goalText.slice(0, 117) + "…" : goalText}
               <Sidebar.MenuItem>
                 <Sidebar.MenuButton
-                  isActive={pathname.startsWith(`/vibers/${viber.id}`)}
+                  isActive={pathname.startsWith(`/tasks/${task.id}`)}
                   tooltipContent={tooltipText}
-                  tooltipContentProps={{ class: "max-w-64 whitespace-normal text-xs leading-relaxed" }}
+                  tooltipContentProps={{
+                    class: "max-w-64 whitespace-normal text-xs leading-relaxed",
+                  }}
                 >
                   <a
-                    href={`/vibers/${viber.id}`}
+                    href={`/tasks/${task.id}`}
                     class="w-full inline-flex items-center gap-2"
                   >
-                    {#if viber.status === "running"}
-                      <LoaderCircle class="size-4 shrink-0 animate-spin text-emerald-500" />
-                    {:else if viber.status === "error"}
+                    {#if task.status === "running"}
+                      <LoaderCircle
+                        class="size-4 shrink-0 animate-spin text-emerald-500"
+                      />
+                    {:else if task.status === "error"}
                       <AlertCircle class="size-4 shrink-0 text-red-500" />
-                    {:else if viber.status === "completed"}
+                    {:else if task.status === "completed"}
                       <CheckCircle2 class="size-4 shrink-0 text-blue-500" />
                     {:else}
                       <Cpu class="size-4 shrink-0 text-muted-foreground" />
                     {/if}
-                    <span class="truncate">{viber.goal || viber.id}</span>
+                    <span class="truncate">{task.goal || task.id}</span>
                   </a>
                 </Sidebar.MenuButton>
               </Sidebar.MenuItem>
@@ -287,19 +289,17 @@
         <Sidebar.GroupLabel
           class="text-[10px] uppercase tracking-wider text-sidebar-foreground/55 px-2"
         >
-          Vibers
+          Tasks
         </Sidebar.GroupLabel>
         <Sidebar.GroupContent>
           <Sidebar.Menu>
-            {#each viberGroups as group (group.environmentId ?? "__unassigned__")}
+            {#each taskGroups as group (group.environmentId ?? "__unassigned__")}
               <Collapsible open={true} class="group/collapsible">
                 <Sidebar.MenuItem>
                   <CollapsibleTrigger class="w-full">
                     <Sidebar.MenuButton class="text-sidebar-foreground/70">
                       <FolderGit2 class="size-4 shrink-0" />
-                      <span
-                        class="truncate text-xs font-medium"
-                      >
+                      <span class="truncate text-xs font-medium">
                         {group.label}
                       </span>
                       <ChevronRight
@@ -311,29 +311,29 @@
                     <Sidebar.MenuSub
                       class="mx-0 translate-x-0 border-0 px-0 py-1"
                     >
-                      {#each group.vibers as viber (viber.id)}
+                      {#each group.tasks as task (task.id)}
                         <Sidebar.MenuSubItem>
                           <HoverCard.Root openDelay={400} closeDelay={100}>
                             <HoverCard.Trigger asChild>
                               <Sidebar.MenuSubButton
-                                href={`/vibers/${viber.id}`}
+                                href={`/tasks/${task.id}`}
                                 isActive={pathname.startsWith(
-                                  `/vibers/${viber.id}`,
+                                  `/tasks/${task.id}`,
                                 )}
                                 class="min-h-8 translate-x-0 gap-2 rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-sidebar-foreground/85 hover:bg-sidebar-accent data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-foreground"
                               >
                                 <span
                                   class="flex size-4 shrink-0 items-center justify-center"
                                 >
-                                  {#if viber.status === "running"}
+                                  {#if task.status === "running"}
                                     <LoaderCircle
                                       class="size-3.5 animate-spin text-emerald-500"
                                     />
-                                  {:else if viber.status === "error"}
+                                  {:else if task.status === "error"}
                                     <AlertCircle
                                       class="size-3.5 text-red-500"
                                     />
-                                  {:else if viber.status === "completed"}
+                                  {:else if task.status === "completed"}
                                     <CheckCircle2
                                       class="size-3.5 text-blue-500"
                                     />
@@ -343,12 +343,10 @@
                                     />
                                   {/if}
                                 </span>
-                                <span
-                                  class="truncate leading-none"
-                                >
-                                  {viber.goal.length > 42
-                                    ? viber.goal.slice(0, 42) + "…"
-                                    : viber.goal || viber.id}
+                                <span class="truncate leading-none">
+                                  {task.goal.length > 42
+                                    ? task.goal.slice(0, 42) + "…"
+                                    : task.goal || task.id}
                                 </span>
                               </Sidebar.MenuSubButton>
                             </HoverCard.Trigger>
@@ -363,25 +361,25 @@
                                 <p
                                   class="text-sm font-medium leading-snug text-foreground line-clamp-3"
                                 >
-                                  {viber.goal || viber.id}
+                                  {task.goal || task.id}
                                 </p>
                                 <div class="mt-1.5 flex items-center gap-1.5">
                                   <span
-                                    class="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide {viber.status ===
+                                    class="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide {task.status ===
                                     'running'
                                       ? 'bg-emerald-500/10 text-emerald-600'
-                                      : viber.status === 'error'
+                                      : task.status === 'error'
                                         ? 'bg-red-500/10 text-red-600'
-                                        : viber.status === 'completed'
+                                        : task.status === 'completed'
                                           ? 'bg-blue-500/10 text-blue-600'
                                           : 'bg-muted text-muted-foreground'}"
                                   >
-                                    {#if viber.status === "running"}
+                                    {#if task.status === "running"}
                                       <LoaderCircle
                                         class="size-2.5 animate-spin"
                                       />
                                     {/if}
-                                    {viber.status}
+                                    {task.status}
                                   </span>
                                 </div>
                               </div>
@@ -390,27 +388,27 @@
                                 class="border-t border-border/40 px-3.5 py-2 space-y-1.5 text-xs text-muted-foreground"
                               >
                                 <div class="flex items-center justify-between">
-                                  <span>Node</span>
+                                  <span>Viber</span>
                                   <span
                                     class="inline-flex items-center gap-1 text-foreground/80"
                                   >
-                                    {#if viber.nodeConnected}
+                                    {#if task.viberConnected}
                                       <Wifi class="size-3 text-emerald-500" />
-                                    {:else if viber.nodeName}
+                                    {:else if task.viberName}
                                       <WifiOff
                                         class="size-3 text-muted-foreground/60"
                                       />
                                     {/if}
-                                    {viber.nodeName ?? "—"}
+                                    {task.viberName ?? "—"}
                                   </span>
                                 </div>
-                                {#if viber.environmentName}
+                                {#if task.environmentName}
                                   <div
                                     class="flex items-center justify-between"
                                   >
                                     <span>Environment</span>
                                     <span class="text-foreground/80"
-                                      >{viber.environmentName}</span
+                                      >{task.environmentName}</span
                                     >
                                   </div>
                                 {/if}
@@ -420,7 +418,7 @@
                                 class="border-t border-border/40 px-2 py-1.5 flex items-center gap-1"
                               >
                                 <a
-                                  href={`/vibers/${viber.id}/jobs`}
+                                  href={`/tasks/${task.id}/jobs`}
                                   class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                                 >
                                   <CalendarClock class="size-3.5" />

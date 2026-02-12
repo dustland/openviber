@@ -357,7 +357,7 @@
         <div
           class="flex items-center justify-center py-10 text-sm text-muted-foreground"
         >
-          <Loader2 class="size-4 animate-spin mr-2" />
+          <Loader2 class="size-4 animate-spin" />
           Loading...
         </div>
       {:else if customIntents.length === 0}
@@ -389,8 +389,7 @@
                     </p>
                     {#if isExpanded(intent.id)}
                       <pre
-                        class="text-xs text-muted-foreground/80 mt-2 whitespace-pre-wrap wrap-break-word font-mono"
-                      >{intent.body}</pre>
+                        class="text-xs text-muted-foreground/80 mt-2 whitespace-pre-wrap wrap-break-word font-mono">{intent.body}</pre>
                     {:else}
                       <p
                         class="text-xs text-muted-foreground/70 mt-2 line-clamp-2 font-mono"
@@ -498,10 +497,11 @@
                   </p>
                   {#if isExpanded(intent.id)}
                     <pre
-                      class="text-xs text-muted-foreground/80 mt-2 whitespace-pre-wrap wrap-break-word font-mono"
-                    >{intent.body}</pre>
+                      class="text-xs text-muted-foreground/80 mt-2 whitespace-pre-wrap wrap-break-word font-mono">{intent.body}</pre>
                   {:else}
-                    <p class="text-xs text-muted-foreground/70 mt-2 line-clamp-2 font-mono">
+                    <p
+                      class="text-xs text-muted-foreground/70 mt-2 line-clamp-2 font-mono"
+                    >
                       {intent.body.slice(0, 120)}{intent.body.length > 120
                         ? "..."
                         : ""}

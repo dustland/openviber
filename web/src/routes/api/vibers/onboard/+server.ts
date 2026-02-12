@@ -3,7 +3,7 @@ import type { RequestHandler } from "./$types";
 import { claimNodeByToken } from "$lib/server/viber-nodes";
 
 /**
- * POST /api/nodes/onboard
+ * POST /api/vibers/onboard
  *
  * Called by the CLI during `openviber onboard --token <token>`.
  * This endpoint does NOT require cookie-based auth — it's authenticated

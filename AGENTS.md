@@ -21,6 +21,7 @@ Guidelines for AI agents working on the OpenViber codebase.
   - `cd web && pnpm dlx shadcn-svelte@latest add <component>`
 - **Prefer DropdownMenu over native `<select>`** for selection/filter controls.
 - Before building a custom component, check if shadcn-svelte already provides it.
+- **No `mr-2` on icons inside buttons.** Use the parent container's `gap` (e.g. `gap-2`) for spacing between icon and label.
 
 ## Project Structure
 

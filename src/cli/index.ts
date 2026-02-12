@@ -1067,7 +1067,7 @@ Machine Resources
           if (data.status?.viber) {
             const v = data.status.viber;
             console.log(`
-Viber Running Status (from hub)
+Viber Running Status (from gateway)
 ────────────────────────────────────
   Connected:     ● Yes
   Daemon Uptime: ${formatUptime(v.daemonUptimeSeconds)}
@@ -1082,7 +1082,7 @@ Viber Running Status (from hub)
         }
       } catch {
         console.log(`
-  (Hub not reachable at default URL — use --hub to specify)`);
+  (Gateway not reachable at default URL — use --gateway to specify)`);
       }
     }
 

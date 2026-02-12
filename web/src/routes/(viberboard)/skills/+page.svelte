@@ -137,7 +137,9 @@
     }
     return map;
   });
-  const activeNodes = $derived(nodes.filter((node) => node.status === "active"));
+  const activeNodes = $derived(
+    nodes.filter((node) => node.status === "active"),
+  );
   const selectedPlaygroundNode = $derived(
     activeNodes.find((node) => node.id === selectedPlaygroundNodeId) ?? null,
   );
@@ -180,7 +182,7 @@
 
   async function fetchNodes() {
     try {
-      const res = await fetch("/api/nodes");
+      const res = await fetch("/api/vibers");
       if (!res.ok) {
         nodes = [];
         return;
@@ -202,7 +204,10 @@
         throw new Error(data.error || "Failed to load sources");
       }
       const data = await res.json();
-      const raw = (data.sources ?? {}) as Record<string, { displayName?: string; enabled?: boolean; docsUrl?: string }>;
+      const raw = (data.sources ?? {}) as Record<
+        string,
+        { displayName?: string; enabled?: boolean; docsUrl?: string }
+      >;
       const next: SourceOption[] = Object.entries(raw).map(([id, meta]) => ({
         id,
         label: meta?.displayName || id,
@@ -219,7 +224,8 @@
 
   async function searchDiscover(nextPage = 1) {
     if (enabledSourcesCount === 0) {
-      discoverError = "Enable at least one skill source in Settings → Skills to search.";
+      discoverError =
+        "Enable at least one skill source in Settings → Skills to search.";
       discoverSkills = [];
       total = 0;
       totalPages = 0;
@@ -269,7 +275,10 @@
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Failed to import");
-      importStates = { ...importStates, [key]: { status: "success", message: data.message } };
+      importStates = {
+        ...importStates,
+        [key]: { status: "success", message: data.message },
+      };
       await fetchInstalled();
     } catch (e) {
       importStates = {
@@ -288,7 +297,9 @@
       [skillId]: { ready: false, unmet: [], loading: true },
     };
     try {
-      const res = await fetch(`/api/skills/requirements?skillId=${encodeURIComponent(skillId)}`);
+      const res = await fetch(
+        `/api/skills/requirements?skillId=${encodeURIComponent(skillId)}`,
+      );
       if (!res.ok) {
         requirementStatuses = {
           ...requirementStatuses,
@@ -354,10 +365,16 @@
     playgroundResult = null;
 
     const preferredNode = activeNodes.find((node) =>
-      skill.usedByNodes.some((usedByNode) => usedByNode.id === node.id || usedByNode.id === node.node_id),
+      skill.usedByNodes.some(
+        (usedByNode) =>
+          usedByNode.id === node.id || usedByNode.id === node.node_id,
+      ),
     );
-    const fallbackNode = activeNodes.find((node) => nodeSupportsSkill(node, skill.id));
-    selectedPlaygroundNodeId = preferredNode?.id || fallbackNode?.id || activeNodes[0]?.id || "";
+    const fallbackNode = activeNodes.find((node) =>
+      nodeSupportsSkill(node, skill.id),
+    );
+    selectedPlaygroundNodeId =
+      preferredNode?.id || fallbackNode?.id || activeNodes[0]?.id || "";
   }
 
   async function runPlayground() {
@@ -366,7 +383,9 @@
     playgroundError = null;
     playgroundResult = null;
     try {
-      const selectedNode = activeNodes.find((node) => node.id === selectedPlaygroundNodeId);
+      const selectedNode = activeNodes.find(
+        (node) => node.id === selectedPlaygroundNodeId,
+      );
       const res = await fetch("/api/skills/playground", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -382,10 +401,14 @@
       }
       playgroundResult = data;
       if (!data.ok) {
-        playgroundError = data.message || data.error || "Playground run did not complete successfully.";
+        playgroundError =
+          data.message ||
+          data.error ||
+          "Playground run did not complete successfully.";
       }
     } catch (error) {
-      playgroundError = error instanceof Error ? error.message : "Failed to run playground";
+      playgroundError =
+        error instanceof Error ? error.message : "Failed to run playground";
     } finally {
       playgroundRunning = false;
     }
@@ -425,13 +448,16 @@
     <header>
       <h1 class="text-2xl font-semibold text-foreground mb-1">Skills</h1>
       <p class="text-sm text-muted-foreground">
-        View installed skills on your nodes and discover new ones from configured sources.
+        View installed skills on your nodes and discover new ones from
+        configured sources.
       </p>
     </header>
 
     <!-- Installed skills -->
     <section>
-      <h2 class="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+      <h2
+        class="text-lg font-semibold text-foreground mb-3 flex items-center gap-2"
+      >
         <Puzzle class="size-5 text-muted-foreground" />
         Installed skills
       </h2>
@@ -450,10 +476,13 @@
           </div>
         </div>
       {:else if installed.length === 0}
-        <div class="rounded-xl border border-dashed border-border p-8 text-center">
+        <div
+          class="rounded-xl border border-dashed border-border p-8 text-center"
+        >
           <Puzzle class="size-12 text-muted-foreground/50 mx-auto mb-3" />
           <p class="text-sm text-muted-foreground">
-            No skills on connected nodes yet. Connect a node or import skills from the discover section below.
+            No skills on connected vibers yet. Connect a viber or import skills
+            from the discover section below.
           </p>
           <a
             href="/docs/concepts/skills"
@@ -505,7 +534,9 @@
                     Playground
                   </Button>
                   {#if reqStatus?.loading}
-                    <Loader2 class="size-4 animate-spin text-muted-foreground" />
+                    <Loader2
+                      class="size-4 animate-spin text-muted-foreground"
+                    />
                   {:else if reqStatus && !reqStatus.ready}
                     <button
                       type="button"
@@ -544,30 +575,48 @@
 
               <!-- Setup wizard panel -->
               {#if isExpanded && reqStatus && !reqStatus.ready}
-                <div class="mt-4 rounded-lg border border-amber-200 dark:border-amber-900 bg-amber-50/50 dark:bg-amber-950/20 p-4 space-y-3">
-                  <p class="text-sm font-medium text-amber-800 dark:text-amber-300">
+                <div
+                  class="mt-4 rounded-lg border border-amber-200 dark:border-amber-900 bg-amber-50/50 dark:bg-amber-950/20 p-4 space-y-3"
+                >
+                  <p
+                    class="text-sm font-medium text-amber-800 dark:text-amber-300"
+                  >
                     This skill needs the following to work:
                   </p>
                   {#each reqStatus.unmet as req, i (i)}
-                    <div class="flex items-start gap-3 rounded-md bg-background/60 p-3">
-                      <div class="mt-0.5 flex size-6 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-950/40 shrink-0">
+                    <div
+                      class="flex items-start gap-3 rounded-md bg-background/60 p-3"
+                    >
+                      <div
+                        class="mt-0.5 flex size-6 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-950/40 shrink-0"
+                      >
                         {#if req.type === "oauth"}
-                          <Link2 class="size-3.5 text-amber-600 dark:text-amber-400" />
+                          <Link2
+                            class="size-3.5 text-amber-600 dark:text-amber-400"
+                          />
                         {:else if req.type === "env"}
-                          <AlertTriangle class="size-3.5 text-amber-600 dark:text-amber-400" />
+                          <AlertTriangle
+                            class="size-3.5 text-amber-600 dark:text-amber-400"
+                          />
                         {:else}
-                          <Download class="size-3.5 text-amber-600 dark:text-amber-400" />
+                          <Download
+                            class="size-3.5 text-amber-600 dark:text-amber-400"
+                          />
                         {/if}
                       </div>
                       <div class="flex-1 min-w-0">
                         <p class="text-sm font-medium">{req.label}</p>
                         {#if req.hint}
                           <div class="flex items-center gap-2 mt-1">
-                            <code class="text-xs text-muted-foreground bg-muted rounded px-1.5 py-0.5">{req.hint}</code>
+                            <code
+                              class="text-xs text-muted-foreground bg-muted rounded px-1.5 py-0.5"
+                              >{req.hint}</code
+                            >
                             <button
                               type="button"
                               class="text-muted-foreground hover:text-foreground"
-                              onclick={() => copyToClipboard(req.hint || '', `hint-${i}`)}
+                              onclick={() =>
+                                copyToClipboard(req.hint || "", `hint-${i}`)}
                             >
                               {#if copiedHint === `hint-${i}`}
                                 <Check class="size-3" />
@@ -592,7 +641,9 @@
                   <button
                     type="button"
                     class="text-xs text-primary hover:underline"
-                    onclick={async () => { await checkRequirements(skill.id); }}
+                    onclick={async () => {
+                      await checkRequirements(skill.id);
+                    }}
                   >
                     Re-check requirements
                   </button>
@@ -609,24 +660,35 @@
 
     <!-- Discover & import -->
     <section>
-      <h2 class="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+      <h2
+        class="text-lg font-semibold text-foreground mb-3 flex items-center gap-2"
+      >
         <Sparkles class="size-5 text-muted-foreground" />
         Discover & import
       </h2>
       <p class="text-sm text-muted-foreground mb-4">
         Search your configured skill sources and import skills to
-        <code class="rounded bg-muted px-1.5 py-0.5 text-xs">~/.openviber/skills</code>.
-        Configure which sources to use in <a href="/settings/skills" class="text-primary hover:underline">Settings → Skills</a>.
+        <code class="rounded bg-muted px-1.5 py-0.5 text-xs"
+          >~/.openviber/skills</code
+        >. Configure which sources to use in
+        <a href="/settings/skills" class="text-primary hover:underline"
+          >Settings → Skills</a
+        >.
       </p>
 
       <div class="rounded-xl border border-border bg-card p-4 mb-4">
         <div class="grid gap-4 lg:grid-cols-[2fr,1fr,1fr,auto] lg:items-end">
           <div>
-            <label class="block text-xs font-medium text-muted-foreground mb-2" for="skill-search">
+            <label
+              class="block text-xs font-medium text-muted-foreground mb-2"
+              for="skill-search"
+            >
               Search
             </label>
             <div class="relative">
-              <Search class="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <Search
+                class="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground"
+              />
               <input
                 id="skill-search"
                 type="search"
@@ -638,7 +700,10 @@
             </div>
           </div>
           <div>
-            <label class="block text-xs font-medium text-muted-foreground mb-2" for="source-filter">
+            <label
+              class="block text-xs font-medium text-muted-foreground mb-2"
+              for="source-filter"
+            >
               Source
             </label>
             <select
@@ -656,7 +721,10 @@
             </select>
           </div>
           <div>
-            <label class="block text-xs font-medium text-muted-foreground mb-2" for="sort-order">
+            <label
+              class="block text-xs font-medium text-muted-foreground mb-2"
+              for="sort-order"
+            >
               Sort
             </label>
             <select
@@ -675,7 +743,9 @@
             <button
               type="button"
               onclick={() => searchDiscover(1)}
-              disabled={discoverLoading || sourcesLoading || enabledSourcesCount === 0}
+              disabled={discoverLoading ||
+                sourcesLoading ||
+                enabledSourcesCount === 0}
               class="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {#if discoverLoading}
@@ -691,18 +761,27 @@
       </div>
 
       {#if sourcesError}
-        <div class="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive flex items-center gap-2 mb-4">
+        <div
+          class="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive flex items-center gap-2 mb-4"
+        >
           <AlertCircle class="size-4" />
           {sourcesError}
         </div>
       {:else if enabledSourcesCount === 0}
-        <div class="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-800 dark:text-amber-200 mb-4">
-          No skill sources enabled. <a href="/settings/skills" class="font-medium underline">Enable sources in Settings → Skills</a> to discover and import skills.
+        <div
+          class="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-800 dark:text-amber-200 mb-4"
+        >
+          No skill sources enabled. <a
+            href="/settings/skills"
+            class="font-medium underline">Enable sources in Settings → Skills</a
+          > to discover and import skills.
         </div>
       {/if}
 
       {#if discoverError}
-        <div class="rounded-lg border border-destructive/50 bg-destructive/10 p-4 flex items-center gap-3 mb-4">
+        <div
+          class="rounded-lg border border-destructive/50 bg-destructive/10 p-4 flex items-center gap-3 mb-4"
+        >
           <AlertCircle class="size-5 text-destructive shrink-0" />
           <p class="text-sm text-destructive">{discoverError}</p>
         </div>
@@ -711,7 +790,9 @@
           <Loader2 class="size-8 text-muted-foreground/60 animate-spin" />
         </div>
       {:else if discoverSkills.length === 0}
-        <div class="rounded-xl border border-dashed border-border p-8 text-center">
+        <div
+          class="rounded-xl border border-dashed border-border p-8 text-center"
+        >
           <Sparkles class="size-12 text-muted-foreground/50 mx-auto mb-3" />
           <p class="text-sm text-muted-foreground">
             {enabledSourcesCount === 0
@@ -739,18 +820,26 @@
               <div class="flex flex-col gap-3">
                 <div class="flex items-start justify-between gap-3">
                   <div class="flex-1 min-w-0">
-                    <h3 class="text-base font-semibold text-card-foreground mb-1">
+                    <h3
+                      class="text-base font-semibold text-card-foreground mb-1"
+                    >
                       {skill.name}
                     </h3>
                     {#if skill.description}
-                      <p class="text-sm text-muted-foreground">{skill.description}</p>
+                      <p class="text-sm text-muted-foreground">
+                        {skill.description}
+                      </p>
                     {/if}
                   </div>
-                  <span class="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+                  <span
+                    class="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary"
+                  >
                     {getSourceLabel(skill.source)}
                   </span>
                 </div>
-                <div class="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                <div
+                  class="flex flex-wrap items-center gap-3 text-xs text-muted-foreground"
+                >
                   <span>{skill.author}</span>
                   <span class="text-muted-foreground/40">|</span>
                   <span>v{skill.version}</span>
@@ -793,7 +882,11 @@
                   {/if}
                 </div>
                 {#if importState?.message}
-                  <p class="text-xs {hasError ? 'text-destructive' : 'text-muted-foreground'}">
+                  <p
+                    class="text-xs {hasError
+                      ? 'text-destructive'
+                      : 'text-muted-foreground'}"
+                  >
                     {importState.message}
                   </p>
                 {/if}
@@ -831,21 +924,28 @@
     <Dialog.Header>
       <Dialog.Title>Skill Playground</Dialog.Title>
       <Dialog.Description>
-        Run a quick verification on a target node to confirm <code>{playgroundSkill?.id}</code> works end-to-end.
+        Run a quick verification on a target node to confirm <code
+          >{playgroundSkill?.id}</code
+        > works end-to-end.
       </Dialog.Description>
     </Dialog.Header>
 
     <div class="space-y-4">
       {#if activeNodes.length === 0}
-        <div class="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
-          No active nodes available. Bring a node online to run playground checks.
+        <div
+          class="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+        >
+          No active vibers available. Bring a viber online to run playground
+          checks.
         </div>
       {:else}
         <div class="space-y-2">
-          <p class="text-xs font-medium text-muted-foreground">Target node</p>
+          <p class="text-xs font-medium text-muted-foreground">Target viber</p>
           <DropdownMenu.Root>
-            <DropdownMenu.Trigger class="inline-flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 text-sm">
-              <span>{selectedPlaygroundNode?.name || "Select a node"}</span>
+            <DropdownMenu.Trigger
+              class="inline-flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <span>{selectedPlaygroundNode?.name || "Select a viber"}</span>
               <ChevronDown class="size-4" />
             </DropdownMenu.Trigger>
             <DropdownMenu.Content class="w-[var(--bits-anchor-width)]">
@@ -867,13 +967,17 @@
           </DropdownMenu.Root>
         </div>
 
-        <div class="rounded-md border border-border bg-muted/20 p-3 text-xs text-muted-foreground">
-          This creates a temporary viber on the selected node and asks it to run the playground verification flow for the selected skill.
+        <div
+          class="rounded-md border border-border bg-muted/20 p-3 text-xs text-muted-foreground"
+        >
+          This creates a temporary viber on the selected viber and asks it to
+          run the playground verification flow for the selected skill.
         </div>
 
-
         <div class="space-y-2">
-          <p class="text-xs font-medium text-muted-foreground">Scenario (optional)</p>
+          <p class="text-xs font-medium text-muted-foreground">
+            Scenario (optional)
+          </p>
           <Textarea
             bind:value={playgroundScenario}
             class="min-h-24"
@@ -883,37 +987,58 @@
             Leave blank to run the default verification flow.
           </p>
         </div>
-
       {/if}
 
       {#if playgroundError}
-        <div class="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+        <div
+          class="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive"
+        >
           {playgroundError}
         </div>
       {/if}
 
       {#if playgroundResult}
-        <div class="space-y-2 rounded-md border border-border bg-muted/20 p-3 text-xs">
+        <div
+          class="space-y-2 rounded-md border border-border bg-muted/20 p-3 text-xs"
+        >
           <p>
             <span class="font-medium">Status:</span>
-            <span class={playgroundResult.ok ? "text-green-600" : "text-destructive"}>
+            <span
+              class={playgroundResult.ok
+                ? "text-green-600"
+                : "text-destructive"}
+            >
               {playgroundResult.status}
             </span>
           </p>
-          <p><span class="font-medium">Viber:</span> {playgroundResult.viberId}</p>
+          <p>
+            <span class="font-medium">Viber:</span>
+            {playgroundResult.viberId}
+          </p>
           {#if playgroundResult.message}
-            <p><span class="font-medium">Message:</span> {playgroundResult.message}</p>
+            <p>
+              <span class="font-medium">Message:</span>
+              {playgroundResult.message}
+            </p>
           {/if}
           {#if playgroundResult.partialText}
             <div class="space-y-1">
               <p class="font-medium">Model summary</p>
-              <pre class="max-h-56 overflow-auto rounded-md border border-border bg-background p-2 text-[11px] whitespace-pre-wrap">{playgroundResult.partialText}</pre>
+              <pre
+                class="max-h-56 overflow-auto rounded-md border border-border bg-background p-2 text-[11px] whitespace-pre-wrap">{playgroundResult.partialText}</pre>
             </div>
           {/if}
           {#if playgroundResult.result}
             <details>
-              <summary class="cursor-pointer font-medium">Raw result payload</summary>
-              <pre class="mt-2 max-h-64 overflow-auto rounded-md border border-border bg-background p-2 text-[11px]">{JSON.stringify(playgroundResult.result, null, 2)}</pre>
+              <summary class="cursor-pointer font-medium"
+                >Raw result payload</summary
+              >
+              <pre
+                class="mt-2 max-h-64 overflow-auto rounded-md border border-border bg-background p-2 text-[11px]">{JSON.stringify(
+                  playgroundResult.result,
+                  null,
+                  2,
+                )}</pre>
             </details>
           {/if}
         </div>
@@ -921,15 +1046,12 @@
     </div>
 
     <Dialog.Footer>
-      <Button
-        variant="outline"
-        onclick={closePlaygroundDialog}
-      >
-        Close
-      </Button>
+      <Button variant="outline" onclick={closePlaygroundDialog}>Close</Button>
       <Button
         onclick={runPlayground}
-        disabled={playgroundRunning || !playgroundSkill || !selectedPlaygroundNodeId}
+        disabled={playgroundRunning ||
+          !playgroundSkill ||
+          !selectedPlaygroundNodeId}
       >
         {#if playgroundRunning}
           <Loader2 class="size-4 mr-1 animate-spin" />

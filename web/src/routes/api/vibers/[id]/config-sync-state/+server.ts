@@ -1,5 +1,5 @@
 /**
- * PUT /api/nodes/[id]/config-sync-state
+ * PUT /api/vibers/[id]/config-sync-state
  *
  * Update a node's config sync state (called by gateway on config:ack).
  * Authenticated via gateway API token or service role.
@@ -15,7 +15,7 @@ export const PUT: RequestHandler = async ({ params, request }) => {
   // Authenticate via gateway API token or service role
   const authHeader = request.headers.get("authorization");
   const gatewayToken = env.VIBER_GATEWAY_API_TOKEN || env.VIBER_BOARD_API_TOKEN || env.VIBER_HUB_API_TOKEN;
-  
+
   if (!authHeader?.startsWith("Bearer ") || authHeader.slice(7) !== gatewayToken) {
     return json({ error: "Unauthorized" }, { status: 401 });
   }

@@ -163,7 +163,7 @@ const DEFAULT_DEV_NODE_CONFIG = {
  * Ensure the current user has a viber_nodes row for the dev pseudo node.
  * When OPENVIBER_DEV_NODE_ID is set (e.g. in .env), the local daemon that
  * connects with that id (X-Viber-Id header) will be matched to this row
- * and shown as a normal node. Call from GET /api/nodes when env is set.
+ * and shown as a normal node. Call from GET /api/vibers when env is set.
  */
 export async function ensureDevNode(
   userId: string,

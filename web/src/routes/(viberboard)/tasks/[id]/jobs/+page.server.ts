@@ -13,7 +13,7 @@ interface Job {
 
 export const load: PageServerLoad = async ({ fetch, params }) => {
   try {
-    const res = await fetch(`/api/vibers/${params.id}/jobs`);
+    const res = await fetch(`/api/tasks/${params.id}/jobs`);
     if (!res.ok) {
       return { jobs: [], error: "Failed to load jobs" };
     }

@@ -1,24 +1,24 @@
 import { writable } from "svelte/store";
 
-/** Shape of one viber from GET /api/vibers */
-export interface ViberListItem {
+/** Shape of one task from GET /api/tasks */
+export interface TaskListItem {
   id: string;
-  nodeId: string | null;
-  nodeName: string | null;
+  viberId: string | null;
+  viberName: string | null;
   environmentId: string | null;
   environmentName: string | null;
   goal: string;
   status: string;
   createdAt: string | null;
   completedAt: string | null;
-  nodeConnected: boolean | null;
+  viberConnected: boolean | null;
   archivedAt: string | null;
 }
 
-const STORAGE_KEY = "openviber:vibers";
+const STORAGE_KEY = "openviber:tasks";
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 min for localStorage
 
-function loadFromStorage(): ViberListItem[] | null {
+function loadFromStorage(): TaskListItem[] | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -29,13 +29,13 @@ function loadFromStorage(): ViberListItem[] | null {
     };
     if (!Array.isArray(list) || typeof at !== "number") return null;
     if (Date.now() - at > CACHE_TTL_MS) return null;
-    return list as ViberListItem[];
+    return list as TaskListItem[];
   } catch {
     return null;
   }
 }
 
-function saveToStorage(list: ViberListItem[]) {
+function saveToStorage(list: TaskListItem[]) {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem(
@@ -47,18 +47,18 @@ function saveToStorage(list: ViberListItem[]) {
   }
 }
 
-interface VibersState {
-  vibers: ViberListItem[];
+interface TasksState {
+  tasks: TaskListItem[];
   loading: boolean;
   error: string | null;
   includeArchived: boolean;
   fetchedAt: number;
 }
 
-function createVibersStore() {
+function createTasksStore() {
   const initial = loadFromStorage();
-  const { subscribe, set, update } = writable<VibersState>({
-    vibers: initial ?? [],
+  const { subscribe, set, update } = writable<TasksState>({
+    tasks: initial ?? [],
     loading: false,
     error: null,
     includeArchived: false,
@@ -67,7 +67,7 @@ function createVibersStore() {
 
   let fetchAbort: AbortController | null = null;
 
-  async function fetchVibers(
+  async function fetchTasks(
     includeArchived = false,
     backgroundRefetch = false,
   ): Promise<void> {
@@ -81,12 +81,12 @@ function createVibersStore() {
 
     try {
       const params = includeArchived ? "?include_archived=true" : "";
-      const res = await fetch(`/api/vibers${params}`, { signal });
+      const res = await fetch(`/api/tasks${params}`, { signal });
       if (!res.ok) {
-        const err = res.status === 401 ? "Unauthorized" : "Failed to load vibers";
+        const err = res.status === 401 ? "Unauthorized" : "Failed to load tasks";
         update((s) => ({
           ...s,
-          vibers: [],
+          tasks: [],
           loading: false,
           error: err,
           includeArchived,
@@ -95,11 +95,11 @@ function createVibersStore() {
         return;
       }
       const data = await res.json();
-      const list = (Array.isArray(data) ? data : []) as ViberListItem[];
+      const list = (Array.isArray(data) ? data : []) as TaskListItem[];
       const now = Date.now();
       update((s) => ({
         ...s,
-        vibers: list,
+        tasks: list,
         loading: false,
         error: null,
         includeArchived,
@@ -110,11 +110,11 @@ function createVibersStore() {
       }
     } catch (e) {
       if ((e as Error).name === "AbortError") return;
-      console.error("Failed to fetch vibers:", e);
+      console.error("Failed to fetch tasks:", e);
       update((s) => ({
         ...s,
         loading: false,
-        error: "Failed to load vibers",
+        error: "Failed to load tasks",
         includeArchived,
       }));
     } finally {
@@ -126,46 +126,46 @@ function createVibersStore() {
     subscribe,
 
     /**
-     * Load vibers (active only or including archived).
+     * Load tasks (active only or including archived).
      * Uses cache: if we have data for the same filter and it's fresh, returns immediately and refetches in background.
      * Otherwise fetches and then updates the store.
      */
-    async getVibers(includeArchived = false): Promise<void> {
-      let state: VibersState;
+    async getTasks(includeArchived = false): Promise<void> {
+      let state: TasksState;
       subscribe((s) => (state = s))();
 
       const cached =
         state!.includeArchived === includeArchived &&
-        state!.vibers.length > 0 &&
+        state!.tasks.length > 0 &&
         state!.fetchedAt > 0;
 
       if (cached) {
         // Show cached, refetch in background (no loading flash)
-        void fetchVibers(includeArchived, true);
+        void fetchTasks(includeArchived, true);
         return;
       }
-      await fetchVibers(includeArchived);
+      await fetchTasks(includeArchived);
     },
 
     /** Mark cache stale and refetch (e.g. after create/archive/restore). */
     async invalidate(): Promise<void> {
-      let state: VibersState;
+      let state: TasksState;
       subscribe((s) => (state = s))();
       update((s) => ({ ...s, fetchedAt: 0 }));
-      await fetchVibers(state!.includeArchived);
+      await fetchTasks(state!.includeArchived);
     },
 
     /** Force refetch for current includeArchived. */
     async refresh(includeArchived = false): Promise<void> {
       update((s) => ({ ...s, fetchedAt: 0 }));
-      await fetchVibers(includeArchived);
+      await fetchTasks(includeArchived);
     },
   };
 }
 
-let store: ReturnType<typeof createVibersStore> | null = null;
+let store: ReturnType<typeof createTasksStore> | null = null;
 
-export function getVibersStore() {
-  if (!store) store = createVibersStore();
+export function getTasksStore() {
+  if (!store) store = createTasksStore();
   return store;
 }

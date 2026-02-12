@@ -20,65 +20,65 @@
     avatarUrl?: string | null;
   }
 
-  interface DashboardViber {
+  interface DashboardTask {
     id: string;
     goal: string;
     status: string;
-    nodeConnected: boolean | null;
+    viberConnected: boolean | null;
   }
 
   const user = $derived(($page.data?.user as SessionUser | undefined) || null);
-  let recentVibers = $state<DashboardViber[]>([]);
-  let loadingRecentVibers = $state(true);
-  let lastActiveViberId = $state<string | null>(null);
+  let recentTasks = $state<DashboardTask[]>([]);
+  let loadingRecentTasks = $state(true);
+  let lastActiveTaskId = $state<string | null>(null);
 
   const continueChatHref = $derived.by(() => {
     if (
-      lastActiveViberId &&
-      recentVibers.some((viber) => viber.id === lastActiveViberId)
+      lastActiveTaskId &&
+      recentTasks.some((task) => task.id === lastActiveTaskId)
     ) {
-      return `/vibers/${lastActiveViberId}`;
+      return `/tasks/${lastActiveTaskId}`;
     }
-    return recentVibers[0] ? `/vibers/${recentVibers[0].id}` : "/vibers/new";
+    return recentTasks[0] ? `/tasks/${recentTasks[0].id}` : "/tasks/new";
   });
 
   onMount(async () => {
     try {
       if (typeof window !== "undefined") {
-        lastActiveViberId = window.localStorage.getItem(
-          "openviber:last-active-viber",
+        lastActiveTaskId = window.localStorage.getItem(
+          "openviber:last-active-task",
         );
       }
 
-      const response = await fetch("/api/vibers");
+      const response = await fetch("/api/tasks");
       const payload = await response.json();
       if (response.ok && Array.isArray(payload)) {
-        recentVibers = payload
-          .map((viber) => ({
-            id: String(viber.id || ""),
-            goal: String(viber.goal || viber.id || "Untitled viber"),
-            status: String(viber.status || "unknown"),
-            nodeConnected:
-              typeof viber.nodeConnected === "boolean"
-                ? viber.nodeConnected
+        recentTasks = payload
+          .map((task) => ({
+            id: String(task.id || ""),
+            goal: String(task.goal || task.id || "Untitled task"),
+            status: String(task.status || "unknown"),
+            viberConnected:
+              typeof task.viberConnected === "boolean"
+                ? task.viberConnected
                 : null,
           }))
-          .filter((viber) => viber.id)
+          .filter((task) => task.id)
           .slice(0, 3);
       }
     } catch {
-      recentVibers = [];
+      recentTasks = [];
     } finally {
-      loadingRecentVibers = false;
+      loadingRecentTasks = false;
     }
   });
 
   const quickLinks = [
     {
       icon: Bot,
-      title: "Vibers",
-      description: "Create and manage AI agents",
-      href: "/vibers",
+      title: "Tasks",
+      description: "Create and manage AI tasks",
+      href: "/tasks",
       color: "primary",
     },
     {
@@ -97,9 +97,9 @@
     },
     {
       icon: Server,
-      title: "Nodes",
+      title: "Vibers",
       description: "Connected daemon instances",
-      href: "/nodes",
+      href: "/vibers",
       color: "primary",
     },
     {
@@ -153,7 +153,9 @@
       <div
         class="rounded-xl border border-border/50 bg-card/30 p-6 backdrop-blur-sm"
       >
-        <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <p
+          class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+        >
           Chat-first
         </p>
         <h2 class="mt-1 text-xl font-semibold text-foreground">
@@ -171,31 +173,33 @@
             Continue Chat
           </a>
           <a
-            href="/vibers/new"
+            href="/tasks/new"
             class="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-background/60 px-3.5 py-1.5 text-xs font-medium text-foreground transition-all duration-200 hover:bg-accent/80 hover:border-primary/30"
           >
             New Chat
           </a>
           <a
-            href="/nodes"
+            href="/vibers"
             class="inline-flex items-center gap-1.5 rounded-lg border border-border/60 bg-background/60 px-3.5 py-1.5 text-xs font-medium text-foreground transition-all duration-200 hover:bg-accent/80 hover:border-primary/30"
           >
             Fix Setup
           </a>
         </div>
 
-        {#if !loadingRecentVibers && recentVibers.length > 0}
+        {#if !loadingRecentTasks && recentTasks.length > 0}
           <div class="mt-4 space-y-1">
-            <p class="text-[11px] uppercase tracking-wide text-muted-foreground">
+            <p
+              class="text-[11px] uppercase tracking-wide text-muted-foreground"
+            >
               Recent chats
             </p>
             <div class="flex flex-wrap gap-2">
-              {#each recentVibers as viber (viber.id)}
+              {#each recentTasks as task (task.id)}
                 <a
-                  href={`/vibers/${viber.id}`}
+                  href={`/tasks/${task.id}`}
                   class="inline-flex max-w-full items-center gap-1.5 rounded-full border border-border bg-background px-2.5 py-1 text-xs text-foreground hover:bg-accent"
                 >
-                  <span class="truncate max-w-[220px]">{viber.goal}</span>
+                  <span class="truncate max-w-[220px]">{task.goal}</span>
                 </a>
               {/each}
             </div>
@@ -262,7 +266,7 @@
             </p>
             <div class="flex flex-wrap gap-2">
               <a
-                href="/vibers/new"
+                href="/tasks/new"
                 class="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-1.5 text-xs font-medium text-primary-foreground transition-all duration-200 hover:brightness-110"
               >
                 <Zap class="size-3" />

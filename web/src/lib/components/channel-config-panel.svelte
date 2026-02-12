@@ -128,7 +128,9 @@
     loading = true;
     error = null;
     try {
-      const res = await fetch(`/api/nodes/${encodeURIComponent(nodeId)}/config`);
+      const res = await fetch(
+        `/api/vibers/${encodeURIComponent(nodeId)}/config`,
+      );
       const payload = await res.json();
       if (!res.ok) {
         throw new Error(payload.error || "Failed to load config");
@@ -232,11 +234,14 @@
 
       const nextConfig = { ...baseConfig, channels };
 
-      const res = await fetch(`/api/nodes/${encodeURIComponent(nodeId)}/config`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ config: nextConfig }),
-      });
+      const res = await fetch(
+        `/api/vibers/${encodeURIComponent(nodeId)}/config`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ config: nextConfig }),
+        },
+      );
       const payload = await res.json();
       if (!res.ok) {
         throw new Error(payload.error || "Failed to save config");
@@ -263,7 +268,9 @@
     <div class="flex items-center gap-2">
       <Zap class="size-4 text-muted-foreground" />
       <div>
-        <h3 class="text-sm font-semibold text-foreground">Channel Integrations</h3>
+        <h3 class="text-sm font-semibold text-foreground">
+          Channel Integrations
+        </h3>
         <p class="text-xs text-muted-foreground">
           Configure Discord, Feishu, and enterprise channels for this node.
         </p>
@@ -286,14 +293,18 @@
   </div>
 
   {#if error}
-    <div class="rounded-lg border border-destructive/50 bg-destructive/10 p-3 mb-4 flex items-center gap-2">
+    <div
+      class="rounded-lg border border-destructive/50 bg-destructive/10 p-3 mb-4 flex items-center gap-2"
+    >
       <AlertCircle class="size-4 text-destructive" />
       <p class="text-xs text-destructive">{error}</p>
     </div>
   {/if}
 
   {#if successMessage}
-    <div class="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3 mb-4 flex items-center gap-2">
+    <div
+      class="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3 mb-4 flex items-center gap-2"
+    >
       <Check class="size-4 text-emerald-600" />
       <p class="text-xs text-emerald-600">{successMessage}</p>
     </div>
@@ -323,7 +334,10 @@
 
         <div class="grid gap-3 sm:grid-cols-2">
           <div>
-            <label for="discord-bot-token" class="text-[11px] text-muted-foreground">Bot Token</label>
+            <label
+              for="discord-bot-token"
+              class="text-[11px] text-muted-foreground">Bot Token</label
+            >
             <div class="relative">
               <input
                 id="discord-bot-token"
@@ -346,7 +360,10 @@
             </div>
           </div>
           <div>
-            <label for="discord-allow-guild-ids" class="text-[11px] text-muted-foreground">Allow Guild IDs</label>
+            <label
+              for="discord-allow-guild-ids"
+              class="text-[11px] text-muted-foreground">Allow Guild IDs</label
+            >
             <input
               id="discord-allow-guild-ids"
               type="text"
@@ -356,7 +373,10 @@
             />
           </div>
           <div>
-            <label for="discord-allow-channel-ids" class="text-[11px] text-muted-foreground">Allow Channel IDs</label>
+            <label
+              for="discord-allow-channel-ids"
+              class="text-[11px] text-muted-foreground">Allow Channel IDs</label
+            >
             <input
               id="discord-allow-channel-ids"
               type="text"
@@ -366,7 +386,10 @@
             />
           </div>
           <div>
-            <label for="discord-allow-user-ids" class="text-[11px] text-muted-foreground">Allow User IDs</label>
+            <label
+              for="discord-allow-user-ids"
+              class="text-[11px] text-muted-foreground">Allow User IDs</label
+            >
             <input
               id="discord-allow-user-ids"
               type="text"
@@ -382,7 +405,10 @@
             </label>
           </div>
           <div>
-            <label for="discord-reply-mode" class="text-[11px] text-muted-foreground">Reply Mode</label>
+            <label
+              for="discord-reply-mode"
+              class="text-[11px] text-muted-foreground">Reply Mode</label
+            >
             <select
               id="discord-reply-mode"
               bind:value={discord.replyMode}
@@ -412,7 +438,9 @@
 
         <div class="grid gap-3 sm:grid-cols-2">
           <div>
-            <label for="feishu-app-id" class="text-[11px] text-muted-foreground">App ID</label>
+            <label for="feishu-app-id" class="text-[11px] text-muted-foreground"
+              >App ID</label
+            >
             <input
               id="feishu-app-id"
               type="text"
@@ -422,7 +450,10 @@
             />
           </div>
           <div>
-            <label for="feishu-app-secret" class="text-[11px] text-muted-foreground">App Secret</label>
+            <label
+              for="feishu-app-secret"
+              class="text-[11px] text-muted-foreground">App Secret</label
+            >
             <div class="relative">
               <input
                 id="feishu-app-secret"
@@ -445,7 +476,9 @@
             </div>
           </div>
           <div>
-            <label for="feishu-domain" class="text-[11px] text-muted-foreground">Domain</label>
+            <label for="feishu-domain" class="text-[11px] text-muted-foreground"
+              >Domain</label
+            >
             <input
               id="feishu-domain"
               type="text"
@@ -455,7 +488,10 @@
             />
           </div>
           <div>
-            <label for="feishu-connection-mode" class="text-[11px] text-muted-foreground">Connection Mode</label>
+            <label
+              for="feishu-connection-mode"
+              class="text-[11px] text-muted-foreground">Connection Mode</label
+            >
             <select
               id="feishu-connection-mode"
               bind:value={feishu.connectionMode}
@@ -466,7 +502,10 @@
             </select>
           </div>
           <div>
-            <label for="feishu-webhook-path" class="text-[11px] text-muted-foreground">Webhook Path</label>
+            <label
+              for="feishu-webhook-path"
+              class="text-[11px] text-muted-foreground">Webhook Path</label
+            >
             <input
               id="feishu-webhook-path"
               type="text"
@@ -476,7 +515,11 @@
             />
           </div>
           <div>
-            <label for="feishu-verification-token" class="text-[11px] text-muted-foreground">Verification Token</label>
+            <label
+              for="feishu-verification-token"
+              class="text-[11px] text-muted-foreground"
+              >Verification Token</label
+            >
             <input
               id="feishu-verification-token"
               type="text"
@@ -486,7 +529,10 @@
             />
           </div>
           <div>
-            <label for="feishu-encrypt-key" class="text-[11px] text-muted-foreground">Encrypt Key</label>
+            <label
+              for="feishu-encrypt-key"
+              class="text-[11px] text-muted-foreground">Encrypt Key</label
+            >
             <input
               id="feishu-encrypt-key"
               type="text"
@@ -527,7 +573,10 @@
 
         <div class="grid gap-3 sm:grid-cols-2">
           <div>
-            <label for="dingtalk-app-key" class="text-[11px] text-muted-foreground">App Key</label>
+            <label
+              for="dingtalk-app-key"
+              class="text-[11px] text-muted-foreground">App Key</label
+            >
             <input
               id="dingtalk-app-key"
               type="text"
@@ -537,7 +586,10 @@
             />
           </div>
           <div>
-            <label for="dingtalk-app-secret" class="text-[11px] text-muted-foreground">App Secret</label>
+            <label
+              for="dingtalk-app-secret"
+              class="text-[11px] text-muted-foreground">App Secret</label
+            >
             <input
               id="dingtalk-app-secret"
               type="text"
@@ -547,7 +599,10 @@
             />
           </div>
           <div>
-            <label for="dingtalk-robot-code" class="text-[11px] text-muted-foreground">Robot Code</label>
+            <label
+              for="dingtalk-robot-code"
+              class="text-[11px] text-muted-foreground">Robot Code</label
+            >
             <input
               id="dingtalk-robot-code"
               type="text"
@@ -576,7 +631,9 @@
 
         <div class="grid gap-3 sm:grid-cols-2">
           <div>
-            <label for="wecom-corp-id" class="text-[11px] text-muted-foreground">Corp ID</label>
+            <label for="wecom-corp-id" class="text-[11px] text-muted-foreground"
+              >Corp ID</label
+            >
             <input
               id="wecom-corp-id"
               type="text"
@@ -586,7 +643,10 @@
             />
           </div>
           <div>
-            <label for="wecom-agent-id" class="text-[11px] text-muted-foreground">Agent ID</label>
+            <label
+              for="wecom-agent-id"
+              class="text-[11px] text-muted-foreground">Agent ID</label
+            >
             <input
               id="wecom-agent-id"
               type="text"
@@ -596,7 +656,10 @@
             />
           </div>
           <div>
-            <label for="wecom-agent-secret" class="text-[11px] text-muted-foreground">Agent Secret</label>
+            <label
+              for="wecom-agent-secret"
+              class="text-[11px] text-muted-foreground">Agent Secret</label
+            >
             <input
               id="wecom-agent-secret"
               type="text"
@@ -606,7 +669,9 @@
             />
           </div>
           <div>
-            <label for="wecom-token" class="text-[11px] text-muted-foreground">Token</label>
+            <label for="wecom-token" class="text-[11px] text-muted-foreground"
+              >Token</label
+            >
             <input
               id="wecom-token"
               type="text"
@@ -616,7 +681,9 @@
             />
           </div>
           <div>
-            <label for="wecom-aes-key" class="text-[11px] text-muted-foreground">AES Key</label>
+            <label for="wecom-aes-key" class="text-[11px] text-muted-foreground"
+              >AES Key</label
+            >
             <input
               id="wecom-aes-key"
               type="text"

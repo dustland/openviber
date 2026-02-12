@@ -9,7 +9,7 @@
     DropdownMenuSeparator,
   } from "$lib/components/ui/dropdown-menu";
   import { ChevronDown, Check, Circle } from "@lucide/svelte";
-  import { getVibersStore } from "$lib/stores/vibers";
+  import { getTasksStore } from "$lib/stores/tasks";
 
   interface Viber {
     id: string;
@@ -25,21 +25,21 @@
 
   let { currentViber = null, collapsed = false }: Props = $props();
 
-  const vibersStore = getVibersStore();
-  const vibersState = $derived($vibersStore);
+  const tasksStore = getTasksStore();
+  const tasksState = $derived($tasksStore);
   const vibers = $derived(
-    vibersState.vibers.map((v) => ({
+    tasksState.tasks.map((v) => ({
       id: v.id,
       name: v.goal,
-      nodeConnected: v.nodeConnected,
+      nodeConnected: v.viberConnected,
     })),
   );
-  const loading = $derived(vibersState.loading);
+  const loading = $derived(tasksState.loading);
 
   const currentViberId = $derived($page.params.id);
 
   onMount(() => {
-    void vibersStore.getVibers();
+    void tasksStore.getTasks();
   });
 
   function navigateToViber(viberId: string) {

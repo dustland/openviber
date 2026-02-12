@@ -37,11 +37,19 @@
   export const MODEL_OPTIONS = [
     { id: "", label: "Default", badge: "" },
     // Flagship
-    { id: "anthropic/claude-opus-4.6", label: "Claude Opus 4.6", badge: "Flagship" },
+    {
+      id: "anthropic/claude-opus-4.6",
+      label: "Claude Opus 4.6",
+      badge: "Flagship",
+    },
     { id: "openai/gpt-5.3", label: "GPT-5.3", badge: "Flagship" },
     { id: "google/gemini-3.0-pro", label: "Gemini 3.0 Pro", badge: "Flagship" },
     // Fast
-    { id: "anthropic/claude-sonnet-4.6", label: "Claude Sonnet 4.6", badge: "Fast" },
+    {
+      id: "anthropic/claude-sonnet-4.6",
+      label: "Claude Sonnet 4.6",
+      badge: "Fast",
+    },
     { id: "google/gemini-3.0-flash", label: "Gemini 3.0 Flash", badge: "Fast" },
     { id: "openai/gpt-5.3-mini", label: "GPT-5.3 Mini", badge: "Fast" },
     // Value
@@ -130,9 +138,7 @@
   );
   const hasNodeSelector = $derived(nodes.length > 0);
   const hasEnvSelector = $derived(environments.length > 0);
-  const canSend = $derived(
-    !!value.trim() && !sending && !disabled,
-  );
+  const canSend = $derived(!!value.trim() && !sending && !disabled);
 
   function toggleSkill(skillId: string) {
     const skill = skills.find((s) => s.id === skillId);
@@ -216,17 +222,19 @@
                 <span class="truncate max-w-[100px]">{selectedNode.name}</span>
               {:else}
                 <Laptop class="size-3.5" />
-                <span>Node</span>
+                <span>Viber</span>
               {/if}
               <ChevronDown class="size-3 opacity-50" />
             </DropdownMenu.Trigger>
             <DropdownMenu.Content align="start" class="w-64">
-              <DropdownMenu.Label>Select node</DropdownMenu.Label>
+              <DropdownMenu.Label>Select viber</DropdownMenu.Label>
               <DropdownMenu.Separator />
               {#if nodes.length === 0}
-                <div class="px-2 py-3 text-center text-xs text-muted-foreground">
-                  No nodes registered. Go to
-                  <a href="/nodes" class="underline">Nodes</a> to add one.
+                <div
+                  class="px-2 py-3 text-center text-xs text-muted-foreground"
+                >
+                  No vibers registered. Go to
+                  <a href="/vibers" class="underline">Vibers</a> to add one.
                 </div>
               {:else}
                 {#each nodes as node (node.id)}
@@ -244,7 +252,9 @@
                       ></span>
                       {node.name}
                       {#if node.status !== "active"}
-                        <span class="text-xs text-muted-foreground">({node.status})</span>
+                        <span class="text-xs text-muted-foreground"
+                          >({node.status})</span
+                        >
                       {/if}
                     </span>
                     {#if selectedNodeId === node.id}
@@ -265,7 +275,9 @@
             >
               <FolderGit2 class="size-3.5" />
               {#if selectedEnvironment}
-                <span class="truncate max-w-[100px]">{selectedEnvironment.name}</span>
+                <span class="truncate max-w-[100px]"
+                  >{selectedEnvironment.name}</span
+                >
               {:else}
                 <span>Env</span>
               {/if}
@@ -329,7 +341,9 @@
                 <span class="flex items-center gap-2">
                   {opt.label}
                   {#if opt.badge}
-                    <span class="rounded-full bg-muted/60 px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                    <span
+                      class="rounded-full bg-muted/60 px-1.5 py-0.5 text-[10px] text-muted-foreground"
+                    >
                       {opt.badge}
                     </span>
                   {/if}
@@ -351,13 +365,21 @@
               <Sparkles class="size-3.5" />
               <span>Skills</span>
               {#if selectedSkillCount > 0}
-                <span class="rounded-full bg-primary/15 text-primary px-1.5 py-0.5 text-[10px] font-semibold tabular-nums">{selectedSkillCount}</span>
+                <span
+                  class="rounded-full bg-primary/15 text-primary px-1.5 py-0.5 text-[10px] font-semibold tabular-nums"
+                  >{selectedSkillCount}</span
+                >
               {:else}
-                <span class="rounded-full bg-muted/60 px-1.5 py-0.5 text-[10px] tabular-nums">{skills.length}</span>
+                <span
+                  class="rounded-full bg-muted/60 px-1.5 py-0.5 text-[10px] tabular-nums"
+                  >{skills.length}</span
+                >
               {/if}
             </DropdownMenu.Trigger>
             <DropdownMenu.Content align="start" class="w-72">
-              <DropdownMenu.Label>Enable skills for this viber</DropdownMenu.Label>
+              <DropdownMenu.Label
+                >Enable skills for this viber</DropdownMenu.Label
+              >
               <DropdownMenu.Separator />
               {#each skills as skill (skill.id)}
                 <DropdownMenu.CheckboxItem
@@ -366,13 +388,19 @@
                   class="flex items-center gap-2"
                 >
                   <div class="min-w-0 flex-1">
-                    <span class="text-sm font-medium {skill.available === false ? 'opacity-50' : ''}">{skill.name}</span>
+                    <span
+                      class="text-sm font-medium {skill.available === false
+                        ? 'opacity-50'
+                        : ''}">{skill.name}</span
+                    >
                     {#if skill.available === false && skill.healthSummary}
                       <p class="text-[11px] text-destructive line-clamp-1">
                         {skill.healthSummary} (click to set up)
                       </p>
                     {:else if skill.description}
-                      <p class="text-[11px] text-muted-foreground line-clamp-1">{skill.description}</p>
+                      <p class="text-[11px] text-muted-foreground line-clamp-1">
+                        {skill.description}
+                      </p>
                     {/if}
                   </div>
                 </DropdownMenu.CheckboxItem>

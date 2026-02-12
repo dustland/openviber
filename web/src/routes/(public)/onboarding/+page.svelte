@@ -241,15 +241,14 @@
         </p>
       </div>
 
-    <!-- ── Model / Timezone / Ready ────────────────────────────────────── -->
+      <!-- ── Model / Timezone / Ready ────────────────────────────────────── -->
     {:else}
       <div class="w-full max-w-lg">
         <!-- Progress dots -->
         <div class="flex items-center justify-center gap-2 mb-8">
           {#each PROGRESS_STEPS as s, i}
             {@const isActive = s === step}
-            {@const isDone =
-              STEP_ORDER.indexOf(s) < STEP_ORDER.indexOf(step)}
+            {@const isDone = STEP_ORDER.indexOf(s) < STEP_ORDER.indexOf(step)}
             <div
               class="h-1.5 rounded-full transition-all duration-300
                 {isActive
@@ -312,13 +311,17 @@
                         >
                         {#if opt.badge}
                           <span
-                            class="rounded-full px-1.5 py-px text-[10px] font-medium {badgeColor(opt.badge)}"
+                            class="rounded-full px-1.5 py-px text-[10px] font-medium {badgeColor(
+                              opt.badge,
+                            )}"
                           >
                             {opt.badge}
                           </span>
                         {/if}
                       </div>
-                      <p class="text-xs text-muted-foreground mt-0.5 leading-snug">
+                      <p
+                        class="text-xs text-muted-foreground mt-0.5 leading-snug"
+                      >
                         {opt.desc}
                       </p>
                     </div>
@@ -365,7 +368,9 @@
                   <div
                     class="size-10 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0"
                   >
-                    <Globe class="size-5 text-emerald-600 dark:text-emerald-400" />
+                    <Globe
+                      class="size-5 text-emerald-600 dark:text-emerald-400"
+                    />
                   </div>
                   <div>
                     <p class="text-xs text-muted-foreground">Detected</p>
@@ -374,7 +379,9 @@
                     </p>
                   </div>
                   <div class="ml-auto">
-                    <Check class="size-5 text-emerald-600 dark:text-emerald-400" />
+                    <Check
+                      class="size-5 text-emerald-600 dark:text-emerald-400"
+                    />
                   </div>
                 </div>
               {/if}
@@ -429,15 +436,17 @@
               <div
                 class="size-14 rounded-xl bg-emerald-500/10 flex items-center justify-center mx-auto mb-5"
               >
-                <Sparkles class="size-7 text-emerald-600 dark:text-emerald-400" />
+                <Sparkles
+                  class="size-7 text-emerald-600 dark:text-emerald-400"
+                />
               </div>
 
               <h2 class="text-xl font-semibold text-foreground mb-2">
                 You're all set
               </h2>
               <p class="text-sm text-muted-foreground mb-6 max-w-xs mx-auto">
-                Your instance is ready. Connect a node next — run the daemon on
-                any machine and onboard it from the Nodes page.
+                Your instance is ready. Connect a viber next — run the daemon on
+                any machine and onboard it from the Vibers page.
               </p>
 
               {#if error}

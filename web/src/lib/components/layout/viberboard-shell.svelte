@@ -16,14 +16,19 @@
     avatarUrl?: string | null;
   }
 
-  let { children, sidebar }: { children?: Snippet; sidebar?: Snippet } = $props();
+  let { children, sidebar }: { children?: Snippet; sidebar?: Snippet } =
+    $props();
 
   const pathname = $derived($page.url.pathname);
-  const isVibersRoute = $derived(pathname === "/vibers" || pathname.startsWith("/vibers/"));
+  const isTasksRoute = $derived(
+    pathname === "/tasks" || pathname.startsWith("/tasks/"),
+  );
   const isEnvironmentsRoute = $derived(
     pathname === "/environments" || pathname.startsWith("/environments/"),
   );
-  const isNodesRoute = $derived(pathname === "/nodes" || pathname.startsWith("/nodes/"));
+  const isVibersRoute = $derived(
+    pathname === "/vibers" || pathname.startsWith("/vibers/"),
+  );
   const user = $derived(($page.data?.user as SessionUser | undefined) || null);
 </script>
 
@@ -38,7 +43,9 @@
             title="OpenViber"
           >
             <img src="/favicon.png" alt="OpenViber" class="size-5" />
-            <span class="truncate font-medium group-data-[collapsible=icon]:hidden">
+            <span
+              class="truncate font-medium group-data-[collapsible=icon]:hidden"
+            >
               OpenViber
             </span>
           </a>
@@ -54,28 +61,52 @@
           <Sidebar.GroupContent>
             <Sidebar.Menu>
               <Sidebar.MenuItem>
-                <Sidebar.MenuButton isActive={isVibersRoute} tooltipContent="Vibers">
-                  <a href="/vibers" class="w-full inline-flex items-center gap-2">
+                <Sidebar.MenuButton
+                  isActive={isTasksRoute}
+                  tooltipContent="Tasks"
+                >
+                  <a
+                    href="/tasks"
+                    class="w-full inline-flex items-center gap-2"
+                  >
                     <Cpu class="size-4 shrink-0" />
-                    <span class="truncate group-data-[collapsible=icon]:hidden">Vibers</span>
+                    <span class="truncate group-data-[collapsible=icon]:hidden"
+                      >Tasks</span
+                    >
                   </a>
                 </Sidebar.MenuButton>
               </Sidebar.MenuItem>
 
               <Sidebar.MenuItem>
-                <Sidebar.MenuButton isActive={isEnvironmentsRoute} tooltipContent="Environments">
-                  <a href="/environments" class="w-full inline-flex items-center gap-2">
+                <Sidebar.MenuButton
+                  isActive={isEnvironmentsRoute}
+                  tooltipContent="Environments"
+                >
+                  <a
+                    href="/environments"
+                    class="w-full inline-flex items-center gap-2"
+                  >
                     <FolderGit2 class="size-4 shrink-0" />
-                    <span class="truncate group-data-[collapsible=icon]:hidden">Environments</span>
+                    <span class="truncate group-data-[collapsible=icon]:hidden"
+                      >Environments</span
+                    >
                   </a>
                 </Sidebar.MenuButton>
               </Sidebar.MenuItem>
 
               <Sidebar.MenuItem>
-                <Sidebar.MenuButton isActive={isNodesRoute} tooltipContent="Nodes">
-                  <a href="/nodes" class="w-full inline-flex items-center gap-2">
+                <Sidebar.MenuButton
+                  isActive={isVibersRoute}
+                  tooltipContent="Vibers"
+                >
+                  <a
+                    href="/vibers"
+                    class="w-full inline-flex items-center gap-2"
+                  >
                     <Server class="size-4 shrink-0" />
-                    <span class="truncate group-data-[collapsible=icon]:hidden">Nodes</span>
+                    <span class="truncate group-data-[collapsible=icon]:hidden"
+                      >Vibers</span
+                    >
                   </a>
                 </Sidebar.MenuButton>
               </Sidebar.MenuItem>
@@ -106,10 +137,14 @@
                     {user.name?.charAt(0)?.toUpperCase() || "U"}
                   </div>
                 {/if}
-                <span class="truncate flex-1 text-left group-data-[collapsible=icon]:hidden">
+                <span
+                  class="truncate flex-1 text-left group-data-[collapsible=icon]:hidden"
+                >
                   {user.name}
                 </span>
-                <ChevronDown class="size-3.5 opacity-50 group-data-[collapsible=icon]:hidden" />
+                <ChevronDown
+                  class="size-3.5 opacity-50 group-data-[collapsible=icon]:hidden"
+                />
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 side="right"

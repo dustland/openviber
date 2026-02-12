@@ -180,8 +180,7 @@
     dailyMinute = d.dailyMinute ?? 0;
     intervalHours = d.intervalHours ?? 24;
     intervalDailyHour = d.intervalDailyHour ?? 8;
-    selectedDays =
-      d.selectedDays ?? [true, true, true, true, true, true, true];
+    selectedDays = d.selectedDays ?? [true, true, true, true, true, true, true];
   }
 
   function applyTemplate(tpl: JobTemplate) {
@@ -203,7 +202,7 @@
 
   const selectedTemplate = $derived(
     selectedTemplateId
-      ? JOB_TEMPLATES.find((tpl) => tpl.id === selectedTemplateId) ?? null
+      ? (JOB_TEMPLATES.find((tpl) => tpl.id === selectedTemplateId) ?? null)
       : null,
   );
 
@@ -218,7 +217,9 @@
 
   $effect(() => {
     if (presetApplied) return;
-    const presetId = $page.url.searchParams.get("preset") ?? $page.url.searchParams.get("story");
+    const presetId =
+      $page.url.searchParams.get("preset") ??
+      $page.url.searchParams.get("story");
     if (!presetId) return;
     const match = JOB_TEMPLATES.find((tpl) => tpl.id === presetId);
     if (!match) return;
@@ -327,7 +328,7 @@
 
   async function fetchNodes() {
     try {
-      const res = await fetch("/api/nodes");
+      const res = await fetch("/api/vibers");
       if (!res.ok) return;
       const data = await res.json();
       nodes = (data.nodes ?? [])
@@ -396,7 +397,7 @@
       <!-- Create job -->
       <div class="mb-8">
         <Button onclick={() => (showCreateForm = true)}>
-          <Plus class="size-4 mr-2" />
+          <Plus class="size-4" />
           Create job
         </Button>
       </div>
@@ -465,8 +466,8 @@
                         </div>
                         {#if job.nodeId}
                           <span class="text-muted-foreground"
-                            >Node: {job.nodeId.slice(0, 12)}{job.nodeId.length >
-                            12
+                            >Viber: {job.nodeId.slice(0, 12)}{job.nodeId
+                              .length > 12
                               ? "…"
                               : ""}</span
                           >
@@ -610,7 +611,7 @@
                   class="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2"
                 >
                   <Server class="size-3.5" />
-                  Node: {group.nodeName || group.nodeId}
+                  Viber: {group.nodeName || group.nodeId}
                 </h2>
                 <div class="grid gap-4">
                   {#each group.jobs as job}
@@ -629,7 +630,7 @@
                           >
                             <span class="size-1.5 rounded-full bg-current"
                             ></span>
-                            On node
+                            On viber
                           </span>
                         </div>
                         {#if job.description}
@@ -878,9 +879,9 @@
               </h3>
               <div class="space-y-3">
                 <div class="space-y-2">
-                  <Label for="job-node">Target Node</Label>
+                  <Label for="job-node">Target Viber</Label>
                   <Select id="job-node" bind:value={formNodeId}>
-                    <option value="">Any available node</option>
+                    <option value="">Any available viber</option>
                     {#each nodes as node}
                       <option value={node.id}>
                         {node.name}

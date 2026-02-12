@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import { page } from "$app/stores";
   import { goto } from "$app/navigation";
-  import { getVibersStore } from "$lib/stores/vibers";
+  import { getTasksStore } from "$lib/stores/tasks";
   import { Sparkles } from "@lucide/svelte";
   import * as Dialog from "$lib/components/ui/dialog";
   import ChatComposer from "$lib/components/chat-composer.svelte";
@@ -112,7 +112,8 @@
 
     const hasNodeSkillInventory = selectedNodeSkills.length > 0;
     return accountSkills.map((skill) => {
-      const fromNode = nodeSkillMap.get(skill.id) || nodeSkillMap.get(skill.name);
+      const fromNode =
+        nodeSkillMap.get(skill.id) || nodeSkillMap.get(skill.name);
       const available = hasNodeSkillInventory
         ? Boolean(fromNode?.available)
         : skill.available;
@@ -124,7 +125,7 @@
         healthSummary:
           fromNode?.healthSummary ||
           (hasNodeSkillInventory && available === false
-            ? "Not ready on selected node"
+            ? "Not ready on selected viber"
             : skill.healthSummary),
       };
     });
@@ -172,7 +173,7 @@
   async function fetchData() {
     try {
       const [nodesRes, envsRes, settingsRes, skillsRes] = await Promise.all([
-        fetch("/api/nodes"),
+        fetch("/api/vibers"),
         fetch("/api/environments"),
         fetch("/api/settings"),
         fetch("/api/skills"),
@@ -187,13 +188,13 @@
           status: node.status ?? "offline",
           skills: Array.isArray(node.skills)
             ? node.skills.map((skill: any) => ({
-              id: skill.id || skill.name,
-              name: skill.name || skill.id,
-              description: skill.description || "",
-              available: Boolean(skill.available),
-              status: skill.status || "UNKNOWN",
-              healthSummary: skill.healthSummary || "",
-            }))
+                id: skill.id || skill.name,
+                name: skill.name || skill.id,
+                description: skill.description || "",
+                available: Boolean(skill.available),
+                status: skill.status || "UNKNOWN",
+                healthSummary: skill.healthSummary || "",
+              }))
             : [],
         }));
       }
@@ -252,7 +253,8 @@
 
       if (requestedNodeId) {
         const matchedNode = activeNodes.find(
-          (node) => node.id === requestedNodeId || node.node_id === requestedNodeId,
+          (node) =>
+            node.id === requestedNodeId || node.node_id === requestedNodeId,
         );
         if (matchedNode) {
           selectedNodeId = matchedNode.id;
@@ -310,7 +312,7 @@
           description: "",
           available: false,
           status: "UNKNOWN",
-          healthSummary: "Required by intent but not available on this node.",
+          healthSummary: "Required by intent but not available on this viber.",
         });
         continue;
       }
@@ -370,7 +372,7 @@
   async function runSkillProvision(install: boolean) {
     const node = nodes.find((n) => n.id === selectedNodeId);
     if (!setupSkill || !node) {
-      setupSkillError = "Select an active node before running skill setup.";
+      setupSkillError = "Select an active viber before running skill setup.";
       return;
     }
     const targetSkill = setupSkill;
@@ -429,7 +431,12 @@
         composerSkills.find((skill) => skill.id === targetSkill.id) ||
         targetSkill;
       const auth = payload?.auth as
-        | { required?: boolean; ready?: boolean; command?: string; message?: string }
+        | {
+            required?: boolean;
+            ready?: boolean;
+            command?: string;
+            message?: string;
+          }
         | undefined;
       if (auth?.required && !auth?.ready) {
         setupAuthCommand = auth.command || null;
@@ -481,8 +488,8 @@
     if (!node || node.status !== "active") {
       error =
         activeNodes.length > 0
-          ? "Select an active node to start this viber."
-          : "No active node found. Start a node first, then retry.";
+          ? "Select an active viber to start this task."
+          : "No active viber found. Start a viber first, then retry.";
       return;
     }
 
@@ -496,7 +503,10 @@
         pendingIntentBody = content;
         pendingIntentRequiredSkills = inferIntentSkills(selectedIntent);
       }
-      openSkillSetupDialog(firstSkill, `${firstSkill.name} is not ready on this node.`);
+      openSkillSetupDialog(
+        firstSkill,
+        `${firstSkill.name} is not ready on this viber.`,
+      );
       return;
     }
 
@@ -507,11 +517,11 @@
       // The node's node_id is the daemon's ID on the hub
       const nodeId = node.node_id;
 
-      // Create a new viber via POST /api/vibers
+      // Create a new task via POST /api/tasks
       // Use the intent name as the viber display title (not the full body)
       const title = selectedIntent?.name ?? undefined;
 
-      const response = await fetch("/api/vibers", {
+      const response = await fetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -534,7 +544,7 @@
       const viberId = payload.viberId;
 
       // Update cached viber list so sidebar/list show the new viber
-      void getVibersStore().invalidate();
+      void getTasksStore().invalidate();
 
       // Store the goal in sessionStorage for the viber chat page to pick up
       window.sessionStorage.setItem(
@@ -543,7 +553,7 @@
       );
 
       // Navigate to the new viber's chat page
-      await goto(`/vibers/${viberId}`);
+      await goto(`/tasks/${viberId}`);
     } catch (e) {
       error = e instanceof Error ? e.message : "Failed to create task.";
       creating = false;
@@ -564,7 +574,7 @@
   <!-- Main content area: intents grid -->
   <div class="flex-1 overflow-y-auto">
     <div
-      class="mx-auto flex h-full w-full max-w-3xl flex-col items-center px-4 py-12"
+      class="mx-auto flex h-full w-full max-w-3xl flex-col items-center justify-center px-4 py-8"
     >
       <!-- Hero -->
       <div class="mb-10 text-center">
@@ -582,19 +592,22 @@
       </div>
 
       {#if activeNodes.length === 0}
-        <section class="mb-6 w-full rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+        <section
+          class="mb-6 w-full rounded-xl border border-amber-500/30 bg-amber-500/10 p-4"
+        >
           <p class="text-sm font-medium text-amber-900 dark:text-amber-100">
-            Action needed: connect a node
+            Action needed: connect a viber
           </p>
           <p class="mt-1 text-xs text-amber-900/80 dark:text-amber-100/80">
-            Start a viber daemon first, then come back here to launch with one click.
+            Start a viber daemon first, then come back here to launch with one
+            click.
           </p>
           <div class="mt-3 flex flex-wrap gap-2">
             <a
-              href="/nodes"
+              href="/vibers"
               class="inline-flex items-center rounded-md border border-amber-700/30 bg-background/70 px-3 py-1.5 text-xs text-foreground hover:bg-background"
             >
-              Open Nodes
+              Open Vibers
             </a>
             <button
               type="button"
@@ -606,12 +619,15 @@
           </div>
         </section>
       {:else if activeNodes.length > 1 && !selectedNodeId}
-        <section class="mb-6 w-full rounded-xl border border-border bg-card/70 p-4">
+        <section
+          class="mb-6 w-full rounded-xl border border-border bg-card/70 p-4"
+        >
           <p class="text-sm font-medium text-foreground">
             Choose where this runs
           </p>
           <p class="mt-1 text-xs text-muted-foreground">
-            Multiple nodes are active. Pick one from the Node selector in the chat bar.
+            Multiple vibers are active. Pick one from the Viber selector in the
+            chat bar.
           </p>
         </section>
       {/if}
@@ -706,8 +722,8 @@
                 <button
                   type="button"
                   class="rounded-full border px-2.5 py-1 text-xs transition-colors {selectedChannelIds.includes(
-                  channel.id,
-                )
+                    channel.id,
+                  )
                     ? 'border-primary/35 bg-primary/10 text-primary'
                     : 'border-border bg-background text-muted-foreground hover:text-foreground'}"
                   onclick={() => toggleChannel(channel.id)}
@@ -805,23 +821,28 @@
     <Dialog.Header>
       <Dialog.Title>Set up {setupSkill?.name || "skill"}?</Dialog.Title>
       <Dialog.Description>
-        {setupSkill?.name || "This skill"} is not ready on the selected node.
-        Should I start guided setup for you now?
+        {setupSkill?.name || "This skill"} is not ready on the selected viber. Should
+        I start guided setup for you now?
       </Dialog.Description>
     </Dialog.Header>
 
     {#if setupSkill?.healthSummary}
-      <p class="rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+      <p
+        class="rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground"
+      >
         {setupSkill.healthSummary}
       </p>
     {/if}
 
-    <div class="space-y-2 rounded-md border border-border bg-muted/20 px-3 py-2">
+    <div
+      class="space-y-2 rounded-md border border-border bg-muted/20 px-3 py-2"
+    >
       <p class="text-xs font-medium text-foreground">If auth is needed</p>
       <div class="flex flex-wrap gap-2">
         <button
           type="button"
-          class="rounded-md border px-2.5 py-1 text-xs transition-colors {setupAuthAction === 'copy'
+          class="rounded-md border px-2.5 py-1 text-xs transition-colors {setupAuthAction ===
+          'copy'
             ? 'border-primary/40 bg-primary/10 text-primary'
             : 'border-border bg-background text-muted-foreground hover:text-foreground'}"
           onclick={() => (setupAuthAction = "copy")}
@@ -830,7 +851,8 @@
         </button>
         <button
           type="button"
-          class="rounded-md border px-2.5 py-1 text-xs transition-colors {setupAuthAction === 'start'
+          class="rounded-md border px-2.5 py-1 text-xs transition-colors {setupAuthAction ===
+          'start'
             ? 'border-primary/40 bg-primary/10 text-primary'
             : 'border-border bg-background text-muted-foreground hover:text-foreground'}"
           onclick={() => (setupAuthAction = "start")}
@@ -841,9 +863,13 @@
     </div>
 
     {#if setupAuthCommand}
-      <div class="space-y-2 rounded-md border border-border bg-background px-3 py-2">
+      <div
+        class="space-y-2 rounded-md border border-border bg-background px-3 py-2"
+      >
         <p class="text-xs text-muted-foreground">Run this auth command:</p>
-        <code class="block rounded-md bg-muted px-2 py-1 text-[11px] text-foreground">
+        <code
+          class="block rounded-md bg-muted px-2 py-1 text-[11px] text-foreground"
+        >
           {setupAuthCommand}
         </code>
         <button
@@ -857,7 +883,9 @@
     {/if}
 
     {#if setupSkillError}
-      <p class="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+      <p
+        class="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+      >
         {setupSkillError}
       </p>
     {/if}

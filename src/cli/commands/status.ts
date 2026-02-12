@@ -47,7 +47,7 @@ Viber Status
     }
 
     // Collect local machine status
-    const machineStatus = collectMachineResourceStatus();
+    const machineStatus = await collectMachineResourceStatus();
 
     if (options.json) {
       // Try to get gateway status if available

@@ -2,7 +2,7 @@ import { Command } from "commander";
 import type { ChannelRuntimeContext, InboundMessage, InterruptSignal } from "../../channels/channel";
 
 export const channelsCommand = new Command("channels")
-  .description("Start the enterprise channel server (DingTalk, WeCom, Discord, Feishu webhooks)")
+  .description("Start the enterprise channel server (DingTalk, WeCom, WeChat, Discord, Feishu webhooks)")
   .option("-p, --port <port>", "Channel server port", "6009")
   .action(async (options) => {
     const { channelManager } = await import("../../channels/manager");
@@ -43,6 +43,9 @@ DingTalk:
 WeCom:
   WECOM_CORP_ID, WECOM_AGENT_ID, WECOM_AGENT_SECRET
   WECOM_TOKEN, WECOM_ENCODING_AES_KEY (optional)
+
+WeChat:
+  WECHAT_API_KEY, WECHAT_PROXY_URL (optional: WECHAT_ACCOUNT_ID)
 
 Discord:
   DISCORD_BOT_TOKEN (optional: DISCORD_APP_ID, DISCORD_ALLOW_GUILDS, DISCORD_ALLOW_CHANNELS)

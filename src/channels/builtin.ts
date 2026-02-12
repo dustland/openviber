@@ -1,6 +1,7 @@
 import type { Channel, ChannelRuntimeContext, ChannelsConfig } from "./channel";
 import { DingTalkChannel } from "./dingtalk";
 import { WeComChannel } from "./wecom";
+import { WeChatChannel } from "./wechat";
 import { WebChannel } from "./web";
 import { DiscordChannel } from "./discord";
 import { FeishuChannel } from "./feishu";
@@ -25,6 +26,15 @@ export function registerBuiltinChannels(): void {
       displayName: "WeCom",
       description: "WeCom (WeChat Work) enterprise integration",
       create: (config, context) => new WeComChannel(config as any, context),
+    });
+  }
+
+  if (!channelRegistry.get("wechat")) {
+    channelRegistry.register({
+      id: "wechat",
+      displayName: "WeChat",
+      description: "WeChat integration via proxy webhook",
+      create: (config, context) => new WeChatChannel(config as any, context),
     });
   }
 

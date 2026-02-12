@@ -112,6 +112,16 @@ export interface WeComConfig extends ChannelConfig {
   aesKey: string;
 }
 
+/** WeChat (微信) channel configuration via webhook + proxy API. */
+export interface WeChatConfig extends ChannelConfig {
+  /** API key issued by the upstream WeChat proxy service */
+  apiKey: string;
+  /** Base URL for proxy API endpoints */
+  proxyUrl: string;
+  /** Optional account selector for proxy multi-account setups */
+  accountId?: string;
+}
+
 /** Discord channel configuration. */
 export interface DiscordConfig extends ChannelConfig {
   /** Discord bot token */
@@ -159,6 +169,7 @@ export interface WebConfig extends ChannelConfig {
 export interface ChannelsConfig {
   dingtalk?: DingTalkConfig;
   wecom?: WeComConfig;
+  wechat?: WeChatConfig;
   discord?: DiscordConfig;
   feishu?: FeishuConfig;
   web?: WebConfig;

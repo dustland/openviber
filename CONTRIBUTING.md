@@ -93,7 +93,7 @@ viber/
 
 ### Key Directories
 
-- **`src/core/`**: Core agent logic, context management, and engine
+- **`src/viber/`**: Core agent logic, context management, and engine
 - **`src/react/`**: React integration, hooks (`useAgent`, `useChat`), and components
 - **`src/svelte/`**: Svelte integration, runes/stores, and components
 - **`src/tools/`**: Standard tool definitions and MCP integration

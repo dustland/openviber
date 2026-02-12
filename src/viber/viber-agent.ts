@@ -2,8 +2,6 @@
 import { Agent, AgentContext, AgentResponse } from "./agent";
 import { AgentConfig } from "../types";
 import { Space } from "./space";
-// ViberDataStore removed - using config loaders or direct agent loading in future
-// SpaceStore removed
 import { Plan } from "./plan";
 import { Task, TaskStatus } from "./task";
 import { generateText, Output } from "ai";
@@ -409,18 +407,12 @@ export class ViberAgent extends Agent {
 
   /**
    * Save space to storage
+   *
+   * @deprecated Space data is now persisted through the data adapter (spaces table).
+   * This method is kept for interface compatibility but performs no action.
    */
   private async saveSpace(): Promise<void> {
-    try {
-      // NOTE: In database mode, space data is persisted through the data adapter (spaces table)
-      // Storage is ONLY used for artifacts, not config files
-      // This legacy file-based persistence is disabled to avoid conflicts
-
-      console.log("[ViberAgent] Space persistence handled by database adapter");
-    } catch (error) {
-      console.error("[ViberAgent] Error saving space:", error);
-      // Don't throw - saving is best effort
-    }
+    // No-op: Space persistence is handled by database adapter
   }
 
   /**
@@ -765,15 +757,13 @@ These artifacts are pre-loaded in the space and can be referenced in your respon
       throw new Error(`Space ${spaceId} not found`);
     }
 
-    // Load space data
-    // const storage = await SpaceStore.create(spaceId);
-    // const spaceData = await storage.readJSON<any>("space.json");
-    // For now, mocking data or assuming defaults if file persistence is gone/db-only
-    const spaceData = { goal: "Resumed Space", name: "Resumed Space", model: undefined, singleAgentId: undefined };
-
-    if (!spaceData) {
-      throw new Error(`Failed to load space ${spaceId}`);
-    }
+    // TODO: Integrate with database adapter to load actual space data
+    const spaceData = {
+      goal: "Resumed Space",
+      name: "Resumed Space",
+      model: undefined,
+      singleAgentId: undefined
+    };
 
     // Recreate space with saved state
     const space = await startSpace({
@@ -794,73 +784,5 @@ These artifacts are pre-loaded in the space and can be referenced in your respon
     }
 
     return space.viberAgent;
-  }
-}
-
-/**
- * ViberAgent Cache - Simple cache for ViberAgent instances
- *
- * Keeps ViberAgent instances alive for the entire application lifecycle
- * to avoid recreating agents and maintain space context.
- */
-export class ViberAgentCache {
-  private static instances = new Map<string, ViberAgent>();
-
-  /**
-   * Get or create a ViberAgent instance for a space
-   */
-  static async get(spaceId: string, options: ViberOptions): Promise<ViberAgent> {
-    let viberAgent = this.instances.get(spaceId);
-
-    if (!viberAgent) {
-      // Try to resume existing space, or create new one
-      try {
-        viberAgent = await ViberAgent.resume(spaceId, options);
-        console.log(`[ViberAgentCache] Resumed space: ${spaceId}`);
-      } catch (error) {
-        // Space doesn't exist, create new one
-        const goal = options.defaultGoal || `Space ${spaceId}`;
-        viberAgent = await ViberAgent.start(goal, {
-          ...options,
-          spaceId, // Ensure spaceId is set
-        });
-        console.log(`[ViberAgentCache] Created new space: ${spaceId}`);
-      }
-
-      this.instances.set(spaceId, viberAgent);
-    } else {
-      console.log(
-        `[ViberAgentCache] Using cached ViberAgent for space: ${spaceId}`
-      );
-    }
-
-    return viberAgent;
-  }
-
-  /**
-   * Remove a ViberAgent instance from cache (optional cleanup)
-   */
-  static remove(spaceId: string): void {
-    if (this.instances.delete(spaceId)) {
-      console.log(`[ViberAgentCache] Removed space from cache: ${spaceId}`);
-    }
-  }
-
-  /**
-   * Clear all cached instances (for testing or reset)
-   */
-  static clear(): void {
-    this.instances.clear();
-    console.log("[ViberAgentCache] Cleared all cached instances");
-  }
-
-  /**
-   * Get cache statistics
-   */
-  static getStats(): { size: number; spaceIds: string[] } {
-    return {
-      size: this.instances.size,
-      spaceIds: Array.from(this.instances.keys()),
-    };
   }
 }

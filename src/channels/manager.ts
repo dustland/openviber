@@ -67,17 +67,21 @@ export class ChannelManager extends EventEmitter {
   }
 
   /**
-   * Stop all registered channels
+   * Stop all registered channels in parallel
    */
   async stopAll(): Promise<void> {
-    for (const [id, channel] of this.channels) {
-      try {
-        await channel.stop();
-        console.log(`[ChannelManager] Stopped channel: ${id}`);
-      } catch (error) {
-        console.error(`[ChannelManager] Failed to stop channel ${id}:`, error);
+    const stopPromises = Array.from(this.channels.entries()).map(
+      async ([id, channel]) => {
+        try {
+          await channel.stop();
+          console.log(`[ChannelManager] Stopped channel: ${id}`);
+        } catch (error) {
+          console.error(`[ChannelManager] Failed to stop channel ${id}:`, error);
+        }
       }
-    }
+    );
+
+    await Promise.all(stopPromises);
   }
 
   /**

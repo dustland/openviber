@@ -5,14 +5,18 @@
  * directly for terminal streaming without needing an external hub.
  */
 
+import { createServer, IncomingMessage, Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { TerminalManager } from "./terminal";
 
 export interface LocalServerConfig {
   port: number;
+  host?: string;
+  authToken?: string;
 }
 
 export class LocalServer {
+  private server: Server | null = null;
   private wss: WebSocketServer | null = null;
   private terminalManager = new TerminalManager();
   private clients: Set<WebSocket> = new Set();
@@ -21,10 +25,30 @@ export class LocalServer {
 
   async start(): Promise<void> {
     return new Promise((resolve) => {
-      this.wss = new WebSocketServer({ port: this.config.port });
+      this.server = createServer((req, res) => {
+        res.writeHead(404);
+        res.end();
+      });
 
-      this.wss.on("listening", () => {
-        console.log(`[Viber] Local WebSocket server listening on port ${this.config.port}`);
+      this.wss = new WebSocketServer({ noServer: true });
+
+      this.server.on("upgrade", (request, socket, head) => {
+        if (!this.authenticate(request)) {
+          console.log("[Viber] Local WS connection rejected: Unauthorized");
+          socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
+          socket.destroy();
+          return;
+        }
+
+        this.wss!.handleUpgrade(request, socket, head, (ws) => {
+          this.wss!.emit("connection", ws, request);
+        });
+      });
+
+      this.server.listen(this.config.port, this.config.host || "127.0.0.1", () => {
+        console.log(
+          `[Viber] Local WebSocket server listening on ${this.config.host || "127.0.0.1"}:${this.config.port}`
+        );
         resolve();
       });
 
@@ -60,22 +84,70 @@ export class LocalServer {
 
   async stop(): Promise<void> {
     this.terminalManager.detachAll();
-    
+
     for (const ws of this.clients) {
       ws.close();
     }
     this.clients.clear();
 
     return new Promise((resolve) => {
-      if (this.wss) {
-        this.wss.close(() => {
-          console.log("[Viber] Local WebSocket server stopped");
+      const closeWss = () => {
+        if (this.wss) {
+          this.wss.close(() => {
+            console.log("[Viber] Local WebSocket server stopped");
+            resolve();
+          });
+        } else {
           resolve();
+        }
+      };
+
+      if (this.server) {
+        this.server.close(() => {
+          closeWss();
         });
       } else {
-        resolve();
+        closeWss();
       }
     });
+  }
+
+  private authenticate(req: IncomingMessage): boolean {
+    // 1. Origin check
+    const origin = req.headers["origin"];
+    if (origin) {
+      try {
+        const originUrl = new URL(origin);
+        if (
+          originUrl.hostname !== "localhost" &&
+          originUrl.hostname !== "127.0.0.1"
+        ) {
+          console.warn(`[Viber] Rejected connection from unauthorized origin: ${origin}`);
+          return false;
+        }
+      } catch (err) {
+        return false;
+      }
+    }
+
+    // 2. Token check
+    if (!this.config.authToken) return true;
+
+    const authHeader = req.headers["authorization"];
+    if (authHeader === `Bearer ${this.config.authToken}`) {
+      return true;
+    }
+
+    try {
+      const url = new URL(req.url || "", `http://${req.headers.host || "localhost"}`);
+      if (url.searchParams.get("token") === this.config.authToken) {
+        return true;
+      }
+    } catch (err) {
+      // ignore
+    }
+
+    return false;
   }
 
   private handleMessage(ws: WebSocket, msg: any): void {

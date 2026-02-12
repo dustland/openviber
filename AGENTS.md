@@ -33,11 +33,8 @@ src/
 ├── channels/       # Channel integrations (web, dingtalk, wecom, discord)
 ├── skills/         # Skill implementations and registry
 ├── tools/          # Built-in tools (shell, file, browser, etc.)
-├── storage/        # Storage abstraction and adapters
-├── data/           # Data manager and adapters
-├── state/          # State management
-├── utils/          # Shared utilities
-└── config.ts       # Global path/config helpers
+├── types/          # Shared types
+└── utils/          # Shared utilities
 
 docs/
 ├── design/         # Architecture and protocol docs
@@ -60,7 +57,7 @@ When making architectural changes, read relevant docs in `docs/design/` first:
 - `task-lifecycle.md` - Task states and transitions
 - `context-management.md` - Context composition strategy
 - `memory.md` - Memory model
-- `personalization.md` - Three-file personalization pattern
+- `personalization.md` - Four-file personalization pattern
 - `mcp-integration.md` - MCP integration approach
 - `streaming.md` - Streaming behavior and events
 - `error-handling.md` - Failure handling conventions
@@ -75,30 +72,31 @@ OpenViber runtime state is rooted at `~/.openviber/` by default.
 
 ```text
 ~/.openviber/
-├── user.md                         # Shared user context
-├── soul.md                         # Optional root fallback soul
-├── memory.md                       # Optional root fallback memory
+├── USER.md                         # Shared user context
+├── IDENTITY.md                     # Shared machine/deployment identity
 ├── vibers/
 │   └── <viberId>/
-│       ├── soul.md                 # Per-viber soul
-│       ├── memory.md               # Per-viber memory
+│       ├── SOUL.md                 # Per-viber soul
+│       ├── MEMORY.md               # Per-viber memory
 │       └── memory/
 │           └── YYYY-MM-DD.md       # Daily memory logs
 ├── agents/
 │   └── default.yaml                # Agent config
-├── tasks/                          # Task state
+├── tasks/                          # Task state (legacy path)
 └── artifacts/                      # Task artifacts
 ```
 
-### Three-file personalization pattern
+### Four-file personalization pattern
 
 `loadPersonalization()` in `src/daemon/runtime.ts` composes:
 
-1. `soul.md` (per-viber, then root fallback)
-2. `user.md` (shared root-level)
-3. `memory.md` (per-viber, then root fallback)
+1. `IDENTITY.md` (shared root-level, optional per-viber override)
+2. `SOUL.md` (per-viber, then root fallback)
+3. `USER.md` (shared root-level, optional per-viber override)
+4. `MEMORY.md` (per-viber, then root fallback)
 
-The daemon injects these as `<soul>`, `<user>`, and `<memory>` blocks in prompts.
+The daemon injects these as `<identity>`, `<soul>`, `<user>`, and `<memory>` blocks in prompts.
+Backwards-compatible: falls back to lowercase filenames and legacy `tasks/` paths.
 
 ## Development and Validation
 

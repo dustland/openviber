@@ -14,6 +14,9 @@ import {
   InterruptSignal,
 } from "./channel";
 import { ViberAgent } from "../viber/viber-agent";
+import { createLogger } from "../utils/logger";
+
+const log = createLogger("ChannelManager");
 
 interface ActiveConversation {
   channelId: string;
@@ -30,11 +33,11 @@ export class ChannelManager extends EventEmitter {
    */
   register(channel: Channel): void {
     if (this.channels.has(channel.id)) {
-      console.warn(`[ChannelManager] Channel ${channel.id} already registered`);
+      log.warn("Channel already registered", { channelId: channel.id });
       return;
     }
     this.channels.set(channel.id, channel);
-    console.log(`[ChannelManager] Registered channel: ${channel.id}`);
+    log.info("Registered channel", { channelId: channel.id });
   }
 
   /**
@@ -42,7 +45,7 @@ export class ChannelManager extends EventEmitter {
    */
   unregister(id: string): void {
     this.channels.delete(id);
-    console.log(`[ChannelManager] Unregistered channel: ${id}`);
+    log.info("Unregistered channel", { channelId: id });
   }
 
   /**
@@ -59,9 +62,11 @@ export class ChannelManager extends EventEmitter {
     for (const [id, channel] of this.channels) {
       try {
         await channel.start();
-        console.log(`[ChannelManager] Started channel: ${id}`);
+        log.info("Started channel", { channelId: id });
       } catch (error) {
-        console.error(`[ChannelManager] Failed to start channel ${id}:`, error);
+        log.error("Failed to start channel", {
+          data: { channelId: id, error: String((error as Error)?.message ?? error) },
+        });
       }
     }
   }
@@ -74,9 +79,11 @@ export class ChannelManager extends EventEmitter {
       async ([id, channel]) => {
         try {
           await channel.stop();
-          console.log(`[ChannelManager] Stopped channel: ${id}`);
+          log.info("Stopped channel", { channelId: id });
         } catch (error) {
-          console.error(`[ChannelManager] Failed to stop channel ${id}:`, error);
+          log.error("Failed to stop channel", {
+            data: { channelId: id, error: String((error as Error)?.message ?? error) },
+          });
         }
       }
     );
@@ -90,9 +97,11 @@ export class ChannelManager extends EventEmitter {
   async routeMessage(message: InboundMessage): Promise<void> {
     const { source, conversationId, content, userId } = message;
 
-    console.log(
-      `[ChannelManager] Routing message from ${source}: ${content.substring(0, 50)}...`
-    );
+    log.info("Routing message", {
+      source,
+      conversationId,
+      contentPreview: content.substring(0, 50),
+    });
 
     // Get or create conversation
     let conversation = this.conversations.get(conversationId);
@@ -121,7 +130,7 @@ export class ChannelManager extends EventEmitter {
 
       const channel = this.channels.get(source);
       if (!channel) {
-        console.error(`[ChannelManager] Channel not found: ${source}`);
+        log.error("Channel not found", { source });
         return;
       }
 
@@ -136,7 +145,9 @@ export class ChannelManager extends EventEmitter {
         agentId: conversation.agent.spaceId,
       });
     } catch (error: any) {
-      console.error(`[ChannelManager] Error processing message:`, error);
+      log.error("Error processing message", {
+        data: { error: String((error as Error)?.message ?? error) },
+      });
 
       const channel = this.channels.get(source);
       if (channel) {
@@ -157,9 +168,9 @@ export class ChannelManager extends EventEmitter {
     if (conversation) {
       conversation.agent.stop();
       this.conversations.delete(signal.conversationId);
-      console.log(
-        `[ChannelManager] Interrupted conversation: ${signal.conversationId}`
-      );
+      log.info("Interrupted conversation", {
+        conversationId: signal.conversationId,
+      });
     }
   }
 

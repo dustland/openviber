@@ -5,7 +5,7 @@ description: "The three-file pattern for viber personality, user context, and pe
 
 # Personalization Architecture
 
-OpenViber adopts the **three-file pattern** that has emerged as the standard across modern agent systems (Claude Projects, Custom GPTs, Cursor Rules, OpenClaw). This architecture defines viber behavior through human-readable markdown files that work together as a coherent system.
+OpenViber adopts the **four-file pattern** that has emerged as the standard across modern agent systems (Claude Projects, Custom GPTs, Cursor Rules, OpenClaw). This architecture defines viber behavior through human-readable markdown files that work together as a coherent system.
 
 ## Why Three Files?
 
@@ -14,34 +14,40 @@ Every serious agent system has converged on this pattern because it solves the f
 1. **SOUL.md** — How the viber thinks and communicates
 2. **USER.md** — Who the viber is working for
 3. **MEMORY.md** — What the viber retains over time
+4. **IDENTITY.md** — What this machine or deployment represents
 
-These files are not independent — they form a system where each file enhances the others. A detailed SOUL.md is useless without USER.md context. Memory without personality produces generic responses. The power comes from alignment between all three.
+These files are not independent — they form a system where each file enhances the others. A detailed SOUL.md is useless without USER.md context. Memory without personality produces generic responses. IDENTITY.md grounds the viber in its deployment context. The power comes from alignment between all four.
 
 ## File Location
 
-With multi-viber support, the three files are split between **shared** (node-level) and **per-viber** locations:
+With multi-viber support, the four files are split between **shared** (node-level) and **per-viber** locations:
 
 ```
 ~/.openviber/
-├── user.md                    # SHARED — who you are (same for all vibers)
+├── USER.md                    # SHARED — who you are (same for all vibers)
+├── IDENTITY.md                # SHARED — machine/deployment identity
 └── vibers/
-    ├── dev.yaml
-    ├── dev/
-    │   ├── soul.md            # PER-VIBER — this viber's persona
-    │   ├── memory.md          # PER-VIBER — this viber's long-term memory
+    ├── default/
+    │   ├── SOUL.md            # PER-VIBER — this viber's persona
+    │   ├── MEMORY.md          # PER-VIBER — this viber's long-term memory
     │   └── memory/            # PER-VIBER — daily logs
     │       ├── 2024-01-15.md
     │       └── 2024-01-16.md
-    ├── researcher.yaml
+    ├── dev/
+    │   ├── SOUL.md
+    │   ├── MEMORY.md
+    │   └── memory/
     └── researcher/
-        ├── soul.md
-        ├── memory.md
+        ├── SOUL.md
+        ├── MEMORY.md
         └── memory/
 ```
 
-**Why `user.md` is shared**: You're the same person regardless of which viber you're talking to. Your projects, preferences, and team context don't change per viber.
+**Why `USER.md` is shared**: You're the same person regardless of which viber you're talking to. Your projects, preferences, and team context don't change per viber.
 
-**Why `soul.md` is per-viber**: A dev-viber and a researcher-viber need fundamentally different personas, tone, and operational boundaries.
+**Why `IDENTITY.md` is shared**: The machine or deployment context applies to all vibers running on this node. Per-viber overrides are supported if needed.
+
+**Why `SOUL.md` is per-viber**: A dev-viber and a researcher-viber need fundamentally different personas, tone, and operational boundaries.
 
 ---
 
@@ -222,20 +228,23 @@ Don't log:
 │                    Viber Request Flow                        │
 ├─────────────────────────────────────────────────────────────┤
 │                                                              │
-│   1. Load SOUL.md → Defines HOW viber responds              │
+│   1. Load IDENTITY.md → Defines WHAT the deployment is      │
+│                          (machine, role, deployment)        │
+│                            ↓                                │
+│   2. Load SOUL.md → Defines HOW viber responds              │
 │                     (tone, style, boundaries)               │
 │                            ↓                                │
-│   2. Load USER.md → Defines WHO viber serves                │
+│   3. Load USER.md → Defines WHO viber serves                │
 │                     (context, priorities, preferences)      │
 │                            ↓                                │
-│   3. Load MEMORY.md → Defines WHAT viber remembers          │
+│   4. Load MEMORY.md → Defines WHAT viber remembers          │
 │                       (decisions, patterns, history)        │
 │                            ↓                                │
-│   4. Inject into system prompt as context                   │
+│   5. Inject into system prompt as context                   │
 │                            ↓                                │
-│   5. Process user message with full context                 │
+│   6. Process user message with full context                 │
 │                            ↓                                │
-│   6. Optionally update MEMORY.md with new learnings         │
+│   7. Optionally update MEMORY.md with new learnings         │
 │                                                              │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -248,8 +257,9 @@ Don't log:
 | Rich USER.md + no SOUL.md | Contextually aware but generic tone |
 | Both files + no MEMORY.md | Good first conversation, amnesia on second |
 | MEMORY.md alone | Remembers facts but can't apply them appropriately |
+| No IDENTITY.md | Works fine, but loses deployment-specific grounding |
 
-**The goal is alignment**: Personality should match context, which should match retained knowledge.
+**The goal is alignment**: Personality should match context, which should match retained knowledge, grounded in deployment identity.
 
 ---
 
@@ -260,27 +270,22 @@ Don't log:
 The OpenViber node loads these files and injects them into every request:
 
 ```typescript
-// In node/runtime.ts
-async function loadPersonalization(): Promise<string> {
-  const viberPath = getViberPath();
-  
-  const soul = await readFileIfExists(join(viberPath, 'soul.md'));
-  const user = await readFileIfExists(join(storageRoot, 'user.md'));  // shared
-  const memory = await readFileIfExists(join(viberPath, 'memory.md'));
-  
-  return `
-<soul>
-${soul || 'No soul.md configured'}
-</soul>
+// In daemon/runtime.ts
+async function loadPersonalization(viberId: string = "default"): Promise<string> {
+  const root = getViberRoot();
+  const viberDir = path.join(root, "vibers", viberId);
 
-<user>
-${user || 'No user.md configured'}
-</user>
-
-<memory>
-${memory || 'No memory.md configured'}
-</memory>
-`.trim();
+  const identity = await resolveSharedFile("IDENTITY.md");  // shared
+  const soul = await resolvePerViberFile("SOUL.md");         // per-viber
+  const user = await resolveSharedFile("USER.md");           // shared
+  const memory = await resolvePerViberFile("MEMORY.md");     // per-viber
+  
+  return [
+    identity && `<identity>${identity}</identity>`,
+    soul && `<soul>${soul}</soul>`,
+    user && `<user>${user}</user>`,
+    memory && `<memory>${memory}</memory>`,
+  ].filter(Boolean).join('\n\n');
 }
 ```
 
@@ -318,13 +323,14 @@ Proactive monitoring (heartbeat) only works if the three files are configured:
 ### 1. Create the files
 
 ```bash
-# Shared user context (node-level)
-touch ~/.openviber/user.md
+# Shared context (node-level)
+touch ~/.openviber/USER.md
+touch ~/.openviber/IDENTITY.md
 
 # Default viber persona and memory
 mkdir -p ~/.openviber/vibers/default
-touch ~/.openviber/vibers/default/soul.md
-touch ~/.openviber/vibers/default/memory.md
+touch ~/.openviber/vibers/default/SOUL.md
+touch ~/.openviber/vibers/default/MEMORY.md
 ```
 
 ### 2. Start with SOUL.md (per-viber)
@@ -361,7 +367,7 @@ Start empty. As you work with the viber:
 
 ## This Pattern Is Bigger Than OpenViber
 
-The three-file architecture (persistent personality, filesystem-based memory, human-readable config) is the dominant pattern across the agent category. The time you invest in learning to configure these files isn't locked into OpenViber — it transfers to whatever platform comes next.
+The four-file architecture (persistent personality, filesystem-based memory, human-readable config) is the dominant pattern across the agent category. The time you invest in learning to configure these files isn't locked into OpenViber — it transfers to whatever platform comes next.
 
 The underlying control surface is stabilizing even as models and platforms change. Getting good at this is a compounding advantage.
 
@@ -372,8 +378,10 @@ The underlying control surface is stabilizing even as models and platforms chang
 | Component | Status | Notes |
 |-----------|--------|-------|
 | SOUL.md loading | ✅ Implemented | `loadPersonalization()` in `src/daemon/runtime.ts` |
-| USER.md loading | ✅ Implemented | Shared at `~/.openviber/user.md` |
-| MEMORY.md loading | ✅ Implemented | Per-viber at `~/.openviber/vibers/{id}/memory.md` |
+| USER.md loading | ✅ Implemented | Shared at `~/.openviber/USER.md` |
+| MEMORY.md loading | ✅ Implemented | Per-viber at `~/.openviber/vibers/{id}/MEMORY.md` |
+| IDENTITY.md loading | ✅ Implemented | Shared at `~/.openviber/IDENTITY.md` |
+| Backwards compat | ✅ Implemented | Falls back to lowercase filenames and legacy `tasks/` paths |
 | memory_log tool | ⏳ Planned | Viber-initiated updates |
-| Heartbeat integration | ⏳ Planned | Requires all three files |
+| Heartbeat integration | ⏳ Planned | Requires all four files |
 | File templates | ⏳ Planned | `openviber init` command |

@@ -20,7 +20,7 @@ export const onboardCommand = new Command("onboard")
   .option("--no-interactive", "Skip interactive prompts (just scaffold and show health report)")
   .action(async (options) => {
     const configDir = OPENVIBER_DIR;
-    const tasksDir = path.join(configDir, "tasks");
+    const vibersDir = path.join(configDir, "vibers");
     const skillsDir = path.join(configDir, "skills");
 
     console.log(`
@@ -32,10 +32,10 @@ export const onboardCommand = new Command("onboard")
     // Create directories
     console.log("Creating directories...");
     await fs.mkdir(configDir, { recursive: true });
-    await fs.mkdir(tasksDir, { recursive: true });
+    await fs.mkdir(vibersDir, { recursive: true });
     await fs.mkdir(skillsDir, { recursive: true });
     console.log(`  ✓ ${configDir}`);
-    console.log(`  ✓ ${tasksDir}`);
+    console.log(`  ✓ ${vibersDir}`);
     console.log(`  ✓ ${skillsDir}`);
 
     // ===== Connected mode: onboard with token =====
@@ -156,33 +156,42 @@ workingMode: viber-decides
       console.log(`\n  ✓ Created viber.yaml`);
     }
 
-    // Create user.md (shared across vibers)
-    const userMdPath = path.join(configDir, "user.md");
+    // Create USER.md (shared across vibers)
+    const userMdPath = path.join(configDir, "USER.md");
     try {
       await fs.access(userMdPath);
     } catch {
       await fs.writeFile(userMdPath, "# User Context\n\nDescribe who you are and what you're working on.\n");
-      console.log(`  ✓ Created user.md`);
+      console.log(`  ✓ Created USER.md`);
     }
 
-    // Create per-viber soul.md and memory.md
-    const defaultViberDir = path.join(tasksDir, "default");
+    // Create IDENTITY.md (shared across vibers)
+    const identityMdPath = path.join(configDir, "IDENTITY.md");
+    try {
+      await fs.access(identityMdPath);
+    } catch {
+      await fs.writeFile(identityMdPath, "# Identity\n\nDefine the identity of this machine or deployment.\n");
+      console.log(`  ✓ Created IDENTITY.md`);
+    }
+
+    // Create per-viber SOUL.md and MEMORY.md
+    const defaultViberDir = path.join(vibersDir, "default");
     await fs.mkdir(defaultViberDir, { recursive: true });
 
-    const soulPath = path.join(defaultViberDir, "soul.md");
+    const soulPath = path.join(defaultViberDir, "SOUL.md");
     try {
       await fs.access(soulPath);
     } catch {
       await fs.writeFile(soulPath, "# Soul\n\nDefine this viber's personality and communication style.\n");
-      console.log(`  ✓ Created tasks/default/soul.md`);
+      console.log(`  ✓ Created vibers/default/SOUL.md`);
     }
 
-    const memoryPath = path.join(defaultViberDir, "memory.md");
+    const memoryPath = path.join(defaultViberDir, "MEMORY.md");
     try {
       await fs.access(memoryPath);
     } catch {
       await fs.writeFile(memoryPath, "# Memory\n\nLong-term notes and context.\n");
-      console.log(`  ✓ Created tasks/default/memory.md`);
+      console.log(`  ✓ Created vibers/default/MEMORY.md`);
     }
 
     // Generate viber ID

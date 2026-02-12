@@ -25,7 +25,7 @@ The Viber Board (web app) is a SvelteKit app that communicates with vibers throu
 
 ```
 Operator types message
-  → @ai-sdk/svelte Chat class sends POST to /api/vibers/[id]/chat
+  → @ai-sdk/svelte Chat class sends POST to /api/tasks/[id]/chat
     → SvelteKit API route forwards to gateway: gatewayClient.submitTask()
       → Gateway creates task, sends task:submit to node runtime (daemon) over WebSocket
         → Node runtime (daemon) runs AI SDK streamText(), streams response back

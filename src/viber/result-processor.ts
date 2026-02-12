@@ -4,7 +4,9 @@
  * Automatically saves large tool results as artifacts to avoid token consumption
  */
 
-import { SpaceStorageFactory } from "../storage/space";
+import fs from "fs/promises";
+import path from "path";
+import { getViberRoot } from "./config";
 
 export interface ProcessedResult {
   original?: any;
@@ -49,26 +51,14 @@ export async function processToolResult(
   }
 
   // Large result - save as artifact
-  const storage = await SpaceStorageFactory.create(spaceId);
-  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const artifactId = `${toolName}_${timestamp}.${
-    typeof result === "string" ? "txt" : "json"
-  }`;
+  const artifactsDir = path.join(getViberRoot(), spaceId, "artifacts");
+  await fs.mkdir(artifactsDir, { recursive: true });
 
-  // Determine MIME type
-  let mimeType = "application/octet-stream";
-  if (typeof result === "string") {
-    mimeType = "text/plain";
-  } else if (typeof result === "object") {
-    mimeType = "application/json";
-  }
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const artifactId = `${toolName}_${timestamp}.${typeof result === "string" ? "txt" : "json"}`;
 
   // Save the full result as an artifact
-  await storage.saveArtifact(artifactId, Buffer.from(resultStr), {
-    mimeType,
-    size: resultStr.length,
-    artifactType: "tool-result",
-  });
+  await fs.writeFile(path.join(artifactsDir, artifactId), resultStr);
 
   // Create a summary/reference object
   const processed = {
@@ -85,9 +75,9 @@ export async function processToolResult(
     // Include key information if it's a structured object
     ...(typeof result === "object" &&
       !Array.isArray(result) && {
-        keys: Object.keys(result).slice(0, 10),
-        keyCount: Object.keys(result).length,
-      }),
+      keys: Object.keys(result).slice(0, 10),
+      keyCount: Object.keys(result).length,
+    }),
     // Include array info if it's an array
     ...(Array.isArray(result) && {
       itemCount: result.length,
@@ -134,16 +124,20 @@ export async function loadLargeResult(
     return reference;
   }
 
-  const storage = await SpaceStorageFactory.create(spaceId);
-  const artifact = await storage.getArtifact(reference.artifactId);
+  const artifactsDir = path.join(getViberRoot(), spaceId, "artifacts");
+  const artifactPath = path.join(artifactsDir, reference.artifactId);
 
-  if (!artifact) {
+  try {
+    await fs.access(artifactPath);
+  } catch {
     throw new Error(`Artifact not found: ${reference.artifactId}`);
   }
 
-  // Parse based on MIME type
-  const content = artifact.content.toString("utf-8");
-  if (artifact.metadata?.mimeType === "application/json") {
+  // We need to read the content separately.
+  const contentBuffer = await fs.readFile(artifactPath);
+  const content = contentBuffer.toString("utf-8");
+
+  if (reference.artifactId.endsWith(".json")) {
     try {
       return JSON.parse(content);
     } catch {

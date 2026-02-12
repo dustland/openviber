@@ -47,9 +47,8 @@ export async function buildToolMap(
   const tools: Record<string, CoreTool> = {};
 
   // Load MCP server configurations to determine tool types
-  const { getServerDataAdapter } = await import("../data/factory");
-  const adapter = getServerDataAdapter();
-  const mcpServers = await adapter.getTools();
+  // dataStore usage removed - simplified for now
+  const mcpServers: any[] = []; // TODO: Add logic to load MCP config from config.ts if needed
   const mcpServerIds = new Set(mcpServers.map((s: any) => s.id));
 
   // Separate custom tools and MCP tools

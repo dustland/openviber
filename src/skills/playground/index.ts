@@ -240,7 +240,7 @@ async function runCursorAgentPlayground(args: {
 /**
  * Build tools for running skill playground verifications.
  */
-export function getTools(): Record<string, import("../../core/tool").CoreTool> {
+export function getTools(): Record<string, import("../../viber/tool").CoreTool> {
   return {
     skill_playground_verify: {
       description:

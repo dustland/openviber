@@ -8,7 +8,7 @@
 import * as fs from "fs/promises";
 import * as path from "path";
 import * as YAML from "yaml";
-import { getViberRoot } from "../../config";
+import { getViberRoot } from "../../utils/paths";
 import { getDefaultSourcesConfig, type SkillSourcesConfig } from "./manager";
 import type { SkillHubProviderType } from "./types";
 
@@ -111,6 +111,7 @@ function normalizeSettings(raw: any): OpenViberSettings {
 
     // Merge with defaults to ensure all providers are present
     const allTypes: SkillHubProviderType[] = [
+      "github",
       "openclaw",
       "npm",
       "huggingface",

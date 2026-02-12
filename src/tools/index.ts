@@ -5,7 +5,7 @@
  * Tools are discovered from tool classes using decorators.
  */
 
-import { CoreTool } from "../core/tool";
+import { CoreTool } from "../viber/tool";
 import { Tool } from "./base";
 
 // Import all tools
@@ -55,18 +55,10 @@ const toolClasses = new Map<string, new () => Tool>([
 /**
  * Load tool configuration through DataAdapter
  */
-async function loadToolConfig(toolId: string): Promise<any> {
-  try {
-    const { getServerDataAdapter } = await import("../data/factory");
-    const adapter = getServerDataAdapter();
-
-    // Get tool from adapter
-    const tool = await adapter.getTool(toolId);
-    return tool?.config || {};
-  } catch (error) {
-    console.error(`[loadToolConfig] Error loading config for ${toolId}:`, error);
-    return {};
-  }
+async function loadToolConfig(_toolId: string): Promise<any> {
+  // Tool configuration via data store was removed during refactoring.
+  // Tools use environment variables and inline config instead.
+  return {};
 }
 
 /**

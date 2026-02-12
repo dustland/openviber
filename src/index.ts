@@ -5,40 +5,28 @@
  */
 
 // Core
-export * from "./core/space";
-export * from "./core/viber-agent";
-export * from "./core/agent";
-export * from "./core/collaboration";
+export * from "./viber/space";
+export * from "./viber/viber-agent";
+export * from "./viber/agent";
+export * from "./viber/collaboration";
 // Export config types but avoid ModelConfig duplicate
 export type {
   SpaceConfig,
   SpaceState,
   SpaceModel,
   AgentConfig,
-} from "./core/config";
-export * from "./core/message";
-export * from "./core/plan";
-export * from "./core/task";
+} from "./viber/config";
+export * from "./viber/message";
+export * from "./viber/plan";
+export * from "./viber/task";
+
 // Export provider but avoid ModelConfig duplicate (it's in types)
-export { getModelProvider, parseModelString } from "./core/provider";
-export type { ModelProvider } from "./core/provider";
-export * from "./core/tool";
+export { getModelProvider, parseModelString } from "./viber/provider";
+export type { ModelProvider } from "./viber/provider";
+export * from "./viber/tool";
 
 // AI SDK Core - re-export from AI SDK v6
 export { streamText, generateText, Output, ToolLoopAgent, stepCountIs } from "ai";
 
-// Data Management
-export * from "./data/manager";
-
-// State Management  
-export * from "./state/store";
-
-// Storage
-export * from "./storage/space";
-export * from "./storage/base";
-
 // Types
 export * from "./types";
-
-// Daemon
-export * from "./daemon";

@@ -7,7 +7,7 @@
 
 import { describe, it, expect, beforeAll } from "vitest";
 import { defaultRegistry } from "./registry";
-import { Agent } from "../core/agent";
+import { Agent } from "../viber/agent";
 import { getTools as getCodexCliTools } from "./codex-cli";
 
 // Trigger pre-registration so getTools("codex-cli") returns tools

@@ -38,7 +38,7 @@ export class DiscordChannel implements Channel {
   constructor(
     private config: DiscordConfig,
     private context: ChannelRuntimeContext,
-  ) {}
+  ) { }
 
   async start(): Promise<void> {
     const intents = [
@@ -198,7 +198,7 @@ export class DiscordChannel implements Channel {
 function mapDiscordAttachments(message: Message): InboundMessage["attachments"] | undefined {
   if (!message.attachments || message.attachments.size === 0) return undefined;
   const attachments = Array.from(message.attachments.values()).map((att) => ({
-    type: att.contentType?.startsWith("image/") ? "image" : "file",
+    type: (att.contentType?.startsWith("image/") ? "image" : "file") as "image" | "file",
     url: att.url,
     name: att.name ?? undefined,
     mimeType: att.contentType ?? undefined,
@@ -212,7 +212,7 @@ async function sendToTextChannel(
   replyToId?: string,
 ): Promise<void> {
   if (replyToId) {
-    await channel.send({
+    await (channel as any).send({
       content,
       reply: {
         messageReference: replyToId,
@@ -222,7 +222,7 @@ async function sendToTextChannel(
     });
     return;
   }
-  await channel.send({ content });
+  (channel as any).send({ content });
 }
 
 function chunkDiscordText(text: string, limit: number): string[] {

@@ -13,7 +13,7 @@ import {
   AgentStreamEvent,
   InterruptSignal,
 } from "./channel";
-import { ViberAgent } from "../core/viber-agent";
+import { ViberAgent } from "../viber/viber-agent";
 
 interface ActiveConversation {
   channelId: string;

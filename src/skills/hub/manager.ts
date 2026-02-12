@@ -8,7 +8,7 @@
 
 import * as path from "path";
 import * as fs from "fs/promises";
-import { getViberRoot } from "../../config";
+import { getViberRoot } from "../../utils/paths";
 import type {
   SkillHubProvider,
   SkillHubProviderType,

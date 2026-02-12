@@ -28,7 +28,7 @@ import { EventEmitter } from "events";
 import * as fs from "fs/promises";
 import * as path from "path";
 import * as yaml from "yaml";
-import { getViberRoot } from "../config";
+import { getViberRoot } from "../utils/paths";
 import { createLogger } from "../utils/logger";
 
 // ==================== Types ====================

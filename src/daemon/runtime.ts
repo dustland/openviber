@@ -1,5 +1,5 @@
 /**
- * Daemon runtime - thin clawdbot-alike assistant path
+ * Daemon runtime - thin assistant runtime path
  *
  * No Space, no DataAdapter, no Storage. Loads a single agent config from file
  * and runs streamText. Viber Board owns persistence and context; daemon only
@@ -12,12 +12,52 @@
 import * as fs from "fs/promises";
 import * as path from "path";
 import * as yaml from "yaml";
-import { getViberPath, getViberRoot } from "../config";
-import type { AgentConfig } from "../core/config";
-import { Agent } from "../core/agent";
+import { getViberPath, getViberRoot } from "../viber/config";
+import type { AgentConfig } from "../viber/config";
+import { Agent } from "../viber/agent";
 import { loadSettings, saveSettings } from "../skills/hub/settings";
-import type { ViberMessage } from "../core/message";
+import type { ViberMessage } from "../viber/message";
 import { getModuleDirname } from "../utils/module-path";
+
+// Inlined FsStorage for local runtime usage
+class FsStorage {
+  protected basePath: string;
+
+  constructor(basePath?: string) {
+    this.basePath = basePath || getViberRoot();
+  }
+
+  protected getPath(...segments: string[]): string {
+    return path.join(this.basePath, ...segments);
+  }
+
+  async readJSON<T = any>(relativePath: string): Promise<T | null> {
+    try {
+      const fullPath = this.getPath(relativePath);
+      const content = await fs.readFile(fullPath, "utf-8");
+      return JSON.parse(content) as T;
+    } catch (error: any) {
+      if (error.code === "ENOENT") return null;
+      throw error;
+    }
+  }
+
+  async writeJSON(relativePath: string, data: any): Promise<void> {
+    const fullPath = this.getPath(relativePath);
+    const content = JSON.stringify(data, null, 2);
+    await fs.mkdir(path.dirname(fullPath), { recursive: true });
+    await fs.writeFile(fullPath, content);
+  }
+
+  async exists(relativePath: string): Promise<boolean> {
+    try {
+      await fs.access(this.getPath(relativePath));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+}
 
 export interface ViberEnvironmentInfo {
   name: string;
@@ -562,8 +602,8 @@ export async function runTask(
 
   const streamResult = await agent.streamText({
     messages: viberMessages,
-    metadata: { 
-      taskId, 
+    metadata: {
+      taskId,
       oauthTokens,
       onProgress: options.onProgress,
     },

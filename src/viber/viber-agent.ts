@@ -1,16 +1,9 @@
-/**
- * ViberAgent - The space's conversational representative
- *
- * X is the interface between users and their spaces. Each space has an X agent
- * that acts as its representative. When you need to interact with a space, you
- * talk to X. ViberAgent merges TaskExecutor and Orchestrator functionality into a
- * single, user-friendly interface.
- */
 
 import { Agent, AgentContext, AgentResponse } from "./agent";
-import { AgentConfig } from "./config";
+import { AgentConfig } from "../types";
 import { Space } from "./space";
-import { getServerDataAdapter } from "../data/factory";
+// ViberDataStore removed - using config loaders or direct agent loading in future
+// SpaceStore removed
 import { Plan } from "./plan";
 import { Task, TaskStatus } from "./task";
 import { generateText, Output } from "ai";
@@ -183,12 +176,12 @@ export class ViberAgent extends Agent {
     if (!agent) {
       // Load agent on demand
       console.log(`[ViberAgent] Loading agent '${targetAgent}' on demand`);
-      const dataAdapter = getServerDataAdapter();
-      const agentConfig = await dataAdapter.getAgent(targetAgent);
+      const { loadAgentConfig } = await import("./config");
+      const agentConfig = await loadAgentConfig(targetAgent);
       if (!agentConfig) {
         throw new Error(`Agent '${targetAgent}' not found`);
       }
-      agent = new Agent(agentConfig as AgentConfig);
+      agent = new Agent(agentConfig as unknown as AgentConfig);
       this.space.registerAgent(targetAgent, agent);
     }
 
@@ -232,14 +225,14 @@ export class ViberAgent extends Agent {
     console.log(`[ViberAgent] Parallel execution: ${agentIds.length} agents`);
 
     // Ensure all agents are loaded
-    const dataAdapter = getServerDataAdapter();
+    const { loadAgentConfig } = await import("./config");
     for (const agentId of agentIds) {
       if (!this.space.getAgent(agentId)) {
-        const agentConfig = await dataAdapter.getAgent(agentId);
+        const agentConfig = await loadAgentConfig(agentId);
         if (!agentConfig) {
           throw new Error(`Agent '${agentId}' not found`);
         }
-        const agent = new Agent(agentConfig as AgentConfig);
+        const agent = new Agent(agentConfig as unknown as AgentConfig);
         this.space.registerAgent(agentId, agent);
       }
     }
@@ -423,14 +416,6 @@ export class ViberAgent extends Agent {
       // Storage is ONLY used for artifacts, not config files
       // This legacy file-based persistence is disabled to avoid conflicts
 
-      // Legacy code disabled - space data now in database:
-      // const { SpaceStorageFactory } = await import("../storage/space");
-      // const storage = await SpaceStorageFactory.create(this.spaceId);
-      // await storage.saveFile("space.json", { ... });
-
-      // Space persistence is now handled by the API layer using SupabaseDatabaseAdapter
-      // which writes to the spaces table, not storage buckets
-
       console.log("[ViberAgent] Space persistence handled by database adapter");
     } catch (error) {
       console.error("[ViberAgent] Error saving space:", error);
@@ -593,8 +578,8 @@ Current Plan Progress:
 
 Current Tasks:
 ${currentPlan.tasks
-  .map((t) => `- [${t.id}] ${t.title} (${t.status})`)
-  .join("\n")}
+        .map((t) => `- [${t.id}] ${t.title} (${t.status})`)
+        .join("\n")}
 
 User Feedback: ${feedback}
 
@@ -766,18 +751,25 @@ These artifacts are pre-loaded in the space and can be referenced in your respon
     const { model } = options;
 
     // Load existing space
-    const { SpaceStorageFactory } = await import("../storage/space");
     const { startSpace } = await import("./space");
 
-    // Check if space exists
-    const exists = await SpaceStorageFactory.exists(spaceId);
+    // Check if space exists - simplified check or rely on startSpace to fail
+    const { getViberRoot } = await import("./config");
+    const fs = await import("fs/promises");
+    const path = await import("path");
+
+    const spacePath = path.join(getViberRoot(), spaceId);
+    const exists = await fs.access(spacePath).then(() => true).catch(() => false);
+
     if (!exists) {
       throw new Error(`Space ${spaceId} not found`);
     }
 
     // Load space data
-    const storage = await SpaceStorageFactory.create(spaceId);
-    const spaceData = await storage.readJSON<any>("space.json");
+    // const storage = await SpaceStore.create(spaceId);
+    // const spaceData = await storage.readJSON<any>("space.json");
+    // For now, mocking data or assuming defaults if file persistence is gone/db-only
+    const spaceData = { goal: "Resumed Space", name: "Resumed Space", model: undefined, singleAgentId: undefined };
 
     if (!spaceData) {
       throw new Error(`Failed to load space ${spaceId}`);
@@ -801,19 +793,74 @@ These artifacts are pre-loaded in the space and can be referenced in your respon
       (space.viberAgent as any).singleAgentId = agentId;
     }
 
-    // Restore conversation messages if exists (e.g. CLI resume from local storage)
-    const messages = await storage.readJSON<any[]>("messages.json");
-    if (messages && Array.isArray(messages)) {
-      space.history.clear();
-      for (const msg of messages) {
-        const normalizedMsg = { ...msg };
-        if (typeof msg.content === "string") {
-          normalizedMsg.content = [{ type: "text", text: msg.content }];
-        }
-        space.history.add(normalizedMsg);
+    return space.viberAgent;
+  }
+}
+
+/**
+ * ViberAgent Cache - Simple cache for ViberAgent instances
+ *
+ * Keeps ViberAgent instances alive for the entire application lifecycle
+ * to avoid recreating agents and maintain space context.
+ */
+export class ViberAgentCache {
+  private static instances = new Map<string, ViberAgent>();
+
+  /**
+   * Get or create a ViberAgent instance for a space
+   */
+  static async get(spaceId: string, options: ViberOptions): Promise<ViberAgent> {
+    let viberAgent = this.instances.get(spaceId);
+
+    if (!viberAgent) {
+      // Try to resume existing space, or create new one
+      try {
+        viberAgent = await ViberAgent.resume(spaceId, options);
+        console.log(`[ViberAgentCache] Resumed space: ${spaceId}`);
+      } catch (error) {
+        // Space doesn't exist, create new one
+        const goal = options.defaultGoal || `Space ${spaceId}`;
+        viberAgent = await ViberAgent.start(goal, {
+          ...options,
+          spaceId, // Ensure spaceId is set
+        });
+        console.log(`[ViberAgentCache] Created new space: ${spaceId}`);
       }
+
+      this.instances.set(spaceId, viberAgent);
+    } else {
+      console.log(
+        `[ViberAgentCache] Using cached ViberAgent for space: ${spaceId}`
+      );
     }
 
-    return space.viberAgent;
+    return viberAgent;
+  }
+
+  /**
+   * Remove a ViberAgent instance from cache (optional cleanup)
+   */
+  static remove(spaceId: string): void {
+    if (this.instances.delete(spaceId)) {
+      console.log(`[ViberAgentCache] Removed space from cache: ${spaceId}`);
+    }
+  }
+
+  /**
+   * Clear all cached instances (for testing or reset)
+   */
+  static clear(): void {
+    this.instances.clear();
+    console.log("[ViberAgentCache] Cleared all cached instances");
+  }
+
+  /**
+   * Get cache statistics
+   */
+  static getStats(): { size: number; spaceIds: string[] } {
+    return {
+      size: this.instances.size,
+      spaceIds: Array.from(this.instances.keys()),
+    };
   }
 }

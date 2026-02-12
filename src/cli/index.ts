@@ -207,7 +207,7 @@ program
     // Start embedded gateway so the node is a self-contained unit.
     // `viber chat` and other tooling connect to this local API.
     const apiPort = parseInt(options.apiPort || "6009", 10);
-    const { GatewayServer } = await import("../daemon/gateway");
+    const { GatewayServer } = await import("../gateway/server");
     const embeddedGateway = new GatewayServer({ port: apiPort });
     await embeddedGateway.start();
     console.log(`[Viber] Local API ready on http://localhost:${apiPort}`);
@@ -325,7 +325,7 @@ Press Ctrl+C to stop.
 // ==================== viber gateway (central coordinator) ====================
 
 const gatewayAction = async (options: { port: string }) => {
-  const { GatewayServer } = await import("../daemon/gateway");
+  const { GatewayServer } = await import("../gateway/server");
 
   const gateway = new GatewayServer({
     port: parseInt(options.port, 10),
@@ -935,7 +935,7 @@ program
       collectMachineResourceStatus,
       formatBytes,
       formatUptime,
-    } = await import("../daemon/node-status");
+    } = await import("../daemon/telemetry");
 
     let skillHealthReport: SkillHealthReport | null = null;
     try {

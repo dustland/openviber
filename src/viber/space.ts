@@ -12,12 +12,14 @@
 
 import { Plan } from "./plan";
 import { Task, TaskStatus } from "./task";
-import { ViberAgent, ViberOptions } from "./viber-agent";
-import { SpaceStorage, SpaceStorageFactory } from "../storage/space";
-import { SpaceConfig, AgentConfig } from "./config";
+import { ViberAgent } from "./viber-agent";
+// SpaceStore removed
 import { Agent } from "./agent";
+import fs from "fs/promises";
+import path from "path";
+import { getViberRoot } from "./config";
 import { MessageQueue, ConversationHistory } from "./message";
-import type { SpaceModel, SpaceState } from "../types";
+import type { SpaceModel, SpaceState, SpaceConfig, AgentConfig } from "../types";
 import {
   AgentCollaborationManager,
   ParallelExecutionEngine,
@@ -46,8 +48,8 @@ export class Space {
   public history: ConversationHistory; // Legacy: primary task history
   public tasks: Map<string, SpaceTask>; // NEW: Multiple tasks
   public messageQueue: MessageQueue;
-  public agents: Map<string, Agent>;
-  public storage: SpaceStorage;
+  public agents: Map<string, Agent>; // Agent class
+  // storage removed
   public goal: string;
   public name: string;
   public viberAgent?: ViberAgent;
@@ -66,7 +68,6 @@ export class Space {
     history,
     messageQueue,
     agents,
-    storage,
     goal,
     name,
     viberAgent,
@@ -77,7 +78,6 @@ export class Space {
     history: ConversationHistory;
     messageQueue: MessageQueue;
     agents: Map<string, Agent>;
-    storage: SpaceStorage;
     goal: string;
     name?: string;
     viberAgent?: ViberAgent;
@@ -89,7 +89,6 @@ export class Space {
     this.tasks = new Map(); // NEW: Task storage
     this.messageQueue = messageQueue;
     this.agents = agents;
-    this.storage = storage;
     this.goal = goal;
     this.name = name || `Space ${spaceId}`;
     this.viberAgent = viberAgent;
@@ -173,7 +172,7 @@ export class Space {
     const context: Record<string, any> = {
       spaceId: this.spaceId,
       goal: this.goal,
-      storagePath: this.storage.getSpacePath(),
+      storagePath: path.join(getViberRoot(), this.spaceId),
       agents: Array.from(this.agents.keys()),
       historyLength: this.history.messages.length,
       createdAt: this.createdAt.toISOString(),
@@ -379,8 +378,7 @@ export async function startSpace({
 
   console.log(`[Space] Creating space - agents will be loaded on demand`);
 
-  // Create storage
-  const storage = await SpaceStorageFactory.create(id);
+  // Storage initialization removed - handled ad-hoc
 
   // Create agents map - empty initially, agents loaded on demand
   const agents = new Map<string, Agent>();
@@ -399,7 +397,7 @@ export async function startSpace({
     history,
     messageQueue,
     agents,
-    storage,
+    // storage,
     goal,
     name: name || spaceConfig.name,
   });
@@ -408,9 +406,13 @@ export async function startSpace({
   const viberAgentConfig: AgentConfig = {
     name: "Viber",
     description: "I manage this space and coordinate all work.",
-    provider: "openrouter",
-    model: model || "deepseek/deepseek-chat",
-    temperature: 0.7,
+    llm: {
+      provider: "openrouter",
+      model: model || "deepseek/deepseek-chat",
+      settings: {
+        temperature: 0.7,
+      },
+    },
     promptFile: "", // ViberAgent doesn't use prompt files
     skills: ["terminal", "cursor-agent", "codex-cli", "skill-playground"],
   };

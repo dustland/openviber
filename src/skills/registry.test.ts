@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { SkillRegistry } from "./registry";
-import type { CoreTool } from "../core/tool";
+import type { CoreTool } from "../viber/tool";
 
 describe("SkillRegistry pre-registration", () => {
   it("adds pre-registered skills to skill listings without SKILL.md", () => {

@@ -59,8 +59,8 @@ describe("ShellTool", () => {
     const tool = new ShellTool();
     const result = await tool.shell_run({ command: "bad command" });
 
-    expect(result.ok).toBe(false);
-    expect(result.exitCode).toBe(2);
-    expect(result.stderr).toBe("boom");
+    expect((result as any).ok).toBe(false);
+    expect((result as any).exitCode).toBe(2);
+    expect((result as any).stderr).toBe("boom");
   });
 });

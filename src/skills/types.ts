@@ -1,4 +1,4 @@
-import { CoreTool } from "../core/tool";
+import { CoreTool } from "../viber/tool";
 import type { SkillRequirements } from "./hub/types";
 
 /**

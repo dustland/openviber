@@ -16,7 +16,7 @@
 import * as fs from "fs/promises";
 import * as path from "path";
 import { watch, type FSWatcher } from "fs";
-import { getViberRoot } from "../config";
+import { getViberRoot } from "../utils/paths";
 import { createLogger } from "../utils/logger";
 
 export class InboxWatcher {

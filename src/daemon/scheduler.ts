@@ -186,7 +186,7 @@ export class JobScheduler extends EventEmitter {
     // If model is specified, use full Agent
     if (config.model) {
       try {
-        const { Agent } = await import("../core/agent");
+        const { Agent } = await import("../viber/agent");
 
         const agent = new Agent({
           name: config.name,

@@ -24,8 +24,8 @@ import { URL } from "url";
 import type {
   MachineResourceStatus,
   ViberRunningStatus,
-  NodeObservabilityStatus,
-} from "./node-status";
+  ViberSystemStatus,
+} from "../daemon/telemetry";
 
 export interface GatewayConfig {
   port: number;
@@ -35,11 +35,7 @@ export interface GatewayConfig {
   webApiToken?: string;
 }
 
-/** @deprecated Use GatewayConfig instead */
-export type BoardConfig = GatewayConfig;
 
-/** @deprecated Use GatewayConfig instead */
-export type HubConfig = GatewayConfig;
 
 interface NodeJobEntry {
   name: string;
@@ -84,7 +80,7 @@ interface ConnectedNode {
   /** Latest viber running status from heartbeat */
   viberStatus?: ViberRunningStatus;
   /** Pending status:request resolver (for on-demand status requests) */
-  pendingStatusResolvers?: Array<(status: NodeObservabilityStatus) => void>;
+  pendingStatusResolvers?: Array<(status: ViberSystemStatus) => void>;
 }
 
 interface ViberEvent {
@@ -837,7 +833,7 @@ export class GatewayServer {
       node.viberStatus.skillHealth
     ) {
       // Return cached status from last heartbeat
-      const status: NodeObservabilityStatus = {
+      const status: ViberSystemStatus = {
         machine: node.machineStatus,
         viber: node.viberStatus,
       };
@@ -859,7 +855,7 @@ export class GatewayServer {
       }
 
       if (node.machineStatus || node.viberStatus) {
-        const status: Partial<NodeObservabilityStatus> = {};
+        const status: Partial<ViberSystemStatus> = {};
         if (node.machineStatus) status.machine = node.machineStatus;
         if (node.viberStatus) status.viber = node.viberStatus;
         res.writeHead(200, { "Content-Type": "application/json" });
@@ -877,7 +873,7 @@ export class GatewayServer {
       }
     }, 5_000);
 
-    const resolver = (status: NodeObservabilityStatus) => {
+    const resolver = (status: ViberSystemStatus) => {
       clearTimeout(timeout);
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ nodeId, status, source: "live" }));
@@ -1277,7 +1273,7 @@ export class GatewayServer {
   /**
    * Handle a status:report message from a node (response to status:request).
    */
-  private handleStatusReport(ws: WebSocket, status: NodeObservabilityStatus): void {
+  private handleStatusReport(ws: WebSocket, status: ViberSystemStatus): void {
     for (const node of this.nodes.values()) {
       if (node.ws === ws) {
         node.lastHeartbeat = new Date();
@@ -1395,9 +1391,3 @@ export class GatewayServer {
     }
   }
 }
-
-/** @deprecated Use GatewayServer instead */
-export const BoardServer = GatewayServer;
-
-/** @deprecated Use GatewayServer instead */
-export const HubServer = GatewayServer;

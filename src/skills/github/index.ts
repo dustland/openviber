@@ -47,7 +47,7 @@ function getCloneTargetDir(repo: string): string {
   return dir;
 }
 
-export function getTools(): Record<string, import("../../core/tool").CoreTool> {
+export function getTools(): Record<string, import("../../viber/tool").CoreTool> {
   return {
     gh_list_issues: {
       description:

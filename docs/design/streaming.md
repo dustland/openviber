@@ -64,7 +64,7 @@ The gateway buffers chunks so that late-connecting subscribers can catch up. Whe
 
 ### Web App API Route
 
-The SvelteKit API route at `/api/vibers/[id]/chat` submits the task to the gateway, then pipes the gateway's SSE stream to the browser:
+The SvelteKit API route at `/api/tasks/[id]/chat` submits the task to the gateway, then pipes the gateway's SSE stream to the browser:
 
 ```typescript
 // Submit task
@@ -84,7 +84,7 @@ The `@ai-sdk/svelte` `Chat` class consumes the SSE stream automatically:
 ```typescript
 const chat = new Chat({
   transport: new DefaultChatTransport({
-    api: `/api/vibers/${viberId}/chat`,
+    api: `/api/tasks/${taskId}/chat`,
   }),
 });
 ```

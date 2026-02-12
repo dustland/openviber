@@ -14,22 +14,22 @@
 import { EventEmitter } from "events";
 import WebSocket from "ws";
 import { spawnSync } from "child_process";
-import type { ViberOptions } from "../core/viber-agent";
+import type { ViberOptions } from "../viber/viber-agent";
 import { runTask, appendDailyMemory } from "./runtime";
 import { createLogger } from "../utils/logger";
 import { TerminalManager } from "./terminal";
 import { getOpenViberVersion } from "../utils/version";
 import {
   collectMachineResourceStatus,
+  collectViberSystemStatus,
   collectViberRunningStatus,
-  collectNodeStatus,
   type MachineResourceStatus,
   type ViberRunningStatus as ViberNodeRunningStatus,
   type RunningTaskInfo,
-  type NodeObservabilityStatus,
+  type ViberSystemStatus,
   type ConfigState,
   type ConfigValidation,
-} from "./node-status";
+} from "./telemetry";
 import type { SkillHealthReport, SkillHealthResult } from "../skills/health";
 import { createHash } from "crypto";
 import {
@@ -103,7 +103,7 @@ export interface ViberStatus {
   /** Extended skill info with availability (updated periodically) */
   skills?: ViberSkillInfo[];
   /** Config sync state (version, last pull, validations) */
-  configState?: import("./node-status").ConfigState;
+  configState?: import("./telemetry").ConfigState;
 }
 
 // Server -> Viber messages (messages = full chat history from Viber Board for context)
@@ -183,7 +183,7 @@ export type ControllerClientMessage =
   | { type: "terminal:detached"; target: string; appId?: string }
   | { type: "terminal:output"; target: string; appId?: string; data: string }
   | { type: "terminal:resized"; target: string; appId?: string; ok: boolean }
-  | { type: "status:report"; status: NodeObservabilityStatus }
+  | { type: "status:report"; status: ViberSystemStatus }
   | {
     type: "skill:provision-result";
     requestId: string;
@@ -206,7 +206,7 @@ export type ControllerClientMessage =
     }>;
     error?: string;
   }
-  | { type: "config:ack"; configVersion: string; validations: import("./node-status").ConfigValidation[] }
+  | { type: "config:ack"; configVersion: string; validations: import("./telemetry").ConfigValidation[] }
   // Job reporting
   | { type: "jobs:list"; jobs: Array<{ name: string; schedule: string; prompt: string; description?: string; model?: string; nodeId?: string }> };
 
@@ -340,8 +340,8 @@ export class ViberController extends EventEmitter {
   /**
    * Get full node observability status including machine resources and viber running status.
    */
-  getNodeObservabilityStatus(): NodeObservabilityStatus {
-    const status = collectNodeStatus({
+  getNodeObservabilityStatus(): ViberSystemStatus {
+    const status = collectViberSystemStatus({
       viberId: this.config.viberId,
       viberName: this.config.viberName || this.config.viberId,
       version: getOpenViberVersion(),
@@ -1345,7 +1345,7 @@ export class ViberController extends EventEmitter {
         if (Object.keys(envLlmKeys).length > 0) {
           const llmResults = await validateAllLlmKeys(envLlmKeys);
           validations.push(
-            ...llmResults.map((r) => ({
+            ...llmResults.map((r: ConfigValidationResult) => ({
               ...r,
               checkedAt: now,
             })),
@@ -1390,7 +1390,7 @@ export class ViberController extends EventEmitter {
       if (Object.keys(aiProviders).length > 0) {
         const llmResults = await validateAllLlmKeys(aiProviders);
         validations.push(
-          ...llmResults.map((r) => ({
+          ...llmResults.map((r: ConfigValidationResult) => ({
             ...r,
             checkedAt: now,
           })),
@@ -1401,7 +1401,7 @@ export class ViberController extends EventEmitter {
       if (oauthConnections.length > 0) {
         const oauthResults = await validateAllOAuthTokens(oauthConnections);
         validations.push(
-          ...oauthResults.map((r) => ({
+          ...oauthResults.map((r: ConfigValidationResult) => ({
             ...r,
             checkedAt: now,
           })),

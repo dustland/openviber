@@ -93,3 +93,175 @@ export interface SpaceState {
   };
   progressPercentage?: number;
 }
+
+// ============================================================================
+// Entity Types (Migrated from src/storage/types.ts)
+// ============================================================================
+
+export interface AgentData {
+  id: string;
+  userId?: string; // Owner of this agent
+  name: string;
+  description: string;
+  category?: string;
+  icon?: string;
+  logoUrl?: string;
+  tags?: string[];
+  systemPrompt?: string;
+  llm?: {
+    provider: string;
+    model: string;
+    settings?: {
+      temperature?: number;
+      maxTokens?: number;
+      topP?: number;
+      frequencyPenalty?: number;
+      presencePenalty?: number;
+    };
+  };
+  tools?: string[];
+  author?: string;
+  version?: string;
+  usageExamples?: string[];
+  requirements?: string[];
+  createdAt?: string;
+  updatedAt?: string;
+  isCustom?: boolean; // Added field found in usage
+}
+
+export interface ToolData {
+  id: string;
+  userId?: string; // Owner of this tool
+  name: string;
+  description: string;
+  type: "builtin" | "mcp" | "custom";
+  vendor?: string;
+  category?: string;
+  icon?: string;
+  logoUrl?: string;
+  config?: Record<string, any>;
+  configSchema?: any[];
+  features?: string[];
+  tags?: string[];
+  status?: "active" | "inactive" | "deprecated";
+  ready?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface SpaceData {
+  id: string;
+  userId?: string;
+  name: string;
+  description?: string;
+  goal?: string;
+  config?: Record<string, any>;
+  teamConfig?: any;
+  activeArtifactId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ArtifactData {
+  id: string;
+  spaceId?: string;
+  taskId?: string;
+  userId?: string;
+  category?: "input" | "intermediate" | "output";
+  storageKey: string;
+  originalName: string;
+  mimeType: string;
+  sizeBytes: number;
+  metadata?: Record<string, any>;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ConversationData {
+  id: string;
+  spaceId?: string;
+  userId?: string;
+  title?: string;
+  messages?: any[];
+  metadata?: Record<string, any>;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface TaskData {
+  id: string;
+  spaceId?: string;
+  userId?: string;
+  title?: string;
+  description?: string;
+  status?: "pending" | "active" | "completed" | "failed";
+  result?: any;
+  metadata?: Record<string, any>;
+  model?: string;
+  mode?: string;
+  systemMessage?: string;
+  messages?: any[];
+  supervision?: any;
+  context?: any;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// Renaming ModelConfig from storage to ProviderModelConfig to avoid conflict
+export interface ProviderModelConfig {
+  id: string;
+  name: string;
+}
+
+export interface ModelProviderData {
+  id: string;
+  name: string;
+  provider: string;
+  enabled?: boolean;
+  baseUrl?: string;
+  apiKey?: string;
+  models?: string[] | ProviderModelConfig[];
+  config?: Record<string, any>;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface DatasourceData {
+  id: string;
+  name: string;
+  type: string;
+  config?: Record<string, any>;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+/**
+ * Configuration for creating/initializing an Agent
+ */
+export interface AgentConfig {
+  id?: string;
+  name: string;
+  description: string;
+  provider?: string;
+  model?: string;
+  llm?: {
+    provider: string;
+    model: string;
+    settings?: {
+      temperature?: number;
+      maxTokens?: number;
+      topP?: number;
+      frequencyPenalty?: number;
+      presencePenalty?: number;
+    };
+  };
+  systemPrompt?: string;
+  promptFile?: string;
+  tools?: string[];
+  skills?: string[];
+  metadata?: Record<string, any>;
+  mode?: "always_ask" | "agent_decides" | "always_execute" | "always-ask" | "agent-decides" | "viber_decides" | "viber-decides" | "always-execute";
+  workingMode?: "always_ask" | "agent_decides" | "always_execute" | "always-ask" | "agent-decides" | "viber_decides" | "viber-decides" | "always-execute"; // Alias for mode
+  requireApproval?: string[];
+  require_approval?: string[]; // Alias for valid yaml
+}

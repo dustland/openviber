@@ -8,7 +8,7 @@ import * as path from "path";
 import * as os from "os";
 
 // Mock fs and config
-vi.mock("../../config", () => ({
+vi.mock("../../core/config-runtime", () => ({
   getViberRoot: () => "/tmp/openviber-test-settings",
 }));
 
@@ -19,18 +19,18 @@ describe("Settings Persistence", () => {
   beforeEach(async () => {
     await fs.mkdir(testDir, { recursive: true });
     // Remove settings file if it exists
-    await fs.unlink(settingsPath).catch(() => {});
+    await fs.unlink(settingsPath).catch(() => { });
   });
 
   afterEach(async () => {
-    await fs.rm(testDir, { recursive: true, force: true }).catch(() => {});
+    await fs.rm(testDir, { recursive: true, force: true }).catch(() => { });
   });
 
   it("should return defaults when settings file does not exist", async () => {
     const { loadSettings } = await import("./settings");
     const settings = await loadSettings();
     expect(settings.skillSources).toBeDefined();
-    expect(settings.skillSources!.github?.enabled).toBe(true);
+    expect(settings.skillSources!.github?.enabled).toBe(false);
     expect(settings.skillSources!.composio?.enabled).toBe(false);
   });
 

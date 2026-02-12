@@ -27,7 +27,7 @@ The protocol is intentionally simple. The AI SDK handles the complex parts (stre
 │ (Svelte) │              │(SvelteKit)│               │ (Node)   │              │(Node)│
 └──────────┘              └──────────┘               └──────────┘              └──────┘
   @ai-sdk/svelte            API routes                REST + WS             streamText()
-  Chat class            gateway-client               task routing         toUIMessageStream
+  Chat class               gateway                  task routing         toUIMessageStream
 ```
 
 ### Transport Summary
@@ -44,14 +44,14 @@ The protocol is intentionally simple. The AI SDK handles the complex parts (stre
 
 ## 2. Gateway REST API
 
-The gateway exposes a REST API for the web app (via `gateway-client.ts`):
+The gateway exposes a REST API for the web app (via `gateway.ts`):
 
 | Method | Endpoint | Purpose |
 |--------|----------|---------|
-| `GET` | `/health` | Health check (status, viber count, task count) |
-| `GET` | `/api/vibers` | List connected vibers |
-| `POST` | `/api/vibers` | Submit a task (`{ goal, viberId?, messages? }`) |
+| `GET` | `/health` | Health check (status, node count, task count) |
+| `GET` | `/api/nodes` | List connected nodes |
 | `GET` | `/api/tasks` | List all tasks |
+| `POST` | `/api/tasks` | Create a new task on a node |
 | `GET` | `/api/tasks/:id` | Get task status and events |
 | `POST` | `/api/tasks/:id/stop` | Stop a running task |
 | `GET` | `/api/tasks/:id/stream` | SSE stream of AI SDK response chunks |

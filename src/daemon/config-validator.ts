@@ -5,7 +5,7 @@
  * values (LLM keys, OAuth tokens, env secrets) are not just present, but actually functional.
  */
 
-import type { ConfigValidation } from "./node-status";
+import type { ConfigValidation } from "./telemetry";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";

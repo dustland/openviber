@@ -91,8 +91,8 @@ export class FeishuChannel implements Channel {
   async stop(): Promise<void> {
     this.responseBuffers.clear();
     this.conversations.clear();
-    if (this.wsClient && typeof this.wsClient.stop === "function") {
-      this.wsClient.stop();
+    if (this.wsClient && typeof (this.wsClient as any).stop === "function") {
+      (this.wsClient as any).stop();
     }
     this.wsClient = null;
     this.dispatcher = null;

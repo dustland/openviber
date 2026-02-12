@@ -125,8 +125,8 @@ These are injected as `<soul>`, `<user>`, `<memory>` blocks in the system prompt
 
 When the operator clicks "Stop" in the Viber Board:
 
-1. Web app calls `gatewayClient.stopViber(viberId)` (or equivalent gateway API).
-2. Gateway sends `viber:stop` to the daemon.
+1. Web app calls `gatewayClient.stopTask(taskId)` (or equivalent gateway API).
+2. Gateway sends `task:stop` to the daemon.
 3. Daemon sets `runtime.stopped = true` and calls `controller.abort()`.
 4. The AI SDK's `AbortController` cancels the in-flight LLM call.
 5. Daemon does not send `task:completed` — the task ends silently.
@@ -180,5 +180,5 @@ See [Jobs](/docs/concepts/jobs) for the full reference.
 ## 7. Persistence
 
 - **Task metadata**: Stored in the gateway's in-memory `Map<string, Task>` (or equivalent). Lost on gateway restart (tasks are ephemeral).
-- **Message history**: Persisted to SQLite in the web app database (via `/api/vibers/[id]/messages`).
+- **Message history**: Persisted to SQLite in the web app database (via `/api/tasks/[id]/messages`).
 - **Session memory**: Key decisions and outcomes can be flushed to `memory.md` (see [memory.md](./memory.md)).

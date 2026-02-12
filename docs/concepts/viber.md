@@ -32,7 +32,7 @@ Viber: On it. You can watch in the terminal panel...
 
 ## Intent-Driven Creation (Viber Board)
 
-In the web UI, the **New Viber** flow is intent-first and environment-aware:
+In the web UI, the **New Task** flow is intent-first and environment-aware:
 
 1. Pick an intent template (for example: _Build a Feature_, _Code Review_, _Railway Deploy Failures_)
 2. OpenViber pre-fills the task goal from the template

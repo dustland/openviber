@@ -15,7 +15,7 @@ export function registerBuiltinChannels(): void {
       id: "dingtalk",
       displayName: "DingTalk",
       description: "DingTalk enterprise bot integration",
-      create: (config, context) => new DingTalkChannel(config, context),
+      create: (config, context) => new DingTalkChannel(config as any, context),
     });
   }
 
@@ -24,7 +24,7 @@ export function registerBuiltinChannels(): void {
       id: "wecom",
       displayName: "WeCom",
       description: "WeCom (WeChat Work) enterprise integration",
-      create: (config, context) => new WeComChannel(config, context),
+      create: (config, context) => new WeComChannel(config as any, context),
     });
   }
 
@@ -33,7 +33,7 @@ export function registerBuiltinChannels(): void {
       id: "web",
       displayName: "Web",
       description: "Local web channel (SSE)",
-      create: (config, _context) => new WebChannel(config),
+      create: (config, _context) => new WebChannel(config as any),
     });
   }
 
@@ -42,7 +42,7 @@ export function registerBuiltinChannels(): void {
       id: "discord",
       displayName: "Discord",
       description: "Discord bot integration via gateway",
-      create: (config, context) => new DiscordChannel(config, context),
+      create: (config, context) => new DiscordChannel(config as any, context),
     });
   }
 
@@ -51,7 +51,7 @@ export function registerBuiltinChannels(): void {
       id: "feishu",
       displayName: "Feishu",
       description: "Feishu/Lark bot integration",
-      create: (config, context) => new FeishuChannel(config, context),
+      create: (config, context) => new FeishuChannel(config as any, context),
     });
   }
 }

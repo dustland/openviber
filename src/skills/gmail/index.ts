@@ -7,7 +7,7 @@
  */
 
 import { z } from "zod";
-import type { CoreTool } from "../../core/tool";
+import type { CoreTool } from "../../viber/tool";
 
 const MAX_RESULTS = 100;
 const MAX_BODY_CHARS = 8000;

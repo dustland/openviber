@@ -328,7 +328,7 @@ function runInTmux(
   return { output: finalOutput, completed, elapsed };
 }
 
-export function getTools(): Record<string, import("../../core/tool").CoreTool> {
+export function getTools(): Record<string, import("../../viber/tool").CoreTool> {
   return {
     cursor_agent_run: {
       description:

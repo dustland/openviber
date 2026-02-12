@@ -70,7 +70,7 @@ describe("schedule tools", () => {
   it("lists jobs as empty when jobs directory is missing", async () => {
     accessMock.mockRejectedValue(new Error("missing"));
 
-    const result = await listJobsTool.execute({});
+    const result = await listJobsTool.execute();
 
     expect(result.jobs).toEqual([]);
     expect(result.message).toContain("No jobs directory");
@@ -87,7 +87,7 @@ describe("schedule tools", () => {
       ].join("\n"),
     );
 
-    const result = await listJobsTool.execute({});
+    const result = await listJobsTool.execute();
 
     expect(result.count).toBe(1);
     expect(result.jobs[0]).toMatchObject({

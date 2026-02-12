@@ -7,8 +7,8 @@ import { z } from "zod";
 import * as path from "path";
 import { promises as fs } from "fs";
 import "reflect-metadata";
-import { CoreTool } from "../core/tool";
-import { getViberRoot } from "../config";
+import { CoreTool } from "../viber/tool";
+import { getViberRoot } from "../utils/paths";
 
 const TOOLS_METADATA_KEY = Symbol("tools");
 
@@ -286,16 +286,7 @@ export abstract class Tool {
    * Utility method for tools that need to work with space-specific storage
    */
   protected async getSpacePathAsync(subPath: string = ""): Promise<string> {
-    if (!this.spaceId) {
-      throw new Error(
-        "Space ID not set. This tool requires space context."
-      );
-    }
-    // Use the storage module properly
-    const { SpaceStorageFactory } = await import("../storage/space");
-    const storage = await SpaceStorageFactory.create(this.spaceId);
-    const basePath = storage.getSpacePath();
-    return subPath ? path.join(basePath, subPath) : basePath;
+    return this.getSpacePath(subPath);
   }
 
   private static getRootPath(): string {
@@ -308,7 +299,7 @@ export abstract class Tool {
         "Space ID not set. This tool requires space context."
       );
     }
-    // Use the exact same root path logic as SpaceStorageFactory
+    // Use the exact same root path logic as SpaceStore
     const rootPath = Tool.getRootPath();
     const basePath = path.join(rootPath, "spaces", this.spaceId);
     return subPath ? path.join(basePath, subPath) : basePath;
@@ -356,17 +347,13 @@ export abstract class Tool {
       );
     }
 
-    const { SpaceStorageFactory } = await import("../storage/space");
-    const storage = await SpaceStorageFactory.create(this.spaceId);
-
-    // Normalize path - remove "artifacts/" prefix if present since storage methods handle it
+    // Normalize path - remove "artifacts/" prefix if present
     const normalizedPath = filePath.startsWith("artifacts/")
       ? filePath.substring(10)
       : filePath;
-    const artifactPath = `artifacts/${normalizedPath}`;
+    const fullPath = this.getSpaceArtifactsPath(normalizedPath);
 
-    const buffer = await storage.readFile(artifactPath);
-    return buffer.toString(encoding);
+    return await fs.readFile(fullPath, encoding);
   }
 
   /**
@@ -383,17 +370,15 @@ export abstract class Tool {
       );
     }
 
-    const { SpaceStorageFactory } = await import("../storage/space");
-    const storage = await SpaceStorageFactory.create(this.spaceId);
-
     // Normalize path - remove "artifacts/" prefix if present
     const normalizedPath = filePath.startsWith("artifacts/")
       ? filePath.substring(10)
       : filePath;
-    const artifactPath = `artifacts/${normalizedPath}`;
+    const fullPath = this.getSpaceArtifactsPath(normalizedPath);
 
-    const buffer = Buffer.from(content, encoding);
-    await storage.writeFile(artifactPath, buffer);
+    // Ensure directory exists
+    await fs.mkdir(path.dirname(fullPath), { recursive: true });
+    await fs.writeFile(fullPath, content, encoding);
   }
 
   /**
@@ -406,12 +391,9 @@ export abstract class Tool {
       );
     }
     try {
-      const { SpaceStorageFactory } = await import("../storage/space");
-      const storage = await SpaceStorageFactory.create(this.spaceId);
-
-      // Try to get the artifact by filename - simple and direct
-      const artifact = await storage.getArtifact(filename);
-      return artifact !== null;
+      const fullPath = this.getSpaceArtifactsPath(filename);
+      await fs.access(fullPath);
+      return true;
     } catch {
       return false;
     }
@@ -449,24 +431,35 @@ export abstract class Tool {
       );
     }
 
-    const { SpaceStorageFactory } = await import("../storage/space");
-    const storage = await SpaceStorageFactory.create(this.spaceId);
-
     // Normalize directory path
     const normalizedPath = dirPath.startsWith("artifacts/")
       ? dirPath.substring(10)
       : dirPath;
-    const searchPath = normalizedPath ? `artifacts/${normalizedPath}` : "artifacts";
+    const fullPath = this.getSpaceArtifactsPath(normalizedPath);
 
-    // Get list of files from storage
-    const allFiles = await storage.list(searchPath);
-
-    if (!recursive) {
-      // Filter to only direct children (no subdirectories)
-      return allFiles.filter((file) => !file.includes("/"));
+    try {
+      const entries = await fs.readdir(fullPath, { withFileTypes: true });
+      if (!recursive) {
+        return entries.filter(e => e.isFile()).map(e => e.name);
+      }
+      // Recursive listing
+      const files: string[] = [];
+      const walk = async (dir: string, prefix: string) => {
+        const items = await fs.readdir(dir, { withFileTypes: true });
+        for (const item of items) {
+          const itemPath = prefix ? `${prefix}/${item.name}` : item.name;
+          if (item.isFile()) {
+            files.push(itemPath);
+          } else if (item.isDirectory()) {
+            await walk(path.join(dir, item.name), itemPath);
+          }
+        }
+      };
+      await walk(fullPath, "");
+      return files;
+    } catch {
+      return [];
     }
-
-    return allFiles;
   }
 
   /**
@@ -479,16 +472,13 @@ export abstract class Tool {
       );
     }
 
-    const { SpaceStorageFactory } = await import("../storage/space");
-    const storage = await SpaceStorageFactory.create(this.spaceId);
-
     // Normalize path
     const normalizedPath = filePath.startsWith("artifacts/")
       ? filePath.substring(10)
       : filePath;
-    const artifactPath = `artifacts/${normalizedPath}`;
+    const fullPath = this.getSpaceArtifactsPath(normalizedPath);
 
-    await storage.delete(artifactPath);
+    await fs.unlink(fullPath);
   }
 
   /**
@@ -504,9 +494,6 @@ export abstract class Tool {
       );
     }
 
-    const { SpaceStorageFactory } = await import("../storage/space");
-    const storage = await SpaceStorageFactory.create(this.spaceId);
-
     // Normalize paths
     const normalizedSource = sourcePath.startsWith("artifacts/")
       ? sourcePath.substring(10)
@@ -515,12 +502,12 @@ export abstract class Tool {
       ? destPath.substring(10)
       : destPath;
 
-    const sourceArtifactPath = `artifacts/${normalizedSource}`;
-    const destArtifactPath = `artifacts/${normalizedDest}`;
+    const srcFullPath = this.getSpaceArtifactsPath(normalizedSource);
+    const destFullPath = this.getSpaceArtifactsPath(normalizedDest);
 
-    // Read source file and write to destination
-    const content = await storage.readFile(sourceArtifactPath);
-    await storage.writeFile(destArtifactPath, content);
+    // Ensure destination directory exists
+    await fs.mkdir(path.dirname(destFullPath), { recursive: true });
+    await fs.copyFile(srcFullPath, destFullPath);
   }
 
   /**
@@ -536,9 +523,6 @@ export abstract class Tool {
       );
     }
 
-    const { SpaceStorageFactory } = await import("../storage/space");
-    const storage = await SpaceStorageFactory.create(this.spaceId);
-
     // Normalize paths
     const normalizedSource = sourcePath.startsWith("artifacts/")
       ? sourcePath.substring(10)
@@ -547,13 +531,12 @@ export abstract class Tool {
       ? destPath.substring(10)
       : destPath;
 
-    const sourceArtifactPath = `artifacts/${normalizedSource}`;
-    const destArtifactPath = `artifacts/${normalizedDest}`;
+    const srcFullPath = this.getSpaceArtifactsPath(normalizedSource);
+    const destFullPath = this.getSpaceArtifactsPath(normalizedDest);
 
-    // Read, write, then delete source
-    const content = await storage.readFile(sourceArtifactPath);
-    await storage.writeFile(destArtifactPath, content);
-    await storage.delete(sourceArtifactPath);
+    // Ensure destination directory exists
+    await fs.mkdir(path.dirname(destFullPath), { recursive: true });
+    await fs.rename(srcFullPath, destFullPath);
   }
 
   /**

@@ -3,7 +3,7 @@ import * as fsSync from "fs";
 import * as path from "path";
 import * as yaml from "yaml";
 import { Skill, SkillModule } from "./types";
-import { CoreTool } from "../core/tool";
+import { CoreTool } from "../viber/tool";
 import type { SkillRequirements } from "./hub/types";
 
 export class SkillRegistry {
@@ -156,7 +156,7 @@ export class SkillRegistry {
   }
 }
 
-import { getViberRoot } from "../config";
+import { getViberRoot } from "../utils/paths";
 import { getModuleDirname } from "../utils/module-path";
 
 const __dirname = getModuleDirname();

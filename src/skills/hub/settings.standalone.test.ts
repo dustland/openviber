@@ -2,7 +2,7 @@ import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import * as fs from "fs/promises";
 import * as path from "path";
 
-vi.mock("../../config", () => ({
+vi.mock("../../core/config-runtime", () => ({
   getViberRoot: () => "/tmp/openviber-standalone-settings",
 }));
 

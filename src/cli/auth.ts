@@ -19,7 +19,7 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import * as readline from "readline";
 import { exec, spawn } from "child_process";
-import { getViberRoot } from "../config";
+import { getViberRoot } from "../utils/paths";
 import { loadSettings, saveSettings } from "../skills/hub/settings";
 
 // ────────────────────────────────────────────────────────────
@@ -343,8 +343,8 @@ export function startCallbackServer(
         res.writeHead(200, { "Content-Type": "text/html" });
         res.end(
           "<html><body><h2>Authorization failed</h2>" +
-            `<p>Error: ${error}</p>` +
-            "<p>You can close this tab.</p></body></html>",
+          `<p>Error: ${error}</p>` +
+          "<p>You can close this tab.</p></body></html>",
         );
         server.close();
         reject(new Error(`OAuth error: ${error}`));
@@ -355,7 +355,7 @@ export function startCallbackServer(
         res.writeHead(400, { "Content-Type": "text/html" });
         res.end(
           "<html><body><h2>Missing authorization code</h2>" +
-            "<p>You can close this tab.</p></body></html>",
+          "<p>You can close this tab.</p></body></html>",
         );
         return;
       }
@@ -364,7 +364,7 @@ export function startCallbackServer(
         res.writeHead(400, { "Content-Type": "text/html" });
         res.end(
           "<html><body><h2>Invalid state parameter</h2>" +
-            "<p>Possible CSRF attack. Please try again.</p></body></html>",
+          "<p>Possible CSRF attack. Please try again.</p></body></html>",
         );
         return;
       }
@@ -372,7 +372,7 @@ export function startCallbackServer(
       res.writeHead(200, { "Content-Type": "text/html" });
       res.end(
         "<html><body><h2>Authorization successful!</h2>" +
-          "<p>You can close this tab and return to the terminal.</p></body></html>",
+        "<p>You can close this tab and return to the terminal.</p></body></html>",
       );
 
       resolve({ code, server });
@@ -427,10 +427,10 @@ export async function runStandaloneGoogleOAuth(options: {
   if (!creds) {
     console.error(
       "\n  Google OAuth credentials not found.\n" +
-        "  Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables.\n" +
-        "\n  You can create credentials at:\n" +
-        "  https://console.cloud.google.com/apis/credentials\n" +
-        "  (Choose \"Desktop app\" as the application type)\n",
+      "  Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables.\n" +
+      "\n  You can create credentials at:\n" +
+      "  https://console.cloud.google.com/apis/credentials\n" +
+      "  (Choose \"Desktop app\" as the application type)\n",
     );
     process.exit(1);
   }

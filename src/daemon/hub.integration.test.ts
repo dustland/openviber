@@ -1,29 +1,29 @@
 /**
- * Integration test for hub task progress streaming state.
+ * Integration test for gateway task progress streaming state.
  */
 
 import { afterEach, describe, expect, it } from "vitest";
 import WebSocket from "ws";
-import { HubServer } from "./hub";
+import { GatewayServer } from "../gateway/server";
 
 function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-describe("hub task progress integration", () => {
-  let hub: HubServer | null = null;
+describe("gateway task progress integration", () => {
+  let gateway: GatewayServer | null = null;
 
   afterEach(async () => {
-    if (hub) {
-      await hub.stop();
-      hub = null;
+    if (gateway) {
+      await gateway.stop();
+      gateway = null;
     }
   });
 
   it("stores task progress events and partial text for board polling", async () => {
     const port = 6707;
-    hub = new HubServer({ port });
-    await hub.start();
+    gateway = new GatewayServer({ port });
+    await gateway.start();
 
     const ws = new WebSocket(`ws://localhost:${port}/ws`, {
       headers: {
@@ -50,7 +50,7 @@ describe("hub task progress integration", () => {
       }),
     );
 
-    const submit = await fetch(`http://localhost:${port}/api/vibers`, {
+    const submit = await fetch(`http://localhost:${port}/api/tasks`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ goal: "stream me", viberId: "test-viber" }),

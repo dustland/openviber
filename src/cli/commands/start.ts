@@ -33,7 +33,8 @@ export const startCommand = new Command("start")
     const { ViberController } = await import("../../daemon/controller");
 
     // Import skills module to trigger pre-registration of skill tools
-    await import("../../skills");
+    const { registerDefaultSkills } = await import("../../skills");
+    registerDefaultSkills();
 
     // Get or generate viber ID
     const viberId = await getViberId();

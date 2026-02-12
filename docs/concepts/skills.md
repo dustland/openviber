@@ -144,7 +144,7 @@ Skills are discovered from multiple paths, in priority order:
 
 ### Pre-registration
 
-In bundled builds where dynamic import of `.ts` files isn't possible, skills pre-register their tools at startup via `preRegisterTools()`. This happens automatically when `src/skills/index.ts` is imported.
+In bundled builds where dynamic import of `.ts` files isn't possible, skills pre-register their tools at startup via `preRegisterTools()`. The application entry point must call `registerDefaultSkills()` from `src/skills/index.ts` to ensure these tools are available.
 
 ## Built-in Skills
 

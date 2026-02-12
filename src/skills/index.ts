@@ -30,6 +30,3 @@ export function registerDefaultSkills() {
   defaultRegistry.preRegisterTools("skill-playground", getPlaygroundTools());
 }
 
-// Auto-register on import
-registerDefaultSkills();
-

@@ -174,6 +174,16 @@ function loadEnvChannels(): ChannelsConfig {
     };
   }
 
+
+  if (process.env.WECHAT_API_KEY && process.env.WECHAT_PROXY_URL) {
+    channels.wechat = {
+      enabled: true,
+      apiKey: process.env.WECHAT_API_KEY,
+      proxyUrl: process.env.WECHAT_PROXY_URL,
+      accountId: process.env.WECHAT_ACCOUNT_ID,
+    };
+  }
+
   if (process.env.DISCORD_BOT_TOKEN) {
     channels.discord = {
       enabled: true,

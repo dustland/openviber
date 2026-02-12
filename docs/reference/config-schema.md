@@ -85,6 +85,11 @@ channels:
     corp_id: "${WECOM_CORP_ID}"
     agent_id: "${WECOM_AGENT_ID}"
     secret: "${WECOM_SECRET}"
+  wechat:
+    enabled: false
+    apiKey: "${WECHAT_API_KEY}"
+    proxyUrl: "${WECHAT_PROXY_URL}"
+    accountId: "${WECHAT_ACCOUNT_ID}"
 
 # Channels gateway settings (webhook server for DingTalk, WeCom, etc.; started with `viber channels`)
 gateway:
@@ -243,6 +248,19 @@ wecom:
   # Rate limiting
   rate_limit:
     messages_per_second: 5
+```
+
+### WeChat (微信)
+
+```yaml
+wechat:
+  enabled: true
+  apiKey: "${WECHAT_API_KEY}"
+  proxyUrl: "${WECHAT_PROXY_URL}"
+  accountId: "default"               # Optional account ID header for proxy
+
+  # Inbound webhook (provided by OpenViber channel gateway)
+  # POST /webhook/wechat
 ```
 
 ### Discord

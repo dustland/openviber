@@ -53,8 +53,7 @@ pnpm build
 # Run tests
 pnpm test
 
-# Start documentation site (in docs directory)
-cd docs
+# Start full stack development (Gateway, Viber Runtime, Web UI + Docs)
 pnpm dev
 ```
 
@@ -70,34 +69,36 @@ pnpm test:watch
 # Build library
 pnpm build
 
-# Run documentation site
-cd docs && pnpm dev
+# Run Web UI and Documentation site
+cd web && pnpm dev
 ```
 
 ## Project Structure
 
 ```
 viber/
-├── src/                    # Source code
-│   ├── core/              # Core framework logic
-│   ├── react/             # React adapters and hooks
-│   ├── svelte/            # Svelte adapters and components
+├── src/                    # Source code (Node.js/TypeScript)
+│   ├── viber/             # Core agent logic and framework
+│   ├── daemon/            # Runtime daemon, scheduler, and controller
+│   ├── gateway/           # Gateway server for managing connections
+│   ├── cli/               # CLI entrypoints and commands
+│   ├── channels/          # Channel integrations (DingTalk, WeCom)
+│   ├── skills/            # Skill implementations and registry
 │   ├── tools/             # Built-in tools
-│   ├── server/            # Server-side utilities
-│   └── types/             # Type definitions
-├── tests/                 # Test files
-├── docs/                  # Documentation site (Starlight)
-├── examples/              # Example applications
+│   ├── types/             # Shared types
+│   └── utils/             # Shared utilities
+├── web/                   # SvelteKit Frontend (Viber Board + Documentation)
+├── docs/                  # Documentation content (Markdown)
+├── examples/              # Example applications and jobs
 └── dist/                  # Built output (generated)
 ```
 
 ### Key Directories
 
-- **`src/viber/`**: Core agent logic, context management, and engine
-- **`src/react/`**: React integration, hooks (`useAgent`, `useChat`), and components
-- **`src/svelte/`**: Svelte integration, runes/stores, and components
-- **`src/tools/`**: Standard tool definitions and MCP integration
-- **`src/server/`**: Server-side runtime and API handlers
+- **`src/viber/`**: Core abstractions (Agent, Task, etc.)
+- **`src/daemon/`**: The runtime that manages local execution and scheduling.
+- **`web/`**: The SvelteKit application that provides the UI (Viber Board) and serves documentation.
+- **`src/skills/`**: Standard skill definitions.
 
 ## Development Workflow
 
@@ -200,11 +201,11 @@ function createAgent(options: any) {
 }
 ```
 
-### React/Svelte Guidelines
+### Frontend Guidelines (SvelteKit)
 
-- **React**: Functional components with hooks
-- **Svelte**: Use Svelte 5 Runes for state management
-- **Avoid inline functions** in render loops when possible
+- **Svelte**: Use Svelte 5 Runes for state management.
+- **Components**: Use `shadcn-svelte` where possible.
+- **Structure**: Follow SvelteKit routing conventions in `web/src/routes`.
 
 ## Commit Guidelines
 
@@ -235,10 +236,10 @@ We follow the [Conventional Commits](https://www.conventionalcommits.org/) speci
 
 ```bash
 # Feature
-git commit -m "feat(core): add streaming response support"
+git commit -m "feat(viber): add streaming response support"
 
 # Bug fix
-git commit -m "fix(react): resolve hydration issue in useChat hook"
+git commit -m "fix(web): resolve hydration issue in chat component"
 
 # Documentation
 git commit -m "docs: update installation guide with troubleshooting section"
@@ -331,31 +332,29 @@ Add screenshots or videos here
 
 ### Updating Documentation
 
-Documentation is located in the `docs/` directory and built with [Astro Starlight](https://starlight.astro.build/).
+Documentation content is located in the `docs/` directory as Markdown files. The documentation site is rendered by the SvelteKit app in `web/`.
+
+To preview documentation changes:
 
 ```bash
-cd docs
-pnpm dev  # Start dev server at http://localhost:4321
+cd web
+pnpm dev
+# Open http://localhost:6006/docs
 ```
 
 ### Documentation Guidelines
 
-- Use **MDX format** for all documentation pages
-- Include **code examples** for all features
-- Add **type definitions** for API documentation
-- Keep examples **practical** and **copy-paste ready**
+- Use **Markdown** format for all documentation pages.
+- Include **code examples** for all features.
+- Keep examples **practical** and **copy-paste ready**.
 
 ### Documentation Structure
 
 ```
-docs/src/content/docs/
-├── index.mdx                    # Landing page
-├── guides/                      # Getting started, concepts
-│   ├── getting-started.md
-│   └── usage.md
-└── api/                         # API reference
-    ├── core.md
-    └── react.md
+docs/
+├── introduction.md              # Introduction page
+├── getting-started/             # Quick start guides
+└── concepts/                    # Concept explanations
 ```
 
 ## Reporting Bugs
@@ -388,7 +387,6 @@ What actually happens
 - Browser: Chrome 120
 - OS: macOS 14.0
 - Node: 20.x
-- React/Svelte: x.x
 
 ## Minimal Reproduction
 Link to CodeSandbox or repository with minimal reproduction
@@ -427,7 +425,7 @@ Any other relevant information
 
 ## Getting Help
 
-- **Documentation**: https://docs.viber.ai
+- **Documentation**: https://viber.dustland.ai/docs
 - **Issues**: GitHub Issues for bug reports and feature requests
 - **Discussions**: GitHub Discussions for questions and community support
 

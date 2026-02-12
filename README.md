@@ -36,7 +36,7 @@ The fastest way to get started is using `npx`:
 # 1. Set your API key (OpenRouter recommended)
 export OPENROUTER_API_KEY="your_api_key_here"
 
-# 2. Start OpenViber
+# 2. Start OpenViber (Standalone Mode)
 npx openviber start
 ```
 
@@ -69,12 +69,9 @@ cp .env.example .env
 
 ### 3. Launch full stack
 ```bash
-# Starts Hub, Viber runtime, and Web UI
+# Starts Hub (6007), Viber runtime (connects to Hub), and Web UI (6006)
 pnpm dev
 ```
-- **Viber Board (Web UI)**: [http://localhost:6006](http://localhost:6006)
-- **Viber Hub**: [http://localhost:6007](http://localhost:6007)
-
 - **Viber Board (Web UI)**: [http://localhost:6006](http://localhost:6006)
 - **Viber Hub**: [http://localhost:6007](http://localhost:6007)
 
@@ -100,7 +97,8 @@ Deploy your vibers to where your team works. Support for **DingTalk** and **WeCo
 
 ```bash
 # Start the enterprise channel server
-viber channels
+# Note: Defaults to port 6009. If running alongside 'viber start' (which also uses 6009), use a different port:
+viber channels --port 6010
 ```
 
 ---

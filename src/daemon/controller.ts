@@ -16,6 +16,7 @@ import WebSocket from "ws";
 import { spawnSync } from "child_process";
 import type { ViberOptions } from "../viber/viber-agent";
 import { runTask, appendDailyMemory } from "./runtime";
+import { consolidateMemory } from "./memory";
 import { createLogger } from "../utils/logger";
 import { TerminalManager } from "./terminal";
 import { getOpenViberVersion } from "../utils/version";
@@ -676,6 +677,17 @@ export class ViberController extends EventEmitter {
           outcome: "completed",
           details: typeof summary === "string" ? summary : JSON.stringify(summary),
         });
+
+        // Consolidate into long-term memory (async, best-effort)
+        try {
+          await consolidateMemory(
+            this.config.viberId,
+            runtime.messageHistory,
+            result.agent.config
+          );
+        } catch (err) {
+          this.log.warn("Memory consolidation failed", { error: String(err) });
+        }
       }
     } catch (error: any) {
       if (error?.name === "AbortError") {

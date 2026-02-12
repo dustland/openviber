@@ -6,8 +6,8 @@ import {
   type SkillSourceSetting as ServerSkillSourceSetting,
   type ChannelIntegrationSetting as ServerChannelIntegrationSetting,
   type AiProviderSetting as ServerAiProviderSetting,
-} from "$lib/server/user-settings";
-import { supabaseRequest } from "$lib/server/supabase-rest";
+} from "$lib/server/settings";
+import { supabaseRequest } from "$lib/server/supabase";
 
 /** Canonical coding CLI skill IDs (must match src/skills/hub/settings.ts). */
 const CODING_CLI_SKILL_IDS = ["codex-cli", "cursor-agent", "gemini-cli"] as const;

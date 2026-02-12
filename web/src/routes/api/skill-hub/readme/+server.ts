@@ -1,6 +1,6 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { getSettingsForUser, getDefaultSettings } from "$lib/server/user-settings";
+import { getSettingsForUser, getDefaultSettings } from "$lib/server/settings";
 
 const DEFAULT_HUB_URL = "https://hub.openclaw.org/api/v1";
 

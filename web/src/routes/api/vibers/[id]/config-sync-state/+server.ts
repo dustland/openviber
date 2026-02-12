@@ -1,16 +1,16 @@
 /**
  * PUT /api/vibers/[id]/config-sync-state
  *
- * Update a node's config sync state (called by gateway on config:ack).
+ * Update a viber's config sync state (called by gateway on config:ack).
  * Authenticated via gateway API token or service role.
  */
 
 import { json, type RequestHandler } from "@sveltejs/kit";
 import { env } from "$env/dynamic/private";
-import { updateConfigSyncState } from "$lib/server/viber-nodes";
+import { updateConfigSyncState } from "$lib/server/vibers";
 
 export const PUT: RequestHandler = async ({ params, request }) => {
-  const nodeId = params.id;
+  const viberId = params.id;
 
   // Authenticate via gateway API token or service role
   const authHeader = request.headers.get("authorization");
@@ -24,9 +24,9 @@ export const PUT: RequestHandler = async ({ params, request }) => {
     const body = await request.json();
     const syncState = body.config_sync_state || body;
 
-    const updated = await updateConfigSyncState(nodeId, syncState);
+    const updated = await updateConfigSyncState(viberId, syncState);
     if (!updated) {
-      return json({ error: "Node not found" }, { status: 404 });
+      return json({ error: "Viber not found" }, { status: 404 });
     }
 
     return json({ ok: true, config_sync_state: updated.config_sync_state });

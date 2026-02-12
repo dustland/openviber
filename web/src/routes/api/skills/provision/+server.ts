@@ -1,6 +1,6 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { gatewayClient } from "$lib/server/gateway-client";
+import { gatewayClient } from "$lib/server/gateway";
 
 interface ProvisionRequestBody {
   skillId?: string;

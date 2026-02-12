@@ -2,55 +2,55 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { env } from "$env/dynamic/private";
 import {
-  createViberNode,
-  listViberNodes,
-  deleteViberNode,
-  ensureDevNode,
-} from "$lib/server/viber-nodes";
-import { gatewayClient } from "$lib/server/gateway-client";
+  createViber,
+  listVibers,
+  deleteViber,
+  ensureDevViber,
+} from "$lib/server/vibers";
+import { gatewayClient } from "$lib/server/gateway";
 import { upsertSkillsBatch } from "$lib/server/environments";
 
-// GET /api/vibers - List user's viber nodes (with live gateway status)
+// GET /api/vibers - List user's vibers (with live gateway status)
 export const GET: RequestHandler = async ({ locals }) => {
   if (!locals.user) {
     return json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    // In dev: ensure a pseudo node exists for the local daemon (no onboarding)
-    const devNodeId = env.OPENVIBER_DEV_NODE_ID?.trim();
-    if (devNodeId) {
-      await ensureDevNode(
+    // In dev: ensure a pseudo viber exists for the local daemon (no onboarding)
+    const devViberId = env.OPENVIBER_DEV_VIBER_ID?.trim();
+    if (devViberId) {
+      await ensureDevViber(
         locals.user.id,
-        devNodeId,
-        env.OPENVIBER_DEV_NODE_NAME?.trim() || "Local Dev",
+        devViberId,
+        env.OPENVIBER_DEV_VIBER_NAME?.trim() || "Local Dev",
       );
     }
 
-    const [nodes, gatewayData] = await Promise.all([
-      listViberNodes(locals.user.id),
+    const [vibers, gatewayData] = await Promise.all([
+      listVibers(locals.user.id),
       gatewayClient.getNodes(),
     ]);
 
-    // Build a map of connected node IDs from the gateway
+    // Build a map of connected daemon IDs from the gateway
     const connectedDaemons = new Map(
       gatewayData.nodes.map((n) => [n.id, n]),
     );
 
-    // Track which daemon IDs are claimed by DB nodes
+    // Track which daemon IDs are claimed by DB vibers
     const claimedDaemonIds = new Set<string>();
 
-    // Compute status at runtime: if node's daemon is connected, it's active
+    // Compute status at runtime: if viber's daemon is connected, it's active
     // Also attach hub metrics for visualization
-    const enrichedNodes = nodes.map((node) => {
-      const daemon = node.node_id ? connectedDaemons.get(node.node_id) : undefined;
+    const enrichedVibers = vibers.map((viber) => {
+      const daemon = viber.viber_id ? connectedDaemons.get(viber.viber_id) : undefined;
       const isConnected = !!daemon;
-      if (isConnected && node.node_id) claimedDaemonIds.add(node.node_id);
+      if (isConnected && viber.viber_id) claimedDaemonIds.add(viber.viber_id);
       return {
-        ...node,
+        ...viber,
         status: isConnected
           ? "active" as const
-          : node.node_id
+          : viber.viber_id
             ? "offline" as const
             : "pending" as const,
         // Attach gateway observability metrics
@@ -63,18 +63,18 @@ export const GET: RequestHandler = async ({ locals }) => {
         machine: daemon?.machine,
         viber: daemon?.viber,
         // Include config sync state from Supabase
-        config_sync_state: node.config_sync_state,
+        config_sync_state: viber.config_sync_state,
       };
     });
 
-    // Add gateway-connected daemons that aren't linked to any DB node as virtual nodes
+    // Add gateway-connected daemons that aren't linked to any DB viber as virtual vibers
     for (const [daemonId, daemon] of connectedDaemons) {
       if (!claimedDaemonIds.has(daemonId)) {
-        enrichedNodes.push({
+        enrichedVibers.push({
           id: daemonId,
           user_id: locals.user.id,
           name: daemon.name || daemonId,
-          node_id: daemonId,
+          viber_id: daemonId,
           onboard_token: null,
           token_expires_at: null,
           hub_url: null,
@@ -93,14 +93,15 @@ export const GET: RequestHandler = async ({ locals }) => {
           runningVibers: daemon.runningVibers,
           machine: daemon.machine,
           viber: daemon.viber,
+          config_sync_state: undefined,
         });
       }
     }
 
-    // Backfill: sync node-reported skills into the account-level skills table
+    // Backfill: sync viber-reported skills into the account-level skills table
     // so that pre-existing skills are registered even if never imported via the skill hub.
     try {
-      const allNodeSkills = gatewayData.nodes.flatMap((n) =>
+      const allViberSkills = gatewayData.nodes.flatMap((n) =>
         (n.skills ?? []).map((s: { id?: string; name: string; description?: string }) => ({
           skill_id: s.id || s.name,
           name: s.name,
@@ -108,10 +109,10 @@ export const GET: RequestHandler = async ({ locals }) => {
           source: "node" as const,
         })),
       );
-      if (allNodeSkills.length > 0) {
+      if (allViberSkills.length > 0) {
         // Deduplicate by skill_id before upserting
         const seen = new Set<string>();
-        const unique = allNodeSkills.filter((s) => {
+        const unique = allViberSkills.filter((s) => {
           if (seen.has(s.skill_id)) return false;
           seen.add(s.skill_id);
           return true;
@@ -119,18 +120,18 @@ export const GET: RequestHandler = async ({ locals }) => {
         void upsertSkillsBatch(locals.user.id, unique);
       }
     } catch (syncError) {
-      // Non-fatal: node listing succeeded, skill sync is best-effort
-      console.warn("[Nodes API] Failed to sync node skills to account:", syncError);
+      // Non-fatal: viber listing succeeded, skill sync is best-effort
+      console.warn("[Vibers API] Failed to sync viber skills to account:", syncError);
     }
 
-    return json({ nodes: enrichedNodes });
+    return json({ vibers: enrichedVibers });
   } catch (error) {
-    console.error("Failed to list viber nodes:", error);
-    return json({ error: "Failed to list nodes" }, { status: 500 });
+    console.error("Failed to list vibers:", error);
+    return json({ error: "Failed to list vibers" }, { status: 500 });
   }
 };
 
-// POST /api/vibers - Create a new viber node
+// POST /api/vibers - Create a new viber
 export const POST: RequestHandler = async ({ request, locals }) => {
   if (!locals.user) {
     return json({ error: "Unauthorized" }, { status: 401 });
@@ -138,16 +139,16 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
   try {
     const body = await request.json();
-    const name = body.name?.trim() || "My Node";
-    const node = await createViberNode(locals.user.id, name);
-    return json({ node }, { status: 201 });
+    const name = body.name?.trim() || "My Viber";
+    const viber = await createViber(locals.user.id, name);
+    return json({ viber }, { status: 201 });
   } catch (error) {
-    console.error("Failed to create viber node:", error);
-    return json({ error: "Failed to create node" }, { status: 500 });
+    console.error("Failed to create viber:", error);
+    return json({ error: "Failed to create viber" }, { status: 500 });
   }
 };
 
-// DELETE /api/vibers - Delete a viber node (by id in body)
+// DELETE /api/vibers - Delete a viber (by id in body)
 export const DELETE: RequestHandler = async ({ request, locals }) => {
   if (!locals.user) {
     return json({ error: "Unauthorized" }, { status: 401 });
@@ -155,17 +156,17 @@ export const DELETE: RequestHandler = async ({ request, locals }) => {
 
   try {
     const body = await request.json();
-    const nodeId = body.id;
-    if (!nodeId) {
-      return json({ error: "Missing node id" }, { status: 400 });
+    const viberId = body.id;
+    if (!viberId) {
+      return json({ error: "Missing viber id" }, { status: 400 });
     }
-    const ok = await deleteViberNode(locals.user.id, nodeId);
+    const ok = await deleteViber(locals.user.id, viberId);
     if (!ok) {
-      return json({ error: "Node not found" }, { status: 404 });
+      return json({ error: "Viber not found" }, { status: 404 });
     }
     return json({ ok: true });
   } catch (error) {
-    console.error("Failed to delete viber node:", error);
-    return json({ error: "Failed to delete node" }, { status: 500 });
+    console.error("Failed to delete viber:", error);
+    return json({ error: "Failed to delete viber" }, { status: 500 });
   }
 };

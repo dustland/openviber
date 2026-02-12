@@ -5,7 +5,7 @@ import {
   type SkillHubProviderType,
   type SkillSourcesConfig,
 } from "../../../../../src/skills/hub";
-import { getSettingsForUser, getDefaultSettings } from "$lib/server/user-settings";
+import { getSettingsForUser, getDefaultSettings } from "$lib/server/settings";
 import {
   extractCuratedCategories,
   loadCuratedOpenClawSkills,

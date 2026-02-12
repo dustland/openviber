@@ -8,11 +8,11 @@
  *   GET  /health              - Health check
  *   GET  /api/nodes           - List connected nodes
  *   GET  /api/events          - Unified event stream (activity + system)
- *   GET  /api/vibers          - List all vibers (sessions)
- *   POST /api/vibers          - Create a new viber on a node
- *   GET  /api/vibers/:id      - Get viber details
- *   POST /api/vibers/:id/stop - Stop a viber
- *   GET  /api/vibers/:id/stream - SSE stream for viber output
+ *   GET  /api/tasks           - List all tasks (sessions)
+ *   POST /api/tasks           - Create a new task on a node
+ *   GET  /api/tasks/:id       - Get task details
+ *   POST /api/tasks/:id/stop  - Stop a task
+ *   GET  /api/tasks/:id/stream - SSE stream for task output
  *
  * WebSocket (for node daemons):
  *   ws://localhost:6007/ws - Node daemon connection endpoint
@@ -153,7 +153,7 @@ export class GatewayServer {
     }
   > = new Map();
 
-  constructor(private config: GatewayConfig) {}
+  constructor(private config: GatewayConfig) { }
 
   private pushNodeEvent(evt: Omit<SystemEvent, "at" | "category">): void {
     this.nodeEvents.push({ ...evt, at: new Date().toISOString(), category: "system" });
@@ -268,34 +268,34 @@ export class GatewayServer {
       this.handleListAllJobs(res);
     } else if (url.pathname === "/api/events" && method === "GET") {
       this.handleListEvents(url, res);
-    } else if (url.pathname === "/api/vibers" && method === "GET") {
-      this.handleListVibers(res);
-    } else if (url.pathname === "/api/vibers" && method === "POST") {
-      this.handleCreateViber(req, res);
+    } else if (url.pathname === "/api/tasks" && method === "GET") {
+      this.handleListTasks(res);
+    } else if (url.pathname === "/api/tasks" && method === "POST") {
+      this.handleCreateTask(req, res);
     } else if (
-      url.pathname.match(/^\/api\/vibers\/[^/]+$/) &&
+      url.pathname.match(/^\/api\/tasks\/[^/]+$/) &&
       method === "GET"
     ) {
-      const viberId = decodeURIComponent(url.pathname.split("/").pop()!);
-      this.handleGetViber(viberId, res);
+      const taskId = decodeURIComponent(url.pathname.split("/").pop()!);
+      this.handleGetTask(taskId, res);
     } else if (
-      url.pathname.match(/^\/api\/vibers\/[^/]+\/message$/) &&
+      url.pathname.match(/^\/api\/tasks\/[^/]+\/message$/) &&
       method === "POST"
     ) {
-      const viberId = decodeURIComponent(url.pathname.split("/")[3]);
-      this.handleSendMessage(viberId, req, res);
+      const taskId = decodeURIComponent(url.pathname.split("/")[3]);
+      this.handleSendMessage(taskId, req, res);
     } else if (
-      url.pathname.match(/^\/api\/vibers\/[^/]+\/stop$/) &&
+      url.pathname.match(/^\/api\/tasks\/[^/]+\/stop$/) &&
       method === "POST"
     ) {
-      const viberId = decodeURIComponent(url.pathname.split("/")[3]);
-      this.handleStopViber(viberId, res);
+      const taskId = decodeURIComponent(url.pathname.split("/")[3]);
+      this.handleStopTask(taskId, res);
     } else if (
-      url.pathname.match(/^\/api\/vibers\/[^/]+\/stream$/) &&
+      url.pathname.match(/^\/api\/tasks\/[^/]+\/stream$/) &&
       method === "GET"
     ) {
-      const viberId = decodeURIComponent(url.pathname.split("/")[3]);
-      this.handleStreamViber(viberId, req, res);
+      const taskId = decodeURIComponent(url.pathname.split("/")[3]);
+      this.handleStreamTask(taskId, req, res);
     } else if (
       url.pathname.match(/^\/api\/nodes\/[^/]+\/skills\/provision$/) &&
       method === "POST"
@@ -372,28 +372,28 @@ export class GatewayServer {
       // Enriched observability data from heartbeats
       machine: n.machineStatus
         ? {
-            hostname: n.machineStatus.hostname,
-            arch: n.machineStatus.arch,
-            systemUptimeSeconds: n.machineStatus.systemUptimeSeconds,
-            cpu: {
-              cores: n.machineStatus.cpu.cores,
-              averageUsage: n.machineStatus.cpu.averageUsage,
-            },
-            memory: {
-              totalBytes: n.machineStatus.memory.totalBytes,
-              usedBytes: n.machineStatus.memory.usedBytes,
-              usagePercent: n.machineStatus.memory.usagePercent,
-            },
-            loadAverage: n.machineStatus.loadAverage,
-          }
+          hostname: n.machineStatus.hostname,
+          arch: n.machineStatus.arch,
+          systemUptimeSeconds: n.machineStatus.systemUptimeSeconds,
+          cpu: {
+            cores: n.machineStatus.cpu.cores,
+            averageUsage: n.machineStatus.cpu.averageUsage,
+          },
+          memory: {
+            totalBytes: n.machineStatus.memory.totalBytes,
+            usedBytes: n.machineStatus.memory.usedBytes,
+            usagePercent: n.machineStatus.memory.usagePercent,
+          },
+          loadAverage: n.machineStatus.loadAverage,
+        }
         : undefined,
       viber: n.viberStatus
         ? {
-            daemonUptimeSeconds: n.viberStatus.daemonUptimeSeconds,
-            runningTaskCount: n.viberStatus.runningTaskCount,
-            totalTasksExecuted: n.viberStatus.totalTasksExecuted,
-            processMemory: n.viberStatus.processMemory,
-          }
+          daemonUptimeSeconds: n.viberStatus.daemonUptimeSeconds,
+          runningTaskCount: n.viberStatus.runningTaskCount,
+          totalTasksExecuted: n.viberStatus.totalTasksExecuted,
+          processMemory: n.viberStatus.processMemory,
+        }
         : undefined,
     }));
 
@@ -401,7 +401,7 @@ export class GatewayServer {
     res.end(JSON.stringify({ connected: true, nodes }));
   }
 
-  private handleListVibers(res: ServerResponse): void {
+  private handleListTasks(res: ServerResponse): void {
     const vibers = Array.from(this.vibers.values()).map((v) => {
       const node = this.nodes.get(v.nodeId);
       return {
@@ -474,7 +474,7 @@ export class GatewayServer {
     res.end(JSON.stringify({ events: allEvents.slice(0, limit) }));
   }
 
-  private handleCreateViber(req: IncomingMessage, res: ServerResponse): void {
+  private handleCreateTask(req: IncomingMessage, res: ServerResponse): void {
     let body = "";
     req.on("data", (chunk) => (body += chunk));
     req.on("end", () => {
@@ -541,12 +541,12 @@ export class GatewayServer {
     });
   }
 
-  private handleGetViber(viberId: string, res: ServerResponse): void {
-    const viber = this.vibers.get(viberId);
+  private handleGetTask(taskId: string, res: ServerResponse): void {
+    const viber = this.vibers.get(taskId);
 
     if (!viber) {
       res.writeHead(404, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: "Viber not found" }));
+      res.end(JSON.stringify({ error: "Task not found" }));
       return;
     }
 
@@ -574,8 +574,8 @@ export class GatewayServer {
   }
 
   /**
-   * POST /api/vibers/:id/message - Send a message to an existing viber.
-   * Reuses the viber ID, resets its status, and sends the messages to the node.
+   * POST /api/tasks/:id/message - Send a message to an existing task.
+   * Reuses the task ID, resets its status, and sends the messages to the node.
    */
   private handleSendMessage(
     viberId: string,
@@ -585,7 +585,7 @@ export class GatewayServer {
     const viber = this.vibers.get(viberId);
     if (!viber) {
       res.writeHead(404, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: "Viber not found" }));
+      res.end(JSON.stringify({ error: "Task not found" }));
       return;
     }
 
@@ -639,12 +639,12 @@ export class GatewayServer {
     });
   }
 
-  private handleStopViber(viberId: string, res: ServerResponse): void {
+  private handleStopTask(viberId: string, res: ServerResponse): void {
     const viber = this.vibers.get(viberId);
 
     if (!viber) {
       res.writeHead(404, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: "Viber not found" }));
+      res.end(JSON.stringify({ error: "Task not found" }));
       return;
     }
 
@@ -752,8 +752,8 @@ export class GatewayServer {
         const requestId = String(parsed.requestId || `skill-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
         const authAction =
           parsed.authAction === "none" ||
-          parsed.authAction === "copy" ||
-          parsed.authAction === "start"
+            parsed.authAction === "copy" ||
+            parsed.authAction === "start"
             ? parsed.authAction
             : "copy";
 
@@ -888,10 +888,10 @@ export class GatewayServer {
   }
 
   /**
-   * GET /api/vibers/:id/stream - SSE endpoint for AI SDK data stream.
-   * Holds the response open and pipes viber stream chunks from the daemon.
+   * GET /api/tasks/:id/stream - SSE endpoint for AI SDK data stream.
+   * Holds the response open and pipes task stream chunks from the daemon.
    */
-  private handleStreamViber(
+  private handleStreamTask(
     viberId: string,
     req: IncomingMessage,
     res: ServerResponse,
@@ -1358,18 +1358,18 @@ export class GatewayServer {
         console.log(
           `[Gateway] Node ${node.id} acknowledged config push: version=${configVersion}, validations=${validations.length}`,
         );
-        
+
         // Persist config sync state to Supabase via web API
         const webApiUrl = this.config.webApiUrl || process.env.OPENVIBER_WEB_API_URL;
         const webApiToken = this.config.webApiToken || process.env.VIBER_GATEWAY_API_TOKEN;
-        
+
         if (webApiUrl && webApiToken) {
           const syncState = {
             configVersion,
             lastConfigPullAt: new Date().toISOString(),
             validations,
           };
-          
+
           // Call web API asynchronously (don't block)
           fetch(`${webApiUrl}/api/nodes/${encodeURIComponent(node.id)}/config-sync-state`, {
             method: "PUT",
@@ -1389,7 +1389,7 @@ export class GatewayServer {
             `[Gateway] Cannot persist config sync state: web API URL or token not configured`,
           );
         }
-        
+
         break;
       }
     }

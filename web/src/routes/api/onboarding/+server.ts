@@ -1,7 +1,7 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { getSettingsForUser } from "$lib/server/user-settings";
-import { supabaseRequest } from "$lib/server/supabase-rest";
+import { getSettingsForUser } from "$lib/server/settings";
+import { supabaseRequest } from "$lib/server/supabase";
 
 /**
  * GET /api/onboarding

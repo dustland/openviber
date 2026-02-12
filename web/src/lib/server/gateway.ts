@@ -281,10 +281,10 @@ export const gatewayClient = {
     }
   },
 
-  /** List viber sessions from the hub */
-  async getVibers(): Promise<{ vibers: GatewayViber[] }> {
+  // List task sessions from the gateway */
+  async getTasks(): Promise<{ vibers: GatewayViber[] }> {
     try {
-      const response = await gatewayFetch("/api/vibers");
+      const response = await gatewayFetch("/api/tasks");
       if (!response.ok) {
         throw new Error(`Gateway returned ${response.status}`);
       }
@@ -295,8 +295,8 @@ export const gatewayClient = {
     }
   },
 
-  /** Create a new viber on a node */
-  async createViber(
+  /** Create a new task on a viber node */
+  async createTask(
     goal: string,
     nodeId?: string,
     messages?: { role: string; content: string }[],
@@ -306,7 +306,7 @@ export const gatewayClient = {
     model?: string,
   ): Promise<{ viberId: string; nodeId: string } | null> {
     try {
-      const response = await gatewayFetch("/api/vibers", {
+      const response = await gatewayFetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ goal, nodeId, messages, environment, settings, oauthTokens, model }),
@@ -323,15 +323,15 @@ export const gatewayClient = {
 
       return await response.json();
     } catch (error) {
-      console.error("[GatewayClient] Failed to create viber:", error);
+      console.error("[GatewayClient] Failed to create task:", error);
       throw error;
     }
   },
 
-  /** Get a specific viber by ID */
-  async getViber(viberId: string): Promise<GatewayViber | null> {
+  // Get a specific task by ID */
+  async getTask(viberId: string): Promise<GatewayViber | null> {
     try {
-      const response = await gatewayFetch(`/api/vibers/${viberId}`);
+      const response = await gatewayFetch(`/api/tasks/${viberId}`);
       if (!response.ok) {
         return null;
       }
@@ -342,7 +342,7 @@ export const gatewayClient = {
     }
   },
 
-  /** Send a message to an existing viber */
+  // Send a message to an existing task */
   async sendMessage(
     viberId: string,
     messages: { role: string; content: string }[],
@@ -353,7 +353,7 @@ export const gatewayClient = {
     model?: string,
   ): Promise<{ viberId: string; nodeId: string } | null> {
     try {
-      const response = await gatewayFetch(`/api/vibers/${viberId}/message`, {
+      const response = await gatewayFetch(`/api/tasks/${viberId}/message`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages, goal, environment, settings, oauthTokens, model }),
@@ -375,10 +375,10 @@ export const gatewayClient = {
     }
   },
 
-  /** Stop a viber */
-  async stopViber(viberId: string): Promise<boolean> {
+  // Stop a task */
+  async stopTask(viberId: string): Promise<boolean> {
     try {
-      const response = await gatewayFetch(`/api/vibers/${viberId}/stop`, {
+      const response = await gatewayFetch(`/api/tasks/${viberId}/stop`, {
         method: "POST",
       });
       return response.ok;
@@ -545,21 +545,3 @@ export const gatewayClient = {
     }
   },
 };
-
-/** @deprecated Use gatewayClient instead */
-export const boardClient = gatewayClient;
-
-/** @deprecated Use gatewayClient instead */
-export const hubClient = gatewayClient;
-
-/** @deprecated Use GatewayViber instead */
-export type BoardViber = GatewayViber;
-
-/** @deprecated Use GatewayViber instead */
-export type HubViber = GatewayViber;
-
-/** @deprecated Use GatewayEvent instead */
-export type BoardEvent = GatewayEvent;
-
-/** @deprecated Use GatewayEvent instead */
-export type HubEvent = GatewayEvent;

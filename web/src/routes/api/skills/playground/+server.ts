@@ -1,6 +1,6 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { gatewayClient } from "$lib/server/gateway-client";
+import { gatewayClient } from "$lib/server/gateway";
 
 interface PlaygroundRequestBody {
   skillId?: string;
@@ -30,7 +30,7 @@ async function pollViberResult(viberId: string): Promise<PollResult> {
   const startedAt = Date.now();
 
   while (Date.now() - startedAt < timeoutMs) {
-    const viber = await gatewayClient.getViber(viberId);
+    const viber = await gatewayClient.getTask(viberId);
     if (viber && TERMINAL_STATUSES.has(viber.status)) {
       if (viber.status === "completed") {
         return {
@@ -100,7 +100,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
     const prompt = promptSections.join("\n\n");
 
-    const created = await gatewayClient.createViber(prompt, nodeId || undefined);
+    const created = await gatewayClient.createTask(prompt, nodeId || undefined);
     if (!created?.viberId) {
       return json({ error: "No node available or gateway unreachable" }, { status: 503 });
     }

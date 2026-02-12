@@ -1,7 +1,7 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { env } from "$env/dynamic/private";
-import { gatewayClient } from "$lib/server/gateway-client";
+import { gatewayClient } from "$lib/server/gateway";
 import { homedir } from "os";
 import path from "path";
 import fs from "fs/promises";

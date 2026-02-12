@@ -12,7 +12,7 @@ import {
   describeCron,
   type JobEntry,
 } from "$lib/server/jobs";
-import { gatewayClient } from "$lib/server/gateway-client";
+import { gatewayClient } from "$lib/server/gateway";
 
 export interface ViberJobsGroup {
   viberId: string;

@@ -7,7 +7,7 @@
 
 import { json, type RequestHandler } from "@sveltejs/kit";
 import { listOAuthConnections, googleOAuthConfigured } from "$lib/server/oauth";
-import { gatewayClient } from "$lib/server/gateway-client";
+import { gatewayClient } from "$lib/server/gateway";
 
 // Hard-coded skill requirements (mirrors SKILL.md frontmatter).
 // In the future this could be dynamically loaded from the skill registry.

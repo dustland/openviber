@@ -7,7 +7,7 @@ import {
 } from "$lib/server/messages";
 import { touchViberActivity } from "$lib/server/environments";
 
-// GET /api/vibers/[id]/messages - Load chat history for this viber
+// GET /api/tasks/[id]/messages - Load chat history for this task
 export const GET: RequestHandler = async ({ params, url, locals }) => {
   if (!locals.user) {
     return json({ error: "Unauthorized" }, { status: 401 });
@@ -34,7 +34,7 @@ export const GET: RequestHandler = async ({ params, url, locals }) => {
   }
 };
 
-// POST /api/vibers/[id]/messages - Append one or more messages
+// POST /api/tasks/[id]/messages - Append one or more messages
 export const POST: RequestHandler = async ({ params, request, locals }) => {
   if (!locals.user) {
     return json({ error: "Unauthorized" }, { status: 401 });
@@ -52,14 +52,14 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
     const rawInputs = Array.isArray(body.messages)
       ? body.messages
       : [
-          {
-            role: body.role,
-            content: body.content,
-            parts: body.parts,
-            taskId: body.taskId ?? null,
-            threadId: defaultThreadId,
-          },
-        ];
+        {
+          role: body.role,
+          content: body.content,
+          parts: body.parts,
+          taskId: body.taskId ?? null,
+          threadId: defaultThreadId,
+        },
+      ];
 
     const inputs: MessageInsertInput[] = rawInputs.map((input: any) => ({
       role: String(input?.role || "").trim(),

@@ -1,6 +1,6 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { supabaseRequest } from "$lib/server/supabase-rest";
+import { supabaseRequest } from "$lib/server/supabase";
 
 interface PersonalizationRow {
   soul_md: string;

@@ -40,11 +40,11 @@
     prompt?: string;
     enabled: boolean;
     filename: string;
-    nodeId?: string | null;
-    nodeName?: string | null;
+    viberId?: string | null;
+    viberName?: string | null;
   }
 
-  interface NodeOption {
+  interface ViberOption {
     id: string;
     name: string;
     status: string;
@@ -55,9 +55,9 @@
     jobs: JobEntry[];
   }
 
-  interface NodeJobsGroup {
-    nodeId: string;
-    nodeName: string;
+  interface ViberDaemonJobsGroup {
+    viberId: string;
+    viberName: string;
     jobs: JobEntry[];
   }
 
@@ -96,7 +96,7 @@
 
   let globalJobs = $state<JobEntry[]>([]);
   let perViberJobs = $state<ViberJobsGroup[]>([]);
-  let nodeJobs = $state<NodeJobsGroup[]>([]);
+  let daemonJobs = $state<ViberDaemonJobsGroup[]>([]);
   let totalJobs = $state(0);
   let loading = $state(true);
   let error = $state<string | null>(null);
@@ -108,7 +108,7 @@
   let formPrompt = $state("");
   let formDescription = $state("");
   let formModel = $state("");
-  let formNodeId = $state("");
+  let formViberId = $state("");
   let formSkills = $state("");
   let formTools = $state("");
   let selectedTemplateId = $state<string | null>(null);
@@ -116,7 +116,7 @@
   let templateParamDefs = $state<TemplateParam[]>([]);
   let presetApplied = $state(false);
 
-  let nodes = $state<NodeOption[]>([]);
+  let vibers = $state<ViberOption[]>([]);
 
   // Schedule: Daily = run once per day at time; Interval = every N hours, optional days
   let scheduleMode = $state<ScheduleMode>("daily");
@@ -240,13 +240,13 @@
       const data = await res.json();
       globalJobs = data.globalJobs ?? [];
       perViberJobs = data.perViberJobs ?? [];
-      nodeJobs = data.nodeJobs ?? [];
+      daemonJobs = data.nodeJobs ?? [];
       totalJobs = data.totalJobs ?? 0;
     } catch (e) {
       error = e instanceof Error ? e.message : "Failed to load jobs";
       globalJobs = [];
       perViberJobs = [];
-      nodeJobs = [];
+      daemonJobs = [];
       totalJobs = 0;
     } finally {
       loading = false;
@@ -278,7 +278,7 @@
           prompt: formPrompt.trim(),
           description: formDescription.trim() || undefined,
           model: formModel.trim() || undefined,
-          nodeId: formNodeId.trim() || undefined,
+          viberId: formViberId.trim() || undefined,
           skills: skillsArr.length > 0 ? skillsArr : undefined,
           tools: toolsArr.length > 0 ? toolsArr : undefined,
         }),
@@ -290,7 +290,7 @@
       formPrompt = "";
       formDescription = "";
       formModel = "";
-      formNodeId = "";
+      formViberId = "";
       formSkills = "";
       formTools = "";
       selectedTemplateId = null;
@@ -326,27 +326,27 @@
     }
   }
 
-  async function fetchNodes() {
+  async function fetchVibers() {
     try {
       const res = await fetch("/api/vibers");
       if (!res.ok) return;
       const data = await res.json();
-      nodes = (data.nodes ?? [])
+      vibers = (data.vibers ?? [])
         .map(
-          (n: {
+          (v: {
             id: string;
             name?: string;
-            node_id?: string;
+            viber_id?: string;
             status?: string;
           }) => ({
-            id: n.node_id ?? n.id,
-            name: n.name ?? n.id,
-            status: n.status ?? "unknown",
+            id: v.viber_id ?? v.id,
+            name: v.name ?? v.id,
+            status: v.status ?? "unknown",
           }),
         )
-        .filter((n: NodeOption) => n.id);
+        .filter((v: ViberOption) => v.id);
     } catch {
-      nodes = [];
+      vibers = [];
     }
   }
 
@@ -355,7 +355,7 @@
   });
 
   $effect(() => {
-    if (showCreateForm && nodes.length === 0) void fetchNodes();
+    if (showCreateForm && vibers.length === 0) void fetchVibers();
   });
 
   const hasAnyJobs = $derived(totalJobs > 0);
@@ -464,9 +464,9 @@
                           <Clock class="size-4" />
                           <span>{job.scheduleDescription || job.schedule}</span>
                         </div>
-                        {#if job.nodeId}
+                        {#if job.viberId}
                           <span class="text-muted-foreground"
-                            >Viber: {job.nodeId.slice(0, 12)}{job.nodeId
+                            >Viber: {job.viberId.slice(0, 12)}{job.viberId
                               .length > 12
                               ? "…"
                               : ""}</span
@@ -603,15 +603,15 @@
             {/if}
           {/each}
 
-          <!-- Node-reported jobs (created from chat or locally on daemons) -->
-          {#each nodeJobs as group}
+          <!-- Daemon-reported jobs (created from chat or locally on daemons) -->
+          {#each daemonJobs as group}
             {#if group.jobs.length > 0}
               <section>
                 <h2
                   class="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2"
                 >
                   <Server class="size-3.5" />
-                  Viber: {group.nodeName || group.nodeId}
+                  Viber: {group.viberName || group.viberId}
                 </h2>
                 <div class="grid gap-4">
                   {#each group.jobs as job}
@@ -880,17 +880,17 @@
               <div class="space-y-3">
                 <div class="space-y-2">
                   <Label for="job-node">Target Viber</Label>
-                  <Select id="job-node" bind:value={formNodeId}>
+                  <Select id="job-node" bind:value={formViberId}>
                     <option value="">Any available viber</option>
-                    {#each nodes as node}
-                      <option value={node.id}>
-                        {node.name}
-                        {node.status === "active" ? " (connected)" : ""}
+                    {#each vibers as viber}
+                      <option value={viber.id}>
+                        {viber.name}
+                        {viber.status === "active" ? " (connected)" : ""}
                       </option>
                     {/each}
                   </Select>
                   <p class="text-[10px] text-muted-foreground">
-                    Select a specific node or let any available one pick it up.
+                    Select a specific viber or let any available one pick it up.
                   </p>
                 </div>
                 <div class="space-y-2">

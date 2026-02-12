@@ -12,10 +12,10 @@
   } from "@lucide/svelte";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
 
-  export interface ComposerNode {
+  export interface ComposerViber {
     id: string;
     name: string;
-    node_id: string | null;
+    viber_id: string | null;
     status: "pending" | "active" | "offline";
   }
 
@@ -28,7 +28,7 @@
     id: string;
     name: string;
     description: string;
-    /** Whether this skill is runnable on the node */
+    /** Whether this skill is runnable on the viber */
     available?: boolean;
     /** Human-readable health summary (e.g. "Missing: gh CLI") */
     healthSummary?: string;
@@ -80,12 +80,12 @@
     onsetupskill?: (skill: ComposerSkill) => void;
 
     // -- Selector data --
-    nodes?: ComposerNode[];
+    vibers?: ComposerViber[];
     environments?: ComposerEnvironment[];
     skills?: ComposerSkill[];
     /** Bindable set of enabled skill IDs for this viber */
     selectedSkillIds?: string[];
-    selectedNodeId?: string | null;
+    selectedViberId?: string | null;
     selectedEnvironmentId?: string | null;
     selectedModelId?: string;
 
@@ -109,11 +109,11 @@
     ondismisserror,
     onsetupskill,
 
-    nodes = [],
+    vibers = [],
     environments = [],
     skills = [],
     selectedSkillIds = $bindable([]),
-    selectedNodeId = $bindable(null),
+    selectedViberId = $bindable(null),
     selectedEnvironmentId = $bindable(null),
     selectedModelId = $bindable(""),
 
@@ -124,8 +124,8 @@
   }: Props = $props();
 
   // Derived
-  const selectedNode = $derived(
-    nodes.find((n) => n.id === selectedNodeId) ?? null,
+  const selectedViber = $derived(
+    vibers.find((v) => v.id === selectedViberId) ?? null,
   );
   const selectedEnvironment = $derived(
     environments.find((e) => e.id === selectedEnvironmentId) ?? null,
@@ -136,7 +136,7 @@
   const selectedSkillCount = $derived(
     selectedSkillIds.filter((id) => skills.some((s) => s.id === id)).length,
   );
-  const hasNodeSelector = $derived(nodes.length > 0);
+  const hasViberSelector = $derived(vibers.length > 0);
   const hasEnvSelector = $derived(environments.length > 0);
   const canSend = $derived(!!value.trim() && !sending && !disabled);
 
@@ -206,20 +206,20 @@
     <!-- Toolbar row (inside card) -->
     <div class="flex items-center justify-between gap-2 px-3 pb-2.5 pt-0.5">
       <div class="flex items-center gap-0.5 min-w-0 overflow-x-auto">
-        <!-- Node selector -->
-        {#if hasNodeSelector}
+        <!-- Viber selector -->
+        {#if hasViberSelector}
           <DropdownMenu.Root>
             <DropdownMenu.Trigger
               class="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer shrink-0"
             >
-              {#if selectedNode}
+              {#if selectedViber}
                 <span
-                  class="size-1.5 shrink-0 rounded-full"
-                  class:bg-emerald-500={selectedNode.status === "active"}
-                  class:bg-amber-500={selectedNode.status === "pending"}
-                  class:bg-zinc-400={selectedNode.status === "offline"}
+                  class="inline-block size-2 shrink-0 rounded-full"
+                  class:bg-emerald-500={selectedViber.status === "active"}
+                  class:bg-amber-500={selectedViber.status === "pending"}
+                  class:bg-zinc-400={selectedViber.status === "offline"}
                 ></span>
-                <span class="truncate max-w-[100px]">{selectedNode.name}</span>
+                <span class="truncate max-w-[100px]">{selectedViber.name}</span>
               {:else}
                 <Laptop class="size-3.5" />
                 <span>Viber</span>
@@ -229,7 +229,7 @@
             <DropdownMenu.Content align="start" class="w-64">
               <DropdownMenu.Label>Select viber</DropdownMenu.Label>
               <DropdownMenu.Separator />
-              {#if nodes.length === 0}
+              {#if vibers.length === 0}
                 <div
                   class="px-2 py-3 text-center text-xs text-muted-foreground"
                 >
@@ -237,27 +237,27 @@
                   <a href="/vibers" class="underline">Vibers</a> to add one.
                 </div>
               {:else}
-                {#each nodes as node (node.id)}
+                {#each vibers as viber (viber.id)}
                   <DropdownMenu.Item
-                    onclick={() => (selectedNodeId = node.id)}
-                    class="flex items-center justify-between"
-                    disabled={node.status !== "active"}
+                    onclick={() => (selectedViberId = viber.id)}
+                    class="flex items-center gap-2"
+                    disabled={viber.status !== "active"}
                   >
-                    <span class="flex items-center gap-2">
+                    <span class="flex items-center gap-2 flex-1 min-w-0">
                       <span
-                        class="size-2 shrink-0 rounded-full"
-                        class:bg-emerald-500={node.status === "active"}
-                        class:bg-amber-500={node.status === "pending"}
-                        class:bg-zinc-400={node.status === "offline"}
+                        class="inline-block size-2 shrink-0 rounded-full"
+                        class:bg-emerald-500={viber.status === "active"}
+                        class:bg-amber-500={viber.status === "pending"}
+                        class:bg-zinc-400={viber.status === "offline"}
                       ></span>
-                      {node.name}
-                      {#if node.status !== "active"}
-                        <span class="text-xs text-muted-foreground"
-                          >({node.status})</span
+                      {viber.name}
+                      {#if viber.status !== "active"}
+                        <span class="text-xs text-muted-foreground ml-1"
+                          >({viber.status})</span
                         >
                       {/if}
                     </span>
-                    {#if selectedNodeId === node.id}
+                    {#if selectedViberId === viber.id}
                       <Check class="size-3.5 text-primary" />
                     {/if}
                   </DropdownMenu.Item>
@@ -317,7 +317,7 @@
         {/if}
 
         <!-- Separator between context selectors and model/skills -->
-        {#if hasNodeSelector || hasEnvSelector}
+        {#if hasViberSelector || hasEnvSelector}
           <div class="mx-0.5 h-4 w-px bg-border/60 shrink-0"></div>
         {/if}
 

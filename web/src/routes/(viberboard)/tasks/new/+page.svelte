@@ -17,10 +17,10 @@
     healthSummary?: string;
   }
 
-  interface ViberNode {
+  interface Viber {
     id: string;
     name: string;
-    node_id: string | null;
+    viber_id: string | null;
     status: "pending" | "active" | "offline";
     skills?: Array<{
       id: string;
@@ -49,13 +49,13 @@
     enabled: boolean;
   }
 
-  let nodes = $state<ViberNode[]>([]);
+  let vibers = $state<Viber[]>([]);
   let environments = $state<SidebarEnvironment[]>([]);
   let accountSkills = $state<AccountSkill[]>([]);
   let channelOptions = $state<ChannelOption[]>([]);
   let selectedChannelIds = $state<string[]>([]);
   let selectedEnvironmentId = $state<string | null>(null);
-  let selectedNodeId = $state<string | null>(null);
+  let selectedViberId = $state<string | null>(null);
   let selectedModelId = $state("");
   let selectedSkillIds = $state<string[]>([]);
   let taskInput = $state("");
@@ -82,8 +82,8 @@
   const previewIntents = $derived(intents.slice(0, 3));
 
   // Derived: selected objects
-  const selectedNode = $derived(
-    nodes.find((n) => n.id === selectedNodeId) ?? null,
+  const selectedViber = $derived(
+    vibers.find((v) => v.id === selectedViberId) ?? null,
   );
   const selectedIntent = $derived(
     selectedIntentId
@@ -91,48 +91,48 @@
       : null,
   );
 
-  const selectedNodeSkills = $derived(selectedNode?.skills ?? []);
+  const selectedViberSkills = $derived(selectedViber?.skills ?? []);
   const composerSkills = $derived.by(() => {
-    const nodeSkillMap = new Map<
+    const viberSkillMap = new Map<
       string,
       { available: boolean; status: string; healthSummary?: string }
     >();
-    for (const skill of selectedNodeSkills) {
-      nodeSkillMap.set(skill.id, {
+    for (const skill of selectedViberSkills) {
+      viberSkillMap.set(skill.id, {
         available: skill.available,
         status: skill.status,
         healthSummary: skill.healthSummary,
       });
-      nodeSkillMap.set(skill.name, {
+      viberSkillMap.set(skill.name, {
         available: skill.available,
         status: skill.status,
         healthSummary: skill.healthSummary,
       });
     }
 
-    const hasNodeSkillInventory = selectedNodeSkills.length > 0;
+    const hasViberSkillInventory = selectedViberSkills.length > 0;
     return accountSkills.map((skill) => {
-      const fromNode =
-        nodeSkillMap.get(skill.id) || nodeSkillMap.get(skill.name);
-      const available = hasNodeSkillInventory
-        ? Boolean(fromNode?.available)
+      const fromViber =
+        viberSkillMap.get(skill.id) || viberSkillMap.get(skill.name);
+      const available = hasViberSkillInventory
+        ? Boolean(fromViber?.available)
         : skill.available;
 
       return {
         ...skill,
         available,
-        status: (fromNode?.status as AccountSkill["status"]) ?? skill.status,
+        status: (fromViber?.status as AccountSkill["status"]) ?? skill.status,
         healthSummary:
-          fromNode?.healthSummary ||
-          (hasNodeSkillInventory && available === false
+          fromViber?.healthSummary ||
+          (hasViberSkillInventory && available === false
             ? "Not ready on selected viber"
             : skill.healthSummary),
       };
     });
   });
 
-  // Only active nodes (with a daemon connected) can receive tasks
-  const activeNodes = $derived(nodes.filter((n) => n.status === "active"));
+  // Only active vibers (with a daemon connected) can receive tasks
+  const activeVibers = $derived(vibers.filter((v) => v.status === "active"));
   const enabledChannels = $derived(
     channelOptions.filter((channel) => channel.enabled),
   );
@@ -152,8 +152,8 @@
     if (!pendingIntentBody) return;
     if (showSkillSetupDialog || settingUpSkill || creating) return;
 
-    const node = nodes.find((n) => n.id === selectedNodeId);
-    if (!node || node.status !== "active") return;
+    const viber = vibers.find((v) => v.id === selectedViberId);
+    if (!viber || viber.status !== "active") return;
 
     const missing = getUnavailableSkills(pendingIntentRequiredSkills);
     if (missing.length > 0) {
@@ -181,13 +181,13 @@
 
       if (nodesRes.ok) {
         const data = await nodesRes.json();
-        nodes = (data.nodes ?? []).map((node: any) => ({
-          id: node.id,
-          name: node.name,
-          node_id: node.node_id ?? null,
-          status: node.status ?? "offline",
-          skills: Array.isArray(node.skills)
-            ? node.skills.map((skill: any) => ({
+        vibers = (data.vibers ?? []).map((v: any) => ({
+          id: v.id,
+          name: v.name,
+          viber_id: v.viber_id ?? null,
+          status: v.status ?? "offline",
+          skills: Array.isArray(v.skills)
+            ? v.skills.map((skill: any) => ({
                 id: skill.id || skill.name,
                 name: skill.name || skill.id,
                 description: skill.description || "",
@@ -237,7 +237,7 @@
 
       const requestedEnvironmentId =
         $page.url.searchParams.get("environment") || null;
-      const requestedNodeId = $page.url.searchParams.get("node") || null;
+      const requestedViberId = $page.url.searchParams.get("node") || null;
 
       if (requestedEnvironmentId) {
         const matchedEnvironment = environments.find(
@@ -251,25 +251,24 @@
         selectedEnvironmentId = environments[0].id;
       }
 
-      if (requestedNodeId) {
-        const matchedNode = activeNodes.find(
-          (node) =>
-            node.id === requestedNodeId || node.node_id === requestedNodeId,
+      if (requestedViberId) {
+        const matchedViber = activeVibers.find(
+          (v) => v.id === requestedViberId || v.viber_id === requestedViberId,
         );
-        if (matchedNode) {
-          selectedNodeId = matchedNode.id;
+        if (matchedViber) {
+          selectedViberId = matchedViber.id;
         }
       }
 
-      // Auto-select if only one active node, or recover from stale selection.
+      // Auto-select if only one active viber, or recover from stale selection.
       if (
-        selectedNodeId &&
-        !activeNodes.some((node) => node.id === selectedNodeId)
+        selectedViberId &&
+        !activeVibers.some((v) => v.id === selectedViberId)
       ) {
-        selectedNodeId = null;
+        selectedViberId = null;
       }
-      if (activeNodes.length === 1 && !selectedNodeId) {
-        selectedNodeId = activeNodes[0].id;
+      if (activeVibers.length === 1 && !selectedViberId) {
+        selectedViberId = activeVibers[0].id;
       }
     } catch (err) {
       console.error("Failed to fetch data:", err);
@@ -370,8 +369,8 @@
   }
 
   async function runSkillProvision(install: boolean) {
-    const node = nodes.find((n) => n.id === selectedNodeId);
-    if (!setupSkill || !node) {
+    const viber = vibers.find((v) => v.id === selectedViberId);
+    if (!setupSkill || !viber) {
       setupSkillError = "Select an active viber before running skill setup.";
       return;
     }
@@ -385,7 +384,7 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           skillId: targetSkill.id,
-          nodeId: node.node_id || node.id,
+          viberId: viber.viber_id || viber.id,
           install,
           authAction: install ? setupAuthAction : "none",
         }),
@@ -479,15 +478,15 @@
 
   async function submitTask(overrideContent?: string) {
     const content = (overrideContent ?? taskInput).trim();
-    const node = nodes.find((n) => n.id === selectedNodeId);
+    const viber = vibers.find((v) => v.id === selectedViberId);
     if (!content) {
       error = "Add a task message or choose an intent to get started.";
       return;
     }
     if (creating) return;
-    if (!node || node.status !== "active") {
+    if (!viber || viber.status !== "active") {
       error =
-        activeNodes.length > 0
+        activeVibers.length > 0
           ? "Select an active viber to start this task."
           : "No active viber found. Start a viber first, then retry.";
       return;
@@ -514,8 +513,8 @@
     error = null;
 
     try {
-      // The node's node_id is the daemon's ID on the hub
-      const nodeId = node.node_id;
+      // The viber's viber_id is the daemon's ID on the hub
+      const viberId = viber.viber_id;
 
       // Create a new task via POST /api/tasks
       // Use the intent name as the viber display title (not the full body)
@@ -527,7 +526,7 @@
         body: JSON.stringify({
           goal: content,
           title,
-          nodeId: nodeId ?? undefined,
+          viberId: viberId ?? undefined,
           environmentId: selectedEnvironmentId ?? undefined,
           channelIds:
             selectedChannelIds.length > 0 ? selectedChannelIds : undefined,
@@ -541,19 +540,19 @@
         throw new Error(payload?.error || "Failed to create task.");
       }
 
-      const viberId = payload.viberId;
+      const taskId = payload.viberId ?? payload.taskId;
 
       // Update cached viber list so sidebar/list show the new viber
       void getTasksStore().invalidate();
 
       // Store the goal in sessionStorage for the viber chat page to pick up
       window.sessionStorage.setItem(
-        `openviber:new-viber-task:${viberId}`,
+        `openviber:new-viber-task:${taskId}`,
         content,
       );
 
       // Navigate to the new viber's chat page
-      await goto(`/tasks/${viberId}`);
+      await goto(`/tasks/${taskId}`);
     } catch (e) {
       error = e instanceof Error ? e.message : "Failed to create task.";
       creating = false;
@@ -591,7 +590,7 @@
         </p>
       </div>
 
-      {#if activeNodes.length === 0}
+      {#if activeVibers.length === 0}
         <section
           class="mb-6 w-full rounded-xl border border-amber-500/30 bg-amber-500/10 p-4"
         >
@@ -618,7 +617,7 @@
             </button>
           </div>
         </section>
-      {:else if activeNodes.length > 1 && !selectedNodeId}
+      {:else if activeVibers.length > 1 && !selectedViberId}
         <section
           class="mb-6 w-full rounded-xl border border-border bg-card/70 p-4"
         >
@@ -744,13 +743,13 @@
       <ChatComposer
         bind:value={taskInput}
         bind:error
-        bind:selectedNodeId
+        bind:selectedViberId
         bind:selectedEnvironmentId
         bind:selectedModelId
         placeholder="Describe what you want to build, or pick an intent above..."
         disabled={creating}
         sending={creating}
-        {nodes}
+        {vibers}
         {environments}
         skills={composerSkills}
         bind:selectedSkillIds

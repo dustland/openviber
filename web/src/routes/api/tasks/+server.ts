@@ -1,18 +1,18 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { gatewayClient } from "$lib/server/gateway-client";
+import { gatewayClient } from "$lib/server/gateway";
 import {
   listViberEnvironmentAssignmentsForUser,
   listEnvironmentsForUser,
   getEnvironmentForUser,
   setViberEnvironmentForUser,
 } from "$lib/server/environments";
-import { getSettingsForUser } from "$lib/server/user-settings";
-import { supabaseRequest, toInFilter } from "$lib/server/supabase-rest";
+import { getSettingsForUser } from "$lib/server/settings";
+import { supabaseRequest, toInFilter } from "$lib/server/supabase";
 import { writeLog } from "$lib/server/logs";
 import { summarizeTaskTitle } from "$lib/server/task-title";
 
-// POST /api/vibers - Create a new viber on a node
+// POST /api/tasks - Create a new task on a node
 export const POST: RequestHandler = async ({ request, locals }) => {
   if (!locals.user) {
     return json({ error: "Unauthorized" }, { status: 401 });
@@ -20,14 +20,15 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
   try {
     const body = await request.json();
-    const { goal, title, nodeId, environmentId, channelIds, model, skills } = body;
+    const { goal, title, viberId, nodeId: legacyNodeId, environmentId, channelIds, model, skills } = body;
+    const targetViberId = viberId ?? legacyNodeId;
 
     if (!goal) {
       return json({ error: "Missing goal" }, { status: 400 });
     }
 
     // Look up environment context if provided
-    let environment: import("$lib/server/gateway-client").ViberEnvironmentContext | undefined;
+    let environment: import("$lib/server/gateway").ViberEnvironmentContext | undefined;
     if (environmentId && locals.user?.id) {
       try {
         const envDetail = await getEnvironmentForUser(locals.user.id, environmentId, {
@@ -72,9 +73,9 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       ? skills.filter((s: unknown) => typeof s === "string" && s.length > 0)
       : undefined;
 
-    const result = await gatewayClient.createViber(
+    const result = await gatewayClient.createTask(
       goal,
-      nodeId,
+      targetViberId,
       undefined,
       environment,
       {
@@ -160,7 +161,7 @@ interface PersistedViberRow {
   node_id: string | null;
 }
 
-// GET /api/vibers - List vibers: Supabase as source of truth, gateway for live state
+// GET /api/tasks - List tasks: Supabase as source of truth, gateway for live state
 export const GET: RequestHandler = async ({ locals, url }) => {
   if (!locals.user) {
     return json({ error: "Unauthorized" }, { status: 401 });
@@ -177,7 +178,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
           order: "created_at.desc",
         },
       }),
-      gatewayClient.getVibers(),
+      gatewayClient.getTasks(),
       listEnvironmentsForUser(locals.user.id),
     ]);
 

@@ -1,7 +1,7 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { BUILTIN_INTENTS, type Intent } from "$lib/data/intents";
-import { supabaseRequest } from "$lib/server/supabase-rest";
+import { supabaseRequest } from "$lib/server/supabase";
 
 interface IntentRow {
   id: string;

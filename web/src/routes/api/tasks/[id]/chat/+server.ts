@@ -1,20 +1,20 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { gatewayClient } from "$lib/server/gateway-client";
-import type { ViberEnvironmentContext } from "$lib/server/gateway-client";
+import { gatewayClient } from "$lib/server/gateway";
+import type { ViberEnvironmentContext } from "$lib/server/gateway";
 import {
   getViberEnvironmentForUser,
   getEnvironmentForUser,
   getViberSkills,
 } from "$lib/server/environments";
-import { getSettingsForUser } from "$lib/server/user-settings";
+import { getSettingsForUser } from "$lib/server/settings";
 import { getDecryptedOAuthConnections } from "$lib/server/oauth";
 import { writeLog } from "$lib/server/logs";
 
 const GATEWAY_URL = process.env.VIBER_GATEWAY_URL || process.env.VIBER_BOARD_URL || process.env.VIBER_HUB_URL || "http://localhost:6007";
 
 /**
- * POST /api/vibers/[id]/chat
+ * POST /api/tasks/[id]/chat
  *
  * AI SDK streaming endpoint for @ai-sdk/svelte Chat class.
  * 1. Looks up the viber to find its parent node
@@ -33,7 +33,7 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
     } = body;
     const selectedEnvironmentId =
       typeof requestEnvironmentId === "string" &&
-      requestEnvironmentId.trim().length > 0
+        requestEnvironmentId.trim().length > 0
         ? requestEnvironmentId.trim()
         : null;
 
@@ -142,7 +142,7 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
       }
     }
 
-    const existingViber = await gatewayClient.getViber(params.id);
+    const existingViber = await gatewayClient.getTask(params.id);
     let viberId: string;
     const userId = locals.user?.id;
     const modelLabel = typeof model === "string" && model ? model : "default";
@@ -199,7 +199,7 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
     } else {
       const viberModel = typeof model === "string" && model ? model : undefined;
       try {
-        const result = await gatewayClient.createViber(
+        const result = await gatewayClient.createTask(
           goal,
           undefined,
           simpleMessages,
@@ -209,7 +209,7 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
           viberModel,
         );
         if (!result) {
-          const errMsg = "Failed to create viber on gateway (no response)";
+          const errMsg = "Failed to create task on gateway (no response)";
           if (userId) {
             writeLog({
               user_id: userId,
@@ -226,7 +226,7 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
         viberId = result.viberId;
       } catch (gatewayError) {
         const errMsg = gatewayError instanceof Error ? gatewayError.message : String(gatewayError);
-        console.error("[Chat] Gateway createViber failed:", errMsg);
+        console.error("[Chat] Gateway createTask failed:", errMsg);
         if (userId) {
           writeLog({
             user_id: userId,
@@ -239,7 +239,7 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
               goal: goal.slice(0, 200),
               model: modelLabel,
               gatewayError: errMsg,
-              phase: "create_viber",
+              phase: "create_task",
             },
           });
         }
@@ -251,7 +251,7 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
     // Small delay to let the daemon start processing
     await new Promise((resolve) => setTimeout(resolve, 100));
 
-    const streamUrl = `${GATEWAY_URL}/api/vibers/${viberId}/stream`;
+    const streamUrl = `${GATEWAY_URL}/api/tasks/${viberId}/stream`;
     const streamResponse = await fetch(streamUrl, {
       headers: { Accept: "text/event-stream" },
     });

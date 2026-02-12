@@ -4,7 +4,7 @@
  * Provides helpers to write and query activity_logs for the Logs page.
  */
 
-import { supabaseRequest } from "./supabase-rest";
+import { supabaseRequest } from "./supabase";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 

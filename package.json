@@ -21,7 +21,7 @@
     }
   },
   "scripts": {
-    "dev": "tsx scripts/dev-setup.ts && concurrently -n gateway,web,viber \"tsx watch src/cli/index.ts gateway\" \"cd web && pnpm dev\" \"tsx watch src/cli/index.ts start\"",
+    "dev": "tsx scripts/dev-setup.ts && concurrently -n gateway,web,viber \"tsx watch src/cli/index.ts gateway\" \"cd web && pnpm dev\" \"tsx watch src/cli/index.ts start --server ws://localhost:6007/ws\"",
     "dev:gateway": "tsx watch src/cli/index.ts gateway",
     "dev:viber": "tsx watch src/cli/index.ts start",
     "dev:web": "cd web && pnpm dev",

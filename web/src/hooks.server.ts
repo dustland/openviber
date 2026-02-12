@@ -1,6 +1,6 @@
 import type { Handle, HandleServerError } from "@sveltejs/kit";
 import { getAuthUser, isE2ETestMode, getE2ETestUser } from "$lib/server/auth";
-import { getSettingsForUser } from "$lib/server/user-settings";
+import { getSettingsForUser } from "$lib/server/settings";
 
 // Only these routes require authentication
 const PROTECTED_PATHS = [

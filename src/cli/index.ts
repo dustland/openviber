@@ -236,10 +236,10 @@ program
       process.exit(0);
     });
 
-    // Controller always connects to the embedded gateway.
-    // In connected mode it also connects to the cloud gateway (future).
+    // Controller connects to the main gateway when available (connected mode),
+    // otherwise falls back to the embedded gateway for standalone mode.
     const controller = new ViberController({
-      serverUrl: `ws://localhost:${apiPort}`,
+      serverUrl: serverUrl || `ws://localhost:${apiPort}`,
       token: authToken,
       viberId,
       viberName: options.name || savedConfig?.name || os.hostname(),
@@ -346,14 +346,16 @@ const gatewayAction = async (options: { port: string }) => {
 
   await gateway.start();
 
+  const w = 55;
+  const gLine = (s: string) => `| ${s.padEnd(w)} |`;
   console.log(`
-+-------------------------------------------------------+
-|                   GATEWAY RUNNING                       |
-+-------------------------------------------------------+
-| REST API:     ${("http://localhost:" + options.port).padEnd(43).slice(0, 43)} |
-| WebSocket:    ${("ws://localhost:" + options.port + "/ws").padEnd(43).slice(0, 43)} |
-| Status:       * Ready for task connections              |
-+-------------------------------------------------------+
++${"-".repeat(w + 2)}+
+| ${"GATEWAY RUNNING".padStart(Math.floor((w + 15) / 2)).padEnd(w)} |
++${"-".repeat(w + 2)}+
+${gLine("REST API:     http://localhost:" + options.port)}
+${gLine("WebSocket:    ws://localhost:" + options.port + "/ws")}
+${gLine("Status:       * Ready for task connections")}
++${"-".repeat(w + 2)}+
 
 Waiting for Viber runtimes to connect...
 Press Ctrl+C to stop.

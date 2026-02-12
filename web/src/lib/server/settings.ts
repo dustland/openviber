@@ -3,7 +3,7 @@
  * ~/.openviber/settings.yaml on nodes is a local cache (written when tasks run with settings from hub).
  */
 
-import { supabaseRequest } from "./supabase-rest";
+import { supabaseRequest } from "./supabase";
 
 export interface SkillSourceSetting {
   enabled: boolean;

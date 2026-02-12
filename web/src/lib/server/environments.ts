@@ -1,7 +1,7 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "crypto";
 import { env } from "$env/dynamic/private";
 import { nanoid } from "nanoid";
-import { getServerSupabase, supabaseRequest, toInFilter } from "./supabase-rest";
+import { getServerSupabase, supabaseRequest, toInFilter } from "./supabase";
 
 const ENVIRONMENT_TYPES = new Set(["github", "local", "manual"]);
 const SECRET_PLACEHOLDER = "••••••••";

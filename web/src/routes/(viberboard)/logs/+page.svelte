@@ -29,7 +29,7 @@
     message: string;
     viber_id: string | null;
     task_id: string | null;
-    node_id: string | null;
+    daemon_id: string | null;
     metadata: Record<string, unknown> | null;
     created_at: string;
     source: "db" | "hub";
@@ -170,7 +170,7 @@
     switch (component) {
       case "task":
         return Cpu;
-      case "node":
+      case "viber":
         return Server;
       case "skill":
         return Wrench;
@@ -243,7 +243,9 @@
     </div>
 
     <!-- Tabs + Filters -->
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div
+      class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+    >
       <!-- Tab switcher -->
       <div class="flex gap-1 rounded-lg bg-muted/50 p-1">
         <button
@@ -334,7 +336,9 @@
       <!-- Skeleton loading -->
       <div class="space-y-2">
         {#each Array(8) as _}
-          <div class="flex items-start gap-3 rounded-lg border border-border/50 p-3">
+          <div
+            class="flex items-start gap-3 rounded-lg border border-border/50 p-3"
+          >
             <Skeleton class="h-5 w-5 rounded" />
             <div class="flex-1 space-y-2">
               <Skeleton class="h-4 w-3/4" />
@@ -365,7 +369,7 @@
           {:else if activeTab === "activity"}
             Activity logs will appear when vibers start executing tasks.
           {:else}
-            System logs will appear when nodes connect or disconnect.
+            System logs will appear when vibers connect or disconnect.
           {/if}
         </p>
       </div>
@@ -389,17 +393,13 @@
               <!-- Level indicator -->
               <div class="mt-0.5 shrink-0">
                 {#if log.level === "error"}
-                  <AlertCircle
-                    class="size-4 text-red-500 dark:text-red-400"
-                  />
+                  <AlertCircle class="size-4 text-red-500 dark:text-red-400" />
                 {:else if log.level === "warn"}
                   <AlertTriangle
                     class="size-4 text-yellow-500 dark:text-yellow-400"
                   />
                 {:else}
-                  <Info
-                    class="size-4 text-blue-500 dark:text-blue-400"
-                  />
+                  <Info class="size-4 text-blue-500 dark:text-blue-400" />
                 {/if}
               </div>
 
@@ -432,9 +432,9 @@
                       viber: {log.viber_id.slice(0, 16)}...
                     </span>
                   {/if}
-                  {#if log.node_id}
-                    <span class="truncate max-w-[120px]" title={log.node_id}>
-                      node: {log.node_id.slice(0, 12)}...
+                  {#if log.daemon_id}
+                    <span class="truncate max-w-[120px]" title={log.daemon_id}>
+                      viber: {log.daemon_id.slice(0, 12)}...
                     </span>
                   {/if}
                   {#if log.source === "hub"}

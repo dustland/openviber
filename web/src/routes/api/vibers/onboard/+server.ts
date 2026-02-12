@@ -1,6 +1,6 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { claimNodeByToken } from "$lib/server/viber-nodes";
+import { claimViberByToken } from "$lib/server/vibers";
 
 /**
  * POST /api/vibers/onboard
@@ -9,7 +9,7 @@ import { claimNodeByToken } from "$lib/server/viber-nodes";
  * This endpoint does NOT require cookie-based auth — it's authenticated
  * by the one-time onboard token instead.
  *
- * Returns the node config needed by the daemon.
+ * Returns the viber config needed by the daemon.
  */
 export const POST: RequestHandler = async ({ request }) => {
   try {
@@ -20,11 +20,11 @@ export const POST: RequestHandler = async ({ request }) => {
       return json({ error: "Missing onboard token" }, { status: 400 });
     }
 
-    const node = await claimNodeByToken(token);
+    const viber = await claimViberByToken(token);
 
-    if (!node) {
+    if (!viber) {
       return json(
-        { error: "Invalid or expired onboard token. Please create a new node on the web." },
+        { error: "Invalid or expired onboard token. Please create a new viber on the web." },
         { status: 401 },
       );
     }
@@ -32,10 +32,10 @@ export const POST: RequestHandler = async ({ request }) => {
     // Return all config the daemon needs
     return json({
       ok: true,
-      nodeId: node.id,
-      name: node.name,
-      authToken: node.auth_token,
-      config: node.config,
+      viberId: viber.id,
+      name: viber.name,
+      authToken: viber.auth_token,
+      config: viber.config,
     });
   } catch (error) {
     console.error("Onboard token exchange failed:", error);

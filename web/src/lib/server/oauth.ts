@@ -8,7 +8,7 @@
 
 import { env } from "$env/dynamic/private";
 import { encryptSecretValue, decryptSecretValue } from "./environments";
-import { supabaseRequest } from "./supabase-rest";
+import { supabaseRequest } from "./supabase";
 
 // ==================== Config ====================
 

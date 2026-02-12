@@ -1,16 +1,16 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { env } from "$env/dynamic/private";
-import { getNodeByAuthToken, getViberNode, updateNodeConfig, updateNodeName } from "$lib/server/viber-nodes";
+import { getViberByAuthToken, getViber, updateViberConfig, updateViberName } from "$lib/server/vibers";
 import { listEnvironmentConfigForNode } from "$lib/server/environments";
 import { getDecryptedOAuthConnections } from "$lib/server/oauth";
-import { getSettingsForUser, getPersonalizationForUser } from "$lib/server/user-settings";
-import { gatewayClient } from "$lib/server/gateway-client";
+import { getSettingsForUser, getPersonalizationForUser } from "$lib/server/settings";
+import { gatewayClient } from "$lib/server/gateway";
 
 /**
  * GET /api/vibers/[id]/config
  *
- * Returns the latest config for a viber node.
+ * Returns the latest config for a viber.
  * Authenticated by either:
  *   - Bearer auth_token (for daemon config pull)
  *   - Cookie-based session (for web UI)
@@ -20,23 +20,23 @@ import { gatewayClient } from "$lib/server/gateway-client";
  * can operate without additional API calls.
  */
 export const GET: RequestHandler = async ({ params, request, locals }) => {
-  const nodeId = params.id;
+  const viberId = params.id;
 
   // Try Bearer token auth first (daemon calling)
   const authHeader = request.headers.get("authorization");
   if (authHeader?.startsWith("Bearer ")) {
     const token = authHeader.slice(7);
-    const node = await getNodeByAuthToken(token);
-    if (!node || node.id !== nodeId) {
+    const viber = await getViberByAuthToken(token);
+    if (!viber || viber.id !== viberId) {
       return json({ error: "Unauthorized" }, { status: 401 });
     }
-    const environments = await listEnvironmentConfigForNode(nodeId, {
+    const environments = await listEnvironmentConfigForNode(viberId, {
       includeSecrets: true,
     });
     // Include decrypted OAuth tokens so the daemon can use them for skills
     let oauthConnections: Awaited<ReturnType<typeof getDecryptedOAuthConnections>> = [];
     try {
-      oauthConnections = await getDecryptedOAuthConnections(node.user_id);
+      oauthConnections = await getDecryptedOAuthConnections(viber.user_id);
     } catch {
       // Non-fatal — daemon can still work without OAuth connections
     }
@@ -49,7 +49,7 @@ export const GET: RequestHandler = async ({ params, request, locals }) => {
       primaryCodingCli: string | null;
     } | null = null;
     try {
-      const userSettings = await getSettingsForUser(node.user_id);
+      const userSettings = await getSettingsForUser(viber.user_id);
 
       // Merge user's own provider keys with the built-in OpenRouter fallback.
       // If the user hasn't added any keys, the daemon can still work via the
@@ -84,21 +84,21 @@ export const GET: RequestHandler = async ({ params, request, locals }) => {
       memoryMd: string;
     } | null = null;
     try {
-      personalization = await getPersonalizationForUser(node.user_id);
+      personalization = await getPersonalizationForUser(viber.user_id);
     } catch {
       // Non-fatal
     }
 
     return json({
-      nodeId: node.id,
-      name: node.name,
-      config: node.config,
+      viberId: viber.id,
+      name: viber.name,
+      config: viber.config,
       environments,
       oauthConnections,
       globalSettings,
       personalization,
       configVersion: Date.now(),
-      status: node.status,
+      status: viber.status,
     });
   }
 
@@ -107,41 +107,41 @@ export const GET: RequestHandler = async ({ params, request, locals }) => {
     return json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const node = await getViberNode(locals.user.id, nodeId);
-  if (!node) {
-    return json({ error: "Node not found" }, { status: 404 });
+  const viber = await getViber(locals.user.id, viberId);
+  if (!viber) {
+    return json({ error: "Viber not found" }, { status: 404 });
   }
 
-  const environments = await listEnvironmentConfigForNode(nodeId, {
+  const environments = await listEnvironmentConfigForNode(viberId, {
     includeSecrets: false,
   });
 
   return json({
-    nodeId: node.id,
-    name: node.name,
-    config: node.config,
+    viberId: viber.id,
+    name: viber.name,
+    config: viber.config,
     environments,
     configVersion: Date.now(),
-    status: node.status,
+    status: viber.status,
   });
 };
 
 /**
  * PUT /api/vibers/[id]/config
  *
- * Update a viber node's name and/or config. Authenticated via session cookie.
+ * Update a viber's name and/or config. Authenticated via session cookie.
  */
 export const PUT: RequestHandler = async ({ params, request, locals }) => {
   if (!locals.user) {
     return json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const nodeId = params.id;
+  const viberId = params.id;
 
   // Verify ownership
-  const node = await getViberNode(locals.user.id, nodeId);
-  if (!node) {
-    return json({ error: "Node not found" }, { status: 404 });
+  const viber = await getViber(locals.user.id, viberId);
+  if (!viber) {
+    return json({ error: "Viber not found" }, { status: 404 });
   }
 
   try {
@@ -149,7 +149,7 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
 
     // Update name if provided
     if (body.name && typeof body.name === "string") {
-      const updated = await updateNodeName(nodeId, body.name.trim());
+      const updated = await updateViberName(viberId, body.name.trim());
       if (!updated) {
         return json({ error: "Failed to update name" }, { status: 500 });
       }
@@ -160,19 +160,19 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
 
     // Update config if provided
     if (body.config) {
-      const updated = await updateNodeConfig(nodeId, body.config);
+      const updated = await updateViberConfig(viberId, body.config);
       if (!updated) {
         return json({ error: "Failed to update config" }, { status: 500 });
       }
 
-      // After saving to Supabase, push config to the node via gateway
-      // This ensures the node pulls and validates the latest config
-      if (node.node_id) {
+      // After saving to Supabase, push config to the viber via gateway
+      // This ensures the viber pulls and validates the latest config
+      if (viber.viber_id) {
         try {
-          await gatewayClient.pushConfigToNode(node.node_id);
+          await gatewayClient.pushConfigToNode(viber.viber_id);
         } catch (error) {
-          // Non-fatal: config is saved to Supabase, node will get it on next pull
-          console.warn(`[Config API] Failed to push config to node ${node.node_id}:`, error);
+          // Non-fatal: config is saved to Supabase, viber will get it on next pull
+          console.warn(`[Config API] Failed to push config to viber ${viber.viber_id}:`, error);
         }
       }
 
@@ -181,7 +181,7 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
 
     return json({ ok: true });
   } catch (error) {
-    console.error("Failed to update node:", error);
+    console.error("Failed to update viber:", error);
     return json({ error: "Failed to update" }, { status: 500 });
   }
 };

@@ -1,9 +1,9 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { supabaseRequest } from "$lib/server/supabase-rest";
+import { supabaseRequest } from "$lib/server/supabase";
 import { writeLog } from "$lib/server/logs";
 
-// POST /api/vibers/[id]/archive - Archive a viber
+// POST /api/tasks/[id]/archive - Archive a task
 export const POST: RequestHandler = async ({ params, locals }) => {
   if (!locals.user) {
     return json({ error: "Unauthorized" }, { status: 401 });
@@ -38,7 +38,7 @@ export const POST: RequestHandler = async ({ params, locals }) => {
   }
 };
 
-// DELETE /api/vibers/[id]/archive - Restore (unarchive) a viber
+// DELETE /api/tasks/[id]/archive - Restore (unarchive) a task
 export const DELETE: RequestHandler = async ({ params, locals }) => {
   if (!locals.user) {
     return json({ error: "Unauthorized" }, { status: 401 });

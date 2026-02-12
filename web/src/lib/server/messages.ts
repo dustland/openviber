@@ -1,5 +1,5 @@
 import { nanoid } from "nanoid";
-import { supabaseRequest } from "./supabase-rest";
+import { supabaseRequest } from "./supabase";
 
 interface MessageRow {
   id: string;

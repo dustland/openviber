@@ -1,17 +1,17 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { gatewayClient } from "$lib/server/gateway-client";
-import { getSettingsForUser } from "$lib/server/user-settings";
+import { gatewayClient } from "$lib/server/gateway";
+import { getSettingsForUser } from "$lib/server/settings";
 import {
   getViberEnvironmentForUser,
   getViberSkills,
   listSkills,
   setViberEnvironmentForUser,
 } from "$lib/server/environments";
-import { supabaseRequest } from "$lib/server/supabase-rest";
+import { supabaseRequest } from "$lib/server/supabase";
 import { writeLog } from "$lib/server/logs";
 
-// GET /api/vibers/[id] - Get viber details
+// GET /api/tasks/[id] - Get task details
 export const GET: RequestHandler = async ({ params, locals }) => {
   if (!locals.user) {
     return json({ error: "Unauthorized" }, { status: 401 });
@@ -19,7 +19,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 
   try {
     const [viber, enabledSkills, accountSkillRows, environmentId, gatewayNodes] = await Promise.all([
-      gatewayClient.getViber(params.id),
+      gatewayClient.getTask(params.id),
       getViberSkills(params.id),
       listSkills(locals.user.id),
       getViberEnvironmentForUser(locals.user.id, params.id),
@@ -93,7 +93,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
   }
 };
 
-// PATCH /api/vibers/[id] - Update persisted viber metadata (environment assignment)
+// PATCH /api/tasks/[id] - Update persisted task metadata (environment assignment)
 export const PATCH: RequestHandler = async ({ params, request, locals }) => {
   if (!locals.user) {
     return json({ error: "Unauthorized" }, { status: 401 });
@@ -120,7 +120,7 @@ export const PATCH: RequestHandler = async ({ params, request, locals }) => {
       );
     }
 
-    const viber = await gatewayClient.getViber(params.id);
+    const viber = await gatewayClient.getTask(params.id);
     const assignment = await setViberEnvironmentForUser(
       locals.user.id,
       params.id,
@@ -162,7 +162,7 @@ export const PATCH: RequestHandler = async ({ params, request, locals }) => {
   }
 };
 
-// POST /api/vibers/[id] - Send a follow-up message to this viber's node
+// POST /api/tasks/[id] - Send a follow-up message to this task's node
 export const POST: RequestHandler = async ({ params, request, locals }) => {
   if (!locals.user) {
     return json({ error: "Unauthorized" }, { status: 401 });
@@ -176,10 +176,10 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
     }
 
     const settings = await getSettingsForUser(locals.user.id);
-    const viber = await gatewayClient.getViber(params.id);
+    const viber = await gatewayClient.getTask(params.id);
     const nodeId = viber?.nodeId;
 
-    const result = await gatewayClient.createViber(goal, nodeId, messages, undefined, {
+    const result = await gatewayClient.createTask(goal, nodeId, messages, undefined, {
       primaryCodingCli: settings.primaryCodingCli ?? undefined,
     });
 
@@ -214,7 +214,7 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
   }
 };
 
-// DELETE /api/vibers/[id] - Permanently delete a viber
+// DELETE /api/tasks/[id] - Permanently delete a task
 export const DELETE: RequestHandler = async ({ params, locals }) => {
   if (!locals.user) {
     return json({ error: "Unauthorized" }, { status: 401 });
@@ -223,7 +223,7 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
   try {
     // Try to stop the viber on the gateway first (best-effort)
     try {
-      await gatewayClient.stopViber(params.id);
+      await gatewayClient.stopTask(params.id);
     } catch {
       // Ignore — viber may already be stopped or hub unreachable
     }

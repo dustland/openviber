@@ -1,7 +1,7 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { queryLogs } from "$lib/server/logs";
-import { gatewayClient, type GatewayEvent } from "$lib/server/gateway-client";
+import { gatewayClient, type GatewayEvent } from "$lib/server/gateway";
 
 /**
  * GET /api/logs - Fetch logs from Supabase (history) + board server (live events), merged.

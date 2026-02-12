@@ -44,7 +44,7 @@
     id: string;
     name: string;
     description: string;
-    usedByNodes: { id: string; name: string }[];
+    usedByVibers: { id: string; name: string }[];
   }
 
   interface DiscoverSkill {
@@ -69,17 +69,17 @@
     docsUrl?: string;
   }
 
-  interface NodeSkillInfo {
+  interface ViberSkillInfo {
     id?: string;
     name: string;
   }
 
-  interface NodeOption {
+  interface ViberOption {
     id: string;
     name: string;
-    node_id: string | null;
+    viber_id: string | null;
     status: "pending" | "active" | "offline";
-    skills?: NodeSkillInfo[];
+    skills?: ViberSkillInfo[];
   }
 
   interface PlaygroundResult {
@@ -119,10 +119,10 @@
   let requirementStatuses = $state<Record<string, SkillRequirementStatus>>({});
   let expandedSetup = $state<string | null>(null);
   let copiedHint = $state<string | null>(null);
-  let nodes = $state<NodeOption[]>([]);
+  let vibers = $state<ViberOption[]>([]);
   let playgroundDialogOpen = $state(false);
   let playgroundSkill = $state<InstalledSkill | null>(null);
-  let selectedPlaygroundNodeId = $state<string>("");
+  let selectedPlaygroundViberId = $state<string>("");
   let playgroundRunning = $state(false);
   let playgroundError = $state<string | null>(null);
   let playgroundResult = $state<PlaygroundResult | null>(null);
@@ -137,11 +137,9 @@
     }
     return map;
   });
-  const activeNodes = $derived(
-    nodes.filter((node) => node.status === "active"),
-  );
-  const selectedPlaygroundNode = $derived(
-    activeNodes.find((node) => node.id === selectedPlaygroundNodeId) ?? null,
+  const activeVibers = $derived(vibers.filter((v) => v.status === "active"));
+  const selectedPlaygroundViber = $derived(
+    activeVibers.find((v) => v.id === selectedPlaygroundViberId) ?? null,
   );
 
   function getSkillKey(skill: DiscoverSkill) {
@@ -180,17 +178,17 @@
     }
   }
 
-  async function fetchNodes() {
+  async function fetchVibers() {
     try {
       const res = await fetch("/api/vibers");
       if (!res.ok) {
-        nodes = [];
+        vibers = [];
         return;
       }
       const data = await res.json();
-      nodes = data.nodes ?? [];
+      vibers = data.vibers ?? [];
     } catch {
-      nodes = [];
+      vibers = [];
     }
   }
 
@@ -351,8 +349,8 @@
     }
   }
 
-  function nodeSupportsSkill(node: NodeOption, skillId: string) {
-    return (node.skills ?? []).some((skill) => {
+  function viberSupportsSkill(viber: ViberOption, skillId: string) {
+    return (viber.skills ?? []).some((skill) => {
       const id = (skill.id || skill.name || "").toLowerCase();
       return id === skillId.toLowerCase();
     });
@@ -364,17 +362,17 @@
     playgroundError = null;
     playgroundResult = null;
 
-    const preferredNode = activeNodes.find((node) =>
-      skill.usedByNodes.some(
-        (usedByNode) =>
-          usedByNode.id === node.id || usedByNode.id === node.node_id,
+    const preferredViber = activeVibers.find((v) =>
+      skill.usedByVibers.some(
+        (usedByViber) =>
+          usedByViber.id === v.id || usedByViber.id === v.viber_id,
       ),
     );
-    const fallbackNode = activeNodes.find((node) =>
-      nodeSupportsSkill(node, skill.id),
+    const fallbackViber = activeVibers.find((v) =>
+      viberSupportsSkill(v, skill.id),
     );
-    selectedPlaygroundNodeId =
-      preferredNode?.id || fallbackNode?.id || activeNodes[0]?.id || "";
+    selectedPlaygroundViberId =
+      preferredViber?.id || fallbackViber?.id || activeVibers[0]?.id || "";
   }
 
   async function runPlayground() {
@@ -383,15 +381,15 @@
     playgroundError = null;
     playgroundResult = null;
     try {
-      const selectedNode = activeNodes.find(
-        (node) => node.id === selectedPlaygroundNodeId,
+      const selectedViber = activeVibers.find(
+        (v) => v.id === selectedPlaygroundViberId,
       );
       const res = await fetch("/api/skills/playground", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           skillId: playgroundSkill.id,
-          nodeId: selectedNode?.node_id || selectedNode?.id,
+          viberId: selectedViber?.viber_id || selectedViber?.id,
           scenario: playgroundScenario.trim() || undefined,
         }),
       });
@@ -431,7 +429,7 @@
   });
 
   onMount(async () => {
-    await Promise.all([fetchInstalled(), fetchSources(), fetchNodes()]);
+    await Promise.all([fetchInstalled(), fetchSources(), fetchVibers()]);
     await checkAllRequirements();
     if (!sourcesError && enabledSourcesCount > 0) {
       await searchDiscover(1);
@@ -448,7 +446,7 @@
     <header>
       <h1 class="text-2xl font-semibold text-foreground mb-1">Skills</h1>
       <p class="text-sm text-muted-foreground">
-        View installed skills on your nodes and discover new ones from
+        View installed skills on your vibers and discover new ones from
         configured sources.
       </p>
     </header>
@@ -510,15 +508,15 @@
                       {skill.description}
                     </p>
                   {/if}
-                  {#if skill.usedByNodes.length > 0}
+                  {#if skill.usedByVibers.length > 0}
                     <div class="flex flex-wrap items-center gap-2 text-sm">
                       <Server class="size-4 text-muted-foreground shrink-0" />
                       <span class="text-muted-foreground">On:</span>
-                      {#each skill.usedByNodes as node}
+                      {#each skill.usedByVibers as viber}
                         <span
                           class="inline-flex items-center rounded-md bg-muted/80 px-2 py-0.5 text-xs font-medium text-muted-foreground"
                         >
-                          {node.name}
+                          {viber.name}
                         </span>
                       {/each}
                     </div>
@@ -563,11 +561,11 @@
                       class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary"
                     >
                       <Puzzle class="size-3.5" />
-                      {skill.usedByNodes.length === 0
+                      {skill.usedByVibers.length === 0
                         ? "Available"
-                        : skill.usedByNodes.length === 1
-                          ? "1 node"
-                          : `${skill.usedByNodes.length} nodes`}
+                        : skill.usedByVibers.length === 1
+                          ? "1 viber"
+                          : `${skill.usedByVibers.length} vibers`}
                     </span>
                   {/if}
                 </div>
@@ -924,14 +922,14 @@
     <Dialog.Header>
       <Dialog.Title>Skill Playground</Dialog.Title>
       <Dialog.Description>
-        Run a quick verification on a target node to confirm <code
+        Run a quick verification on a target viber to confirm <code
           >{playgroundSkill?.id}</code
         > works end-to-end.
       </Dialog.Description>
     </Dialog.Header>
 
     <div class="space-y-4">
-      {#if activeNodes.length === 0}
+      {#if activeVibers.length === 0}
         <div
           class="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
         >
@@ -945,19 +943,19 @@
             <DropdownMenu.Trigger
               class="inline-flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 text-sm"
             >
-              <span>{selectedPlaygroundNode?.name || "Select a viber"}</span>
+              <span>{selectedPlaygroundViber?.name || "Select a viber"}</span>
               <ChevronDown class="size-4" />
             </DropdownMenu.Trigger>
             <DropdownMenu.Content class="w-[var(--bits-anchor-width)]">
-              {#each activeNodes as node (node.id)}
+              {#each activeVibers as viber (viber.id)}
                 <DropdownMenu.Item
                   onclick={() => {
-                    selectedPlaygroundNodeId = node.id;
+                    selectedPlaygroundViberId = viber.id;
                   }}
                 >
                   <div class="flex w-full items-center justify-between gap-2">
-                    <span>{node.name}</span>
-                    {#if playgroundSkill && nodeSupportsSkill(node, playgroundSkill.id)}
+                    <span>{viber.name}</span>
+                    {#if playgroundSkill && viberSupportsSkill(viber, playgroundSkill.id)}
                       <span class="text-[10px] text-primary">has skill</span>
                     {/if}
                   </div>
@@ -1051,7 +1049,7 @@
         onclick={runPlayground}
         disabled={playgroundRunning ||
           !playgroundSkill ||
-          !selectedPlaygroundNodeId}
+          !selectedPlaygroundViberId}
       >
         {#if playgroundRunning}
           <Loader2 class="size-4 mr-1 animate-spin" />

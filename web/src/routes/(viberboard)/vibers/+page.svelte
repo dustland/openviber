@@ -53,10 +53,10 @@
     };
   }
 
-  interface ViberNode {
+  interface Viber {
     id: string;
     name: string;
-    node_id: string | null;
+    viber_id: string | null;
     status: "pending" | "active" | "offline";
     onboard_token: string | null;
     token_expires_at: string | null;
@@ -82,17 +82,17 @@
     viber?: ViberMetrics;
   }
 
-  let nodes = $state<ViberNode[]>([]);
+  let vibers = $state<Viber[]>([]);
   let loading = $state(true);
   let creating = $state(false);
   let copiedId = $state<string | null>(null);
   let showCreateDialog = $state(false);
-  let newNodeName = $state("My Viber");
-  let selectedNodeId = $state<string | null>(null);
-  let selectedNodeName = $state<string>("");
+  let newViberName = $state("My Viber");
+  let selectedViberId = $state<string | null>(null);
+  let selectedViberName = $state<string>("");
 
-  const activeNodes = $derived(nodes.filter((n) => n.status === "active"));
-  const inactiveNodes = $derived(nodes.filter((n) => n.status !== "active"));
+  const activeVibers = $derived(vibers.filter((v) => v.status === "active"));
+  const inactiveVibers = $derived(vibers.filter((v) => v.status !== "active"));
 
   function getOnboardCommand(token: string) {
     return `npx openviber onboard --token ${token}`;
@@ -118,7 +118,7 @@
     return `${value.toFixed(1)} ${units[i]}`;
   }
 
-  function statusLabel(status: ViberNode["status"]) {
+  function statusLabel(status: Viber["status"]) {
     switch (status) {
       case "active":
         return "Active";
@@ -129,7 +129,7 @@
     }
   }
 
-  function statusDot(status: ViberNode["status"]) {
+  function statusDot(status: Viber["status"]) {
     switch (status) {
       case "active":
         return "bg-green-500";
@@ -140,39 +140,39 @@
     }
   }
 
-  async function fetchNodes() {
+  async function fetchVibers() {
     try {
       const response = await fetch("/api/vibers");
       const payload = await response.json();
-      nodes = Array.isArray(payload.nodes) ? payload.nodes : [];
+      vibers = Array.isArray(payload.vibers) ? payload.vibers : [];
     } catch (error) {
-      console.error("Failed to fetch nodes:", error);
-      nodes = [];
+      console.error("Failed to fetch vibers:", error);
+      vibers = [];
     }
   }
 
-  async function createNode() {
+  async function createViber() {
     creating = true;
     try {
       const response = await fetch("/api/vibers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newNodeName.trim() || "My Viber" }),
+        body: JSON.stringify({ name: newViberName.trim() || "My Viber" }),
       });
       const payload = await response.json();
-      if (payload?.node) {
+      if (payload?.viber) {
         showCreateDialog = false;
-        newNodeName = "My Viber";
-        await fetchNodes();
+        newViberName = "My Viber";
+        await fetchVibers();
       }
     } catch (error) {
-      console.error("Failed to create node:", error);
+      console.error("Failed to create viber:", error);
     } finally {
       creating = false;
     }
   }
 
-  async function deleteNode(nodeId: string) {
+  async function deleteViber(viberId: string) {
     const ok = window.confirm("Delete this viber?");
     if (!ok) return;
 
@@ -180,37 +180,37 @@
       await fetch("/api/vibers", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: nodeId }),
+        body: JSON.stringify({ id: viberId }),
       });
-      await fetchNodes();
+      await fetchVibers();
     } catch (error) {
-      console.error("Failed to delete node:", error);
+      console.error("Failed to delete viber:", error);
     }
   }
 
-  async function copyCommand(node: ViberNode) {
-    if (!node.onboard_token) return;
+  async function copyCommand(viber: Viber) {
+    if (!viber.onboard_token) return;
 
     try {
       await navigator.clipboard.writeText(
-        getOnboardCommand(node.onboard_token),
+        getOnboardCommand(viber.onboard_token),
       );
-      copiedId = node.id;
+      copiedId = viber.id;
       setTimeout(() => {
-        if (copiedId === node.id) copiedId = null;
+        if (copiedId === viber.id) copiedId = null;
       }, 1800);
     } catch (error) {
       console.error("Failed to copy command:", error);
     }
   }
 
-  function openNodeDetail(node: ViberNode) {
-    const effectiveId = node.node_id || node.id;
-    selectedNodeId = effectiveId;
-    selectedNodeName = node.name;
+  function openViberDetail(viber: Viber) {
+    const effectiveId = viber.viber_id || viber.id;
+    selectedViberId = effectiveId;
+    selectedViberName = viber.name;
   }
 
-  function getConfigSyncBadge(syncState?: ViberNode["config_sync_state"]): {
+  function getConfigSyncBadge(syncState?: Viber["config_sync_state"]): {
     label: string;
     class: string;
   } | null {
@@ -240,13 +240,13 @@
 
   onMount(() => {
     loading = true;
-    fetchNodes().finally(() => {
+    fetchVibers().finally(() => {
       loading = false;
     });
 
     // Auto-refresh every 30s
     const interval = setInterval(() => {
-      fetchNodes();
+      fetchVibers();
     }, 30000);
 
     return () => clearInterval(interval);
@@ -274,7 +274,7 @@
         <Plus class="size-4 mr-1" />
         Add Viber
       </Button>
-      <Button variant="outline" size="icon" onclick={() => fetchNodes()}>
+      <Button variant="outline" size="icon" onclick={() => fetchVibers()}>
         <RefreshCw class="size-4" />
       </Button>
     </div>
@@ -299,7 +299,7 @@
         </div>
       {/each}
     </div>
-  {:else if nodes.length === 0}
+  {:else if vibers.length === 0}
     <div
       class="rounded-xl border border-dashed border-border px-6 py-14 text-center"
     >
@@ -314,17 +314,17 @@
       </Button>
     </div>
   {:else}
-    <!-- Active Nodes -->
-    {#if activeNodes.length > 0}
+    <!-- Active Vibers -->
+    {#if activeVibers.length > 0}
       <div class="mb-6">
         <h2
           class="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2"
         >
           <span class="size-2 rounded-full bg-green-500"></span>
-          Active ({activeNodes.length})
+          Active ({activeVibers.length})
         </h2>
         <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {#each activeNodes as node (node.id)}
+          {#each activeVibers as viber (viber.id)}
             <Card
               class="group relative overflow-hidden transition-all hover:border-primary/30 hover:shadow-sm"
             >
@@ -332,25 +332,25 @@
                 <div class="flex items-start justify-between gap-2">
                   <div class="min-w-0">
                     <CardTitle class="flex items-center gap-2 text-base">
-                      <span class="truncate">{node.name}</span>
+                      <span class="truncate">{viber.name}</span>
                       <span
-                        class={`size-2 rounded-full ${statusDot(node.status)} shrink-0`}
+                        class={`size-2 rounded-full ${statusDot(viber.status)} shrink-0`}
                       ></span>
                     </CardTitle>
                     <CardDescription class="text-xs mt-0.5 space-x-1">
-                      {#if node.version}
-                        <span>v{node.version}</span>
+                      {#if viber.version}
+                        <span>v{viber.version}</span>
                         <span class="text-muted-foreground/40">·</span>
                       {/if}
-                      {#if node.platform}
-                        <span>{node.platform}</span>
+                      {#if viber.platform}
+                        <span>{viber.platform}</span>
                         <span class="text-muted-foreground/40">·</span>
                       {/if}
-                      <span>created {formatTimeAgo(node.created_at)}</span>
+                      <span>created {formatTimeAgo(viber.created_at)}</span>
                     </CardDescription>
-                    {#if getConfigSyncBadge(node.config_sync_state)}
+                    {#if getConfigSyncBadge(viber.config_sync_state)}
                       {@const badge = getConfigSyncBadge(
-                        node.config_sync_state,
+                        viber.config_sync_state,
                       )}
                       <div class="mt-1.5">
                         <span
@@ -365,7 +365,7 @@
                     <button
                       type="button"
                       class="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted opacity-0 group-hover:opacity-100 transition-all"
-                      onclick={() => openNodeDetail(node)}
+                      onclick={() => openViberDetail(viber)}
                       title="View detailed status"
                     >
                       <Eye class="size-4" />
@@ -373,7 +373,7 @@
                     <button
                       type="button"
                       class="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted opacity-0 group-hover:opacity-100 transition-all"
-                      onclick={() => deleteNode(node.id)}
+                      onclick={() => deleteViber(viber.id)}
                       title="Delete viber"
                     >
                       <Trash2 class="size-4" />
@@ -382,21 +382,21 @@
                 </div>
 
                 <!-- Quick stats row -->
-                {#if node.machine || node.viber}
+                {#if viber.machine || viber.viber}
                   <div class="flex items-center gap-3 mt-2 flex-wrap">
-                    {#if node.machine}
+                    {#if viber.machine}
                       <span
                         class="inline-flex items-center gap-1 text-[11px] text-muted-foreground"
                         title="CPU Usage"
                       >
                         <Cpu class="size-3" />
                         <span
-                          class="tabular-nums font-medium {node.machine.cpu
+                          class="tabular-nums font-medium {viber.machine.cpu
                             .averageUsage >= 80
                             ? 'text-amber-500'
                             : 'text-foreground'}"
                         >
-                          {node.machine.cpu.averageUsage.toFixed(0)}%
+                          {viber.machine.cpu.averageUsage.toFixed(0)}%
                         </span>
                       </span>
                       <span
@@ -405,37 +405,37 @@
                       >
                         <MemoryStick class="size-3" />
                         <span
-                          class="tabular-nums font-medium {node.machine.memory
+                          class="tabular-nums font-medium {viber.machine.memory
                             .usagePercent >= 80
                             ? 'text-amber-500'
                             : 'text-foreground'}"
                         >
-                          {node.machine.memory.usagePercent.toFixed(0)}%
+                          {viber.machine.memory.usagePercent.toFixed(0)}%
                         </span>
                       </span>
                     {/if}
-                    {#if node.viber}
+                    {#if viber.viber}
                       <span
                         class="inline-flex items-center gap-1 text-[11px] text-muted-foreground"
                         title="Running Tasks"
                       >
                         <Zap class="size-3" />
                         <span
-                          class="tabular-nums font-medium {node.viber
+                          class="tabular-nums font-medium {viber.viber
                             .runningTaskCount > 0
                             ? 'text-emerald-500'
                             : 'text-foreground'}"
                         >
-                          {node.viber.runningTaskCount} tasks
+                          {viber.viber.runningTaskCount} tasks
                         </span>
                       </span>
                     {/if}
-                    {#if node.lastHeartbeat}
+                    {#if viber.lastHeartbeat}
                       <span
                         class="text-[11px] text-muted-foreground/50 ml-auto"
                         title="Last heartbeat"
                       >
-                        {formatTimeAgo(node.lastHeartbeat)}
+                        {formatTimeAgo(viber.lastHeartbeat)}
                       </span>
                     {/if}
                   </div>
@@ -443,10 +443,10 @@
               </CardHeader>
               <CardContent class="pt-0">
                 <NodeStatusPanel
-                  machine={node.machine}
-                  viber={node.viber}
-                  skills={node.skills}
-                  capabilities={node.capabilities}
+                  machine={viber.machine}
+                  viber={viber.viber}
+                  skills={viber.skills}
+                  capabilities={viber.capabilities}
                   compact={true}
                 />
               </CardContent>
@@ -456,37 +456,37 @@
       </div>
     {/if}
 
-    <!-- Inactive / Pending Nodes -->
-    {#if inactiveNodes.length > 0}
+    <!-- Inactive / Pending Vibers -->
+    {#if inactiveVibers.length > 0}
       <div>
         <h2
           class="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2"
         >
           <span class="size-2 rounded-full bg-gray-400"></span>
-          Inactive ({inactiveNodes.length})
+          Inactive ({inactiveVibers.length})
         </h2>
         <div class="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-          {#each inactiveNodes as node (node.id)}
+          {#each inactiveVibers as viber (viber.id)}
             <Card class="group">
               <CardHeader class="pb-3">
                 <div class="flex items-start justify-between gap-2">
                   <div class="min-w-0">
                     <CardTitle class="flex items-center gap-2 text-base">
-                      <span class="truncate">{node.name}</span>
+                      <span class="truncate">{viber.name}</span>
                       <span
-                        class={`size-1.5 rounded-full ${statusDot(node.status)}`}
+                        class={`size-1.5 rounded-full ${statusDot(viber.status)}`}
                       ></span>
                     </CardTitle>
                     <CardDescription class="text-xs mt-0.5">
-                      {statusLabel(node.status)} · created {formatTimeAgo(
-                        node.created_at,
+                      {statusLabel(viber.status)} · created {formatTimeAgo(
+                        viber.created_at,
                       )}
                     </CardDescription>
                   </div>
                   <button
                     type="button"
                     class="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted"
-                    onclick={() => deleteNode(node.id)}
+                    onclick={() => deleteViber(viber.id)}
                     title="Delete viber"
                   >
                     <Trash2 class="size-4" />
@@ -494,13 +494,13 @@
                 </div>
               </CardHeader>
               <CardContent class="pt-0 space-y-2">
-                {#if node.onboard_token}
+                {#if viber.onboard_token}
                   <button
                     type="button"
                     class="w-full inline-flex items-center justify-center gap-1.5 rounded-md border border-border px-2.5 py-2 text-xs hover:bg-muted transition-colors"
-                    onclick={() => copyCommand(node)}
+                    onclick={() => copyCommand(viber)}
                   >
-                    {#if copiedId === node.id}
+                    {#if copiedId === viber.id}
                       <Check class="size-3.5" />
                       Copied
                     {:else}
@@ -509,13 +509,13 @@
                     {/if}
                   </button>
                 {/if}
-                {#if node.token_expires_at}
+                {#if viber.token_expires_at}
                   <p
                     class="text-[11px] text-muted-foreground inline-flex items-center gap-1.5"
                   >
                     <Clock class="size-3" />
                     Token expires {new Date(
-                      node.token_expires_at,
+                      viber.token_expires_at,
                     ).toLocaleString()}
                   </p>
                 {/if}
@@ -528,7 +528,7 @@
   {/if}
 </div>
 
-<!-- Create Node Dialog -->
+<!-- Create Viber Dialog -->
 {#if showCreateDialog}
   <div
     class="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4"
@@ -541,14 +541,14 @@
         Register a new machine for OpenViber.
       </p>
       <div class="mt-4 space-y-2">
-        <label for="new-node-name" class="text-xs text-muted-foreground"
+        <label for="new-viber-name" class="text-xs text-muted-foreground"
           >Viber name</label
         >
         <input
-          id="new-node-name"
+          id="new-viber-name"
           type="text"
           class="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
-          bind:value={newNodeName}
+          bind:value={newViberName}
         />
       </div>
       <div class="mt-5 flex justify-end gap-2">
@@ -556,12 +556,12 @@
           variant="outline"
           onclick={() => {
             showCreateDialog = false;
-            newNodeName = "My Viber";
+            newViberName = "My Viber";
           }}
         >
           Cancel
         </Button>
-        <Button disabled={creating} onclick={createNode}>
+        <Button disabled={creating} onclick={createViber}>
           {creating ? "Creating..." : "Create"}
         </Button>
       </div>
@@ -569,15 +569,15 @@
   </div>
 {/if}
 
-<!-- Node Detail Panel -->
-{#if selectedNodeId}
-  {@const selectedNode = nodes.find((n) => n.id === selectedNodeId)}
+<!-- Viber Detail Panel -->
+{#if selectedViberId}
+  {@const selectedViber = vibers.find((v) => v.id === selectedViberId)}
   <NodeDetailPanel
-    nodeId={selectedNodeId}
-    nodeName={selectedNodeName}
-    configSyncState={selectedNode?.config_sync_state}
+    nodeId={selectedViberId}
+    nodeName={selectedViberName}
+    configSyncState={selectedViber?.config_sync_state}
     onClose={() => {
-      selectedNodeId = null;
+      selectedViberId = null;
     }}
   />
 {/if}

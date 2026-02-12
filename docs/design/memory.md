@@ -7,7 +7,7 @@ description: "Long-term memory, semantic indexing, and context injection strateg
 
 Memory in OpenViber refers to persistent knowledge that outlives a single conversation. This document defines the memory model, storage format, and injection strategies.
 
-> **Related**: Memory is one part of the [Three-File Personalization Pattern](./personalization.md). See that document for how MEMORY.md works together with SOUL.md and USER.md to create a coherent viber configuration.
+> **Related**: Memory is one part of the [Four-File Personalization Pattern](./personalization.md). See that document for how MEMORY.md works together with SOUL.md, USER.md, and IDENTITY.md to create a coherent viber configuration.
 
 ## 1. Design Principles
 
@@ -191,7 +191,7 @@ Users can edit memory files directly. The node reads them as static context:
 
 ```bash
 # Edit long-term memory
-vim ~/.openviber/vibers/default/memory.md
+vim ~/.openviber/vibers/default/MEMORY.md
 
 # View recent daily logs
 ls ~/.openviber/vibers/default/memory/
@@ -340,11 +340,11 @@ In multi-viber setups, each viber has isolated memory:
 ```
 ~/.openviber/vibers/
 ├── dev/
-│   ├── memory.md                # Dev viber's curated memory
+│   ├── MEMORY.md                # Dev viber's curated memory
 │   ├── memory/                  # Dev viber's daily logs
 │   └── memory.sqlite            # Dev viber's semantic index
 └── researcher/
-    ├── memory.md
+    ├── MEMORY.md
     ├── memory/
     └── memory.sqlite
 ```
@@ -366,7 +366,7 @@ In multi-viber setups, each viber has isolated memory:
 
 Memory in OpenViber is **file-first and Board-controlled**:
 
-1. **Files are the source of truth** — memory.md and daily logs under `~/.openviber/vibers/{id}/`
+1. **Files are the source of truth** — MEMORY.md and daily logs under `~/.openviber/vibers/{id}/`
 2. **Viber Board injects memory** — Node receives memory as context, doesn't retrieve autonomously
 3. **Semantic search is optional** — SQLite index for large memory stores
 4. **Human-readable and editable** — Users can directly edit memory files

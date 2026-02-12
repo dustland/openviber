@@ -5,8 +5,9 @@
  * and runs streamText. Viber Board owns persistence and context; daemon only
  * orchestrates local skills and the LLM.
  *
- * Personalization: Loads the three-file pattern (soul.md, user.md, memory.md)
+ * Personalization: Loads the four-file pattern (SOUL.md, USER.md, MEMORY.md, IDENTITY.md)
  * from ~/.openviber/ and injects them into every request for agent context.
+ * Backwards-compatible: falls back to lowercase filenames and legacy tasks/ paths.
  */
 
 import * as fs from "fs/promises";
@@ -113,36 +114,86 @@ async function readFileIfExists(filePath: string): Promise<string | null> {
 }
 
 /**
- * Load the three-file personalization context (soul.md, user.md, memory.md).
+ * Load the four-file personalization context (SOUL.md, USER.md, MEMORY.md, IDENTITY.md).
  *
- * - soul.md is per-viber: ~/.openviber/tasks/{viberId}/soul.md
- * - user.md is shared:    ~/.openviber/user.md
- * - memory.md is per-viber: ~/.openviber/tasks/{viberId}/memory.md
+ * Path resolution order (per-viber files):
+ *   1. ~/.openviber/vibers/{viberId}/SOUL.md  (primary, uppercase)
+ *   2. ~/.openviber/vibers/{viberId}/soul.md  (backwards compat, lowercase)
+ *   3. ~/.openviber/tasks/{viberId}/SOUL.md   (legacy path, uppercase)
+ *   4. ~/.openviber/tasks/{viberId}/soul.md   (legacy path, lowercase)
+ *   5. ~/.openviber/SOUL.md                   (root fallback)
+ *   6. ~/.openviber/soul.md                   (root fallback, lowercase)
  *
- * Falls back to root-level soul.md/memory.md if per-viber files don't exist.
+ * USER.md and IDENTITY.md are shared (node-level) at ~/.openviber/,
+ * with optional per-viber overrides in vibers/{viberId}/.
+ *
+ * MEMORY.md follows the same per-viber resolution as SOUL.md.
  */
 export async function loadPersonalization(viberId: string = "default"): Promise<string> {
   const root = getViberRoot();
-  const taskScopedDir = path.join(root, "tasks", viberId);
-  const legacyViberDir = path.join(root, "vibers", viberId);
+  const viberDir = path.join(root, "vibers", viberId);
+  const legacyTaskDir = path.join(root, "tasks", viberId);
 
-  // soul.md: per-viber first, then root fallback
-  const soul =
-    (await readFileIfExists(path.join(taskScopedDir, "soul.md"))) ??
-    (await readFileIfExists(path.join(legacyViberDir, "soul.md"))) ??
-    (await readFileIfExists(path.join(root, "soul.md")));
+  /**
+   * Convert filename to uppercase stem with original extension (e.g. "SOUL.md")
+   * and lowercase stem with original extension (e.g. "soul.md").
+   */
+  function caseVariants(filename: string): { upper: string; lower: string } {
+    const ext = path.extname(filename);       // ".md"
+    const stem = path.basename(filename, ext); // "SOUL"
+    return {
+      upper: stem.toUpperCase() + ext,  // "SOUL.md"
+      lower: stem.toLowerCase() + ext,  // "soul.md"
+    };
+  }
 
-  // user.md: always shared at root level
-  const user = await readFileIfExists(path.join(root, "user.md"));
+  /**
+   * Resolve a personalization file with fallback chain:
+   * per-viber (uppercase) → per-viber (lowercase) → legacy (uppercase) → legacy (lowercase) → root (uppercase) → root (lowercase)
+   */
+  async function resolvePerViberFile(filename: string): Promise<string | null> {
+    const { upper, lower } = caseVariants(filename);
+    return (
+      (await readFileIfExists(path.join(viberDir, upper))) ??
+      (await readFileIfExists(path.join(viberDir, lower))) ??
+      (await readFileIfExists(path.join(legacyTaskDir, upper))) ??
+      (await readFileIfExists(path.join(legacyTaskDir, lower))) ??
+      (await readFileIfExists(path.join(root, upper))) ??
+      (await readFileIfExists(path.join(root, lower)))
+    );
+  }
 
-  // memory.md: per-viber first, then root fallback
-  const memory =
-    (await readFileIfExists(path.join(taskScopedDir, "memory.md"))) ??
-    (await readFileIfExists(path.join(legacyViberDir, "memory.md"))) ??
-    (await readFileIfExists(path.join(root, "memory.md")));
+  /**
+   * Resolve a shared (node-level) file with optional per-viber override:
+   * per-viber (uppercase) → per-viber (lowercase) → root (uppercase) → root (lowercase)
+   */
+  async function resolveSharedFile(filename: string): Promise<string | null> {
+    const { upper, lower } = caseVariants(filename);
+    return (
+      (await readFileIfExists(path.join(viberDir, upper))) ??
+      (await readFileIfExists(path.join(viberDir, lower))) ??
+      (await readFileIfExists(path.join(root, upper))) ??
+      (await readFileIfExists(path.join(root, lower)))
+    );
+  }
+
+  // SOUL.md: per-viber with root fallback
+  const soul = await resolvePerViberFile("SOUL.md");
+
+  // USER.md: shared at root level, with optional per-viber override
+  const user = await resolveSharedFile("USER.md");
+
+  // MEMORY.md: per-viber with root fallback
+  const memory = await resolvePerViberFile("MEMORY.md");
+
+  // IDENTITY.md: shared at root level, with optional per-viber override
+  const identity = await resolveSharedFile("IDENTITY.md");
 
   const sections: string[] = [];
 
+  if (identity) {
+    sections.push(`<identity>\n${identity.trim()}\n</identity>`);
+  }
   if (soul) {
     sections.push(`<soul>\n${soul.trim()}\n</soul>`);
   }
@@ -166,12 +217,12 @@ export async function loadPersonalization(viberId: string = "default"): Promise<
 
 /**
  * Get the path for today's daily memory log.
- * Format: ~/.openviber/tasks/{viberId}/memory/YYYY-MM-DD.md
+ * Format: ~/.openviber/vibers/{viberId}/memory/YYYY-MM-DD.md
  */
 function getDailyLogPath(viberId: string): string {
   const root = getViberRoot();
   const date = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-  return path.join(root, "tasks", viberId, "memory", `${date}.md`);
+  return path.join(root, "vibers", viberId, "memory", `${date}.md`);
 }
 
 /**
@@ -227,12 +278,13 @@ export async function loadRecentDailyLogs(
   days: number = 3
 ): Promise<string | null> {
   const root = getViberRoot();
-  let memoryDir = path.join(root, "tasks", viberId, "memory");
+  // Primary: vibers/{viberId}/memory/, fallback: tasks/{viberId}/memory/ (legacy)
+  let memoryDir = path.join(root, "vibers", viberId, "memory");
 
   try {
     await fs.access(memoryDir);
   } catch {
-    memoryDir = path.join(root, "vibers", viberId, "memory");
+    memoryDir = path.join(root, "tasks", viberId, "memory");
   }
 
   try {
@@ -462,7 +514,7 @@ function buildEnvironmentPrompt(env: ViberEnvironmentInfo): string {
  * Build the complete system prompt for a daemon task.
  *
  * Layers (in order):
- * 1. Personalization (soul.md, user.md, memory.md) — if configured
+ * 1. Personalization (SOUL.md, USER.md, MEMORY.md, IDENTITY.md) — if configured
  * 2. Environment context (repo, branch, variables) — if provided
  * 3. Agent's own system prompt (from config)
  */

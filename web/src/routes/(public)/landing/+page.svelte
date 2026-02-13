@@ -1,6 +1,8 @@
 <script lang="ts">
   import { page } from "$app/stores";
   import { onMount } from "svelte";
+  import TypewriterEffect from "$lib/components/landing/typewriter-effect.svelte";
+  import InfiniteMarquee from "$lib/components/landing/infinite-marquee.svelte";
   import {
     ArrowRight,
     Bot,
@@ -220,7 +222,9 @@
         class="hero-title pb-2 text-5xl font-bold leading-[1.05] tracking-tighter sm:text-6xl md:text-7xl lg:text-8xl"
       >
         You Imagine It.<br class="hidden sm:block" />
-        Vibers Build It.
+        Vibers <TypewriterEffect
+          words={["Build It.", "Research It.", "Automate It."]}
+        />
       </h1>
       <p
         class="hero-subtitle mx-auto mt-8 max-w-2xl text-lg leading-relaxed text-muted-foreground md:text-xl lg:max-w-3xl"
@@ -505,7 +509,7 @@
     </section>
 
     <!-- Works With -->
-    <section class="reveal mx-auto mt-24 max-w-6xl md:mt-32">
+    <section class="reveal mx-auto mt-24 max-w-6xl md:mt-32 overflow-hidden">
       <h2 class="section-label mb-3 text-center">Integrations</h2>
       <p
         class="mx-auto mb-12 max-w-xl text-center text-base text-muted-foreground md:text-lg"
@@ -513,21 +517,7 @@
         Vibers drive your favorite dev tools through skills and MCP servers.
       </p>
 
-      <div class="flex flex-wrap items-center justify-center gap-3">
-        {#each integrations as item, i}
-          <span
-            class="reveal-card integration-pill group hover:border-primary/40 hover:bg-primary/5"
-            style="--delay: {i * 50}ms"
-          >
-            <span class="integration-name font-medium">{item.name}</span>
-            <span
-              class="ml-2 rounded-full bg-muted px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground group-hover:bg-background/80"
-            >
-              {item.category}
-            </span>
-          </span>
-        {/each}
-      </div>
+      <InfiniteMarquee items={integrations} />
     </section>
 
     <!-- Get Started CTA -->
@@ -597,44 +587,101 @@
 
   <!-- Footer -->
   <footer
-    class="relative border-t border-border/40 bg-card/20 backdrop-blur-sm"
+    class="relative border-t border-border/40 bg-card/20 backdrop-blur-sm mt-24"
   >
-    <div
-      class="container mx-auto flex flex-col items-center gap-6 px-6 py-12 md:flex-row md:justify-between md:px-8 md:py-14"
-    >
-      <div class="flex items-center gap-2">
-        <img src="/favicon.png" alt="OpenViber" class="size-5" />
-        <span class="text-sm font-medium text-foreground/80">OpenViber</span>
-        <span class="text-xs text-muted-foreground"
-          >&copy; {new Date().getFullYear()} Dustland</span
-        >
+    <div class="container mx-auto px-6 py-16 md:px-8">
+      <div class="grid grid-cols-2 gap-10 md:grid-cols-4 lg:grid-cols-5">
+        <div class="col-span-2 lg:col-span-2">
+          <div class="flex items-center gap-2 mb-4">
+            <img src="/favicon.png" alt="OpenViber" class="size-6" />
+            <span class="text-base font-bold text-foreground">OpenViber</span>
+          </div>
+          <p
+            class="text-sm text-muted-foreground max-w-xs leading-relaxed mb-6"
+          >
+            The local-first AI workforce for developers. Private, autonomous,
+            and capable.
+          </p>
+          <div class="flex items-center gap-4">
+            <a
+              href="https://github.com/dustland/openviber"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Github class="size-5" />
+            </a>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="font-semibold text-foreground mb-4 text-sm">Product</h3>
+          <ul class="space-y-3 text-sm text-muted-foreground">
+            <li>
+              <a
+                href="/docs/getting-started/quick-start"
+                class="hover:text-primary transition-colors">Quick Start</a
+              >
+            </li>
+            <li>
+              <a href="/hub" class="hover:text-primary transition-colors"
+                >Skill Hub</a
+              >
+            </li>
+            <li>
+              <a href="/docs" class="hover:text-primary transition-colors"
+                >Documentation</a
+              >
+            </li>
+          </ul>
+        </div>
+
+        <div>
+          <h3 class="font-semibold text-foreground mb-4 text-sm">Community</h3>
+          <ul class="space-y-3 text-sm text-muted-foreground">
+            <li>
+              <a
+                href="https://github.com/dustland/openviber"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="hover:text-primary transition-colors">GitHub</a
+              >
+            </li>
+            <li>
+              <a
+                href="https://discord.gg/openviber"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="hover:text-primary transition-colors">Discord</a
+              >
+            </li>
+          </ul>
+        </div>
+
+        <div>
+          <h3 class="font-semibold text-foreground mb-4 text-sm">Legal</h3>
+          <ul class="space-y-3 text-sm text-muted-foreground">
+            <li>
+              <a href="/privacy" class="hover:text-primary transition-colors"
+                >Privacy</a
+              >
+            </li>
+            <li>
+              <a href="/terms" class="hover:text-primary transition-colors"
+                >Terms</a
+              >
+            </li>
+          </ul>
+        </div>
       </div>
-      <nav class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
-        <a
-          href="/docs"
-          class="text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >Docs</a
-        >
-        <a
-          href="/docs/getting-started/quick-start"
-          class="text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >Quick Start</a
-        >
-        <a
-          href="https://github.com/dustland/openviber"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >GitHub</a
-        >
-        <a
-          href="https://www.npmjs.com/package/openviber"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >npm</a
-        >
-      </nav>
+
+      <div
+        class="border-t border-border/40 mt-16 pt-8 flex flex-col md:flex-row items-center justify-between gap-4"
+      >
+        <p class="text-xs text-muted-foreground">
+          &copy; {new Date().getFullYear()} Dustland. All rights reserved.
+        </p>
+      </div>
     </div>
   </footer>
 </div>
@@ -676,7 +723,7 @@
     position: absolute;
     border-radius: 50%;
     filter: blur(100px);
-    opacity: 0.35;
+    opacity: 0.2;
     will-change: transform;
   }
   .orb-1 {
@@ -858,10 +905,10 @@
     transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .use-case-card:hover {
-    border-color: hsl(var(--primary) / 0.3);
+    border-color: hsl(var(--primary) / 0.4);
     background: hsl(var(--card) / 0.7);
-    transform: translateY(-4px);
-    box-shadow: 0 12px 32px -8px hsl(var(--primary) / 0.1);
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 12px 32px -8px hsl(var(--primary) / 0.15);
   }
   .use-case-icon {
     background: hsl(var(--primary) / 0.08);
@@ -883,10 +930,10 @@
     transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .how-step:hover {
-    border-color: hsl(var(--primary) / 0.3);
+    border-color: hsl(var(--primary) / 0.4);
     background: hsl(var(--card) / 0.7);
-    transform: translateY(-4px);
-    box-shadow: 0 12px 32px -8px hsl(var(--primary) / 0.1);
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 12px 32px -8px hsl(var(--primary) / 0.15);
   }
   .step-number {
     font-size: 2rem;
@@ -941,11 +988,11 @@
     transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .glass-card:hover {
-    border-color: hsl(var(--primary) / 0.35);
-    transform: translateY(-4px);
+    border-color: hsl(var(--primary) / 0.45);
+    transform: translateY(-4px) scale(1.02);
     box-shadow:
-      0 12px 32px -8px hsl(var(--primary) / 0.12),
-      0 0 0 1px hsl(var(--primary) / 0.08);
+      0 12px 32px -8px hsl(var(--primary) / 0.15),
+      0 0 0 1px hsl(var(--primary) / 0.1);
   }
 
   /* ── Icon ring ── */
@@ -974,23 +1021,6 @@
     border-color: hsl(var(--primary) / 0.3);
     background: hsl(var(--card) / 0.7);
     box-shadow: 0 8px 24px -8px hsl(var(--primary) / 0.1);
-  }
-
-  /* ── Integration pill ── */
-  .integration-pill {
-    display: inline-flex;
-    flex-direction: row;
-    align-items: center;
-    padding: 0.5rem 1rem 0.5rem 1.25rem;
-    border-radius: 9999px;
-    border: 1px solid hsl(var(--border) / 0.6);
-    background: hsl(var(--card) / 0.5);
-    backdrop-filter: blur(8px);
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .integration-pill:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px -4px hsl(var(--primary) / 0.1);
   }
 
   /* ── CTA card ── */

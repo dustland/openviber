@@ -14,7 +14,7 @@
     LoaderCircle,
     Pin,
     Puzzle,
-    ScrollText,
+    Logs,
     Laptop,
     Wifi,
     WifiOff,
@@ -251,7 +251,7 @@
           <Sidebar.MenuItem>
             <Sidebar.MenuButton isActive={isLogsRoute} tooltipContent="Logs">
               <a href="/logs" class="w-full inline-flex items-center gap-2">
-                <ScrollText class="size-4 shrink-0" />
+                <Logs class="size-4 shrink-0" />
                 <span class="truncate group-data-[collapsible=icon]:hidden"
                   >Logs</span
                 >

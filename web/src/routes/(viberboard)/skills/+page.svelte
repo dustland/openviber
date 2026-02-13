@@ -1045,9 +1045,9 @@
     flex-direction: column;
     gap: 0.75rem;
     padding: 1rem 1.25rem;
-    border: 1px solid var(--border);
+    border: 1px solid hsl(var(--border));
     border-radius: 0.75rem;
-    background: var(--card);
+    background: hsl(var(--card));
     box-shadow:
       0 1px 3px 0 rgb(0 0 0 / 0.04),
       0 1px 2px -1px rgb(0 0 0 / 0.04);
@@ -1375,9 +1375,9 @@
 
   .discover-card {
     padding: 1rem 1.25rem;
-    border: 1px solid var(--border);
+    border: 1px solid hsl(var(--border));
     border-radius: 0.75rem;
-    background: var(--card);
+    background: hsl(var(--card));
     box-shadow:
       0 1px 3px 0 rgb(0 0 0 / 0.04),
       0 1px 2px -1px rgb(0 0 0 / 0.04);

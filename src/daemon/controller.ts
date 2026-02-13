@@ -340,8 +340,8 @@ export class ViberController extends EventEmitter {
   /**
    * Get full node observability status including machine resources and viber running status.
    */
-  getNodeObservabilityStatus(): ViberSystemStatus {
-    const status = collectViberSystemStatus({
+  async getNodeObservabilityStatus(): Promise<ViberSystemStatus> {
+    const status = await collectViberSystemStatus({
       viberId: this.config.viberId,
       viberName: this.config.viberName || this.config.viberId,
       version: getOpenViberVersion(),
@@ -880,7 +880,7 @@ export class ViberController extends EventEmitter {
   // ==================== Status Reporting ====================
 
   private async handleStatusRequest(): Promise<void> {
-    const status = this.getNodeObservabilityStatus();
+    const status = await this.getNodeObservabilityStatus();
     const report = await this.getSkillHealthReport();
     if (report && status.viber) {
       status.viber.skillHealth = report;
@@ -1467,7 +1467,7 @@ export class ViberController extends EventEmitter {
   private startHeartbeat(): void {
     const interval = this.config.heartbeatInterval || 30000;
     this.heartbeatTimer = setInterval(async () => {
-      const machineStatus = collectMachineResourceStatus();
+      const machineStatus = await collectMachineResourceStatus();
       const viberStatus = collectViberRunningStatus({
         viberId: this.config.viberId,
         viberName: this.config.viberName || this.config.viberId,

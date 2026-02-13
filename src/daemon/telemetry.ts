@@ -9,8 +9,23 @@
  */
 
 import * as os from "os";
-import { execSync } from "child_process";
+import { exec } from "child_process";
 import type { SkillHealthReport } from "../skills/health";
+
+function execAsync(
+    command: string,
+    options: { encoding: "utf-8"; timeout?: number }
+): Promise<{ stdout: string; stderr: string }> {
+    return new Promise((resolve, reject) => {
+        exec(command, options, (error, stdout, stderr) => {
+            if (error) {
+                reject(error);
+            } else {
+                resolve({ stdout: stdout as string, stderr: stderr as string });
+            }
+        });
+    });
+}
 
 // ==================== Types ====================
 
@@ -242,9 +257,9 @@ function calculateCpuUsage(): { coreUsages: number[]; averageUsage: number } {
  * Collect disk usage for primary mount points.
  * Uses `df` on Linux/macOS. Returns empty array on failure.
  */
-function collectDiskStatus(): DiskStatus[] {
+export async function collectDiskStatus(): Promise<DiskStatus[]> {
     try {
-        const output = execSync("df -kP 2>/dev/null", {
+        const { stdout: output } = await execAsync("df -kP 2>/dev/null", {
             encoding: "utf-8",
             timeout: 5000,
         });
@@ -334,7 +349,7 @@ function collectNetworkStatus(): NetworkInterfaceStatus[] {
  * Collect a full machine resource status snapshot.
  * Safe to call frequently (e.g., every heartbeat interval).
  */
-export function collectMachineResourceStatus(): MachineResourceStatus {
+export async function collectMachineResourceStatus(): Promise<MachineResourceStatus> {
     const cpus = os.cpus();
     const { coreUsages, averageUsage } = calculateCpuUsage();
 
@@ -360,7 +375,7 @@ export function collectMachineResourceStatus(): MachineResourceStatus {
                     ((os.totalmem() - os.freemem()) / os.totalmem()) * 100 * 100
                 ) / 100,
         },
-        disks: collectDiskStatus(),
+        disks: await collectDiskStatus(),
         loadAverage: os.loadavg() as [number, number, number],
         network: collectNetworkStatus(),
         collectedAt: new Date().toISOString(),
@@ -412,7 +427,7 @@ export function collectViberRunningStatus(params: {
 /**
  * Collect the full viber observability snapshot.
  */
-export function collectViberSystemStatus(params: {
+export async function collectViberSystemStatus(params: {
     viberId: string;
     viberName: string;
     version: string;
@@ -424,9 +439,9 @@ export function collectViberSystemStatus(params: {
     skillHealth?: SkillHealthReport;
     totalTasksExecuted: number;
     lastHeartbeatAt?: string;
-}): ViberSystemStatus {
+}): Promise<ViberSystemStatus> {
     return {
-        machine: collectMachineResourceStatus(),
+        machine: await collectMachineResourceStatus(),
         viber: collectViberRunningStatus(params),
     };
 }

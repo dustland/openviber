@@ -5,9 +5,10 @@
  * plugged in for other execution surfaces.
  */
 
-import { spawn, spawnSync, execSync, ChildProcess } from "child_process";
+import { spawn, spawnSync, ChildProcess } from "child_process";
 import { EventEmitter } from "events";
 import { randomUUID } from "crypto";
+import { unlinkSync, existsSync } from "fs";
 
 export interface TerminalPane {
   appId: string;
@@ -86,7 +87,13 @@ class TmuxTerminalStream extends EventEmitter {
         this.emit("data", history);
       }
 
-      execSync(`mkfifo '${this.pipePath}' 2>/dev/null || true`, { stdio: "pipe" });
+      try {
+        if (!existsSync(this.pipePath)) {
+          spawnSync("mkfifo", [this.pipePath], { stdio: "pipe" });
+        }
+      } catch {
+        // ignore
+      }
 
       this.catProcess = spawn("cat", [this.pipePath], {
         stdio: ["ignore", "pipe", "ignore"],
@@ -105,10 +112,14 @@ class TmuxTerminalStream extends EventEmitter {
         this.cleanup();
       });
 
-      execSync(`tmux pipe-pane -t '${this.target}' -o 'cat >> ${this.pipePath}'`, {
-        encoding: "utf8",
-        stdio: "pipe",
-      });
+      spawnSync(
+        "tmux",
+        ["pipe-pane", "-t", this.target, "-o", `cat >> ${this.pipePath}`],
+        {
+          encoding: "utf8",
+          stdio: "pipe",
+        },
+      );
 
       this.isAttached = true;
       return true;
@@ -122,7 +133,7 @@ class TmuxTerminalStream extends EventEmitter {
   detach(): void {
     if (!this.isAttached) return;
     try {
-      execSync(`tmux pipe-pane -t '${this.target}'`, { stdio: "pipe" });
+      spawnSync("tmux", ["pipe-pane", "-t", this.target], { stdio: "pipe" });
     } catch {
       // ignore
     }
@@ -136,7 +147,9 @@ class TmuxTerminalStream extends EventEmitter {
       this.catProcess = null;
     }
     try {
-      execSync(`rm -f '${this.pipePath}'`, { stdio: "pipe" });
+      if (existsSync(this.pipePath)) {
+        unlinkSync(this.pipePath);
+      }
     } catch {
       // ignore
     }
@@ -155,7 +168,7 @@ class TmuxTerminalApp implements TerminalApp {
 
   isAvailable(): boolean {
     try {
-      execSync("tmux -V", { stdio: "pipe" });
+      spawnSync("tmux", ["-V"], { stdio: "pipe" });
       return true;
     } catch {
       return false;
@@ -164,10 +177,17 @@ class TmuxTerminalApp implements TerminalApp {
 
   listSessions(): TerminalSession[] {
     try {
-      const out = execSync(
-        "tmux list-sessions -F '#{session_name}|#{session_windows}|#{session_attached}' 2>/dev/null",
+      const result = spawnSync(
+        "tmux",
+        [
+          "list-sessions",
+          "-F",
+          "#{session_name}|#{session_windows}|#{session_attached}",
+        ],
         { encoding: "utf8", stdio: "pipe" },
-      ).trim();
+      );
+      if (result.error || result.status !== 0) return [];
+      const out = result.stdout.trim();
       if (!out) return [];
       return out.split("\n").map((line) => {
         const [name, windows, attached] = line.split("|");
@@ -185,10 +205,18 @@ class TmuxTerminalApp implements TerminalApp {
 
   listPanes(): TerminalPane[] {
     try {
-      const out = execSync(
-        "tmux list-panes -a -F '#{session_name}|#{window_index}|#{window_name}|#{pane_index}|#{pane_current_command}' 2>/dev/null",
+      const result = spawnSync(
+        "tmux",
+        [
+          "list-panes",
+          "-a",
+          "-F",
+          "#{session_name}|#{window_index}|#{window_name}|#{pane_index}|#{pane_current_command}",
+        ],
         { encoding: "utf8", stdio: "pipe" },
-      ).trim();
+      );
+      if (result.error || result.status !== 0) return [];
+      const out = result.stdout.trim();
       if (!out) return [];
       return out.split("\n").map((line) => {
         const [session, window, windowName, pane, command] = line.split("|");
@@ -246,11 +274,23 @@ class TmuxTerminalApp implements TerminalApp {
 
   resize(target: string, cols: number, rows: number): boolean {
     try {
-      execSync(`tmux resize-pane -t '${target}' -x ${cols} -y ${rows}`, {
-        encoding: "utf8",
-        stdio: "pipe",
-      });
-      return true;
+      const result = spawnSync(
+        "tmux",
+        [
+          "resize-pane",
+          "-t",
+          target,
+          "-x",
+          String(cols),
+          "-y",
+          String(rows),
+        ],
+        {
+          encoding: "utf8",
+          stdio: "pipe",
+        },
+      );
+      return result.status === 0;
     } catch {
       return false;
     }
@@ -261,8 +301,12 @@ class TmuxTerminalApp implements TerminalApp {
     const safeWindow = sanitizeName(windowName || "main");
 
     try {
-      execSync(`tmux has-session -t '${safeSession}' 2>/dev/null`, { stdio: "pipe" });
-      return { ok: true, appId: this.id, sessionName: safeSession, created: false };
+      const check = spawnSync("tmux", ["has-session", "-t", safeSession], {
+        stdio: "pipe",
+      });
+      if (check.status === 0) {
+        return { ok: true, appId: this.id, sessionName: safeSession, created: false };
+      }
     } catch {
       // create
     }
@@ -454,24 +498,31 @@ function sendTmuxKeys(target: string, keys: string, pressEnter = false): boolean
   try {
     const args = ["send-keys", "-t", target, keys];
     if (pressEnter) args.push("Enter");
-    execSync(`tmux ${args.map((a) => `'${a}'`).join(" ")}`, {
+    const result = spawnSync("tmux", args, {
       encoding: "utf8",
       stdio: "pipe",
     });
-    return true;
+    return result.status === 0;
   } catch {
     return false;
   }
 }
 
 function captureTmuxPane(target: string, lines = 500): string {
-  const cmds = [
-    `tmux capture-pane -t '${target}' -pae -S -${lines}`,
-    `tmux capture-pane -t '${target}' -pe -S -${lines}`,
+  const argsList = [
+    ["capture-pane", "-t", target, "-pae", "-S", `-${lines}`],
+    ["capture-pane", "-t", target, "-pe", "-S", `-${lines}`],
   ];
-  for (const cmd of cmds) {
+
+  for (const args of argsList) {
     try {
-      return execSync(cmd, { encoding: "utf8", stdio: "pipe" });
+      const result = spawnSync("tmux", args, {
+        encoding: "utf8",
+        stdio: "pipe",
+      });
+      if (result.status === 0 && !result.error) {
+        return result.stdout;
+      }
     } catch {
       // try next fallback
     }

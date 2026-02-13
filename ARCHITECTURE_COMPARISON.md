@@ -68,6 +68,19 @@ This document provides a detailed architectural comparison between **OpenViber**
 
 **Verdict**: OpenViber offers a complete product experience with its integrated web dashboard, whereas Nanobot is primarily a developer tool.
 
+## 6. Extensibility & Integrations
+
+### OpenViber
+- **Channel Abstraction**: Features a strict `Channel` interface that decouples the agent core from communication protocols.
+- **Unified Gateway**: The `ChannelGateway` manages multiple channels (Discord, Feishu, Telegram, Web) simultaneously, handling routing and streaming with a unified event model.
+- **Example**: Telegram support was added cleanly by implementing a single class (`TelegramChannel`) and registering it, without touching the core agent logic.
+
+### Nanobot
+- **Direct Integration**: Channels often require more direct integration into the main loop or configuration parsing logic.
+- **Provider Registry**: While modular, it relies on python-specific class introspection which can be fragile.
+
+**Verdict**: OpenViber's interface-based design allows for safer and more predictable extensions.
+
 ## Conclusion
 
-OpenViber demonstrates a significantly more elegant and mature architecture. It treats the agent not just as a script, but as a **platform**—with distinct layers for core logic, communication, memory, and user interaction. The recent addition of the `consolidateMemory` system further proves its capability to handle advanced cognitive tasks in a modular, robust way.
+OpenViber demonstrates a significantly more elegant and mature architecture. It treats the agent not just as a script, but as a **platform**—with distinct layers for core logic, communication, memory, and user interaction. The ecosystem of channels (including the newly added Telegram support), skills, and memory consolidation proves its capability to handle advanced cognitive tasks in a modular, robust way.

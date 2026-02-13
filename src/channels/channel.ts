@@ -162,6 +162,14 @@ export interface FeishuConfig extends ChannelConfig {
   requireMention?: boolean;
 }
 
+/** Telegram channel configuration. */
+export interface TelegramConfig extends ChannelConfig {
+  /** Telegram bot token */
+  botToken: string;
+  /** Allowlist of user IDs (empty = all) */
+  allowUserIds?: string[];
+}
+
 export interface WebConfig extends ChannelConfig {
   // No special config needed for web channel
 }
@@ -172,5 +180,6 @@ export interface ChannelsConfig {
   wechat?: WeChatConfig;
   discord?: DiscordConfig;
   feishu?: FeishuConfig;
+  telegram?: TelegramConfig;
   web?: WebConfig;
 }

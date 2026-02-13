@@ -59,6 +59,10 @@ export interface SupabaseRequestOptions {
   headers?: Record<string, string>;
 }
 
+const TRANSIENT_STATUS_CODES = new Set([502, 503, 504]);
+const MAX_RETRIES = 3;
+const BASE_DELAY_MS = 500;
+
 export async function supabaseRequest<T>(
   path: string,
   options: SupabaseRequestOptions = {},
@@ -78,25 +82,46 @@ export async function supabaseRequest<T>(
     body = JSON.stringify(options.body);
   }
 
-  const response = await fetch(url, {
-    method,
-    headers,
-    body,
-  });
+  let lastError: Error | undefined;
 
-  if (!response.ok) {
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    const response = await fetch(url, {
+      method,
+      headers,
+      body,
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+
+      // Retry on transient errors (502, 503, 504)
+      if (TRANSIENT_STATUS_CODES.has(response.status) && attempt < MAX_RETRIES) {
+        const delay = BASE_DELAY_MS * Math.pow(2, attempt - 1);
+        console.warn(
+          `Supabase transient error (${response.status}) on ${method} ${path}, retrying in ${delay}ms (attempt ${attempt}/${MAX_RETRIES})`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        lastError = new Error(
+          `Supabase request failed (${response.status}) ${method} ${path}: ${text}`,
+        );
+        continue;
+      }
+
+      throw new Error(`Supabase request failed (${response.status}) ${method} ${path}: ${text}`);
+    }
+
+    if (response.status === 204) {
+      return undefined as T;
+    }
+
     const text = await response.text();
-    throw new Error(`Supabase request failed (${response.status}) ${method} ${path}: ${text}`);
+    if (!text) {
+      return undefined as T;
+    }
+
+    return JSON.parse(text) as T;
   }
 
-  if (response.status === 204) {
-    return undefined as T;
-  }
-
-  const text = await response.text();
-  if (!text) {
-    return undefined as T;
-  }
-
-  return JSON.parse(text) as T;
+  // Should not reach here, but just in case
+  throw lastError || new Error(`Supabase request failed after ${MAX_RETRIES} retries`);
 }

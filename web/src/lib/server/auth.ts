@@ -28,7 +28,7 @@ const E2E_TEST_MODE =
 
 /** Synthetic user returned in E2E test mode when no real session exists. */
 const E2E_TEST_USER: AuthUser = {
-  id: "e2e-test-user-00000000-0000-0000-0000-000000000000",
+  id: "00000000-0000-4000-a000-000000000000",
   email: "e2e-test@openviber.local",
   name: "E2E Test User",
   avatarUrl: null,

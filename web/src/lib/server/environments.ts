@@ -351,8 +351,12 @@ export async function getViberEnvironmentForUser(
   userId: string,
   viberId: string,
 ): Promise<string | null> {
-  const assignments = await listViberEnvironmentAssignmentsForUser(userId, [viberId]);
-  return assignments[0]?.environmentId ?? null;
+  try {
+    const assignments = await listViberEnvironmentAssignmentsForUser(userId, [viberId]);
+    return assignments[0]?.environmentId ?? null;
+  } catch {
+    return null;
+  }
 }
 
 /** Read the extra skills attached to a viber (set during creation from an intent). */
@@ -816,17 +820,21 @@ export async function listEnvironmentConfigForNode(
 export async function touchViberActivity(
   viberId: string,
 ): Promise<void> {
-  const now = new Date().toISOString();
+  try {
+    const now = new Date().toISOString();
 
-  await supabaseRequest<unknown>("vibers", {
-    method: "PATCH",
-    params: {
-      id: `eq.${viberId}`,
-    },
-    body: {
-      updated_at: now,
-    },
-  });
+    await supabaseRequest<unknown>("vibers", {
+      method: "PATCH",
+      params: {
+        id: `eq.${viberId}`,
+      },
+      body: {
+        updated_at: now,
+      },
+    });
+  } catch {
+    // Non-critical: timestamp touch should not block operations
+  }
 }
 
 // =============================================================================

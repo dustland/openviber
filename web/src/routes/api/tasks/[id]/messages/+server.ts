@@ -101,7 +101,8 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 
     return json(created[0] || null, { status: 201 });
   } catch (error) {
-    console.error("Failed to save message:", error);
-    return json({ error: "Failed to save message" }, { status: 500 });
+    const errMsg = error instanceof Error ? error.message : String(error);
+    console.error("Failed to save message:", errMsg);
+    return json({ error: `Failed to save message: ${errMsg}` }, { status: 500 });
   }
 };

@@ -943,7 +943,7 @@ export class GatewayServer {
 
   private handleNodeConnection(ws: WebSocket, req: IncomingMessage): void {
     const nodeId = req.headers["x-viber-id"] as string;
-    console.log(`[Gateway] Node connecting: ${nodeId || "unknown"}`);
+    console.log(`[Gateway] Viber connecting: ${nodeId || "unknown"}`);
 
     ws.on("message", (data) => {
       try {
@@ -958,7 +958,7 @@ export class GatewayServer {
       // Find and remove node
       for (const [id, node] of this.nodes) {
         if (node.ws === ws) {
-          console.log(`[Gateway] Node disconnected: ${id}`);
+          console.log(`[Gateway] Viber disconnected: ${id}`);
           this.pushNodeEvent({
             component: "node",
             level: "warn",
@@ -973,7 +973,7 @@ export class GatewayServer {
     });
 
     ws.on("error", (error) => {
-      console.error("[Gateway] Node WebSocket error:", error);
+      console.error("[Gateway] Viber WebSocket error:", error);
     });
   }
 
@@ -1038,7 +1038,7 @@ export class GatewayServer {
   }
 
   private handleNodeConnected(ws: WebSocket, nodeInfo: any): void {
-    console.log(`[Gateway] Node registered: ${nodeInfo.id} (${nodeInfo.name})`);
+    console.log(`[Gateway] Viber registered: ${nodeInfo.id} (${nodeInfo.name})`);
 
     this.nodes.set(nodeInfo.id, {
       id: nodeInfo.id,
@@ -1217,7 +1217,7 @@ export class GatewayServer {
     for (const node of this.nodes.values()) {
       if (node.ws === ws) {
         node.jobs = Array.isArray(jobs) ? jobs : [];
-        console.log(`[Gateway] Node ${node.id} reported ${node.jobs.length} job(s)`);
+        console.log(`[Gateway] Viber ${node.id} reported ${node.jobs.length} job(s)`);
         break;
       }
     }
@@ -1352,7 +1352,7 @@ export class GatewayServer {
     for (const node of this.nodes.values()) {
       if (node.ws === ws) {
         console.log(
-          `[Gateway] Node ${node.id} acknowledged config push: version=${configVersion}, validations=${validations.length}`,
+          `[Gateway] Viber ${node.id} acknowledged config push: version=${configVersion}, validations=${validations.length}`,
         );
 
         // Persist config sync state to Supabase via web API

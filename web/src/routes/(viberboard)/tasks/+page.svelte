@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { page } from "$app/stores";
+  import { goto } from "$app/navigation";
   import { Skeleton } from "$lib/components/ui/skeleton";
   import {
     RefreshCw,
@@ -9,6 +10,7 @@
     Server,
     Archive,
     LoaderCircle,
+    MessageSquarePlus,
   } from "@lucide/svelte";
   import { Button } from "$lib/components/ui/button";
   import {
@@ -21,6 +23,12 @@
   import { Badge } from "$lib/components/ui/badge";
   import { getTasksStore, type TaskListItem } from "$lib/stores/tasks";
   import TaskStepIndicator from "$lib/components/vibers/task-step-indicator.svelte";
+  import ChatComposer from "$lib/components/chat-composer.svelte";
+  import type {
+    ComposerViber,
+    ComposerEnvironment,
+    ComposerSkill,
+  } from "$lib/components/chat-composer.svelte";
 
   const tasksStore = getTasksStore();
   let gatewayConnected = $state(false);
@@ -34,6 +42,20 @@
   );
   const loading = $derived(tasksState.loading || !listMatchesFilter);
 
+  // -- Composer state (for empty-state new task) --
+  let vibers = $state<ComposerViber[]>([]);
+  let environments = $state<ComposerEnvironment[]>([]);
+  let composerSkills = $state<ComposerSkill[]>([]);
+  let selectedViberId = $state<string | null>(null);
+  let selectedEnvironmentId = $state<string | null>(null);
+  let selectedModelId = $state("");
+  let selectedSkillIds = $state<string[]>([]);
+  let taskInput = $state("");
+  let creating = $state(false);
+  let composerError = $state<string | null>(null);
+
+  const activeVibers = $derived(vibers.filter((v) => v.status === "active"));
+
   async function fetchGatewayStatus() {
     try {
       const gatewayResponse = await fetch("/api/gateway");
@@ -41,6 +63,116 @@
       gatewayConnected = gatewayStatus.connected;
     } catch {
       gatewayConnected = false;
+    }
+  }
+
+  async function fetchComposerData() {
+    try {
+      const [nodesRes, envsRes, settingsRes, skillsRes] = await Promise.all([
+        fetch("/api/vibers"),
+        fetch("/api/environments"),
+        fetch("/api/settings"),
+        fetch("/api/skills"),
+      ]);
+
+      if (nodesRes.ok) {
+        const data = await nodesRes.json();
+        vibers = (data.vibers ?? []).map((v: any) => ({
+          id: v.id,
+          name: v.name,
+          viber_id: v.viber_id ?? null,
+          status: v.status ?? "offline",
+        }));
+      }
+
+      if (envsRes.ok) {
+        const data = await envsRes.json();
+        environments = data.environments ?? [];
+      }
+
+      if (skillsRes.ok) {
+        const data = await skillsRes.json();
+        composerSkills = (data.skills ?? []).map(
+          (s: { id: string; name: string; description?: string }) => ({
+            id: s.id,
+            name: s.name,
+            description: s.description || "",
+          }),
+        );
+      }
+
+      if (settingsRes.ok) {
+        const data = await settingsRes.json();
+        if (data.chatModel && !selectedModelId) {
+          selectedModelId = data.chatModel;
+        }
+      }
+
+      if (activeVibers.length === 1 && !selectedViberId) {
+        selectedViberId = activeVibers[0].id;
+      }
+      if (environments.length === 1 && !selectedEnvironmentId) {
+        selectedEnvironmentId = environments[0].id;
+      }
+    } catch {
+      /* non-critical */
+    }
+  }
+
+  async function submitTask() {
+    const content = taskInput.trim();
+    const viber = vibers.find((v) => v.id === selectedViberId);
+
+    if (!content) {
+      composerError = "Describe what you want to accomplish.";
+      return;
+    }
+    if (creating) return;
+
+    if (!viber || viber.status !== "active") {
+      composerError =
+        activeVibers.length > 0
+          ? "Select an active viber to start this task."
+          : "No active viber found. Start a viber first, then retry.";
+      return;
+    }
+
+    creating = true;
+    composerError = null;
+
+    try {
+      const response = await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          goal: content,
+          viberId: viber.viber_id ?? undefined,
+          environmentId: selectedEnvironmentId ?? undefined,
+          model: selectedModelId || undefined,
+          skills: selectedSkillIds.length > 0 ? selectedSkillIds : undefined,
+        }),
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload?.error || "Failed to create task.");
+      }
+
+      const taskId = payload.viberId ?? payload.taskId;
+      void getTasksStore().invalidate();
+
+      window.sessionStorage.setItem(
+        `openviber:new-viber-task:${taskId}`,
+        content,
+      );
+
+      await goto(`/tasks/${taskId}`);
+    } catch (submitError) {
+      composerError =
+        submitError instanceof Error
+          ? submitError.message
+          : "Failed to create task.";
+      creating = false;
     }
   }
 
@@ -99,6 +231,7 @@
   onMount(() => {
     void tasksStore.getTasks(showArchived);
     void fetchGatewayStatus();
+    void fetchComposerData();
 
     const interval = setInterval(() => {
       void tasksStore.getTasks(showArchived);
@@ -265,14 +398,31 @@
       </div>
     </div>
   {:else}
-    <div class="flex-1 flex flex-col items-center justify-center text-center">
-      <Server class="size-12 mb-4 text-muted-foreground/50" />
-      <p class="text-lg font-medium text-muted-foreground">No Tasks Yet</p>
-      <p class="text-sm mt-2 max-w-md text-muted-foreground">
-        Create a new task from the
-        <a href="/" class="text-primary hover:underline">New Task</a>
-        page to get started.
-      </p>
+    <div class="flex-1 flex flex-col items-center justify-center">
+      <div class="w-full max-w-xl text-center">
+        <MessageSquarePlus
+          class="size-10 mx-auto mb-3 text-muted-foreground/40"
+        />
+        <p class="text-lg font-medium text-foreground mb-1">No tasks yet</p>
+        <p class="text-sm text-muted-foreground mb-6">
+          Describe what you'd like to accomplish and a viber will get to work.
+        </p>
+        <ChatComposer
+          bind:value={taskInput}
+          bind:error={composerError}
+          bind:selectedViberId
+          bind:selectedEnvironmentId
+          bind:selectedModelId
+          bind:selectedSkillIds
+          placeholder="What would you like to work on?"
+          disabled={creating}
+          sending={creating}
+          {vibers}
+          {environments}
+          skills={composerSkills}
+          onsubmit={() => void submitTask()}
+        />
+      </div>
     </div>
   {/if}
 </div>

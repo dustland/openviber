@@ -136,7 +136,6 @@ function createTasksStore() {
 
       const cached =
         state!.includeArchived === includeArchived &&
-        state!.tasks.length > 0 &&
         state!.fetchedAt > 0;
 
       if (cached) {

@@ -4,6 +4,7 @@
     AlertTriangle,
     ArrowLeft,
     BookOpen,
+    ChevronRight,
     Home,
     LayoutDashboard,
   } from "@lucide/svelte";

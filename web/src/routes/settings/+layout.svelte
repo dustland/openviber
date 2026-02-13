@@ -50,7 +50,7 @@
   {#snippet header()}
     <Sidebar.Menu>
       <Sidebar.MenuItem>
-        <Button variant="default" size="sm" href="/" class="w-full gap-2">
+        <Button variant="outline" size="sm" href="/" class="w-full gap-2">
           <ArrowLeft class="size-4 shrink-0" />
           <span class="truncate group-data-[collapsible=icon]:hidden"
             >Dashboard</span

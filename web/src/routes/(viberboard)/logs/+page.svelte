@@ -331,7 +331,9 @@
   </div>
 
   <!-- Log entries -->
-  <div class="flex-1 overflow-y-auto px-4 py-3 sm:px-6 lg:px-8">
+  <div
+    class="flex-1 overflow-y-auto overflow-x-hidden px-4 py-3 sm:px-6 lg:px-8"
+  >
     {#if loading && logs.length === 0}
       <!-- Skeleton loading -->
       <div class="space-y-2">
@@ -386,7 +388,7 @@
             <button
               type="button"
               onclick={() => hasMetadata && toggleExpanded(log.id)}
-              class="flex w-full items-start gap-3 p-3 text-left"
+              class="flex w-full items-start gap-3 p-3 text-left overflow-hidden"
               disabled={!hasMetadata}
               aria-label="Toggle log details"
             >

@@ -33,6 +33,8 @@ export interface UserSettingsRow {
   ai_providers: Record<string, AiProviderSetting>;
   timezone: string | null;
   onboarding_completed_at: string | null;
+  proxy_url: string | null;
+  proxy_enabled: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -45,6 +47,8 @@ export interface UserSettings {
   aiProviders: Record<string, AiProviderSetting>;
   timezone: string | null;
   onboardingCompletedAt: string | null;
+  proxyUrl: string | null;
+  proxyEnabled: boolean;
 }
 
 const DEFAULT_SKILL_SOURCES: Record<string, SkillSourceSetting> = {
@@ -139,6 +143,8 @@ export function getDefaultSettings(): UserSettings {
     aiProviders: {},
     timezone: null,
     onboardingCompletedAt: null,
+    proxyUrl: null,
+    proxyEnabled: false,
   };
 }
 
@@ -149,7 +155,7 @@ export async function getSettingsForUser(userId: string): Promise<UserSettings> 
   try {
     const rows = await supabaseRequest<UserSettingsRow[]>("user_settings", {
       params: {
-        select: "skill_sources,primary_coding_cli,chat_model,channel_integrations,ai_providers,timezone,onboarding_completed_at",
+        select: "skill_sources,primary_coding_cli,chat_model,channel_integrations,ai_providers,timezone,onboarding_completed_at,proxy_url,proxy_enabled",
         user_id: `eq.${userId}`,
       },
     });
@@ -163,6 +169,8 @@ export async function getSettingsForUser(userId: string): Promise<UserSettings> 
         aiProviders: {},
         timezone: null,
         onboardingCompletedAt: null,
+        proxyUrl: null,
+        proxyEnabled: false,
       };
     }
     return {
@@ -188,6 +196,8 @@ export async function getSettingsForUser(userId: string): Promise<UserSettings> 
           ? row.timezone
           : null,
       onboardingCompletedAt: row.onboarding_completed_at ?? null,
+      proxyUrl: row.proxy_url ?? null,
+      proxyEnabled: row.proxy_enabled ?? false,
     };
   } catch (err) {
     console.error("[user-settings] Failed to fetch from Supabase:", err);
@@ -199,6 +209,8 @@ export async function getSettingsForUser(userId: string): Promise<UserSettings> 
       aiProviders: {},
       timezone: null,
       onboardingCompletedAt: null,
+      proxyUrl: null,
+      proxyEnabled: false,
     };
   }
 }

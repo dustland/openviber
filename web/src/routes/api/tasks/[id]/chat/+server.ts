@@ -118,6 +118,8 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 
     const settingsPayload: Record<string, unknown> = {
       primaryCodingCli: settings.primaryCodingCli ?? undefined,
+      proxyUrl: (settings as any).proxyUrl ?? undefined,
+      proxyEnabled: (settings as any).proxyEnabled ?? undefined,
     };
     if (activeSkills.length > 0) {
       settingsPayload.skills = activeSkills;

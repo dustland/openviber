@@ -82,5 +82,5 @@ function limitWords(value: string, maxWords: number): string {
 function pickSummaryModel(preferredModel?: string): string {
   const model = preferredModel?.trim();
   if (model && model.includes("/")) return model;
-  return "openai/gpt-4o-mini";
+  return "google/gemini-2.5-flash";
 }

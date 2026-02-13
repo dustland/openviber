@@ -83,6 +83,28 @@
           viber_id: v.viber_id ?? null,
           status: v.status ?? "offline",
         }));
+
+        // Extract skills from connected vibers as a fallback
+        // in case /api/skills (Supabase) has no data yet.
+        const viberSkills: ComposerSkill[] = [];
+        const seen = new Set<string>();
+        for (const v of data.vibers ?? []) {
+          for (const s of v.skills ?? []) {
+            const id = s.id || s.name;
+            if (!id || seen.has(id)) continue;
+            seen.add(id);
+            viberSkills.push({
+              id,
+              name: s.name || id,
+              description: s.description || "",
+            });
+          }
+        }
+
+        // Use viber-reported skills as fallback
+        if (viberSkills.length > 0 && composerSkills.length === 0) {
+          composerSkills = viberSkills;
+        }
       }
 
       if (envsRes.ok) {
@@ -92,13 +114,17 @@
 
       if (skillsRes.ok) {
         const data = await skillsRes.json();
-        composerSkills = (data.skills ?? []).map(
+        const supabaseSkills = (data.skills ?? []).map(
           (s: { id: string; name: string; description?: string }) => ({
             id: s.id,
             name: s.name,
             description: s.description || "",
           }),
         );
+        // Only replace if Supabase actually has skills
+        if (supabaseSkills.length > 0) {
+          composerSkills = supabaseSkills;
+        }
       }
 
       if (settingsRes.ok) {

@@ -16,6 +16,7 @@ import * as yaml from "yaml";
 import { getViberPath, getViberRoot } from "../viber/config";
 import type { AgentConfig } from "../viber/config";
 import { Agent } from "../viber/agent";
+import { parseModelString } from "../viber/provider";
 import { loadSettings, saveSettings } from "../skills/hub/settings";
 import type { ViberMessage } from "../viber/message";
 import { getModuleDirname } from "../utils/module-path";
@@ -76,7 +77,7 @@ export interface DaemonRunTaskOptions {
   signal?: AbortSignal;
   environment?: ViberEnvironmentInfo;
   /** Settings from hub (Supabase); overrides local file and updates cache */
-  settingsOverride?: { primaryCodingCli?: string; channelIds?: string[]; skills?: string[] };
+  settingsOverride?: { primaryCodingCli?: string; channelIds?: string[]; skills?: string[]; proxyUrl?: string | null; proxyEnabled?: boolean };
   /** OAuth tokens pulled from hub config, injected into tool execution context */
   oauthTokens?: {
     google?: { accessToken: string; refreshToken?: string | null };
@@ -436,7 +437,7 @@ export async function loadAgentConfig(
       name: "Default",
       description: "General-purpose coding assistant with local skills.",
       provider: "openrouter",
-      model: "openai/gpt-4o",
+      model: "anthropic/claude-sonnet-4",
       temperature: 0.7,
       maxTokens: 16384,
       maxSteps: 25,
@@ -590,7 +591,8 @@ export async function runTask(
   }
 
   if (modelOverride) {
-    config = { ...config, model: modelOverride };
+    const parsed = parseModelString(modelOverride);
+    config = { ...config, provider: parsed.provider, model: parsed.modelName };
   }
 
   // Primary coding CLI: prefer override from hub (Supabase), else local cache file; update cache when override provided
@@ -643,6 +645,19 @@ export async function runTask(
   config = { ...config, systemPrompt: systemPrompt };
 
   const agent = new Agent(config as AgentConfig);
+
+  // Set up proxy-aware fetch if configured
+  try {
+    const proxyUrl = options.settingsOverride?.proxyUrl;
+    const proxyEnabled = options.settingsOverride?.proxyEnabled;
+    if (proxyUrl && proxyEnabled) {
+      const { createProxyFetch } = await import("../utils/proxy");
+      agent.proxyFetch = createProxyFetch({ proxyUrl, proxyEnabled });
+      console.log(`[Runtime] Proxy enabled: ${proxyUrl}`);
+    }
+  } catch (err) {
+    console.warn("[Runtime] Failed to set up proxy fetch:", err);
+  }
 
   const viberMessages: ViberMessage[] =
     messages && messages.length > 0

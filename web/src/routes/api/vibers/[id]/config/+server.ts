@@ -47,6 +47,8 @@ export const GET: RequestHandler = async ({ params, request, locals }) => {
       chatModel: string | null;
       timezone: string | null;
       primaryCodingCli: string | null;
+      proxyUrl: string | null;
+      proxyEnabled: boolean;
     } | null = null;
     try {
       const userSettings = await getSettingsForUser(viber.user_id);
@@ -72,6 +74,8 @@ export const GET: RequestHandler = async ({ params, request, locals }) => {
         chatModel: userSettings.chatModel,
         timezone: userSettings.timezone,
         primaryCodingCli: userSettings.primaryCodingCli,
+        proxyUrl: userSettings.proxyUrl,
+        proxyEnabled: userSettings.proxyEnabled,
       };
     } catch {
       // Non-fatal

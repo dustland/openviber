@@ -85,6 +85,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
           ? { channelIds: selectedChannels }
           : {}),
         ...(extraSkills && extraSkills.length > 0 ? { skills: extraSkills } : {}),
+        proxyUrl: settings.proxyUrl ?? undefined,
+        proxyEnabled: settings.proxyEnabled ?? undefined,
       },
       undefined, // oauthTokens
       viberModel,

@@ -181,6 +181,8 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 
     const result = await gatewayClient.createTask(goal, nodeId, messages, undefined, {
       primaryCodingCli: settings.primaryCodingCli ?? undefined,
+      proxyUrl: settings.proxyUrl ?? undefined,
+      proxyEnabled: settings.proxyEnabled ?? undefined,
     });
 
     if (!result) {

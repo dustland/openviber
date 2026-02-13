@@ -9,7 +9,7 @@ description: >-
 
 # LLM configuration
 provider: openrouter
-model: openai/gpt-4o
+model: anthropic/claude-sonnet-4
 temperature: 0.7
 maxTokens: 16384
 

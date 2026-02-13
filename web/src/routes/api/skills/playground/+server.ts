@@ -4,6 +4,7 @@ import { gatewayClient } from "$lib/server/gateway";
 
 interface PlaygroundRequestBody {
   skillId?: string;
+  viberId?: string;
   nodeId?: string;
   scenario?: string;
 }
@@ -81,24 +82,29 @@ export const POST: RequestHandler = async ({ request, locals }) => {
   try {
     const body = (await request.json()) as PlaygroundRequestBody;
     const skillId = body.skillId?.trim();
-    const nodeId = body.nodeId?.trim();
+    // Accept both viberId (from frontend) and nodeId (legacy)
+    const nodeId = body.viberId?.trim() || body.nodeId?.trim();
     const scenario = body.scenario?.trim();
 
     if (!skillId) {
       return json({ error: "Missing skillId" }, { status: 400 });
     }
 
-    const promptSections = [
-      `Playground verification for skill: ${skillId}`,
-      "Run the skill's built-in playground verification workflow (for example, call skill_playground_verify when available).",
-      "Then summarize whether it worked, what checks were performed, and any setup issues found.",
+    const promptLines = [
+      `You have the "${skillId}" skill enabled.`,
+      `Your job is to demonstrate this skill by calling one of its tools and showing the result.`,
     ];
 
     if (scenario) {
-      promptSections.push(`Scenario to execute:\n${scenario}`);
+      promptLines.push(`\nUser scenario: ${scenario}`);
+    } else {
+      promptLines.push(
+        `\nPick the most representative tool from the "${skillId}" skill and call it with reasonable default arguments.`,
+        `Then provide a clear summary of the result.`,
+      );
     }
 
-    const prompt = promptSections.join("\n\n");
+    const prompt = promptLines.join("\n");
 
     const created = await gatewayClient.createTask(prompt, nodeId || undefined);
     if (!created?.viberId) {

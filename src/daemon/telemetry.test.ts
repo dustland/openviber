@@ -37,22 +37,26 @@ tmpfs               500000        10    499990       1% /tmp
     );
 
     // Filter logic:
-    // mount === "/" -> included
-    // mount.startsWith("/System") -> excluded
+    // mount === "/" -> included initially
+    // mount === "/System/Volumes/Data" -> included (macOS APFS data volume)
     // mount.startsWith("/Users") -> included
     // mount === "/tmp" -> included
     // mount.startsWith("/snap") -> excluded
+    //
+    // APFS dedup: when /System/Volumes/Data is present, "/" is dropped
+    // because they share the same container and "/" is just a system snapshot.
 
     // Also checks totalKb > 0.
 
     expect(disks).toHaveLength(3);
 
-    // Check /
-    const root = disks.find(d => d.mount === "/");
-    expect(root).toBeDefined();
-    expect(root?.totalBytes).toBe(100000000 * 1024);
-    expect(root?.usedBytes).toBe(50000000 * 1024);
-    expect(root?.usagePercent).toBe(50.0);
+    // "/" is dropped because /System/Volumes/Data is present (APFS dedup)
+    expect(disks.find(d => d.mount === "/")).toBeUndefined();
+
+    // Check /System/Volumes/Data (macOS data volume)
+    const dataVol = disks.find(d => d.mount === "/System/Volumes/Data");
+    expect(dataVol).toBeDefined();
+    expect(dataVol?.totalBytes).toBe(10000000 * 1024);
 
     // Check /Users/jules
     const users = disks.find(d => d.mount === "/Users/jules");
@@ -101,5 +105,40 @@ map auto_home            0         0         0     100% /home
 
     const disks = await collectDiskStatus();
     expect(disks).toEqual([]);
+  });
+
+  it("should include macOS /System/Volumes/Data but exclude other /System volumes", async () => {
+    const mockOutput = `Filesystem     1024-blocks      Used Available Capacity  Mounted on
+/dev/disk3s1s1   482766932  12008272  53287044    19%    /
+devfs                  205       205         0   100%    /dev
+/dev/disk3s6     482766932   6291860  53287044    11%    /System/Volumes/VM
+/dev/disk3s2     482766932   8149420  53287044    14%    /System/Volumes/Preboot
+/dev/disk3s4     482797652      2532  53315232     1%    /System/Volumes/Update
+/dev/disk3s5     482766932 401657600  53287044    89%    /System/Volumes/Data
+map auto_home            0         0         0   100%    /System/Volumes/Data/home
+`;
+    (exec as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+      (cmd, options, callback) => {
+        callback(null, mockOutput, "");
+      }
+    );
+
+    const disks = await collectDiskStatus();
+
+    // APFS dedup: "/" should be dropped when /System/Volumes/Data is present
+    expect(disks).toHaveLength(1);
+    expect(disks.find(d => d.mount === "/")).toBeUndefined();
+
+    const dataVol = disks.find(d => d.mount === "/System/Volumes/Data");
+    expect(dataVol).toBeDefined();
+    expect(dataVol?.usedBytes).toBe(401657600 * 1024);
+
+    // Other /System volumes should be excluded
+    expect(disks.find(d => d.mount === "/System/Volumes/VM")).toBeUndefined();
+    expect(disks.find(d => d.mount === "/System/Volumes/Preboot")).toBeUndefined();
+    expect(disks.find(d => d.mount === "/System/Volumes/Update")).toBeUndefined();
+
+    // auto_home with 0 total should be excluded
+    expect(disks.find(d => d.mount === "/System/Volumes/Data/home")).toBeUndefined();
   });
 });

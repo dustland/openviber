@@ -284,7 +284,7 @@ export async function collectDiskStatus(): Promise<DiskStatus[]> {
             }
 
             // Only include root "/" and home-like mounts
-            if (mount === "/" || mount.startsWith("/home") || mount.startsWith("/Users") || mount === "/tmp") {
+            if (mount === "/" || mount.startsWith("/home") || mount.startsWith("/Users") || mount === "/System/Volumes/Data" || mount === "/tmp") {
                 const totalKb = parseInt(parts[1], 10);
                 const usedKb = parseInt(parts[2], 10);
                 const availKb = parseInt(parts[3], 10);
@@ -300,6 +300,15 @@ export async function collectDiskStatus(): Promise<DiskStatus[]> {
                         Math.round(((usedKb / totalKb) * 100) * 100) / 100,
                 });
             }
+        }
+
+        // On macOS APFS, "/" is a read-only system snapshot and
+        // "/System/Volumes/Data" holds the actual user data. They share
+        // the same container, so showing both is misleading. Drop "/"
+        // when the Data volume is present.
+        const hasDataVol = disks.some(d => d.mount === "/System/Volumes/Data");
+        if (hasDataVol) {
+            return disks.filter(d => d.mount !== "/");
         }
 
         return disks;

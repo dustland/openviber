@@ -16,6 +16,7 @@
     RefreshCw,
     Loader2,
   } from "@lucide/svelte";
+  import { Skeleton } from "$lib/components/ui/skeleton";
   import ChannelConfigPanel from "$lib/components/channel-config-panel.svelte";
 
   interface DetailedStatus {
@@ -267,11 +268,17 @@
   });
 </script>
 
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
   class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+  onclick={onClose}
 >
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div
     class="w-full max-w-2xl max-h-[85vh] rounded-xl border border-border bg-card shadow-2xl flex flex-col overflow-hidden"
+    onclick={(e) => e.stopPropagation()}
   >
     <!-- Header -->
     <div
@@ -313,10 +320,60 @@
     <!-- Content -->
     <div class="overflow-y-auto flex-1 px-5 py-4">
       {#if loading}
-        <div class="flex items-center justify-center py-12">
-          <div class="flex flex-col items-center gap-3">
-            <Loader2 class="size-8 text-muted-foreground animate-spin" />
-            <p class="text-sm text-muted-foreground">Loading viber status...</p>
+        <div class="space-y-6">
+          <!-- System Info Row skeleton -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {#each Array(4) as _}
+              <div
+                class="rounded-lg border border-border bg-muted/30 p-3 space-y-2"
+              >
+                <Skeleton class="h-2.5 w-12" />
+                <Skeleton class="h-4 w-3/4" />
+              </div>
+            {/each}
+          </div>
+
+          <!-- CPU skeleton -->
+          <div class="rounded-lg border border-border p-4 space-y-3">
+            <div class="flex items-center justify-between">
+              <Skeleton class="h-4 w-32" />
+              <Skeleton class="h-4 w-10" />
+            </div>
+            <Skeleton class="h-2 w-full rounded-full" />
+            <div class="grid grid-cols-8 gap-1.5">
+              {#each Array(8) as _}
+                <Skeleton class="h-8 w-full rounded" />
+              {/each}
+            </div>
+          </div>
+
+          <!-- Memory skeleton -->
+          <div class="rounded-lg border border-border p-4 space-y-3">
+            <div class="flex items-center justify-between">
+              <Skeleton class="h-4 w-24" />
+              <Skeleton class="h-4 w-10" />
+            </div>
+            <Skeleton class="h-2 w-full rounded-full" />
+            <div class="flex justify-between">
+              <Skeleton class="h-3 w-20" />
+              <Skeleton class="h-3 w-20" />
+              <Skeleton class="h-3 w-20" />
+            </div>
+          </div>
+
+          <!-- Load Average skeleton -->
+          <div
+            class="flex items-center justify-between rounded-lg border border-border p-4"
+          >
+            <Skeleton class="h-4 w-28" />
+            <div class="flex gap-4">
+              {#each Array(3) as _}
+                <div class="flex flex-col items-center gap-1">
+                  <Skeleton class="h-4 w-10" />
+                  <Skeleton class="h-2.5 w-8" />
+                </div>
+              {/each}
+            </div>
           </div>
         </div>
       {:else if error}

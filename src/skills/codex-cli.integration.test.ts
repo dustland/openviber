@@ -9,9 +9,10 @@ import { describe, it, expect, beforeAll } from "vitest";
 import { defaultRegistry } from "./registry";
 import { Agent } from "../viber/agent";
 import { getTools as getCodexCliTools } from "./codex-cli";
+import { registerDefaultSkills } from "./index";
 
 // Trigger pre-registration so getTools("codex-cli") returns tools
-import "./index";
+registerDefaultSkills();
 
 beforeAll(async () => {
   await defaultRegistry.loadAll();

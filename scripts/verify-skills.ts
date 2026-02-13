@@ -16,8 +16,10 @@
  */
 
 import { defaultRegistry } from "../src/skills/registry";
+import { registerDefaultSkills } from "../src/skills";
+
 // Trigger pre-registration of skill tools
-import "../src/skills";
+registerDefaultSkills();
 
 async function main() {
   const runCursor = process.argv.includes("--cursor");

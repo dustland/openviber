@@ -303,11 +303,22 @@ export function getTools(): Record<string, import("../../viber/tool").CoreTool> 
         approvalMode?: ApprovalMode;
         model?: string;
         outputFormat?: "text" | "json";
-      }) => {
+      }, context?: any) => {
         const approvalMode = args.approvalMode ?? "yolo";
         const waitSeconds = args.waitSeconds ?? DEFAULT_WAIT_SECONDS;
 
         try {
+          // If web-stored Google OAuth tokens are available, sync them to
+          // ~/.gemini/ so the CLI subprocess picks them up automatically.
+          const googleTokens = context?.oauthTokens?.google;
+          if (googleTokens?.accessToken) {
+            const { syncGeminiCredentials } = await import("./gemini-auth");
+            syncGeminiCredentials({
+              accessToken: googleTokens.accessToken,
+              refreshToken: googleTokens.refreshToken,
+            });
+          }
+
           ensureGeminiInstalled();
           const cwd = resolveWorkingDirectory(args.cwd);
           const result = await runGemini(

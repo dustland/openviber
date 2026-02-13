@@ -10,7 +10,7 @@ import {
   exchangeGoogleCode,
   fetchGoogleUserEmail,
   upsertOAuthConnection,
-  GOOGLE_GMAIL_SCOPES,
+  GOOGLE_OAUTH_SCOPES,
 } from "$lib/server/oauth";
 
 const GOOGLE_OAUTH_STATE_COOKIE = "openviber_google_oauth_state";
@@ -54,7 +54,7 @@ export const GET: RequestHandler = async ({ url, cookies, locals }) => {
       accessToken: tokens.access_token,
       refreshToken: tokens.refresh_token,
       expiresIn: tokens.expires_in,
-      scopes: GOOGLE_GMAIL_SCOPES,
+      scopes: GOOGLE_OAUTH_SCOPES,
       accountEmail,
     });
 

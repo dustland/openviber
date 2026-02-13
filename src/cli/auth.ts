@@ -47,12 +47,13 @@ export const LOCAL_REDIRECT_URI = `http://localhost:${LOCAL_CALLBACK_PORT}${LOCA
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 
-/** Default Gmail scopes – matches the web app. */
-export const GOOGLE_GMAIL_SCOPES = [
+/** Google OAuth scopes – matches the web app. */
+export const GOOGLE_OAUTH_SCOPES = [
   "https://www.googleapis.com/auth/gmail.readonly",
   "https://www.googleapis.com/auth/gmail.send",
   "https://www.googleapis.com/auth/gmail.modify",
   "https://www.googleapis.com/auth/userinfo.email",
+  "https://www.googleapis.com/auth/cloud-platform",
 ];
 
 /** Supported LLM provider keys that can be configured interactively. */
@@ -240,7 +241,7 @@ export function buildGoogleAuthUrl(clientId: string, state: string): string {
     client_id: clientId,
     redirect_uri: LOCAL_REDIRECT_URI,
     response_type: "code",
-    scope: GOOGLE_GMAIL_SCOPES.join(" "),
+    scope: GOOGLE_OAUTH_SCOPES.join(" "),
     access_type: "offline",
     prompt: "consent",
     state,

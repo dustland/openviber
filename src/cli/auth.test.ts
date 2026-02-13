@@ -23,12 +23,12 @@ describe("CLI Auth Module", () => {
 
   beforeEach(async () => {
     await fs.mkdir(testDir, { recursive: true });
-    await fs.unlink(envFile).catch(() => {});
-    await fs.unlink(settingsFile).catch(() => {});
+    await fs.unlink(envFile).catch(() => { });
+    await fs.unlink(settingsFile).catch(() => { });
   });
 
   afterEach(async () => {
-    await fs.rm(testDir, { recursive: true, force: true }).catch(() => {});
+    await fs.rm(testDir, { recursive: true, force: true }).catch(() => { });
     // Restore all env var changes
     vi.unstubAllEnvs();
   });
@@ -124,7 +124,7 @@ describe("CLI Auth Module", () => {
 
   describe("buildGoogleAuthUrl()", () => {
     it("builds a valid Google consent URL", async () => {
-      const { buildGoogleAuthUrl, GOOGLE_GMAIL_SCOPES, LOCAL_REDIRECT_URI } =
+      const { buildGoogleAuthUrl, GOOGLE_OAUTH_SCOPES, LOCAL_REDIRECT_URI } =
         await import("./auth");
       const url = buildGoogleAuthUrl("test-client-id", "test-state");
       const parsed = new URL(url);
@@ -137,7 +137,7 @@ describe("CLI Auth Module", () => {
       expect(parsed.searchParams.get("prompt")).toBe("consent");
       expect(parsed.searchParams.get("state")).toBe("test-state");
       expect(parsed.searchParams.get("scope")).toBe(
-        GOOGLE_GMAIL_SCOPES.join(" "),
+        GOOGLE_OAUTH_SCOPES.join(" "),
       );
     });
   });

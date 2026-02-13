@@ -125,7 +125,13 @@ export async function loadLargeResult(
   }
 
   const artifactsDir = path.join(getViberRoot(), spaceId, "artifacts");
-  const artifactPath = path.join(artifactsDir, reference.artifactId);
+  const resolvedArtifactsDir = path.resolve(artifactsDir);
+  const artifactPath = path.resolve(resolvedArtifactsDir, reference.artifactId);
+
+  // Prevent path traversal
+  if (!artifactPath.startsWith(resolvedArtifactsDir + path.sep)) {
+    throw new Error(`Invalid artifact path: ${reference.artifactId}`);
+  }
 
   try {
     await fs.access(artifactPath);

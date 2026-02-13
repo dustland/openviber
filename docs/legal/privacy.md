@@ -5,7 +5,7 @@ description: "How OpenViber handles your data with our local-first AI platform."
 
 # Privacy Policy
 
-**Last updated:** February 13, 2026
+**Last updated:** February 14, 2026
 
 ## 1. Overview
 

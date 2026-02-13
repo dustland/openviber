@@ -5,7 +5,7 @@ description: "The rules and guidelines for using the OpenViber platform."
 
 # Terms of Service
 
-**Last updated:** February 13, 2026
+**Last updated:** February 14, 2026
 
 ## 1. Acceptance of Terms
 

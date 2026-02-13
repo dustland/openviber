@@ -259,7 +259,7 @@ OpenViber is designed to **reduce management burden** by making the web app the 
 | **Enterprise channel focus** | DingTalk/WeCom targeting for Chinese enterprise market |
 | **Budget controls** | Per-task and per-viber token/cost budgets with soft/hard enforcement |
 | **Context compaction** | Sophisticated context management with pruning, compaction, and memory flush |
-| **Environment & thread model** | Codex-inspired environment-first workflow (planned) |
+| **Environment & task model** | Codex-inspired environment-first workflow (planned) |
 | **Desktop automation** | Desktop tool for interacting with desktop applications |
 | **Zero config start** | `npx openviber start` with no installation |
 

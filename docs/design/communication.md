@@ -39,7 +39,7 @@ Operator types message
 Messages are persisted to SQLite alongside the streaming flow:
 - **User message**: Saved to DB before submitting to the gateway.
 - **Assistant message**: Saved to DB in the `Chat.onFinish` callback after streaming completes.
-- **Thread scoping**: Messages are grouped by thread ID for conversation continuity.
+- **Task scoping**: Messages are grouped by task ID for conversation continuity.
 
 ### Session Continuity
 

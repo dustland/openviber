@@ -8,14 +8,13 @@ import {
 import { touchViberActivity } from "$lib/server/environments";
 
 // GET /api/tasks/[id]/messages - Load chat history for this task
-export const GET: RequestHandler = async ({ params, url, locals }) => {
+export const GET: RequestHandler = async ({ params, locals }) => {
   if (!locals.user) {
     return json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    const threadId = url.searchParams.get("threadId");
-    const rows = await listMessagesForViber(params.id, threadId);
+    const rows = await listMessagesForViber(params.id);
 
     const messages = rows.map((row) => ({
       id: row.id,
@@ -24,7 +23,6 @@ export const GET: RequestHandler = async ({ params, url, locals }) => {
       parts: row.parts ?? undefined,
       createdAt: row.createdAt,
       taskId: row.taskId ?? undefined,
-      threadId: row.threadId ?? undefined,
     }));
 
     return json({ messages });
@@ -44,11 +42,6 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
     const body = await request.json();
     const viberId = params.id;
 
-    const defaultThreadId =
-      typeof body.threadId === "string" && body.threadId.trim().length > 0
-        ? body.threadId.trim()
-        : null;
-
     const rawInputs = Array.isArray(body.messages)
       ? body.messages
       : [
@@ -57,7 +50,6 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
           content: body.content,
           parts: body.parts,
           taskId: body.taskId ?? null,
-          threadId: defaultThreadId,
         },
       ];
 
@@ -73,10 +65,6 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
         input?.taskId !== undefined
           ? String(input.taskId || "").trim() || null
           : null,
-      threadId:
-        input?.threadId !== undefined
-          ? String(input.threadId || "").trim() || null
-          : defaultThreadId,
     }));
 
     const createdRows = await appendMessagesForViber(viberId, inputs);
@@ -92,7 +80,6 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
       parts: row.parts ?? undefined,
       createdAt: row.createdAt,
       taskId: row.taskId ?? undefined,
-      threadId: row.threadId ?? undefined,
     }));
 
     if (Array.isArray(body.messages)) {

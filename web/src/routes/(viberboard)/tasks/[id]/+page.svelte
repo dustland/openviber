@@ -618,7 +618,7 @@
   // Track message count so we only auto-scroll when there is a new message, not on every reactive tick
   let prevMessageCount = $state(0);
 
-  // Show the inline session indicator in the message thread only while
+  // Show the inline session indicator in the message stream only while
   // waiting for the assistant to emit the first response chunk.
   let showInlineSessionIndicator = $derived(
     sending &&

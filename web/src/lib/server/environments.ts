@@ -815,7 +815,7 @@ export async function listEnvironmentConfigForNode(
 
 /**
  * Touch a viber's updated_at timestamp when new messages arrive.
- * Replaces the old touchThreadActivity that targeted the tasks table.
+ * Replaces the old touchTaskActivity that targeted the tasks table.
  */
 export async function touchViberActivity(
   viberId: string,

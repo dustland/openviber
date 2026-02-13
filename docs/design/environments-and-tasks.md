@@ -1,14 +1,14 @@
 ---
-title: "Environments and Tasks"
-description: "Environment-first sidebar and runtime design for mapping thread work to Viber nodes"
+title: "Environments and tasks"
+description: "Environment-first sidebar and runtime design for mapping task work to Viber nodes"
 ---
 
-# Environments and Tasks
+# Environments and tasks
 
 This design defines how OpenViber should evolve from a node-first sidebar to an **environment-first** workflow similar to Codex:
 
 - **Environment** = reusable execution context (repo, setup, vars, policies)
-- **Thread** = one work stream/topic inside an environment
+- **task** = one work stream/topic inside an environment
 - **Node binding** = where that environment is provisioned and runnable
 
 References:
@@ -35,14 +35,14 @@ Non-goals:
 
 ### 2.1 Concepts
 
-- **Thread**: user-visible work unit (chat + execution timeline + artifacts), scoped to one environment.
+- **task**: user-visible work unit (chat + execution timeline + artifacts), scoped to one environment.
 - **Environment**: declarative runtime spec.
 - **Environment Binding**: resolved mapping of an environment to a specific node and working directory.
 - **Node**: machine running OpenViber daemon.
 
 ### 2.2 Mapping to current model
 
-- Current `task` becomes an execution run within a thread.
+- Current `task` becomes an execution run within a task.
 - Current `space` becomes a compatibility alias for environment-backed workspace state.
 - `viber_nodes` remains the machine registry.
 
@@ -55,8 +55,8 @@ Non-goals:
 ```mermaid
 flowchart TB
   A["Workspace Header"] --> B["Environment Switcher"]
-  B --> C["Thread List (selected environment)"]
-  C --> D["New Thread"]
+  B --> C["task List (selected environment)"]
+  C --> D["New task"]
   A --> E["Environments Section"]
   E --> F["Create Environment"]
   E --> G["Manage Mappings"]
@@ -67,11 +67,11 @@ flowchart TB
 
 - Top:
   - Current environment name + status pill (`Unmapped`, `Preparing`, `Ready`, `Error`)
-  - `New Thread` primary action
+  - `New task` primary action
 - Main section:
   - Search tasks
-  - Thread list grouped by `Today`, `Last 7 days`, `Archived`
-  - Thread row: title, last activity, node badge, run state
+  - task list grouped by `Today`, `Last 7 days`, `Archived`
+  - task row: title, last activity, node badge, run state
 - Secondary section:
   - Environments list (pin/favorite + quick switch)
   - `Create Environment`
@@ -80,8 +80,8 @@ flowchart TB
 
 ### 3.3 Mobile behavior
 
-- Environment switcher and `New Thread` remain top-priority.
-- Tasks panel first; environment management opens as sheet.
+- Environment switcher and `New task` remain top-priority.
+- tasks panel first; environment management opens as sheet.
 
 ---
 
@@ -199,11 +199,11 @@ New control-plane messages:
 - Viber Board / Gateway -> Node
   - `environment:prepare`
   - `environment:sync`
-  - `thread:submit` (includes `threadId`, `environmentId`, `bindingId`)
+  - `task:submit` (includes `taskId`, `environmentId`, `bindingId`)
 - Node -> Gateway
   - `environment:status` (`preparing`, `ready`, `error`)
   - `environment:log` (setup logs, redacted)
-  - `thread:started`, `thread:progress`, `thread:completed`, `thread:error`
+  - `task:started`, `task:progress`, `task:completed`, `task:error`
 
 Node runtime component:
 - `EnvironmentManager.prepare(binding)`:
@@ -231,7 +231,7 @@ Node runtime component:
 
 Practical rule:
 - **One-time bootstrap still required** to establish trust and install daemon.
-- After onboarding, environment creation/mapping/thread start is remote and commandless from web UI.
+- After onboarding, environment creation/mapping/task start is remote and commandless from web UI.
 
 ### v1 (recommended)
 
@@ -255,11 +255,11 @@ Practical rule:
 - Implement daemon `EnvironmentManager`.
 
 ### Phase 3: Sidebar migration
-- Replace chat/ports/jobs-first sidebar with environment + thread-first IA.
+- Replace chat/ports/jobs-first sidebar with environment + task-first IA.
 - Keep jobs/ports as secondary tools per environment.
 
-### Phase 4: Thread-native execution
-- Route message sends via `threadId` + `environmentId`.
+### Phase 4: task-native execution
+- Route message sends via `taskId` + `environmentId`.
 - Treat old task flow as compatibility mode.
 
 ---
@@ -268,10 +268,10 @@ Practical rule:
 
 1. User can create a GitHub-backed environment with setup script and secure vars from UI.
 2. User can map environment to an active node and see live prepare status.
-3. User can start a new thread inside that environment with no machine-side manual repo/setup commands.
-4. Runtime receives env config; setup script runs before first thread task.
+3. User can start a new task inside that environment with no machine-side manual repo/setup commands.
+4. Runtime receives env config; setup script runs before first task task.
 5. Secrets are masked in UI/logs and redacted in streamed output.
-6. Sidebar defaults to environment + thread navigation.
+6. Sidebar defaults to environment + task navigation.
 
 ---
 

@@ -39,7 +39,7 @@
     setupScript: string | null;
     networkAccess: boolean;
     persistVolume: boolean;
-    threadCount: number;
+    taskCount: number;
     variables: EnvironmentVariable[];
   }
 
@@ -870,7 +870,7 @@
               {#if isCreateMode}
                 Save this environment, then assign it to a viber.
               {:else}
-                This environment currently has {environment?.threadCount || 0} thread(s).
+                This environment currently has {environment?.taskCount || 0} task(s).
               {/if}
             </div>
             <div class="flex flex-wrap gap-2">

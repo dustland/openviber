@@ -385,7 +385,8 @@
         <div
           class="overflow-x-auto p-6 font-mono text-sm leading-relaxed text-blue-100"
         >
-          <pre><code><span class="text-purple-400">name:</span> <span
+          <pre><code
+              ><span class="text-purple-400">name:</span> <span
                 class="text-green-400">"frontend-dev"</span
               >
 <span class="text-purple-400">role:</span> <span class="text-green-400"
@@ -549,7 +550,9 @@
           <code class="text-sm text-foreground">npx openviber onboard</code>
         </div>
 
-        <div class="mt-8 flex flex-wrap items-center justify-center gap-3 md:gap-4">
+        <div
+          class="mt-8 flex flex-wrap items-center justify-center gap-3 md:gap-4"
+        >
           {#if !data.user && data.supabaseAuthEnabled}
             <a
               href={githubAuthUrl}
@@ -633,6 +636,16 @@
           rel="noopener noreferrer"
           class="text-sm text-muted-foreground transition-colors hover:text-foreground"
           >npm</a
+        >
+        <a
+          href="/docs/legal/terms"
+          class="text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >Terms</a
+        >
+        <a
+          href="/docs/legal/privacy"
+          class="text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >Privacy</a
         >
       </nav>
     </div>
@@ -1128,16 +1141,31 @@
     z-index: -1;
     opacity: 0;
     animation: rings-fade-in 2s ease-out 0.3s forwards;
-    background:
-      radial-gradient(circle, transparent 8rem, hsl(var(--primary) / 0.04) 8.5rem, transparent 9rem),
-      radial-gradient(circle, transparent 14rem, hsl(var(--primary) / 0.035) 14.5rem, transparent 15rem),
-      radial-gradient(circle, transparent 20rem, hsl(var(--primary) / 0.03) 20.5rem, transparent 21rem),
-      radial-gradient(circle, transparent 26rem, hsl(var(--primary) / 0.02) 26.5rem, transparent 27rem);
-    mask-image: radial-gradient(
-      circle at 50% 50%,
-      black 30%,
-      transparent 65%
-    );
+    background: radial-gradient(
+        circle,
+        transparent 8rem,
+        hsl(var(--primary) / 0.04) 8.5rem,
+        transparent 9rem
+      ),
+      radial-gradient(
+        circle,
+        transparent 14rem,
+        hsl(var(--primary) / 0.035) 14.5rem,
+        transparent 15rem
+      ),
+      radial-gradient(
+        circle,
+        transparent 20rem,
+        hsl(var(--primary) / 0.03) 20.5rem,
+        transparent 21rem
+      ),
+      radial-gradient(
+        circle,
+        transparent 26rem,
+        hsl(var(--primary) / 0.02) 26.5rem,
+        transparent 27rem
+      );
+    mask-image: radial-gradient(circle at 50% 50%, black 30%, transparent 65%);
     -webkit-mask-image: radial-gradient(
       circle at 50% 50%,
       black 30%,
@@ -1145,8 +1173,12 @@
     );
   }
   @keyframes rings-fade-in {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
   }
 
   /* ── Diagonal light beams ── */
@@ -1186,8 +1218,13 @@
     animation-delay: -15s;
   }
   @keyframes beam-drift {
-    0%, 100% { transform: rotate(15deg) translateX(0); }
-    50% { transform: rotate(15deg) translateX(40px); }
+    0%,
+    100% {
+      transform: rotate(15deg) translateX(0);
+    }
+    50% {
+      transform: rotate(15deg) translateX(40px);
+    }
   }
 
   /* ── Topographic contour lines ── */
@@ -1201,16 +1238,20 @@
     pointer-events: none;
     z-index: -1;
     opacity: 0.25;
-    background-image:
-      url("data:image/svg+xml,%3Csvg width='800' height='500' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M-50 250 Q100 180 200 220 Q350 280 450 200 Q550 140 650 210 Q750 260 850 190' fill='none' stroke='%239ca3af' stroke-width='0.5' opacity='0.5'/%3E%3Cpath d='M-50 290 Q120 220 230 260 Q360 310 470 240 Q580 170 670 250 Q770 300 870 230' fill='none' stroke='%239ca3af' stroke-width='0.5' opacity='0.4'/%3E%3Cpath d='M-50 330 Q80 270 190 300 Q330 350 440 270 Q560 200 660 280 Q780 340 880 260' fill='none' stroke='%239ca3af' stroke-width='0.5' opacity='0.3'/%3E%3Cpath d='M-50 210 Q140 150 240 180 Q370 240 480 160 Q590 100 700 170 Q800 230 880 150' fill='none' stroke='%239ca3af' stroke-width='0.5' opacity='0.3'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg width='800' height='500' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M-50 250 Q100 180 200 220 Q350 280 450 200 Q550 140 650 210 Q750 260 850 190' fill='none' stroke='%239ca3af' stroke-width='0.5' opacity='0.5'/%3E%3Cpath d='M-50 290 Q120 220 230 260 Q360 310 470 240 Q580 170 670 250 Q770 300 870 230' fill='none' stroke='%239ca3af' stroke-width='0.5' opacity='0.4'/%3E%3Cpath d='M-50 330 Q80 270 190 300 Q330 350 440 270 Q560 200 660 280 Q780 340 880 260' fill='none' stroke='%239ca3af' stroke-width='0.5' opacity='0.3'/%3E%3Cpath d='M-50 210 Q140 150 240 180 Q370 240 480 160 Q590 100 700 170 Q800 230 880 150' fill='none' stroke='%239ca3af' stroke-width='0.5' opacity='0.3'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: center;
     background-size: contain;
     animation: topo-float 40s ease-in-out infinite;
   }
   @keyframes topo-float {
-    0%, 100% { transform: translateX(-50%) translateY(0); }
-    50% { transform: translateX(-50%) translateY(20px); }
+    0%,
+    100% {
+      transform: translateX(-50%) translateY(0);
+    }
+    50% {
+      transform: translateX(-50%) translateY(20px);
+    }
   }
 
   /* ── Hex pattern (for dark section) ── */
@@ -1274,8 +1315,12 @@
     animation: constellation-drift 50s linear infinite;
   }
   @keyframes constellation-drift {
-    0% { background-position: 0 0; }
-    100% { background-position: 0 800px; }
+    0% {
+      background-position: 0 0;
+    }
+    100% {
+      background-position: 0 800px;
+    }
   }
 
   /* Reduce motion for accessibility */

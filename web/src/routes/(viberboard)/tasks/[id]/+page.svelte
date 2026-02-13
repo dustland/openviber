@@ -1135,7 +1135,7 @@
                     Open Vibers
                   </a>
                   <a
-                    href="/tasks/new"
+                    href="/"
                     class="inline-flex items-center rounded-md border border-border bg-card px-3 py-1.5 text-xs text-foreground hover:bg-accent"
                   >
                     Start New Chat

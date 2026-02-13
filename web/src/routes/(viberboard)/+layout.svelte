@@ -11,7 +11,6 @@
     Cpu,
     FolderGit2,
     LoaderCircle,
-    Plus,
     Puzzle,
     ScrollText,
     Laptop,
@@ -84,7 +83,6 @@
   const isTasksRoute = $derived(
     pathname === "/tasks" || pathname.startsWith("/tasks/"),
   );
-  const isNewTaskRoute = $derived(pathname === "/tasks/new");
   const isVibersRoute = $derived(
     pathname === "/vibers" || pathname.startsWith("/vibers/"),
   );
@@ -142,24 +140,7 @@
         <Sidebar.Menu>
           <Sidebar.MenuItem>
             <Sidebar.MenuButton
-              isActive={isNewTaskRoute}
-              tooltipContent="New Task"
-            >
-              <a
-                href="/tasks/new"
-                class="w-full inline-flex items-center gap-2"
-              >
-                <Plus class="size-4 shrink-0" />
-                <span class="truncate group-data-[collapsible=icon]:hidden"
-                  >New Task</span
-                >
-              </a>
-            </Sidebar.MenuButton>
-          </Sidebar.MenuItem>
-
-          <Sidebar.MenuItem>
-            <Sidebar.MenuButton
-              isActive={isTasksRoute && !isNewTaskRoute}
+              isActive={isTasksRoute}
               tooltipContent="Tasks"
             >
               <a href="/tasks" class="w-full inline-flex items-center gap-2">

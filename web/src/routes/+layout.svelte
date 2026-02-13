@@ -51,7 +51,7 @@
 <div class="h-screen bg-background flex flex-col overflow-hidden">
   {#if data.e2eTestMode}
     <div
-      class="bg-amber-500/90 text-black text-center text-xs font-medium py-0.5 shrink-0"
+      class="fixed top-2 left-1/2 -translate-x-1/2 z-50 bg-amber-500/90 text-black text-center text-xs font-medium py-0.5 px-3 rounded-full shadow-lg"
       data-testid="e2e-test-banner"
     >
       E2E Test Mode — auth and onboarding bypassed

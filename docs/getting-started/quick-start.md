@@ -7,7 +7,7 @@ description: "Get OpenViber running in minutes"
 
 Get your first viber up and running in minutes.
 
-## 1. fastest Way (npx)
+## 1. Fastest Way (npx)
 
 The fastest way to get started is using `npx`:
 
@@ -15,7 +15,7 @@ The fastest way to get started is using `npx`:
 # 1. Set your API key (OpenRouter recommended)
 export OPENROUTER_API_KEY="your_api_key_here"
 
-# 2. Start OpenViber
+# 2. Start OpenViber (Standalone)
 npx openviber start
 ```
 

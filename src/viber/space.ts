@@ -6,7 +6,7 @@
  *
  * Key concepts:
  * - Space: Project container with shared configuration
- * - Task: Individual conversation threads within a space
+ * - Task: Individual conversation tasks within a space
  * - Each task has its own conversation history and artifacts
  */
 

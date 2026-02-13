@@ -16,6 +16,7 @@ import WebSocket from "ws";
 import { spawnSync } from "child_process";
 import type { ViberOptions } from "../viber/viber-agent";
 import { runTask, appendDailyMemory } from "./runtime";
+import { consolidateMemory } from "./memory";
 import { createLogger } from "../utils/logger";
 import { TerminalManager } from "./terminal";
 import { getOpenViberVersion } from "../utils/version";
@@ -340,8 +341,8 @@ export class ViberController extends EventEmitter {
   /**
    * Get full node observability status including machine resources and viber running status.
    */
-  getNodeObservabilityStatus(): ViberSystemStatus {
-    const status = collectViberSystemStatus({
+  async getNodeObservabilityStatus(): Promise<ViberSystemStatus> {
+    const status = await collectViberSystemStatus({
       viberId: this.config.viberId,
       viberName: this.config.viberName || this.config.viberId,
       version: getOpenViberVersion(),
@@ -676,6 +677,17 @@ export class ViberController extends EventEmitter {
           outcome: "completed",
           details: typeof summary === "string" ? summary : JSON.stringify(summary),
         });
+
+        // Consolidate into long-term memory (async, best-effort)
+        try {
+          await consolidateMemory(
+            this.config.viberId,
+            runtime.messageHistory,
+            result.agent.config
+          );
+        } catch (err) {
+          this.log.warn("Memory consolidation failed", { error: String(err) });
+        }
       }
     } catch (error: any) {
       if (error?.name === "AbortError") {
@@ -880,7 +892,7 @@ export class ViberController extends EventEmitter {
   // ==================== Status Reporting ====================
 
   private async handleStatusRequest(): Promise<void> {
-    const status = this.getNodeObservabilityStatus();
+    const status = await this.getNodeObservabilityStatus();
     const report = await this.getSkillHealthReport();
     if (report && status.viber) {
       status.viber.skillHealth = report;
@@ -1467,7 +1479,7 @@ export class ViberController extends EventEmitter {
   private startHeartbeat(): void {
     const interval = this.config.heartbeatInterval || 30000;
     this.heartbeatTimer = setInterval(async () => {
-      const machineStatus = collectMachineResourceStatus();
+      const machineStatus = await collectMachineResourceStatus();
       const viberStatus = collectViberRunningStatus({
         viberId: this.config.viberId,
         viberName: this.config.viberName || this.config.viberId,

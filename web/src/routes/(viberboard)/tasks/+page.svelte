@@ -141,7 +141,7 @@
         <Archive class="size-4 mr-1" />
         {showArchived ? "Hide Archived" : "Show Archived"}
       </Button>
-      <Button variant="outline" size="sm" href="/tasks/new">
+      <Button variant="outline" size="sm" href="/">
         <Plus class="size-4 mr-1" />
         New Task
       </Button>
@@ -270,7 +270,7 @@
       <p class="text-lg font-medium text-muted-foreground">No Tasks Yet</p>
       <p class="text-sm mt-2 max-w-md text-muted-foreground">
         Create a new task from the
-        <a href="/tasks/new" class="text-primary hover:underline">New Task</a>
+        <a href="/" class="text-primary hover:underline">New Task</a>
         page to get started.
       </p>
     </div>

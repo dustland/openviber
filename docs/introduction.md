@@ -36,17 +36,14 @@ pnpm dev
 
 ### 2. Command Line
 
-Run one-off tasks or scheduled jobs:
+Run one-off tasks or interact via terminal:
 
 ```bash
-# Start a task
+# Start a task (local runtime)
 openviber run "Create a README for this project"
 
 # Interactive terminal chat (tmux-friendly)
 openviber chat
-
-# Run a scheduled job
-openviber run jobs/morning-standup.yaml
 ```
 
 ### 3. Enterprise Channels
@@ -54,6 +51,7 @@ openviber run jobs/morning-standup.yaml
 Connect to DingTalk or WeCom for team collaboration:
 
 ```bash
+# Start the enterprise channel server
 openviber channels
 ```
 

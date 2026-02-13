@@ -51,7 +51,7 @@ web/
 
 When making architectural changes, read relevant docs in `docs/design/` first:
 
-- `viber.md` - Node and viber architecture
+- `viber.md` - Viber architecture
 - `communication.md` - Messaging and communication model
 - `protocol.md` - Protocol-level behavior
 - `task-lifecycle.md` - Task states and transitions
@@ -62,7 +62,7 @@ When making architectural changes, read relevant docs in `docs/design/` first:
 - `streaming.md` - Streaming behavior and events
 - `error-handling.md` - Failure handling conventions
 - `security.md` - Security boundaries
-- `environments-and-threads.md` - Environment/thread semantics
+- `environments-and-tasks.md` - Environment/thread semantics
 
 ## Key Runtime Conventions
 

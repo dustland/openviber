@@ -28,7 +28,7 @@ Operator types message
   → @ai-sdk/svelte Chat class sends POST to /api/tasks/[id]/chat
     → SvelteKit API route forwards to gateway: gatewayClient.submitTask()
       → Gateway creates task, sends task:submit to node runtime (daemon) over WebSocket
-        → Node runtime (daemon) runs AI SDK streamText(), streams response back
+        → Viber daemon runs AI SDK streamText(), streams response back
       → Gateway relays SSE stream to web app
     → Web app pipes SSE to browser
   → Chat class renders streaming response

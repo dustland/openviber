@@ -1,6 +1,7 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { env } from "$env/dynamic/private";
+import { isE2ETestMode } from "$lib/server/auth";
 import {
   createViber,
   listVibers,
@@ -14,6 +15,97 @@ import { upsertSkillsBatch } from "$lib/server/environments";
 export const GET: RequestHandler = async ({ locals }) => {
   if (!locals.user) {
     return json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // E2E test mode: synthetic user doesn't exist in Supabase auth.users,
+  // so all DB operations (insert/select on vibers) fail with FK violations.
+  // Return a mock dev viber sourced only from gateway connectivity data.
+  if (isE2ETestMode()) {
+    try {
+      const gatewayData = await gatewayClient.getNodes();
+      const devViberId = env.OPENVIBER_DEV_VIBER_ID?.trim();
+      const devViberName = env.OPENVIBER_DEV_VIBER_NAME?.trim() || "Local Dev";
+      const now = new Date().toISOString();
+
+      // Build vibers from connected gateway nodes
+      const vibers = gatewayData.nodes.map((node) => ({
+        id: node.id,
+        user_id: locals.user!.id,
+        name: node.name || node.id,
+        viber_id: node.id,
+        onboard_token: null,
+        token_expires_at: null,
+        hub_url: null,
+        auth_token: null,
+        config: {},
+        status: "active" as const,
+        last_seen_at: node.connectedAt,
+        created_at: node.connectedAt,
+        updated_at: node.connectedAt,
+        version: node.version,
+        platform: node.platform,
+        capabilities: node.capabilities,
+        skills: node.skills,
+        lastHeartbeat: node.lastHeartbeat,
+        runningVibers: node.runningVibers,
+        machine: node.machine,
+        viber: node.viber,
+        config_sync_state: undefined,
+      }));
+
+      // If a dev viber ID is configured but no daemon is connected yet,
+      // still show it as an offline placeholder so the UI isn't empty.
+      if (devViberId && !vibers.some((v) => v.viber_id === devViberId)) {
+        vibers.push({
+          id: devViberId,
+          user_id: locals.user!.id,
+          name: devViberName,
+          viber_id: devViberId,
+          onboard_token: null,
+          token_expires_at: null,
+          hub_url: null,
+          auth_token: null,
+          config: {
+            provider: "openrouter",
+            model: "anthropic/claude-sonnet-4-20250514",
+            tools: ["file", "terminal", "browser"],
+            skills: [],
+          },
+          status: "offline",
+          last_seen_at: null,
+          created_at: now,
+          updated_at: now,
+        } as any);
+      }
+
+      return json({ vibers });
+    } catch (error) {
+      console.error("[E2E] Failed to list vibers:", error);
+      // Return a minimal mock even if gateway is unreachable
+      const devViberId = env.OPENVIBER_DEV_VIBER_ID?.trim();
+      const now = new Date().toISOString();
+      return json({
+        vibers: devViberId
+          ? [
+            {
+              id: devViberId,
+              user_id: locals.user.id,
+              name: env.OPENVIBER_DEV_VIBER_NAME?.trim() || "Local Dev",
+              viber_id: devViberId,
+              onboard_token: null,
+              token_expires_at: null,
+              hub_url: null,
+              auth_token: null,
+              config: {},
+              status: "offline" as const,
+              last_seen_at: null,
+              created_at: now,
+              updated_at: now,
+            },
+          ]
+          : [],
+      });
+    }
   }
 
   try {

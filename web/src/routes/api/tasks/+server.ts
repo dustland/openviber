@@ -1,6 +1,7 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { gatewayClient } from "$lib/server/gateway";
+import { isE2ETestMode } from "$lib/server/auth";
 import {
   listViberEnvironmentAssignmentsForUser,
   listEnvironmentsForUser,
@@ -165,6 +166,31 @@ interface PersistedViberRow {
 export const GET: RequestHandler = async ({ locals, url }) => {
   if (!locals.user) {
     return json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // E2E test mode: synthetic user can't query Supabase (FK violations).
+  // Return tasks from gateway only.
+  if (isE2ETestMode()) {
+    try {
+      const { vibers: hubVibers } = await gatewayClient.getTasks();
+      const result = hubVibers.map((v) => ({
+        id: v.id,
+        nodeId: v.nodeId ?? null,
+        nodeName: v.nodeName ?? null,
+        environmentId: null,
+        environmentName: null,
+        goal: v.goal ?? v.id,
+        status: v.status ?? "unknown",
+        createdAt: v.createdAt ?? new Date().toISOString(),
+        completedAt: v.completedAt ?? null,
+        nodeConnected: v.isNodeConnected !== false,
+        archivedAt: null,
+      }));
+      return json(result);
+    } catch (error) {
+      console.error("[E2E] Failed to fetch tasks:", error);
+      return json([]);
+    }
   }
 
   const includeArchived = url.searchParams.get("include_archived") === "true";

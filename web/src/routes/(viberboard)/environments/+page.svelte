@@ -285,7 +285,7 @@
               <div class="flex items-center justify-between gap-2">
                 <span class="inline-flex items-center gap-1.5">
                   <FolderGit2 class="size-3.5" />
-                  Threads
+                  Tasks
                 </span>
                 <span class="text-foreground">{environment.threadCount}</span>
               </div>

@@ -13,7 +13,7 @@ const PROTECTED_PATHS = [
   "/api/tasks",
   "/api/vibers",
   "/api/environments",
-  "/api/threads",
+  "/api/tasks",
   "/api/skills",
   "/api/jobs",
   "/api/intents",

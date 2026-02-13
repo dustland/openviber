@@ -8,7 +8,7 @@ A **viber** is a role-scoped AI worker that runs on your machine. It has its own
 
 ```mermaid
 graph TB
-    subgraph node["Viber Node (your machine)"]
+    subgraph node["Viber(your machine)"]
         subgraph openviber["OpenViber runtime"]
             v1["dev-viber"]
             v2["researcher-viber"]

@@ -342,7 +342,7 @@
     if (isCreateMode || deleting) return;
 
     const confirmed = window.confirm(
-      "Delete this environment? This removes all related threads and messages.",
+      "Delete this environment? This removes all related tasks and messages.",
     );
     if (!confirmed) return;
 
@@ -416,7 +416,9 @@
     void fetchBranches(repo.owner, repo.name);
   }
 
-  function parseOwnerRepoFromUrl(url: string): { owner: string; repo: string } | null {
+  function parseOwnerRepoFromUrl(
+    url: string,
+  ): { owner: string; repo: string } | null {
     const match = url.match(/github\.com[/:]([^/]+)\/([^/.]+)/);
     if (!match) return null;
     return { owner: match[1], repo: match[2] };
@@ -709,9 +711,13 @@
                       {repoBranch || "Select a branch"}
                     </span>
                     {#if branchLoading}
-                      <Loader2 class="size-4 animate-spin text-muted-foreground shrink-0" />
+                      <Loader2
+                        class="size-4 animate-spin text-muted-foreground shrink-0"
+                      />
                     {:else}
-                      <ChevronDown class="size-4 text-muted-foreground shrink-0" />
+                      <ChevronDown
+                        class="size-4 text-muted-foreground shrink-0"
+                      />
                     {/if}
                   </DropdownMenuTrigger>
                   <DropdownMenuContent
@@ -728,7 +734,9 @@
                       >
                         <span class="flex-1 truncate">{branch.name}</span>
                         {#if branch.protected}
-                          <span class="text-[10px] text-muted-foreground">protected</span>
+                          <span class="text-[10px] text-muted-foreground"
+                            >protected</span
+                          >
                         {/if}
                         {#if repoBranch === branch.name}
                           <Check class="size-4 text-primary shrink-0" />
@@ -747,7 +755,9 @@
                     class="h-10 flex-1 rounded-md border border-border bg-background px-3 text-sm"
                   />
                   {#if branchLoading}
-                    <Loader2 class="size-4 animate-spin text-muted-foreground shrink-0" />
+                    <Loader2
+                      class="size-4 animate-spin text-muted-foreground shrink-0"
+                    />
                   {/if}
                 </div>
               {/if}

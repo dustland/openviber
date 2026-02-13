@@ -1,9 +1,9 @@
 ---
-title: "Environments and Threads"
+title: "Environments and Tasks"
 description: "Environment-first sidebar and runtime design for mapping thread work to Viber nodes"
 ---
 
-# Environments and Threads
+# Environments and Tasks
 
 This design defines how OpenViber should evolve from a node-first sidebar to an **environment-first** workflow similar to Codex:
 
@@ -20,7 +20,7 @@ References:
 
 ## 1. Goals
 
-1. Make the sidebar reflect how users think: pick an environment, then manage threads.
+1. Make the sidebar reflect how users think: pick an environment, then manage tasks.
 2. Let users create/map environments from web UI without SSHing into machines for day-to-day setup.
 3. Keep node onboarding secure and simple while enabling remote environment provisioning afterward.
 4. Satisfy issue #62 requirements: environment model, setup scripts, secure vars, runtime injection.
@@ -69,7 +69,7 @@ flowchart TB
   - Current environment name + status pill (`Unmapped`, `Preparing`, `Ready`, `Error`)
   - `New Thread` primary action
 - Main section:
-  - Search threads
+  - Search tasks
   - Thread list grouped by `Today`, `Last 7 days`, `Archived`
   - Thread row: title, last activity, node badge, run state
 - Secondary section:
@@ -81,7 +81,7 @@ flowchart TB
 ### 3.3 Mobile behavior
 
 - Environment switcher and `New Thread` remain top-priority.
-- Threads panel first; environment management opens as sheet.
+- Tasks panel first; environment management opens as sheet.
 
 ---
 
@@ -158,7 +158,7 @@ Required fields from issue #62 plus execution metadata:
 - `status` (`pending`, `preparing`, `ready`, `error`, `stale`)
 - `last_prepare_at`, `last_error`
 
-### 5.5 `threads`
+### 5.5 `tasks`
 
 - `id`, `user_id`, `environment_id`, `title`
 - `active_node_id` (optional; defaults from ready binding)
@@ -178,9 +178,9 @@ Required fields from issue #62 plus execution metadata:
 - `DELETE /api/environments/:id`
 - `POST /api/environments/:id/bindings` (node + strategy)
 - `GET /api/environments/:id/bindings`
-- `POST /api/threads`
-- `GET /api/threads?environmentId=...`
-- `POST /api/threads/:id/messages`
+- `POST /api/tasks`
+- `GET /api/tasks?environmentId=...`
+- `POST /api/tasks/:id/messages`
 
 ### 6.2 Node config pull
 

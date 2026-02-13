@@ -71,12 +71,15 @@
         { title: "Viber Runtime", href: "/docs/design/viber" },
         { title: "Protocol", href: "/docs/design/protocol" },
         {
-          title: "Environments and Threads",
-          href: "/docs/design/environments-and-threads",
+          title: "Environments and Tasks",
+          href: "/docs/design/environments-and-tasks",
         },
         { title: "Task Lifecycle", href: "/docs/design/task-lifecycle" },
         { title: "Communication", href: "/docs/design/communication" },
-        { title: "Context Management", href: "/docs/design/context-management" },
+        {
+          title: "Context Management",
+          href: "/docs/design/context-management",
+        },
         { title: "Memory", href: "/docs/design/memory" },
         { title: "Personalization", href: "/docs/design/personalization" },
         { title: "Streaming", href: "/docs/design/streaming" },
@@ -490,12 +493,16 @@
             {#if i > 0}
               <DropdownMenuSeparator />
             {/if}
-            <DropdownMenuLabel class="text-xs text-muted-foreground font-semibold">
+            <DropdownMenuLabel
+              class="text-xs text-muted-foreground font-semibold"
+            >
               {section.title}
             </DropdownMenuLabel>
             {#each section.items as item}
               <DropdownMenuItem
-                class="cursor-pointer {normalizePath(item.href) === currentPath ? 'bg-accent' : ''}"
+                class="cursor-pointer {normalizePath(item.href) === currentPath
+                  ? 'bg-accent'
+                  : ''}"
                 onSelect={() => goto(item.href)}
               >
                 {item.title}

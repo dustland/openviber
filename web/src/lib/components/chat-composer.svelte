@@ -7,9 +7,9 @@
     Cpu,
     FolderGit2,
     Package,
-    Laptop,
     Sparkles,
   } from "@lucide/svelte";
+  import ViberIcon from "$lib/components/icons/viber-icon.svelte";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
 
   export interface ComposerViber {
@@ -220,7 +220,7 @@
                 ></span>
                 <span class="truncate max-w-[100px]">{selectedViber.name}</span>
               {:else}
-                <Laptop class="size-3.5" />
+                <ViberIcon class="size-3.5" />
                 <span>Viber</span>
               {/if}
               <ChevronDown class="size-3 opacity-50" />

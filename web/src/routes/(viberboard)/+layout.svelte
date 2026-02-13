@@ -15,10 +15,10 @@
     Pin,
     Puzzle,
     Logs,
-    Laptop,
     Wifi,
     WifiOff,
   } from "@lucide/svelte";
+  import ViberIcon from "$lib/components/icons/viber-icon.svelte";
   import {
     Collapsible,
     CollapsibleTrigger,
@@ -198,7 +198,7 @@
               tooltipContent="Vibers"
             >
               <a href="/vibers" class="w-full inline-flex items-center gap-2">
-                <Laptop class="size-4 shrink-0" />
+                <ViberIcon class="size-4 shrink-0" />
                 <span class="truncate group-data-[collapsible=icon]:hidden"
                   >Vibers</span
                 >

@@ -14,12 +14,12 @@
     BookOpen,
     Check,
     ChevronRight,
-    Laptop,
     LogOut,
     Moon,
     Sun,
     Settings,
     Sparkles,
+    Laptop,
   } from "@lucide/svelte";
   import { themeStore, type Theme } from "$lib/stores/theme";
 

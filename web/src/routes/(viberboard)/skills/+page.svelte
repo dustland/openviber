@@ -26,6 +26,7 @@
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import { Button } from "$lib/components/ui/button";
   import { Textarea } from "$lib/components/ui/textarea";
+  import { Skeleton } from "$lib/components/ui/skeleton";
 
   interface UnmetRequirement {
     type: "oauth" | "env" | "bin";
@@ -479,9 +480,28 @@
   {/if}
 
   {#if installedLoading}
-    <div class="loading-state">
-      <Loader2 class="size-6 animate-spin" />
-      <span>Loading skills…</span>
+    <div class="skills-grid">
+      {#each Array(3) as _}
+        <div class="skill-card">
+          <div class="card-top">
+            <Skeleton class="size-9 rounded-lg shrink-0" />
+            <div
+              class="card-info"
+              style="display:flex;flex-direction:column;gap:0.375rem;flex:1"
+            >
+              <Skeleton class="h-4 w-28 rounded" />
+              <Skeleton class="h-3 w-full rounded" />
+            </div>
+          </div>
+          <div class="card-meta">
+            <Skeleton class="h-3 w-20 rounded" />
+            <Skeleton class="h-5 w-14 rounded-full" />
+          </div>
+          <div class="card-actions">
+            <Skeleton class="h-8 w-16 rounded-md" />
+          </div>
+        </div>
+      {/each}
     </div>
   {:else if installed.length === 0}
     <div class="empty-state">

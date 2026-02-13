@@ -7,7 +7,7 @@ description: "You Imagine It. Vibers Build It."
 
 **You Imagine It. Vibers Build It.**
 
-**OpenViber** is an open-source platform that turns your machine into a **Viber Node** — a runtime that hosts role-scoped AI workers. You describe what you want, and vibers handle the work autonomously. Runs locally with full privacy, connects to your channels, and works while you sleep.
+**OpenViber** is an open-source platform that turns your machine into a **Viber** — a runtime that executes autonomous AI tasks. You describe what you want, and the Viber handles the work autonomously. Runs locally with full privacy, connects to your channels, and works while you sleep.
 
 The CLI is available as both `openviber` and the shorter alias `viber` (when installed).
 

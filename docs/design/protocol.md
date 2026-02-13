@@ -7,11 +7,11 @@ description: "Communication protocol between OpenViber components: gateway, node
 
 OpenViber's runtime has three components that communicate:
 
-1. **Node runtime (daemon)** — runs on the user's machine, executes AI tasks.
-2. **Gateway** — central coordinator that routes messages between node runtimes and the web app.
-3. **Web App (Viber Board)** — SvelteKit frontend that operators use to interact with vibers.
+1. **Viber runtime (daemon)** — runs on the user's machine, executes AI tasks.
+2. **Gateway** — central coordinator that routes messages between Viber runtimes and the web app.
+3. **Web App (Viber Board)** — SvelteKit frontend that operators use to interact with tasks.
 
-Terminology note: in this doc, "daemon" refers to the node runtime process. "Gateway" is the
+Terminology note: in this doc, "daemon" refers to the Viber runtime process. "Gateway" is the
 central coordinator (started with `viber gateway`). This is distinct from the **Channels** server
 (`viber channels`, enterprise channel webhooks) and the **Skill Hub** (`src/skills/hub/`).
 
@@ -48,14 +48,14 @@ The gateway exposes a REST API for the web app (via `gateway.ts`):
 
 | Method | Endpoint | Purpose |
 |--------|----------|---------|
-| `GET` | `/health` | Health check (status, node count, task count) |
-| `GET` | `/api/nodes` | List connected nodes |
+| `GET` | `/health` | Health check (status, Viber count, Task count) |
+| `GET` | `/api/nodes` | List connected Vibers |
 | `GET` | `/api/tasks` | List all tasks |
-| `POST` | `/api/tasks` | Create a new task on a node |
+| `POST` | `/api/tasks` | Create a new task on a Viber |
 | `GET` | `/api/tasks/:id` | Get task status and events |
 | `POST` | `/api/tasks/:id/stop` | Stop a running task |
 | `GET` | `/api/tasks/:id/stream` | SSE stream of AI SDK response chunks |
-| `POST` | `/api/nodes/:id/config-push` | Push config to a node (triggers config:push WS message) |
+| `POST` | `/api/nodes/:id/config-push` | Push config to a Viber (triggers config:push WS message) |
 
 ### SSE Stream Endpoint
 
@@ -70,9 +70,9 @@ The stream closes when the task completes, errors, or is stopped.
 
 ---
 
-## 3. Gateway ↔ Node Runtime (Daemon) WebSocket Protocol
+## 3. Gateway ↔ Viber Runtime (Daemon) WebSocket Protocol
 
-Node runtimes (daemons) connect outbound to the gateway at `ws://{gateway}/ws` with auth headers:
+Viber runtimes (daemons) connect outbound to the gateway at `ws://{gateway}/ws` with auth headers:
 
 ```
 Authorization: Bearer {token}
@@ -80,7 +80,7 @@ X-Viber-Id: {viberId}
 X-Viber-Version: {version}
 ```
 
-### Node Runtime → Gateway Messages
+### Viber Runtime → Gateway Messages
 
 | Type | Payload | When |
 |------|---------|------|
@@ -95,7 +95,7 @@ X-Viber-Version: {version}
 | `config:ack` | `{ configVersion, validations }` | Response to config:push |
 | `terminal:*` | Various | Terminal streaming responses |
 
-### Gateway → Node Runtime Messages
+### Gateway → Viber Runtime Messages
 
 | Type | Payload | When |
 |------|---------|------|
@@ -104,7 +104,7 @@ X-Viber-Version: {version}
 | `task:message` | `{ taskId, message, injectionMode? }` | Follow-up message during task |
 | `ping` | `{}` | Keepalive |
 | `config:update` | `{ config }` | Runtime config change (deprecated) |
-| `config:push` | `{}` | Request node to pull and validate latest config |
+| `config:push` | `{}` | Request Viber to pull and validate latest config |
 | `terminal:list` | `{}` | Request terminal list |
 | `terminal:attach` | `{ target, appId? }` | Attach to terminal |
 | `terminal:detach` | `{ target, appId? }` | Detach from terminal |
@@ -161,8 +161,8 @@ pending → running → completed
 
 | State | Meaning |
 |-------|---------|
-| `pending` | Task created, waiting for node runtime (daemon) to start |
-| `running` | Node runtime (daemon) is executing (streaming in progress) |
+| `pending` | Task created, waiting for Viber runtime (daemon) to start |
+| `running` | Viber runtime (daemon) is executing (streaming in progress) |
 | `completed` | Task finished successfully |
 | `error` | Task failed (provider error, tool error, etc.) |
 | `stopped` | Operator explicitly stopped the task |
@@ -183,13 +183,13 @@ When an operator sends a follow-up message during a running task, the `injection
 
 ## 6. Terminal Streaming
 
-Terminal I/O uses the same WebSocket connection between node runtime (daemon) and gateway, with a dedicated message namespace (`terminal:*`). The gateway relays terminal data to the web app via a separate WebSocket connection on port 6008 (not through the SSE stream).
+Terminal I/O uses the same WebSocket connection between Viber runtime (daemon) and gateway, with a dedicated message namespace (`terminal:*`). The gateway relays terminal data to the web app via a separate WebSocket connection on port 6008 (not through the SSE stream).
 
 ---
 
 ## 7. Security
 
-- **Outbound-only**: Node runtimes (daemons) connect outbound to the gateway. No inbound ports needed.
+- **Outbound-only**: Viber runtimes (daemons) connect outbound to the gateway. No inbound ports needed.
 - **Auth headers**: WebSocket connections include `Authorization` and `X-Viber-Id` headers.
 - **CORS**: Gateway sets `Access-Control-Allow-Origin: *` for development (should be restricted in production).
 - **No secrets in stream**: The SSE stream contains only AI response content, never API keys or credentials.
@@ -201,7 +201,7 @@ Terminal I/O uses the same WebSocket connection between node runtime (daemon) an
 | Decision | Rationale |
 |----------|-----------|
 | Passthrough SSE relay | Avoids re-encoding; the AI SDK format is the source of truth |
-| Gateway as stateless coordinator | Gateway can restart without losing node runtime (daemon) connections (daemons auto-reconnect) |
-| WebSocket for node runtime, SSE for browser | WebSocket is bidirectional (needed for task control); SSE is simpler for browser consumption |
+| Gateway as stateless coordinator | Gateway can restart without losing Viber runtime (daemon) connections (daemons auto-reconnect) |
+| WebSocket for Viber runtime, SSE for browser | WebSocket is bidirectional (needed for task control); SSE is simpler for browser consumption |
 | Simple task states | The AI SDK manages the complex agent loop; OpenViber just tracks the outer lifecycle |
 | Chunk buffering in gateway | Late-connecting SSE subscribers need to catch up without data loss |

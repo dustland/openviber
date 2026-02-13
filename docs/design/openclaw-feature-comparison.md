@@ -5,7 +5,7 @@ description: "Feature and UX comparison between OpenViber and OpenClaw, with foc
 
 # OpenClaw Feature Comparison
 
-This document compares OpenViber's feature set and **operator experience** against [OpenClaw](https://github.com/openclaw/openclaw) (175k+ GitHub stars), a leading open-source personal AI assistant. A core goal of OpenViber is to **significantly simplify management effort** through a **much better web-based UX**: one place to manage nodes, vibers, chat, jobs, and config—without spreading workflows across CLI wizards, config files, and multiple UIs.
+This document compares OpenViber's feature set and **operator experience** against [OpenClaw](https://github.com/openclaw/openclaw) (175k+ GitHub stars), a leading open-source personal AI assistant. A core goal of OpenViber is to **significantly simplify management effort** through a **much better web-based UX**: one place to manage Vibers, tasks, chat, jobs, and config—without spreading workflows across CLI wizards, config files, and multiple UIs.
 
 ---
 
@@ -13,16 +13,16 @@ This document compares OpenViber's feature set and **operator experience** again
 
 | | **OpenViber** | **OpenClaw** |
 |---|---|---|
-| **Tagline** | "You Imagine It. Vibers Build It." | "Your own personal AI assistant" |
+| **Tagline** | "You Imagine It. Tasks Build It." | "Your own personal AI assistant" |
 | **Focus** | Role-scoped AI workforce for task automation | Personal AI assistant across all your devices/channels |
-| **Primary management** | Web-first (Viber Board: one app for nodes, vibers, chat, jobs) | CLI + Control UI (dashboard for chat/config; onboarding and ops often CLI) |
-| **Architecture** | Gateway (central coordinator) + Node runtime (daemon) + Viber Board (SvelteKit) | Gateway control plane + Channels + Nodes |
+| **Primary management** | Web-first (Viber Board: one app for Vibers, tasks, chat, jobs) | CLI + Control UI (dashboard for chat/config; onboarding and ops often CLI) |
+| **Architecture** | Gateway (central coordinator) + Viber runtime (daemon) + Viber Board (SvelteKit) | Gateway control plane + Channels + Nodes |
 | **Language** | TypeScript | TypeScript |
 | **License** | Apache 2.0 | MIT |
 | **Stars** | ~100 | ~175,000 |
 | **Deployment** | Local-first, `npx openviber start` | Local-first, `openclaw onboard --install-daemon` |
 
-Terminology mapping: OpenViber's **Gateway** (`viber gateway`) is the central coordinator (OpenClaw's "gateway control plane"), and OpenViber's **daemon** is the node runtime. The **Channels** server (`viber channels`) runs enterprise channel webhooks (DingTalk, WeCom, etc.) and is a separate component.
+Terminology mapping: OpenViber's **Gateway** (`viber gateway`) is the central coordinator (OpenClaw's "gateway control plane"), and OpenViber's **daemon** is the Viber runtime. The **Channels** server (`viber channels`) runs enterprise channel webhooks (DingTalk, WeCom, etc.) and is a separate component.
 
 ---
 
@@ -32,15 +32,15 @@ OpenViber is designed to **reduce management burden** by making the web app the 
 
 | Dimension | **OpenViber (Viber Board)** | **OpenClaw** |
 |-----------|-----------------------------|--------------|
-| **Single entry point** | One SvelteKit app: nodes, vibers, chat, jobs, settings | Control UI (chat + config) + separate Dashboard; onboarding and many ops are CLI-driven |
-| **Node / agent management** | Create and manage nodes and vibers from the web; onboard with token from the UI | Onboarding via `openclaw onboard` (CLI); Control UI for pairing and config |
-| **Viber/agent creation** | Web: create viber, pick model/skills, start chatting in one flow | Agents configured via workspace files; chat in Control UI |
-| **Chat vs config** | Same app: switch between chat and viber/settings without leaving the Board | Control UI combines chat and config; multi-agent routing and workspace layout are file/CLI-oriented |
-| **Jobs / scheduling** | Web: view and manage cron jobs; push jobs to nodes from the Board | Cron and triggers configured via files and extensions |
-| **Onboarding flow** | Web: generate token → run one CLI command with token → node appears in Board | CLI wizard (`openclaw onboard`); device pairing in browser for new devices |
-| **Task and stream visibility** | Per-viber chat with live streaming, terminal, and status in one view | Chat in Control UI; execution and tool approvals in UI |
-| **Skill selection** | Web: choose skills per viber; unavailable skills grayed out with health info | Skills via workspace/bundled config |
-| **Deployment mental model** | "Run gateway + web; connect nodes; do everything from the browser" | "Run gateway; onboard via CLI; use Control UI for chat and config; use CLI for doctor, channels, plugins" |
+| **Single entry point** | One SvelteKit app: Vibers, tasks, chat, jobs, settings | Control UI (chat + config) + separate Dashboard; onboarding and many ops are CLI-driven |
+| **Viber / Task management** | Create and manage Vibers and tasks from the web; onboard with token from the UI | Onboarding via `openclaw onboard` (CLI); Control UI for pairing and config |
+| **Task creation** | Web: create task, pick model/skills, start chatting in one flow | Agents configured via workspace files; chat in Control UI |
+| **Chat vs config** | Same app: switch between chat and task/settings without leaving the Board | Control UI combines chat and config; multi-agent routing and workspace layout are file/CLI-oriented |
+| **Jobs / scheduling** | Web: view and manage cron jobs; push jobs to Vibers from the Board | Cron and triggers configured via files and extensions |
+| **Onboarding flow** | Web: generate token → run one CLI command with token → Viber appears in Board | CLI wizard (`openclaw onboard`); device pairing in browser for new devices |
+| **Task and stream visibility** | Per-task chat with live streaming, terminal, and status in one view | Chat in Control UI; execution and tool approvals in UI |
+| **Skill selection** | Web: choose skills per task; unavailable skills grayed out with health info | Skills via workspace/bundled config |
+| **Deployment mental model** | "Run gateway + web; connect Vibers; do everything from the browser" | "Run gateway; onboard via CLI; use Control UI for chat and config; use CLI for doctor, channels, plugins" |
 
 **OpenViber UX bet**: Fewer surfaces (one web app), fewer steps (create viber → chat), and less context-switching (no "edit YAML then refresh" for common tasks). OpenClaw offers more channels and native apps; OpenViber focuses on **making the web experience the primary and sufficient way** to manage an AI workforce.
 
@@ -107,7 +107,7 @@ OpenViber is designed to **reduce management burden** by making the web app the 
 
 | Feature | **OpenViber** | **OpenClaw** |
 |---------|:---:|:---:|
-| Multi-agent / multi-viber | Yes (role-scoped vibers) | Yes (multi-agent routing) |
+| Multi-agent / multi-task | Yes (role-scoped tasks) | Yes (multi-agent routing) |
 | Streaming responses | Yes (AI SDK SSE) | Yes (block streaming + RPC) |
 | Tool execution | Yes (7 built-in tools) | Yes (bash, process, read, write, edit, browser, canvas, etc.) |
 | Skills system | Yes (SKILL.md + index.ts) | Yes (bundled/managed/workspace skills) |
@@ -209,7 +209,7 @@ OpenViber is designed to **reduce management burden** by making the web app the 
 | Feature | **OpenViber** | **OpenClaw** |
 |---------|:---:|:---:|
 | **Web-first onboarding** | Yes (token from Board → one CLI command) | CLI wizard (`openclaw onboard`) |
-| **Unified web management** | Yes (nodes, vibers, chat, jobs in one app) | Control UI (chat + config); many ops via CLI |
+| **Unified web management** | Yes (Vibers, tasks, chat, jobs in one app) | Control UI (chat + config); many ops via CLI |
 | Onboarding wizard (CLI) | -- | Yes (`openclaw onboard`) |
 | Health check / doctor | -- | Yes (`openclaw doctor`) |
 | OS-level daemon management | -- | Yes (launchd/systemd) |
@@ -253,11 +253,11 @@ OpenViber is designed to **reduce management burden** by making the web app the 
 
 | Feature | Notes |
 |---------|-------|
-| **Web-first management UX** | Single web app (Viber Board) for nodes, vibers, chat, jobs, and config. Goal: significantly lower management effort than CLI + multi-surface workflows. |
+| **Web-first management UX** | Single web app (Viber Board) for Vibers, tasks, chat, jobs, and config. Goal: significantly lower management effort than CLI + multi-surface workflows. |
 | **MCP Integration** | First-class Model Context Protocol support with tool namespacing, approval gates, and resource access |
-| **Multi-viber workforce** | Role-scoped parallel vibers with distinct personas, not just multi-agent routing |
+| **Multi-task workforce** | Role-scoped parallel tasks with distinct personas, not just multi-agent routing |
 | **Enterprise channel focus** | DingTalk/WeCom targeting for Chinese enterprise market |
-| **Budget controls** | Per-task and per-viber token/cost budgets with soft/hard enforcement |
+| **Budget controls** | Per-task token/cost budgets with soft/hard enforcement |
 | **Context compaction** | Sophisticated context management with pruning, compaction, and memory flush |
 | **Environment & task model** | Codex-inspired environment-first workflow (planned) |
 | **Desktop automation** | Desktop tool for interacting with desktop applications |
@@ -313,6 +313,6 @@ OpenViber and OpenClaw share a "local-first personal AI agent" vision but differ
 
 - **OpenClaw** excels at **breadth of access**: 15+ messaging channels, voice, native apps (macOS, iOS, Android). Management and onboarding lean on CLI wizards and Control UI for chat/config. It's optimized for personal use across many devices and channels.
 
-- **OpenViber** excels at **web-based management and execution depth**: one web app (Viber Board) to manage nodes, create vibers, chat, and handle jobs—with the explicit goal of **significantly simplifying management effort** through better web UX. It adds MCP integration, role-scoped vibers, budget controls, and enterprise channels (DingTalk, WeCom). It's optimized for "do most of it in the browser" and autonomous task execution.
+- **OpenViber** excels at **web-based management and execution depth**: one web app (Viber Board) to manage Vibers, create tasks, chat, and handle jobs—with the explicit goal of **significantly simplifying management effort** through better web UX. It adds MCP integration, role-scoped tasks, budget controls, and enterprise channels (DingTalk, WeCom). It's optimized for "do most of it in the browser" and autonomous task execution.
 
-**Takeaway**: OpenClaw's strength is breadth (channels, platforms, voice). OpenViber's strength is **simpler operator experience** (web-first, one surface, less CLI) and **depth of execution** (MCP, multi-viber, budgets). Closing the channel gap would broaden reach; doubling down on web UX keeps management effort low and differentiates OpenViber for teams that want a single, coherent control plane.
+**Takeaway**: OpenClaw's strength is breadth (channels, platforms, voice). OpenViber's strength is **simpler operator experience** (web-first, one surface, less CLI) and **depth of execution** (MCP, multi-task, budgets). Closing the channel gap would broaden reach; doubling down on web UX keeps management effort low and differentiates OpenViber for teams that want a single, coherent control plane.

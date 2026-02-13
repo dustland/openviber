@@ -19,7 +19,7 @@ export OPENROUTER_API_KEY="your_api_key_here"
 npx openviber start
 ```
 
-This starts the **Viber Node** on your machine. You can now use the CLI to interact with it.
+This starts the **Viber** on your machine. You can now use the CLI to interact with it.
 
 ## 2. Interactive Chat
 
@@ -52,7 +52,7 @@ cp .env.example .env
 
 ### Launch
 ```bash
-# Start the full stack (Gateway, Viber Node, and Web UI)
+# Start the full stack (Gateway, Viber, and Web UI)
 pnpm dev
 ```
 
@@ -61,7 +61,7 @@ Open [http://localhost:6006](http://localhost:6006) to see the Viber Board.
 ## Next Steps
 
 - [Introduction](/docs/introduction) — What OpenViber is and how it works
-- [Viber](/docs/concepts/viber) — Configure viber behavior
+- [Viber](/docs/concepts/viber) — The Viber Runtime & Tasks
 - [Tools](/docs/concepts/tools) — Available actions
 - [Skills](/docs/concepts/skills) — Add domain knowledge
 - [Jobs](/docs/concepts/jobs) — Set up scheduled tasks

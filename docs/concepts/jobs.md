@@ -71,7 +71,7 @@ prompt: |
 | `skills` | No | `[]` | Skills to enable for this job |
 | `tools` | No | `[]` | Additional tools to enable |
 | `prompt` | Yes | — | The task/instruction for the agent |
-| `nodeId` | No | — | Target a specific viber node (for gateway/Board-pushed jobs) |
+| `nodeId` | No | — | Target a specific Viber (for gateway/Board-pushed jobs) |
 
 *Jobs without a `model` field are skipped at execution time.
 
@@ -121,9 +121,9 @@ Jobs use standard cron syntax. Both 5-field (minute-level) and 6-field (second-l
 
 Jobs can be stored in two places:
 
-### Per-Viber Jobs
+### Per-Task Jobs
 
-Each viber has its own job directory:
+Each task has its own job directory:
 
 ```
 ~/.openviber/vibers/
@@ -136,11 +136,11 @@ Each viber has its own job directory:
         └── weekly-report.yaml
 ```
 
-Per-viber jobs are loaded when the viber starts. They inherit the viber's context and run in its scope.
+Per-task jobs are loaded when the task starts. They inherit the task's context and run in its scope.
 
 ### Global Jobs
 
-Shared jobs that aren't tied to a specific viber:
+Shared jobs that aren't tied to a specific task:
 
 ```
 ~/.openviber/jobs/
@@ -197,7 +197,7 @@ The tool accepts natural language schedules and converts them to cron:
 
 ### Method 3: Gateway (Remote)
 
-Jobs can be pushed from the OpenViber Board to a connected node via the `job:create` WebSocket message. The gateway sends the job configuration and the node writes it to disk, then triggers a scheduler reload.
+Jobs can be pushed from the OpenViber Board to a connected Viber via the `job:create` WebSocket message. The gateway sends the job configuration and the Viber writes it to disk, then triggers a scheduler reload.
 
 ## Schedule Tools
 
@@ -323,6 +323,6 @@ Hot-reloading of job files is planned but not yet implemented.
 
 - [Skills](/docs/concepts/skills) — Domain knowledge for job agents
 - [Tools](/docs/concepts/tools) — Actions available to jobs
-- [Viber](/docs/concepts/viber) — Viber configuration and working modes
+- [Viber](/docs/concepts/viber) — Task configuration and working modes
 - [Config Schema](/docs/reference/config-schema) — Full YAML schema reference
 - [Task Lifecycle](/docs/design/task-lifecycle) — How tasks (including job-triggered tasks) flow through the system

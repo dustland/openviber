@@ -41,17 +41,17 @@ The complete record of messages between users and vibers within a Space. History
 
 ## D
 
-### Daemon (Node Runtime)
+### Daemon (Viber Runtime)
 
-The local process running on a Viber Node that executes tasks and connects outbound to the
-Gateway. In docs, "daemon" and "node runtime" are used interchangeably.
+The local process running on a Viber that executes tasks and connects outbound to the
+Gateway. In docs, "daemon" and "Viber runtime" are used interchangeably.
 
 ## G
 
 ### Gateway
 
-The central coordinator that routes messages between node runtimes (daemons) and the web app.
-Started via `viber gateway`. Nodes connect outbound to the gateway via WebSocket; the web app
+The central coordinator that routes messages between Viber runtimes (daemons) and the web app.
+Started via `viber gateway`. Vibers connect outbound to the gateway via WebSocket; the web app
 (Viber Board) talks to the gateway via REST and SSE. This is distinct from the **Channels**
 server (enterprise channel webhooks) and from the **Skill Hub** (external skill registry).
 
@@ -187,17 +187,17 @@ Tasks are configured through YAML files in `~/.openviber/vibers/`.
 
 A machine running the OpenViber runtime that hosts one or more tasks. A Viber provides:
 
-- **Runtime** — The node runtime (daemon) process that executes viber tasks and connects to the Gateway
+- **Runtime** — The Viber runtime (daemon) process that executes tasks and connects to the Gateway
 - **Scheduler** — Cron-based job scheduling for automated tasks
 - **Credentials** — Shared account access for hosted tasks
-- **Config** — Identity and viber settings at `~/.openviber/` (lightweight, portable)
+- **Config** — Identity and settings at `~/.openviber/` (lightweight, portable)
 - **Spaces** — Working data at `~/openviber_spaces/` (repos, research, outputs)
 
-Nodes connect to the OpenViber Board via a one-time token command (`npx openviber connect --token ...`). Multiple tasks on one machine coordinate through external systems (GitHub, email) rather than direct inter-viber messaging.
+Vibers connect to the OpenViber Board via a one-time token command (`npx openviber connect --token ...`). Multiple tasks on one machine coordinate through external systems (GitHub, email) rather than direct inter-task messaging.
 
 ### ViberAgent
 
-The core class that orchestrates a viber's task execution. ViberAgent:
+The core class that orchestrates a task's execution. ViberAgent:
 
 - Processes user requests through an LLM
 - Coordinates tool calls and skill loading

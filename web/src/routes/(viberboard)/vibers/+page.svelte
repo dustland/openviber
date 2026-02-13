@@ -257,7 +257,7 @@
   <title>Vibers - OpenViber</title>
 </svelte:head>
 
-<div class="p-6 h-full overflow-y-auto">
+<div class="p-6 h-full overflow-y-auto flex flex-col">
   <div class="flex items-center justify-between mb-6">
     <div>
       <h1 class="text-2xl font-semibold text-foreground">Vibers</h1>
@@ -301,7 +301,7 @@
     </div>
   {:else if vibers.length === 0}
     <div
-      class="rounded-xl border border-dashed border-border px-6 py-14 text-center"
+      class="flex-1 flex flex-col items-center justify-center rounded-xl border border-dashed border-border px-6 py-14 text-center"
     >
       <Server class="mx-auto mb-4 size-10 text-muted-foreground/60" />
       <h2 class="text-lg font-medium text-foreground">No vibers yet</h2>

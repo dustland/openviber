@@ -179,8 +179,8 @@
   <title>Environments - OpenViber</title>
 </svelte:head>
 
-<div class="flex-1 min-h-0 overflow-y-auto">
-  <div class="w-full px-4 py-6 sm:px-6 lg:px-8">
+<div class="flex-1 min-h-0 overflow-y-auto flex flex-col">
+  <div class="w-full px-4 py-6 sm:px-6 lg:px-8 flex flex-col flex-1 min-h-0">
     <header class="mb-6 flex flex-wrap items-center justify-between gap-3">
       <div>
         <p class="text-xs uppercase tracking-wide text-muted-foreground">
@@ -237,7 +237,7 @@
       </div>
     {:else if environments.length === 0}
       <div
-        class="rounded-xl border border-dashed border-border px-6 py-14 text-center"
+        class="flex-1 flex flex-col items-center justify-center rounded-xl border border-dashed border-border px-6 py-14 text-center"
       >
         <Sparkles class="mx-auto mb-4 size-10 text-muted-foreground/60" />
         <h2 class="text-lg font-medium text-foreground">No environments yet</h2>

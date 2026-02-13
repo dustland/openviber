@@ -365,8 +365,8 @@
   <title>Jobs - OpenViber</title>
 </svelte:head>
 
-<div class="p-6 h-full overflow-y-auto">
-  <div>
+<div class="p-6 h-full overflow-y-auto flex flex-col">
+  <div class="flex flex-col flex-1 min-h-0">
     <header class="mb-8">
       <h1 class="text-3xl font-bold text-foreground mb-2">Jobs</h1>
       <p class="text-muted-foreground">
@@ -404,7 +404,7 @@
 
       {#if !hasAnyJobs}
         <div
-          class="rounded-xl border border-dashed border-border p-12 text-center"
+          class="flex-1 flex flex-col items-center justify-center rounded-xl border border-dashed border-border p-12 text-center"
         >
           <Mail class="size-12 text-muted-foreground/50 mx-auto mb-4" />
           <h2 class="text-lg font-medium text-foreground mb-2">No jobs yet</h2>

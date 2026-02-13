@@ -475,7 +475,7 @@
         </div>
       {:else if installed.length === 0}
         <div
-          class="rounded-xl border border-dashed border-border p-8 text-center"
+          class="flex-1 flex flex-col items-center justify-center rounded-xl border border-dashed border-border p-8 text-center"
         >
           <Puzzle class="size-12 text-muted-foreground/50 mx-auto mb-3" />
           <p class="text-sm text-muted-foreground">

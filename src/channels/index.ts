@@ -14,6 +14,7 @@ export { ChannelManager, channelManager } from "./manager";
 // Built-in channels
 export { DingTalkChannel } from "./dingtalk";
 export { WeComChannel } from "./wecom";
+export { WeChatChannel } from "./wechat";
 export { WebChannel, webChannel } from "./web";
 export { DiscordChannel } from "./discord";
 export { FeishuChannel } from "./feishu";

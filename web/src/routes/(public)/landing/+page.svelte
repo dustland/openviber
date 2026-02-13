@@ -209,13 +209,21 @@
         />
       </div>
 
-      <h1
-        class="hero-title pb-1 text-4xl font-bold leading-[1.08] tracking-tight sm:text-5xl md:text-6xl lg:text-7xl"
+      <div
+        class="hero-badge inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary mb-6"
       >
-        You Imagine It. Vibers Build It.
+        <Sparkles class="mr-1.5 size-3" />
+        v1.0 Public Beta
+      </div>
+
+      <h1
+        class="hero-title pb-2 text-5xl font-bold leading-[1.05] tracking-tighter sm:text-6xl md:text-7xl lg:text-8xl"
+      >
+        You Imagine It.<br class="hidden sm:block" />
+        Vibers Build It.
       </h1>
       <p
-        class="hero-subtitle mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground md:text-xl lg:max-w-3xl"
+        class="hero-subtitle mx-auto mt-8 max-w-2xl text-lg leading-relaxed text-muted-foreground md:text-xl lg:max-w-3xl"
       >
         Turn your machine into an AI workforce. Deploy role-scoped agents that
         write code, research the web, manage files, and run scheduled jobs — all
@@ -224,12 +232,12 @@
 
       <!-- Open source badge -->
       <div
-        class="hero-badge mx-auto mt-8 flex items-center justify-center gap-2.5"
+        class="hero-badge mx-auto mt-10 flex items-center justify-center gap-2.5"
       >
         <span
           class="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/50 px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur-sm"
         >
-          <Sparkles class="size-3 text-primary" />
+          <Code class="size-3 text-primary" />
           100% Open Source
         </span>
         <span
@@ -252,7 +260,7 @@
         {#if data.user}
           <a
             href="/"
-            class="cta-primary group inline-flex items-center gap-2.5 rounded-lg bg-primary px-8 py-3 text-sm font-semibold text-primary-foreground transition-all duration-300 hover:-translate-y-1"
+            class="cta-primary group inline-flex items-center gap-2.5 rounded-full bg-primary px-8 py-3.5 text-sm font-semibold text-primary-foreground transition-all duration-300 hover:-translate-y-1"
           >
             Go to Dashboard
             <ArrowRight
@@ -262,7 +270,7 @@
         {:else if data.supabaseAuthEnabled}
           <a
             href={githubAuthUrl}
-            class="cta-primary group inline-flex items-center gap-2.5 rounded-lg bg-primary px-8 py-3 text-sm font-semibold text-primary-foreground transition-all duration-300 hover:-translate-y-1"
+            class="cta-primary group inline-flex items-center gap-2.5 rounded-full bg-primary px-8 py-3.5 text-sm font-semibold text-primary-foreground transition-all duration-300 hover:-translate-y-1"
           >
             <svg
               class="size-4"
@@ -282,7 +290,7 @@
         {/if}
         <a
           href="/docs"
-          class="inline-flex items-center gap-2 rounded-lg border border-border/80 bg-background/60 px-6 py-3 text-sm font-medium text-foreground backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-accent/80"
+          class="inline-flex items-center gap-2 rounded-full border border-border/80 bg-background/60 px-6 py-3.5 text-sm font-medium text-foreground backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-accent/80"
         >
           Read the Docs
         </a>
@@ -358,6 +366,61 @@
       </div>
     </section>
 
+    <!-- Code Preview -->
+    <section class="reveal mx-auto mt-24 max-w-4xl px-4 md:mt-32">
+      <div
+        class="relative overflow-hidden rounded-xl border border-border/50 bg-[#1e1e1e] shadow-2xl"
+      >
+        <!-- Window controls -->
+        <div
+          class="flex items-center gap-2 border-b border-white/10 bg-white/5 px-4 py-3"
+        >
+          <div class="size-3 rounded-full bg-[#ff5f56]"></div>
+          <div class="size-3 rounded-full bg-[#ffbd2e]"></div>
+          <div class="size-3 rounded-full bg-[#27c93f]"></div>
+          <div class="ml-2 text-xs font-mono text-white/50">viber.yaml</div>
+        </div>
+
+        <!-- Code content -->
+        <div
+          class="overflow-x-auto p-6 font-mono text-sm leading-relaxed text-blue-100"
+        >
+          <pre><code><span class="text-purple-400">name:</span> <span
+                class="text-green-400">"frontend-dev"</span
+              >
+<span class="text-purple-400">role:</span> <span class="text-green-400"
+                >"Senior Frontend Engineer"</span
+              >
+<span class="text-purple-400">model:</span> <span class="text-green-400"
+                >"claude-3-5-sonnet"</span
+              >
+
+<span class="text-purple-400">tools:</span>
+  <span class="text-blue-400">-</span> <span class="text-yellow-300"
+                >browser</span
+              >
+  <span class="text-blue-400">-</span> <span class="text-yellow-300"
+                >filesystem</span
+              >
+  <span class="text-blue-400">-</span> <span class="text-yellow-300"
+                >terminal</span
+              >
+
+<span class="text-purple-400">instructions:</span> <span class="text-orange-300"
+                >|</span
+              >
+  <span class="text-gray-400"
+                >You are an expert in SvelteKit and Tailwind CSS.</span
+              >
+  <span class="text-gray-400"
+                >Always check existing components before building new ones.</span
+              >
+  <span class="text-gray-400">Use 'npm run dev' to preview changes.</span>
+</code></pre>
+        </div>
+      </div>
+    </section>
+
     <!-- Why OpenViber — dark contrast section -->
     <section
       class="reveal dark-section mx-auto mt-24 max-w-6xl rounded-3xl px-6 py-14 md:mt-32 md:px-10 md:py-20 lg:px-14"
@@ -371,21 +434,37 @@
         do things — not just chat.
       </p>
 
-      <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div class="grid gap-6 md:grid-cols-3">
         {#each valueProps as prop, i}
           <div
-            class="reveal-card glass-card group rounded-2xl p-6"
+            class="reveal-card glass-card group relative overflow-hidden rounded-3xl p-6 md:p-8 {i ===
+            0
+              ? 'md:col-span-2'
+              : ''}"
             style="--delay: {i * 100}ms"
           >
+            <!-- Card gradient background -->
             <div
-              class="icon-ring mb-4 inline-flex size-10 items-center justify-center rounded-xl"
-            >
-              <prop.icon class="size-5" />
+              class="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+            ></div>
+
+            <div class="relative z-10 flex flex-col h-full justify-between">
+              <div>
+                <div
+                  class="icon-ring mb-5 inline-flex size-12 items-center justify-center rounded-xl"
+                >
+                  <prop.icon class="size-6" />
+                </div>
+                <h3 class="text-xl font-semibold text-card-foreground">
+                  {prop.title}
+                </h3>
+              </div>
+              <p
+                class="mt-4 text-sm leading-relaxed text-muted-foreground/90 md:text-base"
+              >
+                {prop.description}
+              </p>
             </div>
-            <h3 class="font-semibold text-card-foreground">{prop.title}</h3>
-            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">
-              {prop.description}
-            </p>
           </div>
         {/each}
       </div>
@@ -401,24 +480,24 @@
         automation, terminal sessions, and more.
       </p>
 
-      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div class="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
         {#each builtinTools as tool, i}
           <div
-            class="reveal-card tool-card group flex items-start gap-3 rounded-xl p-4"
-            style="--delay: {i * 80}ms"
+            class="reveal-card tool-card group flex flex-col items-center justify-center gap-3 rounded-2xl p-6 text-center"
+            style="--delay: {i * 60}ms"
           >
             <div
-              class="tool-icon mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg"
+              class="tool-icon flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary/5 text-primary group-hover:bg-primary/10 group-hover:scale-110 transition-all duration-300"
             >
-              <tool.icon class="size-4" />
+              <tool.icon class="size-6" />
             </div>
             <div>
-              <div class="text-sm font-medium text-card-foreground">
+              <div class="text-sm font-semibold text-card-foreground">
                 {tool.name}
               </div>
-              <div class="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+              <p class="mt-1 text-xs text-muted-foreground leading-relaxed">
                 {tool.desc}
-              </div>
+              </p>
             </div>
           </div>
         {/each}
@@ -437,11 +516,15 @@
       <div class="flex flex-wrap items-center justify-center gap-3">
         {#each integrations as item, i}
           <span
-            class="reveal-card integration-pill"
-            style="--delay: {i * 70}ms"
+            class="reveal-card integration-pill group hover:border-primary/40 hover:bg-primary/5"
+            style="--delay: {i * 50}ms"
           >
-            <span class="integration-name">{item.name}</span>
-            <span class="integration-category">{item.category}</span>
+            <span class="integration-name font-medium">{item.name}</span>
+            <span
+              class="ml-2 rounded-full bg-muted px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-muted-foreground group-hover:bg-background/80"
+            >
+              {item.category}
+            </span>
           </span>
         {/each}
       </div>
@@ -677,13 +760,14 @@
     background-image: linear-gradient(
       180deg,
       hsl(var(--foreground)),
-      hsl(var(--foreground) / 0.65)
+      hsl(var(--foreground) / 0.7)
     );
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
     animation: hero-fade-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
     animation-delay: 0.25s;
+    text-shadow: 0 0 40px hsl(var(--primary) / 0.15);
   }
   .hero-subtitle {
     animation: hero-fade-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -892,48 +976,19 @@
     box-shadow: 0 8px 24px -8px hsl(var(--primary) / 0.1);
   }
 
-  /* ── Tool icon ── */
-  .tool-icon {
-    background: hsl(var(--muted));
-    color: hsl(var(--muted-foreground));
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .tool-card:hover .tool-icon {
-    background: hsl(var(--primary) / 0.12);
-    color: hsl(var(--primary));
-    transform: scale(1.1);
-  }
-
   /* ── Integration pill ── */
   .integration-pill {
     display: inline-flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    padding: 0.6rem 1.2rem;
+    padding: 0.5rem 1rem 0.5rem 1.25rem;
     border-radius: 9999px;
     border: 1px solid hsl(var(--border) / 0.6);
     background: hsl(var(--card) / 0.5);
     backdrop-filter: blur(8px);
     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    gap: 0.125rem;
-  }
-  .integration-name {
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: hsl(var(--foreground) / 0.9);
-    line-height: 1.2;
-  }
-  .integration-category {
-    font-size: 0.625rem;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: hsl(var(--muted-foreground) / 0.6);
-    line-height: 1.2;
   }
   .integration-pill:hover {
-    border-color: hsl(var(--primary) / 0.4);
-    background: hsl(var(--card) / 0.8);
     transform: translateY(-2px);
     box-shadow: 0 6px 16px -4px hsl(var(--primary) / 0.1);
   }

@@ -276,37 +276,24 @@ export class Space {
     return this.plan.hasFailedTasks();
   }
 
+  /**
+   * Persist state
+   *
+   * @deprecated Space persistence is now handled by the API layer using SupabaseDatabaseAdapter.
+   * This method is a no-op kept for interface compatibility.
+   */
   async persistState(): Promise<void> {
-    // NOTE: In database mode, space data is persisted through the data adapter (spaces table)
-    // Storage is ONLY used for artifacts, not config files
-    // This legacy file-based persistence is disabled to avoid conflicts
-    // Space persistence is now handled by the API layer using SupabaseDatabaseAdapter
-    console.log("[Space] State persistence handled by database adapter");
+    // No-op: handled by database adapter
   }
 
+  /**
+   * Load state
+   *
+   * @deprecated Space data is loaded from the database.
+   * This method is a no-op kept for interface compatibility.
+   */
   async loadState(): Promise<boolean> {
-    try {
-      // NOTE: In database mode, space data is loaded from the database, not storage
-      // This method is kept for backward compatibility but returns false
-      console.log("[Space] State loading handled by database adapter");
-      return false;
-
-      // Legacy code disabled:
-      // const spaceData = await this.storage.readFile("space.json");
-      // if (spaceData) {
-      //   const data = JSON.parse(spaceData.toString("utf-8")) as SpaceModel;
-      //   this.createdAt = new Date(data.createdAt || this.createdAt.toISOString());
-      //   this.updatedAt = new Date(data.updatedAt || this.updatedAt.toISOString());
-      //   this.name = data.name || this.name;
-      //   if (data.plan) {
-      //     this.plan = Plan.fromJSON(data.plan);
-      //   }
-      //   // Load artifacts...
-      //   return true;
-      // }
-    } catch (error) {
-      console.error("Failed to load space state:", error);
-    }
+    // No-op: handled by database adapter
     return false;
   }
 
@@ -378,12 +365,8 @@ export async function startSpace({
 
   console.log(`[Space] Creating space - agents will be loaded on demand`);
 
-  // Storage initialization removed - handled ad-hoc
-
   // Create agents map - empty initially, agents loaded on demand
   const agents = new Map<string, Agent>();
-
-  console.log(`[Space] Space initialized (agents loaded on demand)`);
 
   // Create message queue and history
   const messageQueue = new MessageQueue();
@@ -397,7 +380,6 @@ export async function startSpace({
     history,
     messageQueue,
     agents,
-    // storage,
     goal,
     name: name || spaceConfig.name,
   });

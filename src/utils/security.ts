@@ -10,7 +10,7 @@ export class SecurityGuard {
   private allowedCommands: RegExp[] | null = null; // null means all allowed except blocked
   private blockedCommands: RegExp[] = [
     // Dangerous system modification
-    /\brm\s+(-r|-f|-rf|-fr)\s+\//, // rm -rf /
+    /\brm\s+(-r|-f|-rf|-fr)\s+(\/|(\.|\.\.|\*)(\/)?(\s|$))/, // rm -rf /, ., .., *
     /\bmkfs/, // format disk
     /\bdd\b/, // low-level copy
     /\bchown\b/, // change ownership

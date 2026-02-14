@@ -2,12 +2,14 @@ import { defaultRegistry } from "./registry";
 import { getTools as getAntigravityTools } from "./antigravity";
 import { getTools as getCursorAgentTools } from "./cursor-agent";
 import { getTools as getCodexCliTools } from "./codex-cli";
+import { getTools as getGeminiCliTools } from "./gemini-cli";
 import { getTools as getGithubTools } from "./github";
 import { getTools as getTerminalTools } from "./terminal";
 import { getTools as getRailwayTools } from "./railway";
 import { getTools as getGmailTools } from "./gmail";
 import { getTools as getPlaygroundTools } from "./playground";
 import { getTools as getSystemInfoTools } from "./system-info";
+import { getTools as getSysTelemetryTools } from "./sys-telemetry";
 
 // Register default skills and their tools
 // This is called during module initialization to pre-register tools
@@ -19,6 +21,8 @@ export function registerDefaultSkills() {
   defaultRegistry.preRegisterTools("cursor-agent", getCursorAgentTools());
   // Pre-register codex-cli tools (run Codex CLI via non-interactive codex exec)
   defaultRegistry.preRegisterTools("codex-cli", getCodexCliTools());
+  // Pre-register gemini-cli tools (run Gemini CLI via headless gemini --prompt)
+  defaultRegistry.preRegisterTools("gemini-cli", getGeminiCliTools());
   // Pre-register github tools (gh CLI for issues, PRs, branches)
   defaultRegistry.preRegisterTools("github", getGithubTools());
   // Pre-register terminal tools (persistent terminal sessions, backed by tmux)
@@ -31,5 +35,6 @@ export function registerDefaultSkills() {
   defaultRegistry.preRegisterTools("skill-playground", getPlaygroundTools());
   // Pre-register system-info tools (CPU, memory, disk, processes, network)
   defaultRegistry.preRegisterTools("system-info", getSystemInfoTools());
+  // Pre-register sys-telemetry alias tools (same surface as system-info)
+  defaultRegistry.preRegisterTools("sys-telemetry", getSysTelemetryTools());
 }
-

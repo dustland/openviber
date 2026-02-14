@@ -9,6 +9,12 @@ describe("skill health checks", () => {
     expect(result.summary).toContain("No automated health checks");
   });
 
+  it("marks sys-telemetry as available", async () => {
+    const result = await checkSkillHealth({ id: "sys-telemetry" });
+    expect(result.status).toBe("AVAILABLE");
+    expect(result.available).toBe(true);
+  });
+
   it("builds a report for the provided skill list", async () => {
     const report = await checkSkillsHealth([{ id: "mystery-skill" }]);
     expect(report.skills).toHaveLength(1);

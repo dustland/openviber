@@ -1,6 +1,7 @@
 import type { RequestHandler } from "./$types";
 import {
   getSupabaseGitHubAuthUrl,
+  setOAuthPkceVerifierCookie,
   setOAuthStateCookie,
   supabaseAuthConfigured,
 } from "$lib/server/auth";
@@ -11,8 +12,11 @@ export const GET: RequestHandler = async ({ cookies, url }) => {
   }
 
   const next = url.searchParams.get("redirect") || "/";
-  const { url: authUrl, state } = getSupabaseGitHubAuthUrl(next);
-  setOAuthStateCookie(state, cookies, url.protocol === "https:");
+  const { url: authUrl, state, verifier } = getSupabaseGitHubAuthUrl(next);
+  const isSecure = url.protocol === "https:";
+
+  setOAuthStateCookie(state, cookies, isSecure);
+  setOAuthPkceVerifierCookie(verifier, cookies, isSecure);
 
   return new Response(null, {
     status: 302,

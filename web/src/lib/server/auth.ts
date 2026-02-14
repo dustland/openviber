@@ -1,9 +1,10 @@
-import { randomBytes } from "crypto";
+import { createHash, randomBytes } from "crypto";
 import { redirect, type Cookies, type RequestEvent } from "@sveltejs/kit";
 import { env } from "$env/dynamic/private";
 
 const SESSION_TTL_DAYS = 30;
 const OAUTH_STATE_COOKIE = "openviber_oauth_state";
+const OAUTH_PKCE_VERIFIER_COOKIE = "openviber_oauth_pkce_verifier";
 const ACCESS_TOKEN_COOKIE = "openviber_sb_access_token";
 const REFRESH_TOKEN_COOKIE = "openviber_sb_refresh_token";
 const GITHUB_TOKEN_COOKIE = "openviber_gh_token";
@@ -69,6 +70,12 @@ interface SupabaseRefreshResponse {
   refresh_token?: string;
 }
 
+interface SupabaseCodeExchangeResponse {
+  access_token?: string;
+  refresh_token?: string;
+  provider_token?: string;
+}
+
 function requireSupabaseAuthConfig() {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     throw new Error("Supabase auth is not configured.");
@@ -80,6 +87,20 @@ function requireSupabaseAuthConfig() {
   };
 }
 
+function encodeBase64Url(value: Buffer): string {
+  return value
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+}
+
+function createPkcePair() {
+  const verifier = encodeBase64Url(randomBytes(32));
+  const challenge = encodeBase64Url(createHash("sha256").update(verifier).digest());
+  return { verifier, challenge };
+}
+
 /**
  * Returns true when Supabase OAuth is configured for this deployment.
  */
@@ -88,22 +109,63 @@ export function supabaseAuthConfigured() {
 }
 
 /**
- * Builds a Supabase-managed GitHub OAuth URL and returns state for CSRF validation.
+ * Builds a Supabase-managed GitHub OAuth URL and returns CSRF + PKCE values.
  */
 export function getSupabaseGitHubAuthUrl(nextPath = "/") {
   const { supabaseUrl } = requireSupabaseAuthConfig();
   const state = randomBytes(24).toString("hex");
+  const { verifier, challenge } = createPkcePair();
 
-  const callbackUrl = new URL(`${APP_URL}/auth/github/callback`);
+  const callbackUrl = new URL(`${APP_URL}/auth/callback`);
   callbackUrl.searchParams.set("next", nextPath);
   callbackUrl.searchParams.set("state", state);
+  callbackUrl.searchParams.set("provider", "github");
 
   const authUrl = new URL("/auth/v1/authorize", supabaseUrl);
   authUrl.searchParams.set("provider", "github");
   authUrl.searchParams.set("redirect_to", callbackUrl.toString());
   authUrl.searchParams.set("scopes", "repo,read:user,user:email");
+  authUrl.searchParams.set("response_type", "code");
+  authUrl.searchParams.set("code_challenge", challenge);
+  authUrl.searchParams.set("code_challenge_method", "S256");
 
-  return { url: authUrl.toString(), state };
+  return { url: authUrl.toString(), state, verifier };
+}
+
+/**
+ * Exchanges a Supabase OAuth authorization code for session tokens.
+ */
+export async function exchangeSupabaseAuthCode(code: string, verifier: string) {
+  const { supabaseUrl, supabaseAnonKey } = requireSupabaseAuthConfig();
+  const response = await fetch(new URL("/auth/v1/token?grant_type=pkce", supabaseUrl), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: supabaseAnonKey,
+    },
+    body: JSON.stringify({
+      auth_code: code,
+      code_verifier: verifier,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to exchange Supabase auth code.");
+  }
+
+  const payload = (await response.json()) as SupabaseCodeExchangeResponse;
+  const accessToken = payload.access_token?.trim();
+  const refreshToken = payload.refresh_token?.trim();
+
+  if (!accessToken || !refreshToken) {
+    throw new Error("Supabase code exchange did not return session tokens.");
+  }
+
+  return {
+    accessToken,
+    refreshToken,
+    providerToken: payload.provider_token?.trim(),
+  };
 }
 
 /**
@@ -239,6 +301,24 @@ export function readOAuthStateCookie(cookies: Cookies) {
 
 export function clearOAuthStateCookie(cookies: Cookies) {
   cookies.delete(OAUTH_STATE_COOKIE, { path: "/" });
+}
+
+export function setOAuthPkceVerifierCookie(verifier: string, cookies: Cookies, secure: boolean) {
+  cookies.set(OAUTH_PKCE_VERIFIER_COOKIE, verifier, {
+    path: "/",
+    httpOnly: true,
+    sameSite: "lax",
+    secure,
+    maxAge: 60 * 10,
+  });
+}
+
+export function readOAuthPkceVerifierCookie(cookies: Cookies) {
+  return cookies.get(OAUTH_PKCE_VERIFIER_COOKIE);
+}
+
+export function clearOAuthPkceVerifierCookie(cookies: Cookies) {
+  cookies.delete(OAUTH_PKCE_VERIFIER_COOKIE, { path: "/" });
 }
 
 /**

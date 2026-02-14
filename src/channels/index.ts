@@ -18,6 +18,7 @@ export { WeChatChannel } from "./wechat";
 export { WebChannel, webChannel } from "./web";
 export { DiscordChannel } from "./discord";
 export { FeishuChannel } from "./feishu";
+export { TelegramChannel } from "./telegram";
 
 // Gateway utilities
 export { ChannelGateway } from "./gateway";

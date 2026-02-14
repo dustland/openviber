@@ -65,6 +65,7 @@ const DEFAULT_SKILL_IDS = [
   "gmail",
   "railway",
   "system-info",
+  "sys-telemetry",
   "terminal",
 ] as const;
 
@@ -519,6 +520,7 @@ const SKILL_CHECKERS: Record<
   gmail: checkGmailHealth,
   railway: checkRailwayHealth,
   "system-info": checkSystemInfoHealth,
+  "sys-telemetry": checkSystemInfoHealth,
   terminal: checkTerminalHealth,
 };
 

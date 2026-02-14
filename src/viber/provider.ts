@@ -7,8 +7,7 @@
  * To add a new provider (e.g., Google, Mistral, Cohere):
  * 1. Install: `pnpm add @ai-sdk/google`
  * 2. Import: `import { createGoogleGenerativeAI } from "@ai-sdk/google";`
- * 3. Add case: `case "google": return createGoogleGenerativeAI({...})`
- * 4. Add environment variable handling
+ * 3. Register: `providerRegistry.register("google", (config) => createGoogleGenerativeAI({...}))`
  */
 
 import { createAnthropic } from "@ai-sdk/anthropic";
@@ -34,67 +33,96 @@ export interface ModelConfig {
 }
 
 /**
- * Get the appropriate AI provider instance
+ * Factory function for creating a provider instance.
  */
-export function getModelProvider(config: ModelConfig) {
-  const {
-    provider,
-    apiKey,
-    baseURL,
-    spaceId,
-    userId,
-    storageRoot,
-    teamConfig,
-    defaultGoal,
-  } = config;
+export type ProviderFactory = (config: ModelConfig) => any;
 
-  switch (provider) {
-    case "anthropic":
-      return createAnthropic({
-        apiKey: apiKey || process.env.ANTHROPIC_API_KEY,
-        baseURL: baseURL || process.env.ANTHROPIC_BASE_URL,
-        fetch: config.proxyFetch,
-      });
+/**
+ * Registry for AI Providers
+ */
+export class ProviderRegistry {
+  private providers = new Map<string, ProviderFactory>();
 
-    case "openai":
-      return createOpenAI({
-        apiKey: apiKey || process.env.OPENAI_API_KEY,
-        baseURL: baseURL || process.env.OPENAI_BASE_URL,
-        fetch: config.proxyFetch,
-      });
+  constructor() {
+    this.registerDefaults();
+  }
 
-    case "deepseek":
-      return deepseek;
+  /**
+   * Register a new provider factory
+   */
+  register(name: string, factory: ProviderFactory) {
+    this.providers.set(name, factory);
+  }
 
-    case "openrouter":
+  /**
+   * Get a provider instance by name
+   */
+  get(config: ModelConfig): any {
+    const factory = this.providers.get(config.provider);
+    if (!factory) {
+      throw new Error(
+        `Provider '${config.provider}' is not configured. ` +
+        `To use ${config.provider}, register it with providerRegistry.register()`,
+      );
+    }
+    return factory(config);
+  }
+
+  /**
+   * Check if a provider is registered
+   */
+  has(name: string): boolean {
+    return this.providers.has(name);
+  }
+
+  /**
+   * Register default providers
+   */
+  private registerDefaults() {
+    this.register("anthropic", (config) => createAnthropic({
+      apiKey: config.apiKey || process.env.ANTHROPIC_API_KEY,
+      baseURL: config.baseURL || process.env.ANTHROPIC_BASE_URL,
+      fetch: config.proxyFetch,
+    }));
+
+    this.register("openai", (config) => createOpenAI({
+      apiKey: config.apiKey || process.env.OPENAI_API_KEY,
+      baseURL: config.baseURL || process.env.OPENAI_BASE_URL,
+      fetch: config.proxyFetch,
+    }));
+
+    this.register("deepseek", () => deepseek);
+
+    this.register("openrouter", (config) => {
       // Use the official OpenRouter SDK (v2.0.2+ for AI SDK 6 compatibility)
       const openrouterConfig: any = {
-        apiKey: apiKey || process.env.OPENROUTER_API_KEY,
+        apiKey: config.apiKey || process.env.OPENROUTER_API_KEY,
         fetch: config.proxyFetch,
       };
 
       // Use Helicone gateway for observability if configured
       if (process.env.HELICONE_API_KEY) {
         openrouterConfig.baseURL =
-          baseURL || "https://openrouter.helicone.ai/api/v1";
+          config.baseURL || "https://openrouter.helicone.ai/api/v1";
         openrouterConfig.headers = {
           "Helicone-Auth": `Bearer ${process.env.HELICONE_API_KEY}`,
-          "Helicone-Property-User": userId || "anonymous",
-          "Helicone-Property-Space": spaceId || "default",
+          "Helicone-Property-User": config.userId || "anonymous",
+          "Helicone-Property-Space": config.spaceId || "default",
         };
       }
 
       return createOpenRouter(openrouterConfig);
-
-    default:
-      // For other providers, assume they follow the standard pattern
-      // This allows users to add support for Google, Mistral, Cohere, etc.
-      // by providing the appropriate imports and configuration
-      throw new Error(
-        `Provider '${provider}' is not configured. ` +
-        `To use ${provider}, add the appropriate AI SDK provider import and configuration to core/provider.ts`,
-      );
+    });
   }
+}
+
+export const providerRegistry = new ProviderRegistry();
+
+/**
+ * Get the appropriate AI provider instance
+ */
+export function getModelProvider(config: ModelConfig) {
+  return providerRegistry.get(config);
 }
 
 /**
@@ -118,7 +146,7 @@ export function isProviderConfigured(provider: string): boolean {
     case "cohere":
       return false; // Not yet implemented
     default:
-      return false;
+      return providerRegistry.has(provider);
   }
 }
 

@@ -73,13 +73,30 @@ This document provides a detailed architectural comparison between **OpenViber**
 ### OpenViber
 - **Channel Abstraction**: Features a strict `Channel` interface that decouples the agent core from communication protocols.
 - **Unified Gateway**: The `ChannelGateway` manages multiple channels (Discord, Feishu, Telegram, Web) simultaneously, handling routing and streaming with a unified event model.
+- **Dynamic Provider Registry**: Implements a `ProviderRegistry` pattern that allows new AI providers (e.g., Google, Mistral) to be registered dynamically at runtime without modifying core code.
+  ```typescript
+  // Registering a new provider in OpenViber
+  providerRegistry.register("google", (config) => createGoogleGenerativeAI(config));
+  ```
 - **Example**: Telegram support was added cleanly by implementing a single class (`TelegramChannel`) and registering it, without touching the core agent logic.
 
 ### Nanobot
 - **Direct Integration**: Channels often require more direct integration into the main loop or configuration parsing logic.
-- **Provider Registry**: While modular, it relies on python-specific class introspection which can be fragile.
+- **Provider Registry**: While modular, it relies on python-specific class introspection which can be less explicit than a typed registry.
 
 **Verdict**: OpenViber's interface-based design allows for safer and more predictable extensions.
+
+## 7. Platform vs Script
+
+### OpenViber (Platform)
+- **Feature-Rich (~34k lines)**: Includes a Web UI, persistent Gateway server, Daemon with telemetry, and robust task orchestration. It is designed as a **long-running platform** for autonomous agents.
+- **Distributed Ready**: Architecture explicitly supports multiple "Viber" nodes connecting to a central command center.
+
+### Nanobot (Script)
+- **Ultra-Lightweight (~4k lines)**: Excellent for quick prototyping and research experiments where minimal code is desired.
+- **Local Focus**: Primarily designed for single-machine, single-user scenarios.
+
+**Verdict**: While Nanobot is lighter, OpenViber provides the necessary infrastructure for production agent deployments.
 
 ## Conclusion
 

@@ -3,6 +3,7 @@
   import { onMount } from "svelte";
   import TypewriterEffect from "$lib/components/landing/typewriter-effect.svelte";
   import InfiniteMarquee from "$lib/components/landing/infinite-marquee.svelte";
+  import CodeTyper from "$lib/components/landing/code-typer.svelte";
   import {
     ArrowRight,
     Bot,
@@ -145,6 +146,22 @@
     { name: "Any MCP Server", category: "Protocol" },
   ];
 
+  const codeLines = [
+    `<span class="text-purple-400">name:</span> <span class="text-green-400">"frontend-dev"</span>`,
+    `<span class="text-purple-400">role:</span> <span class="text-green-400">"Senior Frontend Engineer"</span>`,
+    `<span class="text-purple-400">model:</span> <span class="text-green-400">"claude-3-5-sonnet"</span>`,
+    ``,
+    `<span class="text-purple-400">tools:</span>`,
+    `  <span class="text-blue-400">-</span> <span class="text-yellow-300">browser</span>`,
+    `  <span class="text-blue-400">-</span> <span class="text-yellow-300">filesystem</span>`,
+    `  <span class="text-blue-400">-</span> <span class="text-yellow-300">terminal</span>`,
+    ``,
+    `<span class="text-purple-400">instructions:</span> <span class="text-orange-300">|</span>`,
+    `  <span class="text-gray-400">You are an expert in SvelteKit and Tailwind CSS.</span>`,
+    `  <span class="text-gray-400">Always check existing components before building new ones.</span>`,
+    `  <span class="text-gray-400">Use 'npm run dev' to preview changes.</span>`,
+  ];
+
   // Scroll-reveal with IntersectionObserver
   // Must use the .homepage scroll container as root (it's the overflow element)
   onMount(() => {
@@ -219,10 +236,14 @@
       </div>
 
       <h1
-        class="hero-title pb-2 text-5xl font-bold leading-[1.05] tracking-tighter sm:text-6xl md:text-7xl lg:text-8xl"
+        class="hero-title pb-4 text-6xl font-extrabold leading-[1.05] tracking-tighter sm:text-7xl md:text-8xl lg:text-9xl"
       >
         You Imagine It.<br class="hidden sm:block" />
-        Vibers <TypewriterEffect
+        <span
+          class="bg-gradient-to-r from-primary via-primary/80 to-primary/50 bg-clip-text text-transparent"
+          >Vibers</span
+        >
+        <TypewriterEffect
           words={["Build It.", "Research It.", "Automate It."]}
         />
       </h1>
@@ -264,17 +285,17 @@
         {#if data.user}
           <a
             href="/"
-            class="cta-primary group inline-flex items-center gap-2.5 rounded-full bg-primary px-8 py-3.5 text-sm font-semibold text-primary-foreground transition-all duration-300 hover:-translate-y-1"
+            class="cta-primary group inline-flex items-center gap-2.5 rounded-full bg-primary px-10 py-4 text-base font-bold text-primary-foreground shadow-[0_0_30px_hsl(var(--primary)/0.3)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_40px_hsl(var(--primary)/0.4)]"
           >
             Go to Dashboard
             <ArrowRight
-              class="size-4 transition-transform duration-300 group-hover:translate-x-0.5"
+              class="size-5 transition-transform duration-300 group-hover:translate-x-0.5"
             />
           </a>
         {:else if data.supabaseAuthEnabled}
           <a
             href={githubAuthUrl}
-            class="cta-primary group inline-flex items-center gap-2.5 rounded-full bg-primary px-8 py-3.5 text-sm font-semibold text-primary-foreground transition-all duration-300 hover:-translate-y-1"
+            class="cta-primary group inline-flex items-center gap-2.5 rounded-full bg-primary px-10 py-4 text-base font-bold text-primary-foreground shadow-[0_0_30px_hsl(var(--primary)/0.3)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_40px_hsl(var(--primary)/0.4)]"
           >
             <svg
               class="size-4"
@@ -387,41 +408,9 @@
 
         <!-- Code content -->
         <div
-          class="overflow-x-auto p-6 font-mono text-sm leading-relaxed text-blue-100"
+          class="overflow-x-auto p-6 font-mono text-sm leading-relaxed text-blue-100 min-h-[300px]"
         >
-          <pre><code
-              ><span class="text-purple-400">name:</span> <span
-                class="text-green-400">"frontend-dev"</span
-              >
-<span class="text-purple-400">role:</span> <span class="text-green-400"
-                >"Senior Frontend Engineer"</span
-              >
-<span class="text-purple-400">model:</span> <span class="text-green-400"
-                >"claude-3-5-sonnet"</span
-              >
-
-<span class="text-purple-400">tools:</span>
-  <span class="text-blue-400">-</span> <span class="text-yellow-300"
-                >browser</span
-              >
-  <span class="text-blue-400">-</span> <span class="text-yellow-300"
-                >filesystem</span
-              >
-  <span class="text-blue-400">-</span> <span class="text-yellow-300"
-                >terminal</span
-              >
-
-<span class="text-purple-400">instructions:</span> <span class="text-orange-300"
-                >|</span
-              >
-  <span class="text-gray-400"
-                >You are an expert in SvelteKit and Tailwind CSS.</span
-              >
-  <span class="text-gray-400"
-                >Always check existing components before building new ones.</span
-              >
-  <span class="text-gray-400">Use 'npm run dev' to preview changes.</span>
-</code></pre>
+          <CodeTyper lines={codeLines} />
         </div>
       </div>
     </section>
@@ -762,8 +751,9 @@
     position: absolute;
     border-radius: 50%;
     filter: blur(100px);
-    opacity: 0.2;
+    opacity: 0.3; /* Increased opacity for screen blend mode */
     will-change: transform;
+    mix-blend-mode: screen;
   }
   .orb-1 {
     width: 40rem;
@@ -944,10 +934,10 @@
     transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .use-case-card:hover {
-    border-color: hsl(var(--primary) / 0.4);
-    background: hsl(var(--card) / 0.7);
-    transform: translateY(-4px) scale(1.02);
-    box-shadow: 0 12px 32px -8px hsl(var(--primary) / 0.15);
+    border-color: hsl(var(--primary) / 0.5);
+    background: hsl(var(--card) / 0.8);
+    transform: translateY(-8px) scale(1.03);
+    box-shadow: 0 20px 40px -8px hsl(var(--primary) / 0.25);
   }
   .use-case-icon {
     background: hsl(var(--primary) / 0.08);

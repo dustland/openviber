@@ -149,8 +149,8 @@ OpenViber exposes familiar autonomy profiles:
 
 | Mode | Description |
 |------|-------------|
-| **Always Ask** | Viber asks before each execution action. |
-| **Viber Decides** | Active execution within policy-based approval boundaries. |
+| **Always Ask** | Task asks before each execution action. |
+| **Task Decides** | Active execution within policy-based approval boundaries. (also known as "Viber Decides") |
 | **Always Execute** | High autonomy; intervene by exception. |
 
 All modes share one loop: **observe → plan → execute → verify → report → request feedback → continue**.
@@ -162,7 +162,7 @@ All modes share one loop: **observe → plan → execute → verify → report �
 The operator always has oversight:
 
 - **Chat** is the default intervention path — pause, resume, reprioritize, re-scope.
-- **Terminal observability** via tmux streaming — watch what the viber does in real time.
+- **Terminal observability** via tmux streaming — watch what the task does in real time.
 - **Approval gates** for sensitive actions (file writes, deploys, sends).
 - **Budget limits** prevent runaway costs.
 - **Audit trail** — every action is logged to session JSONL.

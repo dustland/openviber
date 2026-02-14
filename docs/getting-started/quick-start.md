@@ -5,7 +5,7 @@ description: "Get OpenViber running in minutes"
 
 # Quick Start
 
-Get your first viber up and running in minutes.
+Get your first task up and running in minutes.
 
 ## 1. Fastest Way (npx)
 
@@ -26,7 +26,7 @@ This starts the **Viber** on your machine. You can now use the CLI to interact w
 OpenViber integrates with your terminal. Open a new terminal window:
 
 ```bash
-# Chat with your running viber
+# Chat with your running task
 npx openviber chat
 ```
 

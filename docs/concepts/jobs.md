@@ -12,7 +12,7 @@ description: "Scheduled tasks that run automatically on a timer"
 A job is a YAML file that defines:
 
 - **When** to run (cron schedule)
-- **What** to do (a prompt for the agent)
+- **What** to do (a prompt for the task)
 - **How** to do it (model, skills, tools configuration)
 
 Jobs are the bridge between "set it up once" and "it runs forever." Combined with skills, they enable powerful autonomous workflows like health monitoring, daily summaries, and automated issue fixing.
@@ -24,17 +24,17 @@ Jobs are the bridge between "set it up once" and "it runs forever." Combined wit
 1. **Definition** — You create a YAML file in the jobs directory (or use the `create_scheduled_job` tool via chat)
 2. **Loading** — The `JobScheduler` reads all `.yaml`/`.yml` files from the jobs directory at startup
 3. **Scheduling** — Each job's cron expression is registered with the [Croner](https://github.com/hexagon/croner) scheduler
-4. **Execution** — When the cron fires, the scheduler creates an `Agent` with the job's configuration and runs the prompt
+4. **Execution** — When the cron fires, the scheduler creates a `Task` with the job's configuration and runs the prompt
 5. **Logging** — Results (tool outputs, LLM responses) are logged to the console; healthy/routine results are suppressed for noise reduction
 
 ### Execution Model
 
 When a job fires, the scheduler:
 
-1. Creates a fresh `Agent` instance with the job's `model`, `skills`, and `tools`
+1. Creates a fresh `Task` instance with the job's `model`, `skills`, and `tools`
 2. Sends the job's `prompt` as a user message
-3. The agent reasons, calls tools (including skill-provided tools), and generates a response
-4. Tool results and the agent's text response are logged
+3. The task reasons, calls tools (including skill-provided tools), and generates a response
+4. Tool results and the task's text response are logged
 5. Routine "healthy" results (e.g., `status: HEALTHY` from antigravity) are automatically suppressed from logs
 
 If no `model` is specified, the job is skipped with a warning — a model is required for execution.
@@ -217,13 +217,13 @@ These tools operate on the global jobs directory (`~/.openviber/jobs/`).
 You:   "Create a job called 'morning-brief' that runs at 8am daily
         and summarizes my GitHub notifications"
 
-Viber: Created job "morning-brief" — will run at schedule: 0 8 * * *
+Task:  Created job "morning-brief" — will run at schedule: 0 8 * * *
        Job saved to ~/.openviber/jobs/morning-brief.yaml
        Restart OpenViber to load the new job.
 
 You:   "List my scheduled jobs"
 
-Viber: You have 2 scheduled jobs:
+Task:  You have 2 scheduled jobs:
        1. morning-brief — 0 8 * * * — "Summarize my GitHub notifications..."
        2. health-check — */3 * * * * * — "Check Antigravity IDE health..."
 ```
@@ -321,7 +321,7 @@ Hot-reloading of job files is planned but not yet implemented.
 
 ## Next Steps
 
-- [Skills](/docs/concepts/skills) — Domain knowledge for job agents
+- [Skills](/docs/concepts/skills) — Domain knowledge for job tasks
 - [Tools](/docs/concepts/tools) — Actions available to jobs
 - [Viber](/docs/concepts/viber) — Task configuration and working modes
 - [Config Schema](/docs/reference/config-schema) — Full YAML schema reference

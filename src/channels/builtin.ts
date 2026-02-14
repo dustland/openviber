@@ -5,6 +5,7 @@ import { WeChatChannel } from "./wechat";
 import { WebChannel } from "./web";
 import { DiscordChannel } from "./discord";
 import { FeishuChannel } from "./feishu";
+import { TelegramChannel } from "./telegram";
 import { channelRegistry } from "./registry";
 
 /**
@@ -100,6 +101,22 @@ export function registerBuiltinChannels(): void {
         productionReadiness: "ready",
       },
       create: (config, context) => new FeishuChannel(config as any, context),
+    });
+  }
+
+  if (!channelRegistry.get("telegram")) {
+    channelRegistry.register({
+      id: "telegram",
+      displayName: "Telegram",
+      description: "Telegram bot integration (polling)",
+      capabilities: {
+        transport: "websocket",
+        supportsInboundAttachments: false,
+        auth: "botToken",
+        controls: ["allowUserIds"],
+        productionReadiness: "ready",
+      },
+      create: (config, context) => new TelegramChannel(config as any, context),
     });
   }
 }

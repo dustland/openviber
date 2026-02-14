@@ -21,14 +21,26 @@ Your machine becomes a **Viber** — a runtime that executes one or more **Tasks
 
 ```
 You:   "Build a landing page for our new product, dark theme"
-Viber: I'll create a landing page. Here's my plan:
+Task:  I'll create a landing page. Here's my plan:
        1. Scaffold Next.js project
        2. Design hero + feature sections
        3. Deploy to Vercel
        Should I proceed?
 You:   "Go ahead"
-Viber: On it. You can watch in the terminal panel...
+Task:  On it. You can watch in the terminal panel...
 ```
+
+## Tasks
+
+A **Task** is the unit of work in OpenViber. It combines:
+
+| Element                 | What It Gives You                                                            |
+| ----------------------- | ---------------------------------------------------------------------------- |
+| **Persona & Goals**     | Role focus — not a generic assistant, but a specialist with clear objectives |
+| **Machine Runtime**     | Real execution — terminal, browser, files, apps on your machine              |
+| **Identity & Accounts** | Agency — acts on your behalf across GitHub, email, cloud services            |
+
+This is what separates tasks from chatbots: they don't just answer questions, they **do the work**.
 
 ## Intent-Driven Creation (Viber Board)
 
@@ -90,7 +102,7 @@ This is what separates a Viber from a chatbot: it doesn't just answer questions,
 | **Viber Decides**  | Daily work — task acts within policy, escalates risky actions  |
 | **Always Execute** | Overnight runs — maximum autonomy, intervene by exception      |
 
-Start with "Always Ask" and graduate to "Viber Decides" as you build confidence.
+Start with "Always Ask" and graduate to "Task Decides" as you build confidence.
 
 ## You Stay in Control
 

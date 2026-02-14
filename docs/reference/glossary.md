@@ -28,7 +28,7 @@ A storage backend implementation. OpenViber supports:
 
 ### Context
 
-The accumulated information that vibers use to understand and respond to requests. Context includes:
+The accumulated information that tasks use to understand and respond to requests. Context includes:
 
 - Conversation history
 - Artifact contents
@@ -37,7 +37,7 @@ The accumulated information that vibers use to understand and respond to request
 
 ### Conversation History
 
-The complete record of messages between users and vibers within a Space. History persists across sessions, enabling vibers to maintain continuity.
+The complete record of messages between users and tasks within a Space. History persists across sessions, enabling tasks to maintain continuity.
 
 ## D
 
@@ -71,21 +71,21 @@ the Gateway (central coordinator).
 
 The HTTP server that receives webhooks from enterprise channels (DingTalk, WeCom, Discord,
 Feishu). Started via `viber channels`. Implemented by `ChannelGateway` in `src/channels/gateway.ts`.
-Distinct from the Gateway (central coordinator for vibers).
+Distinct from the Gateway (central coordinator for Vibers).
 
 ## J
 
 ### Job
 
-A scheduled task defined as a YAML file that runs automatically on a cron timer. Jobs specify a schedule, a prompt, and optional configuration (model, skills, tools). They are stored per-viber in `~/.openviber/vibers/{id}/jobs/` or globally in `~/.openviber/jobs/`.
+A scheduled task defined as a YAML file that runs automatically on a cron timer. Jobs specify a schedule, a prompt, and optional configuration (model, skills, tools). They are stored per-task in `~/.openviber/vibers/{id}/jobs/` (where `{id}` is the task ID) or globally in `~/.openviber/jobs/`.
 
-When a job fires, the `JobScheduler` creates an `Agent` with the job's configuration and executes the prompt. Jobs can leverage skills for domain knowledge — for example, a health-check job uses the `antigravity` skill.
+When a job fires, the `JobScheduler` creates a `Task` (Agent) with the job's configuration and executes the prompt. Jobs can leverage skills for domain knowledge — for example, a health-check job uses the `antigravity` skill.
 
 See [Jobs](/docs/concepts/jobs) for full documentation.
 
 ### Job Scheduler
 
-The `JobScheduler` class that manages cron-based job execution. It reads YAML job files from disk, registers cron triggers via Croner, and creates Agent instances to execute job prompts on schedule.
+The `JobScheduler` class that manages cron-based job execution. It reads YAML job files from disk, registers cron triggers via Croner, and creates Task instances to execute job prompts on schedule.
 
 ## M
 
@@ -95,7 +95,7 @@ A single unit of communication within a conversation. Messages have:
 
 - **role**: `user`, `assistant`, or `system`
 - **content**: The message text
-- **metadata**: Additional information (timestamps, viber info)
+- **metadata**: Additional information (timestamps, task info)
 
 ### Metadata
 
@@ -103,10 +103,10 @@ Additional information attached to messages, Spaces, or artifacts. Used for trac
 
 ### Mode
 
-The operational mode for viber interactions:
+The operational mode for task interactions:
 
-- **Always Ask**: Viber asks before each action
-- **Viber Decides**: Viber acts within policy boundaries
+- **Always Ask**: Task asks before each action
+- **Task Decides** (or Viber Decides): Task acts within policy boundaries
 - **Always Execute**: Maximum autonomy, minimal interruption
 
 ## P
@@ -133,13 +133,13 @@ An LLM service provider. Supported providers:
 
 ### Skill
 
-A reusable bundle of domain knowledge that teaches a viber how to approach specific tasks. A skill is a directory containing a `SKILL.md` file (frontmatter + instructions) and optionally an `index.ts` that exports specialized tools.
+A reusable bundle of domain knowledge that teaches a task how to approach specific tasks. A skill is a directory containing a `SKILL.md` file (frontmatter + instructions) and optionally an `index.ts` that exports specialized tools.
 
 Skills are discovered from:
 - `~/.openviber/skills/` (user-defined)
 - `src/skills/` (built-in: antigravity, cursor-agent, codex-cli, github, tmux)
 
-Unlike tools (which provide actions), skills provide *knowledge and context* that gets injected into the agent's system prompt. Skills can also bundle their own tools — for example, the `github` skill provides `gh_list_issues`, `gh_create_pr`, etc.
+Unlike tools (which provide actions), skills provide *knowledge and context* that gets injected into the task's system prompt. Skills can also bundle their own tools — for example, the `github` skill provides `gh_list_issues`, `gh_create_pr`, etc.
 
 See [Skills](/docs/concepts/skills) for full documentation.
 
@@ -149,27 +149,25 @@ The `SkillRegistry` class that manages skill discovery, loading, and tool regist
 
 ### Space
 
-A working directory that vibers operate in. Spaces live at `~/openviber_spaces/` by default, but vibers can be pointed at any directory (e.g., an existing Git repo). A Space can be:
+A working directory that tasks operate in. Spaces live at `~/openviber_spaces/` by default, but tasks can be pointed at any directory (e.g., an existing Git repo). A Space can be:
 
 - A cloned Git repository (code projects)
 - A research folder (non-code work)
 - An output directory (reports, generated content)
 
-Multiple vibers can work on the same Space.
+Multiple tasks can work on the same Space.
 
 ## T
 
 ### Tool
 
-A capability that extends what vibers can do. Tools allow vibers to:
+A capability that extends what tasks can do. Tools allow tasks to:
 
 - Fetch external data
 - Read/write files
 - Search the web
 - Execute code
 - Interact with APIs
-
-## V
 
 ### Task
 
@@ -182,6 +180,8 @@ A role-scoped unit of work or assignment that runs on a Viber. Each task has its
 - **Model** — Which LLM provider it uses
 
 Tasks are configured through YAML files in `~/.openviber/vibers/`.
+
+## V
 
 ### Viber
 

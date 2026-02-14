@@ -7,6 +7,7 @@
     DropdownMenuTrigger,
     DropdownMenuSeparator,
   } from "$lib/components/ui/dropdown-menu";
+  import { goto } from "$app/navigation";
   import { themeStore, type Theme } from "$lib/stores/theme";
   import {
     Moon,
@@ -20,6 +21,7 @@
     Sparkles,
     Settings,
     LogOut,
+    Menu,
   } from "@lucide/svelte";
 
   let { children, data } = $props();
@@ -47,42 +49,91 @@
     </a>
 
     <div class="flex items-center gap-1 ml-auto">
-      <a
-        href="/landing"
-        class="flex items-center gap-1.5 transition-colors shrink-0 px-2.5 py-1.5 rounded-md {isHome
-          ? 'text-foreground bg-accent'
-          : 'text-muted-foreground hover:text-foreground hover:bg-accent'}"
-      >
-        <Home class="size-4 shrink-0" />
-        <span class="hidden sm:inline text-sm">Home</span>
-      </a>
-      {#if data.user}
+      <div class="hidden md:flex items-center gap-1">
         <a
-          href="/"
-          class="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors shrink-0 px-2.5 py-1.5 rounded-md hover:bg-accent"
+          href="/landing"
+          class="flex items-center gap-1.5 transition-colors shrink-0 px-2.5 py-1.5 rounded-md {isHome
+            ? 'text-foreground bg-accent'
+            : 'text-muted-foreground hover:text-foreground hover:bg-accent'}"
         >
-          <LayoutDashboard class="size-4 shrink-0" />
-          <span class="hidden sm:inline text-sm">Dashboard</span>
+          <Home class="size-4 shrink-0" />
+          <span class="hidden sm:inline text-sm">Home</span>
         </a>
-      {/if}
-      <a
-        href="/hub"
-        class="flex items-center gap-1.5 transition-colors shrink-0 px-2.5 py-1.5 rounded-md {isHub
-          ? 'text-foreground bg-accent'
-          : 'text-muted-foreground hover:text-foreground hover:bg-accent'}"
-      >
-        <Sparkles class="size-4 shrink-0" />
-        <span class="hidden sm:inline text-sm">Skills</span>
-      </a>
-      <a
-        href="/docs"
-        class="flex items-center gap-1.5 transition-colors shrink-0 px-2.5 py-1.5 rounded-md {isDocs
-          ? 'text-foreground bg-accent'
-          : 'text-muted-foreground hover:text-foreground hover:bg-accent'}"
-      >
-        <BookOpen class="size-4 shrink-0" />
-        <span class="hidden sm:inline text-sm">Docs</span>
-      </a>
+        {#if data.user}
+          <a
+            href="/"
+            class="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors shrink-0 px-2.5 py-1.5 rounded-md hover:bg-accent"
+          >
+            <LayoutDashboard class="size-4 shrink-0" />
+            <span class="hidden sm:inline text-sm">Dashboard</span>
+          </a>
+        {/if}
+        <a
+          href="/hub"
+          class="flex items-center gap-1.5 transition-colors shrink-0 px-2.5 py-1.5 rounded-md {isHub
+            ? 'text-foreground bg-accent'
+            : 'text-muted-foreground hover:text-foreground hover:bg-accent'}"
+        >
+          <Sparkles class="size-4 shrink-0" />
+          <span class="hidden sm:inline text-sm">Skills</span>
+        </a>
+        <a
+          href="/docs"
+          class="flex items-center gap-1.5 transition-colors shrink-0 px-2.5 py-1.5 rounded-md {isDocs
+            ? 'text-foreground bg-accent'
+            : 'text-muted-foreground hover:text-foreground hover:bg-accent'}"
+        >
+          <BookOpen class="size-4 shrink-0" />
+          <span class="hidden sm:inline text-sm">Docs</span>
+        </a>
+      </div>
+
+      <div class="md:hidden">
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            class="size-8 rounded-md border border-border bg-background inline-flex items-center justify-center hover:bg-accent hover:text-accent-foreground"
+            aria-label="Menu"
+          >
+            <Menu class="size-4" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            sideOffset={6}
+            align="end"
+            class="min-w-48 rounded-md border border-border bg-popover p-1 shadow-md"
+          >
+            <DropdownMenuItem
+              class="w-full rounded px-2.5 py-2 text-left text-sm hover:bg-accent flex items-center gap-2.5 outline-none cursor-pointer"
+              onSelect={() => goto("/landing")}
+            >
+              <Home class="size-4" />
+              Home
+            </DropdownMenuItem>
+            {#if data.user}
+              <DropdownMenuItem
+                class="w-full rounded px-2.5 py-2 text-left text-sm hover:bg-accent flex items-center gap-2.5 outline-none cursor-pointer"
+                onSelect={() => goto("/")}
+              >
+                <LayoutDashboard class="size-4" />
+                Dashboard
+              </DropdownMenuItem>
+            {/if}
+            <DropdownMenuItem
+              class="w-full rounded px-2.5 py-2 text-left text-sm hover:bg-accent flex items-center gap-2.5 outline-none cursor-pointer"
+              onSelect={() => goto("/hub")}
+            >
+              <Sparkles class="size-4" />
+              Skills
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              class="w-full rounded px-2.5 py-2 text-left text-sm hover:bg-accent flex items-center gap-2.5 outline-none cursor-pointer"
+              onSelect={() => goto("/docs")}
+            >
+              <BookOpen class="size-4" />
+              Docs
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
 
       {#if data.user}
         <DropdownMenu>

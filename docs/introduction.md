@@ -61,7 +61,7 @@ openviber channels
 
 | Concept | What It Is |
 |---------|------------|
-| **Viber** | Your machine (the AI Worker) running the OpenViber daemon — executes tasks |
+| **Viber** | Your machine running the OpenViber daemon — executes tasks |
 | **Task** | A role-scoped unit of work assigned to a Viber |
 | **Tools** | Actions the Viber can take (file, search, web, browser, desktop, schedule, notify) |
 | **Skills** | Domain knowledge bundles (`SKILL.md` + optional tools) — antigravity, cursor-agent, codex-cli, github, terminal |
@@ -74,7 +74,7 @@ OpenViber supports three levels of autonomy:
 | Mode | Behavior |
 |------|----------|
 | **Always Ask** | Task asks before each action — you approve everything |
-| **Task Decides** | Task acts within policy, escalates risky actions (also known as "Viber Decides") |
+| **Task Decides** | Task acts within policy, escalates risky actions |
 | **Always Execute** | Maximum autonomy, intervene by exception |
 
 Start with "Always Ask" and gradually increase autonomy as you build trust.

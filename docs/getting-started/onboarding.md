@@ -1,6 +1,6 @@
 # Getting Started with OpenViber
 
-OpenViber is an AI agent that runs on your machine. There are two ways to set it up:
+OpenViber is a platform for running AI tasks on your machine. There are two ways to set it up:
 
 - **Standalone mode**: local CLI/daemon only, no web control plane required.
 - **Connected mode**: your local **Viber** is registered to a **Gateway** and controlled from the **Viber Board** (web UI).
@@ -9,26 +9,26 @@ Use this guide if you want explicit onboarding steps for both modes and a clear 
 
 ## Option A: Connect to OpenViber Web (Recommended)
 
-This connects your local viber to the web dashboard where you can manage config,
-send tasks, and monitor your viber remotely.
+This connects your local Viber to the web dashboard where you can manage config,
+send tasks, and monitor your Viber remotely.
 
 ### Step 1: Create a Viber on the Web
 
 1. Log in to [OpenViber Web](http://localhost:6006) (or your deployed URL)
 2. Go to **Vibers** → Click **"Add Viber"**
-3. Give your viber a name
+3. Give your Viber a name
 4. Copy the generated command
 
 ### Optional: Create a task from an intent
 
-After the viber is online, open **Tasks → New Task** and choose an intent template (for example, _Build a Feature_ or _Code Review_).
+After the Viber is online, open **Tasks → New Task** and choose an intent template (for example, _Build a Feature_ or _Code Review_).
 
 The task launch flow is:
 
-1. Select an active viber
+1. Select an active Viber
 2. Select an intent template (or paste your own goal)
 3. OpenViber infers required skills from template metadata, `skills:` blocks, and keywords
-4. If the selected viber is missing required skills, OpenViber starts guided provisioning before launch
+4. If the selected Viber is missing required skills, OpenViber starts guided provisioning before launch
 5. After prerequisites are ready, the task launches automatically with the selected intent body
 
 Supported proactive skill provisioning currently covers:
@@ -74,14 +74,14 @@ Get an API key at: [openrouter.ai/keys](https://openrouter.ai/keys)
 npx openviber start
 ```
 
-That's it! Your viber will automatically connect to OpenViber Web.
+That's it! Your Viber will automatically connect to OpenViber Web.
 **No extra flags needed** — it reads your saved config.
 
 ---
 
 ## Option B: Standalone Setup (Local Only)
 
-If you just want to run a viber locally without the web dashboard:
+If you just want to run a Viber locally without the web dashboard:
 
 ```bash
 npx openviber onboard
@@ -129,15 +129,15 @@ Viber Gateway (:6007)
 Your local OpenViber Daemon (Viber)
 ```
 
-Connected mode uses an onboarding token to bind your local viber to the gateway project/workspace so the board can dispatch tasks and observe status.
+Connected mode uses an onboarding token to bind your local Viber to the gateway project/workspace so the board can dispatch tasks and observe status.
 
 ### Component Responsibilities
 
 | Component | Role during onboarding | Role after onboarding |
 | --- | --- | --- |
 | Viber (local daemon) | Creates local runtime state and (in connected mode) exchanges token for persistent connection config. | Executes tasks, streams status/events, manages local memories/skills/tools. |
-| Gateway (`:6007`) | Validates onboarding token and associates viber identity to backend records. | Routes commands/events between viber and board. |
-| Viber Board (`:6006`) | Creates viber records and issues short-lived onboard tokens. | Operator UI for launching, monitoring, and configuring vibers. |
+| Gateway (`:6007`) | Validates onboarding token and associates Viber identity to backend records. | Routes commands/events between Viber and board. |
+| Viber Board (`:6006`) | Creates Viber records and issues short-lived onboard tokens. | Operator UI for launching, monitoring, and configuring Vibers. |
 
 ---
 
@@ -152,21 +152,21 @@ Connected mode uses an onboarding token to bind your local viber to the gateway 
 
 ### Connected checklist (Gateway + Board)
 
-1. Open Viber Board and create a viber to obtain a token.
+1. Open Viber Board and create a Viber to obtain a token.
 2. On the target machine, run `npx openviber onboard --token <token>` within 15 minutes.
 3. Start the daemon (`npx openviber start`).
-4. Verify the viber appears active/selectable in **Vibers** and **New Task** flows.
+4. Verify the Viber appears active/selectable in **Vibers** and **New Task** flows.
 5. Launch a test task from the board and confirm round-trip events.
 
 ---
 
 ## Current Gaps to Watch While Wiring
 
-When integrating viber + gateway + board, these are common missing pieces to identify early:
+When integrating Viber + Gateway + Board, these are common missing pieces to identify early:
 
 - **Connection diagnostics are still mostly manual**: users often fall back to `status`, logs, and page refreshes to understand handshake failures.
 - **Token lifecycle UX can be improved**: expired/invalid token feedback is functional but could be more guided across CLI and board.
-- **Post-onboarding verification is implicit**: there is no single built-in `onboarding doctor` flow that checks key, connectivity, and viber readiness end-to-end.
+- **Post-onboarding verification is implicit**: there is no single built-in `onboarding doctor` flow that checks key, connectivity, and Viber readiness end-to-end.
 - **Mode visibility could be clearer**: users may not immediately know whether they are running purely standalone or currently linked to a gateway workspace.
 
 If you are setting up team onboarding, treat the checklist above as a baseline and document your environment-specific validation steps (auth provider, deployment URL, proxy, and firewall rules).
@@ -181,11 +181,11 @@ After onboarding, your `~/.openviber/` directory looks like:
 ~/.openviber/
 ├── config.yaml          # Connection config (auto-generated)
 ├── viber-id             # Unique machine identifier
-├── user.md              # Your context (shared across vibers)
-├── vibers/
-│   ├── default.yaml     # Default viber configuration
+├── user.md              # Your context (shared across tasks)
+├── vibers/              # Task configurations
+│   ├── default.yaml     # Default task configuration
 │   └── default/
-│       ├── soul.md      # Viber personality
+│       ├── soul.md      # Task personality
 │       └── memory.md    # Long-term notes
 └── skills/              # Custom skills
 ```
@@ -198,22 +198,22 @@ After onboarding, your `~/.openviber/` directory looks like:
 | ----------------------------------- | ------------------------ |
 | `npx openviber onboard`             | Set up standalone mode   |
 | `npx openviber onboard --token <t>` | Connect to OpenViber Web |
-| `npx openviber start`               | Start the viber daemon   |
+| `npx openviber start`               | Start the Viber daemon   |
 | `npx openviber run "<task>"`        | Run a one-off task       |
 | `npx openviber chat`                | Interactive chat mode    |
-| `npx openviber status`              | Check viber status       |
+| `npx openviber status`              | Check Viber status       |
 
 ---
 
 ## Troubleshooting
 
-**Token expired?** Create a new viber on the web and run `npx openviber onboard --token` again.
+**Token expired?** Create a new Viber on the web and run `npx openviber onboard --token` again.
 
 **Can't connect?** Make sure OpenViber Web is running. By default: `http://localhost:6006`
 
-**Intent launch says a skill is missing?** Keep the target viber selected and use the guided setup dialog to provision prerequisites, then retry launch.
+**Intent launch says a skill is missing?** Keep the target Viber selected and use the guided setup dialog to provision prerequisites, then retry launch.
 
-**Viber not selectable in New Task?** Only active (connected) vibers can receive launches. Start your local daemon with `npx openviber start` and refresh the page.
+**Viber not selectable in New Task?** Only active (connected) Vibers can receive launches. Start your local daemon with `npx openviber start` and refresh the page.
 
 **Need to switch modes?** You can always re-run `npx openviber onboard --token <token>` to switch
 from standalone to connected mode.

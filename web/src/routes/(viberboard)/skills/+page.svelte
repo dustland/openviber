@@ -899,9 +899,9 @@
           !selectedPlaygroundViberId}
       >
         {#if playgroundRunning}
-          <Loader2 class="size-4 mr-1 animate-spin" />Running…
+          <Loader2 class="size-4 animate-spin" />Running…
         {:else}
-          <Play class="size-4 mr-1" />Run
+          <Play class="size-4" />Run
         {/if}
       </Button>
     </Dialog.Footer>
@@ -1007,8 +1007,11 @@
     justify-content: center;
     text-align: center;
     padding: 4rem 2rem;
-    border: 1px dashed var(--border);
+    background: hsl(var(--card));
     border-radius: 0.75rem;
+    box-shadow:
+      0 10px 28px -22px hsl(var(--foreground) / 0.4),
+      0 2px 8px -4px hsl(var(--foreground) / 0.12);
   }
 
   .empty-state.hub-empty {
@@ -1065,22 +1068,25 @@
     flex-direction: column;
     gap: 0.75rem;
     padding: 1rem 1.25rem;
-    border: 1px solid hsl(var(--border));
     border-radius: 0.75rem;
-    background: hsl(var(--card));
+    background: linear-gradient(
+      180deg,
+      hsl(var(--card)) 0%,
+      hsl(var(--card) / 0.94) 100%
+    );
     box-shadow:
-      0 1px 3px 0 rgb(0 0 0 / 0.04),
-      0 1px 2px -1px rgb(0 0 0 / 0.04);
+      0 18px 34px -28px hsl(var(--foreground) / 0.5),
+      0 3px 10px -8px hsl(var(--foreground) / 0.18);
     transition:
-      border-color 0.15s,
+      transform 0.15s,
       box-shadow 0.15s;
   }
 
   .skill-card:hover {
-    border-color: hsl(var(--primary) / 0.3);
+    transform: translateY(-1px);
     box-shadow:
-      0 2px 8px 0 rgb(0 0 0 / 0.06),
-      0 1px 3px -1px rgb(0 0 0 / 0.06);
+      0 20px 36px -26px hsl(var(--primary) / 0.35),
+      0 6px 14px -8px hsl(var(--foreground) / 0.2);
   }
 
   .card-top {
@@ -1200,11 +1206,11 @@
   .setup-panel {
     padding: 0.75rem;
     border-radius: 0.5rem;
-    border: 1px solid hsl(38 80% 50% / 0.25);
-    background: hsl(38 80% 50% / 0.04);
+    background: hsl(38 80% 50% / 0.08);
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    box-shadow: inset 0 0 0 1px hsl(38 80% 50% / 0.16);
   }
 
   .setup-title {
@@ -1222,8 +1228,9 @@
     align-items: flex-start;
     gap: 0.5rem;
     padding: 0.5rem;
-    background: var(--background);
+    background: hsl(var(--card));
     border-radius: 0.375rem;
+    box-shadow: 0 1px 3px -2px hsl(var(--foreground) / 0.5);
   }
 
   .setup-icon {
@@ -1333,7 +1340,7 @@
   .search-input-wrap input {
     width: 100%;
     height: 2.25rem;
-    border: 1px solid var(--input);
+    border: 1px solid hsl(var(--input) / 0.65);
     border-radius: 0.375rem;
     background: var(--background);
     padding-left: 2.25rem;
@@ -1349,7 +1356,7 @@
 
   .search-bar select {
     height: 2.25rem;
-    border: 1px solid var(--input);
+    border: 1px solid hsl(var(--input) / 0.65);
     border-radius: 0.375rem;
     background: var(--background);
     padding: 0 0.5rem;
@@ -1395,25 +1402,28 @@
 
   .discover-card {
     padding: 1rem 1.25rem;
-    border: 1px solid hsl(var(--border));
     border-radius: 0.75rem;
-    background: hsl(var(--card));
+    background: linear-gradient(
+      180deg,
+      hsl(var(--card)) 0%,
+      hsl(var(--card) / 0.94) 100%
+    );
     box-shadow:
-      0 1px 3px 0 rgb(0 0 0 / 0.04),
-      0 1px 2px -1px rgb(0 0 0 / 0.04);
+      0 16px 30px -28px hsl(var(--foreground) / 0.5),
+      0 2px 8px -5px hsl(var(--foreground) / 0.16);
     display: flex;
     flex-direction: column;
     gap: 0.375rem;
     transition:
-      border-color 0.15s,
+      transform 0.15s,
       box-shadow 0.15s;
   }
 
   .discover-card:hover {
-    border-color: hsl(var(--primary) / 0.3);
+    transform: translateY(-1px);
     box-shadow:
-      0 2px 8px 0 rgb(0 0 0 / 0.06),
-      0 1px 3px -1px rgb(0 0 0 / 0.06);
+      0 20px 34px -28px hsl(var(--primary) / 0.36),
+      0 4px 12px -8px hsl(var(--foreground) / 0.2);
   }
 
   .discover-card-top {
@@ -1468,9 +1478,8 @@
     align-items: center;
     gap: 0.375rem;
     padding: 0.25rem 0.625rem;
-    border: 1px solid hsl(var(--primary) / 0.2);
     border-radius: 0.375rem;
-    background: hsl(var(--primary) / 0.04);
+    background: hsl(var(--primary) / 0.1);
     color: var(--primary);
     font-size: 0.75rem;
     font-weight: 500;
@@ -1533,9 +1542,11 @@
   /* ── Playground output ────────────────── */
 
   .playground-output {
-    border: 1px solid var(--border);
     border-radius: 0.5rem;
     overflow: hidden;
+    box-shadow:
+      0 12px 24px -20px hsl(var(--foreground) / 0.55),
+      0 2px 8px -6px hsl(var(--foreground) / 0.2);
   }
 
   .output-header {
@@ -1543,7 +1554,7 @@
     align-items: center;
     padding: 0.5rem 0.75rem;
     background: var(--muted);
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid hsl(var(--border) / 0.45);
   }
 
   .output-status {

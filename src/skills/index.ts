@@ -2,6 +2,7 @@ import { defaultRegistry } from "./registry";
 import { getTools as getAntigravityTools } from "./antigravity";
 import { getTools as getCursorAgentTools } from "./cursor-agent";
 import { getTools as getCodexCliTools } from "./codex-cli";
+import { getTools as getGeminiCliTools } from "./gemini-cli";
 import { getTools as getGithubTools } from "./github";
 import { getTools as getTerminalTools } from "./terminal";
 import { getTools as getRailwayTools } from "./railway";
@@ -19,6 +20,8 @@ export function registerDefaultSkills() {
   defaultRegistry.preRegisterTools("cursor-agent", getCursorAgentTools());
   // Pre-register codex-cli tools (run Codex CLI via non-interactive codex exec)
   defaultRegistry.preRegisterTools("codex-cli", getCodexCliTools());
+  // Pre-register gemini-cli tools (run Gemini CLI via headless gemini --prompt)
+  defaultRegistry.preRegisterTools("gemini-cli", getGeminiCliTools());
   // Pre-register github tools (gh CLI for issues, PRs, branches)
   defaultRegistry.preRegisterTools("github", getGithubTools());
   // Pre-register terminal tools (persistent terminal sessions, backed by tmux)
@@ -32,4 +35,3 @@ export function registerDefaultSkills() {
   // Pre-register system-info tools (CPU, memory, disk, processes, network)
   defaultRegistry.preRegisterTools("system-info", getSystemInfoTools());
 }
-

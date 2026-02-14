@@ -1,11 +1,11 @@
 ---
 title: "Viber Design"
-description: "Top-down architecture: what a Viber is, how it works, and how tasks operate"
+description: "Top-down architecture: what a Viber is, how Vibers work, and how tasks operate"
 ---
 
 # Viber Design
 
-OpenViber is a workspace-first platform where each **task** is a role-scoped AI worker running on a machine you own (the **Viber**).
+OpenViber is a workspace-first platform where each **Viber** is an AI worker running on a machine you own.
 
 ---
 
@@ -13,8 +13,8 @@ OpenViber is a workspace-first platform where each **task** is a role-scoped AI 
 
 | Term | Definition |
 |------|-----------|
-| **Task** | A role-scoped worker with its own persona, goals, tools, budget, and guardrails. |
-| **Viber** | A machine running the OpenViber runtime that hosts one or more tasks. A deployment target, not a UI level. |
+| **Viber** | A machine running the OpenViber runtime. The Viber is the **AI Worker** that executes tasks. |
+| **Task** | A unit of work or assignment with its own persona, goals, tools, budget, and guardrails. |
 | **OpenViber Board** | The web cockpit operators use to observe, chat with, and control tasks. |
 | **Space** | A working directory (repo, research folder, output directory) that tasks operate in. |
 
@@ -34,7 +34,7 @@ flowchart LR
     Agent --> Budget
 ```
 
-The project is **OpenViber**; the machine is a **Viber**; each deployed worker is a **task**.
+The project is **OpenViber**; the machine (and worker) is a **Viber**; each unit of work is a **Task**.
 
 ---
 
@@ -96,15 +96,15 @@ OpenViber separates **config** from **working data** across two locations:
 ```
 ~/.openviber/
 ├── config.yaml               # Viber: daemon, providers, channels, security
-├── user.md                   # Shared: who you are (same for all tasks)
-├── skills/                   # Viber: shared skill bundles
-├── mcp/                      # Viber: MCP server configs
-└── vibers/                   # Task configurations
-    ├── dev.yaml              # Task config: model, tools, skills, mode, budget
+├── user.md                    # Shared: who you are (same for all tasks)
+├── skills/                    # Viber: shared skill bundles
+├── mcp/                       # Viber: MCP server configs
+└── vibers/
+    ├── dev.yaml               # Task config: model, tools, skills, mode, budget
     ├── dev/
-    │   ├── soul.md           # Persona for this task
-    │   ├── memory.md         # Long-term memory
-    │   └── sessions/         # Conversation logs (*.jsonl)
+    │   ├── soul.md            # Persona for this task
+    │   ├── memory.md          # Long-term memory
+    │   └── sessions/          # Conversation logs (*.jsonl)
     ├── researcher.yaml
     └── researcher/
         ├── soul.md
@@ -185,10 +185,10 @@ Acceptance must come from human-observable evidence, not self-grading:
 When multiple tasks run on one Viber, they coordinate through **external systems**, not direct messaging:
 
 ```
-researcher-task  → writes report → GitHub issue (state:needs-triage)
-pm-task          → triages issue → labels state:ready-for-dev
-dev-task         → implements    → opens PR (Fixes #...)
-comms-task       → announces     → GitHub release + email
+researcher-task → writes report → GitHub issue (state:needs-triage)
+pm-task         → triages issue → labels state:ready-for-dev
+dev-task        → implements    → opens PR (Fixes #...)
+comms-task      → announces     → GitHub release + email
 ```
 
 This keeps each task **independent and stateless** — no inter-task protocol, no orchestration complexity. The handoff state machine lives in GitHub labels, not in OpenViber.
@@ -205,15 +205,15 @@ Inspired by Cloudflare Zero Trust tunnels — the Board generates a one-liner th
 sequenceDiagram
     participant B as OpenViber Board
     participant U as User
-    participant N as Target Machine
+    participant V as Target Machine (Viber)
 
     U->>B: Click "Add Viber"
     B->>B: Generate Viber ID + one-time token
     B->>U: Show command in dialog
-    U->>N: Paste & run command
-    N->>N: npx openviber connect --token <TOKEN>
-    N->>B: WebSocket handshake (token auth)
-    B->>N: Viber registered ✓
+    U->>V: Paste & run command
+    V->>V: npx openviber connect --token <TOKEN>
+    V->>B: WebSocket handshake (token auth)
+    B->>V: Viber registered ✓
 ```
 
 ### The Command

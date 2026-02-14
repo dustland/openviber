@@ -2,7 +2,7 @@
 
 > **You Imagine It. Tasks Build It.**
 
-A **Viber** is your machine running the OpenViber runtime. It acts as a host for **Tasks** — role-scoped AI workers that execute your commands.
+A **Viber** is your machine running the OpenViber runtime. It is the engine that executes AI **Tasks**.
 
 ## How It Works
 
@@ -10,14 +10,14 @@ A **Viber** is your machine running the OpenViber runtime. It acts as a host for
 graph TB
     subgraph node["Viber (your machine)"]
         subgraph openviber["OpenViber runtime"]
-            v1["dev-task"]
-            v2["researcher-task"]
-            v3["pm-task"]
+            t1["dev-task"]
+            t2["researcher-task"]
+            t3["pm-task"]
         end
     end
 ```
 
-Your machine becomes a **Viber** — a runtime that hosts one or more tasks. Each task has a distinct role. You talk to them naturally:
+Your machine becomes a **Viber** — a runtime that executes one or more **Tasks**. Each task has a distinct role. You talk to them naturally:
 
 ```
 You:   "Build a landing page for our new product, dark theme"
@@ -65,7 +65,7 @@ This gives good defaults for built-in templates while still letting you create p
 
 ### Guided Setup Before Launch
 
-When a selected Viber is active but a required skill is not ready on that machine, OpenViber starts a proactive setup flow:
+When a selected Viber is active but a required skill is not ready, OpenViber starts a proactive setup flow:
 
 - checks Viber availability
 - runs skill provisioning for supported skills
@@ -82,19 +82,31 @@ You can manage built-in and custom intent templates in **Settings → Intents**:
 - replicate built-in templates into editable user templates
 - keep intent instructions aligned with your team workflows
 
+## What Makes a Viber
+
+A Viber combines three elements that no chat-only AI has:
+
+| Element                 | What It Gives You                                                            |
+| ----------------------- | ---------------------------------------------------------------------------- |
+| **Persona & Goals**     | Role focus — configured per-task, allowing the Viber to switch contexts      |
+| **Machine Runtime**     | Real execution — terminal, browser, files, apps on your machine              |
+| **Identity & Accounts** | Agency — acts on your behalf across GitHub, email, cloud services            |
+
+This is what separates a Viber from a chatbot: it doesn't just answer questions, it **does the work**.
+
 ## Working Modes
 
 | Mode               | When to Use                                                    |
 | ------------------ | -------------------------------------------------------------- |
 | **Always Ask**     | Building trust — task asks before each action                  |
-| **Task Decides**   | Daily work — task acts within policy, escalates risky actions (also known as "Viber Decides") |
+| **Viber Decides**  | Daily work — task acts within policy, escalates risky actions  |
 | **Always Execute** | Overnight runs — maximum autonomy, intervene by exception      |
 
 Start with "Always Ask" and graduate to "Task Decides" as you build confidence.
 
 ## You Stay in Control
 
-Your tasks work autonomously but you always have oversight:
+Your Viber works autonomously but you always have oversight:
 
 - **Observe** — Watch terminal output in real time via tmux streaming
 - **Intervene** — Pause, redirect, or stop at any point through chat
@@ -110,7 +122,7 @@ A **Viber** is a single machine running the OpenViber runtime. It provides:
 - **Config** — Identity and settings at `~/.openviber/` (lightweight, portable)
 - **Spaces** — Working data at `~/openviber_spaces/` (repos, research, outputs)
 
-### Adding a Viber
+### Connecting a Viber
 
 From the OpenViber Board, click **Add Viber** to generate a one-liner:
 

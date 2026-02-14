@@ -7,7 +7,7 @@ description: "You Imagine It. Tasks Build It."
 
 **You Imagine It. Tasks Build It.**
 
-**OpenViber** is an open-source platform that turns your machine into a **Viber** — a runtime that hosts role-scoped AI workers called **tasks**. You describe what you want, and tasks handle the work autonomously. Runs locally with full privacy, connects to your channels, and works while you sleep.
+**OpenViber** is an open-source platform that turns your machine into a **Viber** — a runtime that executes autonomous AI tasks. You describe what you want, and the Viber handles the work autonomously. Runs locally with full privacy, connects to your channels, and works while you sleep.
 
 The CLI is available as both `openviber` and the shorter alias `viber` (when installed).
 
@@ -61,9 +61,9 @@ openviber channels
 
 | Concept | What It Is |
 |---------|------------|
-| **Viber** | Your machine running the OpenViber daemon — manages tasks, jobs, and skills |
-| **Task** | A chat session / unit of work running on a Viber |
-| **Tools** | Actions tasks can take (file, search, web, browser, desktop, schedule, notify) |
+| **Viber** | Your machine (the AI Worker) running the OpenViber daemon — executes tasks |
+| **Task** | A role-scoped unit of work assigned to a Viber |
+| **Tools** | Actions the Viber can take (file, search, web, browser, desktop, schedule, notify) |
 | **Skills** | Domain knowledge bundles (`SKILL.md` + optional tools) — antigravity, cursor-agent, codex-cli, github, terminal |
 | **Jobs** | Cron-scheduled tasks that run tasks autonomously on a timer |
 

@@ -15,13 +15,13 @@ description: "Domain knowledge bundles that teach agents how to approach specifi
 | **Content** | Instructions, best practices, workflows | Executable functions |
 | **Format** | Markdown (`SKILL.md`) + optional code (`index.ts`) | TypeScript classes or functions |
 | **Example** | "How to use the Cursor CLI from automation" | `file.write()`, `search()` |
-| **Loaded when** | Referenced in viber config or agent setup | Registered in the tool registry |
+| **Loaded when** | Referenced in task config or agent setup | Registered in the tool registry |
 
 A skill can *include* tools, but a tool never includes a skill. Skills are the higher-level concept.
 
 ## How Skills Work
 
-Each skill is a directory containing a `SKILL.md` file. When a skill is assigned to a viber, the instructions from `SKILL.md` are injected into the agent's system prompt. This teaches the agent:
+Each skill is a directory containing a `SKILL.md` file. When a skill is assigned to a task, the instructions from `SKILL.md` are injected into the agent's system prompt. This teaches the agent:
 
 - **What to look for** — Patterns, signals, error indicators
 - **How to approach problems** — Strategies, procedures, best practices
@@ -70,7 +70,7 @@ The frontmatter fields:
 
 | Field | Required | Description |
 |-------|----------|-------------|
-| `name` | Yes | Skill identifier (used in viber config) |
+| `name` | Yes | Skill identifier (used in task config) |
 | `description` | Yes | Short description of the skill's purpose |
 | `version` | No | Semantic version for the skill |
 | `author` | No | Skill author |
@@ -169,7 +169,7 @@ The `antigravity_check_and_heal` tool is an all-in-one health check. It scans al
 | | |
 |---|---|
 | **Tools** | `cursor_agent_run` |
-| **Use case** | Delegate coding tasks to Cursor CLI from a viber |
+| **Use case** | Delegate coding tasks to Cursor CLI from a task |
 | **Depends on** | Cursor CLI installed, terminal skill available |
 
 **Critical:** The Cursor CLI requires a real TTY. Running it directly from a subprocess will hang. This skill runs the agent inside a persistent terminal session to provide a pseudo-terminal. The `cursor_agent_run` tool handles session creation, command execution, workspace trust acceptance, and output capture.
@@ -186,7 +186,7 @@ The `antigravity_check_and_heal` tool is an all-in-one health check. It scans al
 | | |
 |---|---|
 | **Tools** | `codex_run` |
-| **Use case** | Delegate coding tasks to Codex CLI from a viber |
+| **Use case** | Delegate coding tasks to Codex CLI from a task |
 | **Depends on** | Codex CLI installed (`pnpm add -g @openai/codex`), authenticated |
 
 Unlike cursor-agent, codex-cli uses the non-interactive `codex exec` command, which works reliably from Node.js tool calls without a persistent terminal session. The tool returns structured, chat-friendly results:
@@ -256,9 +256,9 @@ The skill-playground tool reads the target skill's playground definition from
 
 ## Using Skills
 
-### Assigning Skills to a Viber
+### Assigning Skills to a Task
 
-Add skills to your viber configuration in `~/.openviber/vibers/{id}.yaml`:
+Add skills to your task configuration in `~/.openviber/vibers/{id}.yaml`:
 
 ```yaml
 name: "Developer"
@@ -291,7 +291,7 @@ prompt: "Check Antigravity IDE health and auto-recover if needed."
 **With skill:**
 > "Monitor Antigravity and auto-recover if needed."
 
-The skill contains all the detailed knowledge. The viber knows what to look for, how to recover, and what tools to call.
+The skill contains all the detailed knowledge. The task knows what to look for, how to recover, and what tools to call.
 
 ## Creating Custom Skills
 
@@ -315,7 +315,7 @@ The skill contains all the detailed knowledge. The viber knows what to look for,
 
 3. Optionally add `index.ts` with specialized tools.
 
-4. Reference the skill in your viber config:
+4. Reference the skill in your task config:
    ```yaml
    skills:
      - my-skill
@@ -327,5 +327,5 @@ Custom skills are discovered automatically on startup. No code changes to OpenVi
 
 - [Tools](/docs/concepts/tools) — Actions that agents can take
 - [Jobs](/docs/concepts/jobs) — Schedule recurring tasks that use skills
-- [Viber](/docs/concepts/viber) — How to configure vibers with skills
+- [Viber](/docs/concepts/viber) — How to configure tasks with skills
 - [Config Schema](/docs/reference/config-schema) — Full configuration reference

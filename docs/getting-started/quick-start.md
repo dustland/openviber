@@ -61,7 +61,7 @@ Open [http://localhost:6006](http://localhost:6006) to see the Viber Board.
 ## Next Steps
 
 - [Introduction](/docs/introduction) — What OpenViber is and how it works
-- [Viber](/docs/concepts/viber) — Configure task behavior on your machine
+- [Viber](/docs/concepts/viber) — The Viber Runtime & Tasks
 - [Tools](/docs/concepts/tools) — Available actions
 - [Skills](/docs/concepts/skills) — Add domain knowledge
 - [Jobs](/docs/concepts/jobs) — Set up scheduled tasks

@@ -50,7 +50,7 @@ Gateway. In docs, "daemon" and "Viber runtime" are used interchangeably.
 
 ### Gateway
 
-The central coordinator that routes messages between Vibers (daemons) and the web app.
+The central coordinator that routes messages between Viber runtimes (daemons) and the web app.
 Started via `viber gateway`. Vibers connect outbound to the gateway via WebSocket; the web app
 (Viber Board) talks to the gateway via REST and SSE. This is distinct from the **Channels**
 server (enterprise channel webhooks) and from the **Skill Hub** (external skill registry).
@@ -171,9 +171,9 @@ A capability that extends what tasks can do. Tools allow tasks to:
 
 ### Task
 
-A role-scoped AI worker that runs on a Viber. Each task has its own:
+A role-scoped unit of work or assignment that runs on a Viber. Each task has its own:
 
-- **Persona** — Name, personality, communication style
+- **Persona** — Name, personality, communication style (adopted by the Viber for this task)
 - **Goals** — What it's designed to accomplish
 - **Tools** — What actions it can take
 - **Skills** — Domain knowledge it applies
@@ -185,9 +185,9 @@ Tasks are configured through YAML files in `~/.openviber/vibers/`.
 
 ### Viber
 
-A machine running the OpenViber runtime that hosts one or more tasks. A Viber provides:
+A machine running the OpenViber runtime that executes tasks. The Viber is the **AI Worker**. A Viber provides:
 
-- **Runtime** — The daemon process that executes tasks and connects to the Gateway
+- **Runtime** — The Viber runtime (daemon) process that executes tasks and connects to the Gateway
 - **Scheduler** — Cron-based job scheduling for automated tasks
 - **Credentials** — Shared account access for hosted tasks
 - **Config** — Identity and settings at `~/.openviber/` (lightweight, portable)
@@ -212,10 +212,10 @@ The core class that orchestrates a task's execution. ViberAgent:
 
 | Concept | Definition |
 |---------|-----------|
-| **Task** | A role-scoped AI worker with persona, goals, tools, and skills |
-| **Viber** | A machine running OpenViber, hosting one or more tasks |
-| **Space** | A persistent workspace container for a task's work |
-| **Skill** | Domain knowledge bundle (`SKILL.md` + optional tools) that teaches tasks domain-specific approaches |
+| **Task** | A role-scoped unit of work with persona, goals, tools, and skills |
+| **Viber** | A machine running OpenViber (the AI Worker) that executes tasks |
+| **Space** | A persistent workspace container for a viber's work |
+| **Skill** | Domain knowledge bundle (`SKILL.md` + optional tools) that teaches agents domain-specific approaches |
 | **Tool** | An action capability (file ops, terminal, browser, search) |
 | **Job** | A YAML-defined scheduled task that runs on a cron timer |
 

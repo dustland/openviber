@@ -70,7 +70,7 @@ prompt: |
 | `model` | Yes* | — | Model to use (e.g., `deepseek/deepseek-chat`) |
 | `skills` | No | `[]` | Skills to enable for this job |
 | `tools` | No | `[]` | Additional tools to enable |
-| `prompt` | Yes | — | The instruction for the task |
+| `prompt` | Yes | — | The task/instruction for the agent |
 | `nodeId` | No | — | Target a specific Viber (for gateway/Board-pushed jobs) |
 
 *Jobs without a `model` field are skipped at execution time.
@@ -323,6 +323,6 @@ Hot-reloading of job files is planned but not yet implemented.
 
 - [Skills](/docs/concepts/skills) — Domain knowledge for job tasks
 - [Tools](/docs/concepts/tools) — Actions available to jobs
-- [Viber](/docs/concepts/viber) — Viber configuration and working modes
+- [Viber](/docs/concepts/viber) — Task configuration and working modes
 - [Config Schema](/docs/reference/config-schema) — Full YAML schema reference
 - [Task Lifecycle](/docs/design/task-lifecycle) — How tasks (including job-triggered tasks) flow through the system

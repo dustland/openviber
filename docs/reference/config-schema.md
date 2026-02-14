@@ -5,27 +5,27 @@ description: "Complete reference for agent, channel, and budget configuration"
 
 # Configuration Schema
 
-This document defines the configuration file formats used by OpenViber. Configuration lives under `~/.openviber/` (lightweight, portable). Working data lives in `~/openviber_spaces/` or any directory you point vibers at.
+This document defines the configuration file formats used by OpenViber. Configuration lives under `~/.openviber/` (lightweight, portable). Working data lives in `~/openviber_spaces/` or any directory you point tasks at.
 
 ## 1. Directory Layout
 
 ```
 ~/.openviber/                        # Config-only (small, portable)
-├── config.yaml                      # Node-level daemon configuration
+├── config.yaml                      # Viber-level daemon configuration
 ├── user.md                          # Shared user context (who you are)
 ├── skills/                          # Shared skill bundles
 │   └── my-skill/
 │       └── SKILL.md
 ├── mcp/                             # MCP server configs (optional)
 └── vibers/
-    ├── default.yaml                 # Default viber config
+    ├── default.yaml                 # Default task config
     ├── default/
-    │   ├── soul.md                  # Persona for this viber
+    │   ├── soul.md                  # Persona for this task
     │   ├── memory.md                # Long-term memory
     │   ├── memory/                  # Daily memory logs
     │   ├── sessions/                # Conversation logs (*.jsonl)
     │   └── jobs/                    # Scheduled tasks
-    ├── dev.yaml                     # Named viber config
+    ├── dev.yaml                     # Named task config
     └── dev/
         ├── soul.md
         ├── memory.md
@@ -50,7 +50,7 @@ daemon:
   port: 3000                     # Listen port
   log_level: "info"              # debug | info | warn | error
 
-# Default model settings (can be overridden per agent)
+# Default model settings (can be overridden per task)
 defaults:
   model: "anthropic/claude-sonnet-4-20250514"
   temperature: 0.7
@@ -116,7 +116,7 @@ Values starting with `${` and ending with `}` are expanded from environment vari
 api_key: "${ANTHROPIC_API_KEY}"  # Reads $ANTHROPIC_API_KEY
 ```
 
-## 3. Viber Configuration (`vibers/{id}.yaml`)
+## 3. Task Configuration (`vibers/{id}.yaml`)
 
 ```yaml
 # ~/.openviber/vibers/default.yaml
@@ -126,14 +126,14 @@ name: "Developer"                    # Display name
 model: "anthropic/claude-sonnet-4-20250514"    # Provider/model identifier
 
 # Optional fields
-description: "Full-stack development viber"
+description: "Full-stack development task"
 
 # Model parameters
 temperature: 0.7
 max_tokens: 4096
 top_p: 1.0
 
-# Tools available to this viber
+# Tools available to this task
 tools:
   - file                         # read_file, write_file, list_files
   - terminal                     # shell_command
@@ -152,7 +152,7 @@ skills:
   - cursor-agent
   - codex-cli
 
-# Per-viber budget override
+# Per-task budget override
 budget:
   limit_usd: 10.00
   mode: "hard"
@@ -160,7 +160,7 @@ budget:
 # Working mode default
 mode: "viber_decides"            # always_ask | viber_decides | always_execute
 
-# Spaces this viber works on
+# Spaces this task works on
 spaces:
   - ~/openviber_spaces/my-webapp
   - ~/code/legacy-api            # Can point anywhere
@@ -348,7 +348,7 @@ Costs are estimated using provider pricing:
 
 ## 6. Job/Schedule Configuration
 
-Jobs are YAML files stored per-viber in `~/.openviber/vibers/{id}/jobs/`:
+Jobs are YAML files stored per-task in `~/.openviber/vibers/{id}/jobs/`:
 
 ```yaml
 # ~/.openviber/vibers/dev/jobs/morning-standup.yaml
@@ -364,7 +364,7 @@ prompt: |
   Check my GitHub notifications and summarize what needs attention.
   Format as a brief bullet list.
 
-# Override viber settings for this job
+# Override task settings for this job
 model: "anthropic/claude-3-haiku-20240307"  # Use cheaper model for routine tasks
 
 # Skills to include
@@ -542,7 +542,7 @@ interface GlobalConfig {
   mcp_servers?: McpServerConfig[];
 }
 
-interface ViberConfig {
+interface TaskConfig {
   name: string;
   model: string;
   description?: string;
@@ -552,7 +552,7 @@ interface ViberConfig {
   tools?: string[];
   require_approval?: string[];
   skills?: string[];
-  budget?: ViberBudgetConfig;
+  budget?: TaskBudgetConfig;
   mode?: "always_ask" | "viber_decides" | "always_execute";
   spaces?: string[];
   retry?: RetryConfig;

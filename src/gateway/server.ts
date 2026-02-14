@@ -21,6 +21,7 @@
 import { createServer, IncomingMessage, ServerResponse } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { URL } from "url";
+import { Router, readJsonBody } from "../utils/router";
 import type {
   MachineResourceStatus,
   ViberRunningStatus,
@@ -149,7 +150,11 @@ export class GatewayServer {
     }
   > = new Map();
 
-  constructor(private config: GatewayConfig) { }
+  private router = new Router();
+
+  constructor(private config: GatewayConfig) {
+    this.setupRoutes();
+  }
 
   private pushNodeEvent(evt: Omit<SystemEvent, "at" | "category">): void {
     this.nodeEvents.push({ ...evt, at: new Date().toISOString(), category: "system" });
@@ -158,9 +163,29 @@ export class GatewayServer {
     }
   }
 
+  private setupRoutes(): void {
+    this.router.get("/health", this.handleHealth.bind(this));
+
+    this.router.get("/api/nodes", this.handleListNodes.bind(this));
+    this.router.get("/api/nodes/:id/status", this.handleGetNodeStatus.bind(this));
+    this.router.post("/api/nodes/:id/job", this.handlePushJobToNode.bind(this));
+    this.router.post("/api/nodes/:id/config-push", this.handleConfigPush.bind(this));
+    this.router.post("/api/nodes/:id/skills/provision", this.handleProvisionNodeSkill.bind(this));
+
+    this.router.get("/api/jobs", this.handleListAllJobs.bind(this));
+    this.router.get("/api/events", this.handleListEvents.bind(this));
+
+    this.router.get("/api/tasks", this.handleListTasks.bind(this));
+    this.router.post("/api/tasks", this.handleCreateTask.bind(this));
+    this.router.get("/api/tasks/:id", this.handleGetTask.bind(this));
+    this.router.post("/api/tasks/:id/message", this.handleSendMessage.bind(this));
+    this.router.post("/api/tasks/:id/stop", this.handleStopTask.bind(this));
+    this.router.get("/api/tasks/:id/stream", this.handleStreamTask.bind(this));
+  }
+
   async start(): Promise<void> {
     return new Promise((resolve, reject) => {
-      this.server = createServer((req, res) => this.handleHttp(req, res));
+      this.server = createServer((req, res) => this.router.handle(req, res));
 
       this.server.on("error", (err: NodeJS.ErrnoException) => {
         if (err.code === "EADDRINUSE") {
@@ -237,92 +262,7 @@ export class GatewayServer {
 
   // ==================== HTTP Handler ====================
 
-  private handleHttp(req: IncomingMessage, res: ServerResponse): void {
-    const url = new URL(req.url || "/", `http://localhost:${this.config.port}`);
-    const method = req.method || "GET";
-
-    // CORS headers
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    res.setHeader(
-      "Access-Control-Allow-Headers",
-      "Content-Type, Authorization",
-    );
-
-    if (method === "OPTIONS") {
-      res.writeHead(204);
-      res.end();
-      return;
-    }
-
-    // Route handling
-    if (url.pathname === "/health" && method === "GET") {
-      this.handleHealth(res);
-    } else if (url.pathname === "/api/nodes" && method === "GET") {
-      this.handleListNodes(res);
-    } else if (url.pathname === "/api/jobs" && method === "GET") {
-      this.handleListAllJobs(res);
-    } else if (url.pathname === "/api/events" && method === "GET") {
-      this.handleListEvents(url, res);
-    } else if (url.pathname === "/api/tasks" && method === "GET") {
-      this.handleListTasks(res);
-    } else if (url.pathname === "/api/tasks" && method === "POST") {
-      this.handleCreateTask(req, res);
-    } else if (
-      url.pathname.match(/^\/api\/tasks\/[^/]+$/) &&
-      method === "GET"
-    ) {
-      const taskId = decodeURIComponent(url.pathname.split("/").pop()!);
-      this.handleGetTask(taskId, res);
-    } else if (
-      url.pathname.match(/^\/api\/tasks\/[^/]+\/message$/) &&
-      method === "POST"
-    ) {
-      const taskId = decodeURIComponent(url.pathname.split("/")[3]);
-      this.handleSendMessage(taskId, req, res);
-    } else if (
-      url.pathname.match(/^\/api\/tasks\/[^/]+\/stop$/) &&
-      method === "POST"
-    ) {
-      const taskId = decodeURIComponent(url.pathname.split("/")[3]);
-      this.handleStopTask(taskId, res);
-    } else if (
-      url.pathname.match(/^\/api\/tasks\/[^/]+\/stream$/) &&
-      method === "GET"
-    ) {
-      const taskId = decodeURIComponent(url.pathname.split("/")[3]);
-      this.handleStreamTask(taskId, req, res);
-    } else if (
-      url.pathname.match(/^\/api\/nodes\/[^/]+\/skills\/provision$/) &&
-      method === "POST"
-    ) {
-      const nodeId = decodeURIComponent(url.pathname.split("/")[3]);
-      this.handleProvisionNodeSkill(nodeId, req, res);
-    } else if (
-      url.pathname.match(/^\/api\/nodes\/[^/]+\/status$/) &&
-      method === "GET"
-    ) {
-      const nodeId = decodeURIComponent(url.pathname.split("/")[3]);
-      this.handleGetNodeStatus(nodeId, req, res);
-    } else if (
-      url.pathname.match(/^\/api\/nodes\/[^/]+\/job$/) &&
-      method === "POST"
-    ) {
-      const nodeId = decodeURIComponent(url.pathname.split("/")[3]);
-      this.handlePushJobToNode(nodeId, req, res);
-    } else if (
-      url.pathname.match(/^\/api\/nodes\/[^/]+\/config-push$/) &&
-      method === "POST"
-    ) {
-      const nodeId = decodeURIComponent(url.pathname.split("/")[3]);
-      this.handleConfigPush(nodeId, res);
-    } else {
-      res.writeHead(404, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: "Not found" }));
-    }
-  }
-
-  private handleHealth(res: ServerResponse): void {
+  private handleHealth(_req: IncomingMessage, res: ServerResponse): void {
     // Aggregate node health summary
     const nodesSummary = Array.from(this.nodes.values()).map((n) => {
       const heartbeatAgeMs = Date.now() - n.lastHeartbeat.getTime();
@@ -354,7 +294,7 @@ export class GatewayServer {
     );
   }
 
-  private handleListNodes(res: ServerResponse): void {
+  private handleListNodes(_req: IncomingMessage, res: ServerResponse): void {
     const nodes = Array.from(this.nodes.values()).map((n) => ({
       id: n.id,
       name: n.name,
@@ -397,7 +337,7 @@ export class GatewayServer {
     res.end(JSON.stringify({ connected: true, nodes }));
   }
 
-  private handleListTasks(res: ServerResponse): void {
+  private handleListTasks(_req: IncomingMessage, res: ServerResponse): void {
     const vibers = Array.from(this.vibers.values()).map((v) => {
       const node = this.nodes.get(v.nodeId);
       return {
@@ -422,7 +362,8 @@ export class GatewayServer {
    * GET /api/events - Unified chronological event stream across all vibers + system events.
    * Supports ?limit=200&since=<ISO timestamp>
    */
-  private handleListEvents(url: URL, res: ServerResponse): void {
+  private handleListEvents(req: IncomingMessage, res: ServerResponse): void {
+    const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
     const limit = Math.min(parseInt(url.searchParams.get("limit") || "200", 10), 1000);
     const since = url.searchParams.get("since");
     const sinceMs = since ? new Date(since).getTime() : 0;
@@ -470,74 +411,75 @@ export class GatewayServer {
     res.end(JSON.stringify({ events: allEvents.slice(0, limit) }));
   }
 
-  private handleCreateTask(req: IncomingMessage, res: ServerResponse): void {
-    let body = "";
-    req.on("data", (chunk) => (body += chunk));
-    req.on("end", () => {
-      try {
-        const { goal, nodeId, messages, environment, settings, oauthTokens, model } = JSON.parse(body);
+  private async handleCreateTask(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    try {
+      const { goal, nodeId, messages, environment, settings, oauthTokens, model } = await readJsonBody(req);
 
-        if (!goal) {
-          res.writeHead(400, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ error: "Missing goal" }));
-          return;
-        }
-
-        // Find node (use specified or first available)
-        let node: ConnectedNode | undefined;
-        if (nodeId) {
-          node = this.nodes.get(nodeId);
-        } else {
-          node = this.nodes.values().next().value;
-        }
-
-        if (!node) {
-          res.writeHead(503, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ error: "No node available" }));
-          return;
-        }
-
-        // Create viber
-        const viberId = `viber-${Date.now()}-${Math.random()
-          .toString(36)
-          .slice(2, 8)}`;
-        const viber: Viber = {
-          id: viberId,
-          nodeId: node.id,
-          goal,
-          status: "pending",
-          createdAt: new Date(),
-          events: [],
-          partialText: "",
-          streamChunks: [],
-          streamBytes: 0,
-        };
-        this.vibers.set(viberId, viber);
-
-        // Tell the node daemon to prepare and run this viber
-        node.ws.send(
-          JSON.stringify({
-            type: "viber:create",
-            viberId,
-            goal,
-            messages,
-            environment,
-            settings,
-            oauthTokens,
-            options: model ? { model } : undefined,
-          }),
-        );
-
-        res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ viberId, nodeId: node.id }));
-      } catch (error) {
+      if (!goal) {
         res.writeHead(400, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: "Invalid request body" }));
+        res.end(JSON.stringify({ error: "Missing goal" }));
+        return;
       }
-    });
+
+      // Find node (use specified or first available)
+      let node: ConnectedNode | undefined;
+      if (nodeId) {
+        node = this.nodes.get(nodeId);
+      } else {
+        node = this.nodes.values().next().value;
+      }
+
+      if (!node) {
+        res.writeHead(503, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "No node available" }));
+        return;
+      }
+
+      // Create viber
+      const viberId = `viber-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2, 8)}`;
+      const viber: Viber = {
+        id: viberId,
+        nodeId: node.id,
+        goal,
+        status: "pending",
+        createdAt: new Date(),
+        events: [],
+        partialText: "",
+        streamChunks: [],
+        streamBytes: 0,
+      };
+      this.vibers.set(viberId, viber);
+
+      // Tell the node daemon to prepare and run this viber
+      node.ws.send(
+        JSON.stringify({
+          type: "viber:create",
+          viberId,
+          goal,
+          messages,
+          environment,
+          settings,
+          oauthTokens,
+          options: model ? { model } : undefined,
+        }),
+      );
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ viberId, nodeId: node.id }));
+    } catch (error) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Invalid request body" }));
+    }
   }
 
-  private handleGetTask(taskId: string, res: ServerResponse): void {
+  private handleGetTask(
+    _req: IncomingMessage,
+    res: ServerResponse,
+    params: Record<string, string>
+  ): void {
+    const taskId = params.id;
     const viber = this.vibers.get(taskId);
 
     if (!viber) {
@@ -573,11 +515,12 @@ export class GatewayServer {
    * POST /api/tasks/:id/message - Send a message to an existing task.
    * Reuses the task ID, resets its status, and sends the messages to the node.
    */
-  private handleSendMessage(
-    viberId: string,
+  private async handleSendMessage(
     req: IncomingMessage,
     res: ServerResponse,
-  ): void {
+    params: Record<string, string>
+  ): Promise<void> {
+    const viberId = params.id;
     const viber = this.vibers.get(viberId);
     if (!viber) {
       res.writeHead(404, { "Content-Type": "application/json" });
@@ -592,50 +535,51 @@ export class GatewayServer {
       return;
     }
 
-    let body = "";
-    req.on("data", (chunk) => (body += chunk));
-    req.on("end", () => {
-      try {
-        const { messages, goal, environment, settings, oauthTokens, model } = JSON.parse(body);
+    try {
+      const { messages, goal, environment, settings, oauthTokens, model } = await readJsonBody(req);
 
-        // Reset viber state for the new message
-        viber.status = "pending";
-        viber.completedAt = undefined;
-        viber.result = undefined;
-        viber.error = undefined;
-        viber.events = [];
-        viber.partialText = "";
-        viber.streamChunks = [];
-        viber.streamBytes = 0;
-        if (goal) viber.goal = goal;
+      // Reset viber state for the new message
+      viber.status = "pending";
+      viber.completedAt = undefined;
+      viber.result = undefined;
+      viber.error = undefined;
+      viber.events = [];
+      viber.partialText = "";
+      viber.streamChunks = [];
+      viber.streamBytes = 0;
+      if (goal) viber.goal = goal;
 
-        // Close old stream subscribers so the new request gets a fresh stream
-        this.closeStreamSubscribers(viberId);
+      // Close old stream subscribers so the new request gets a fresh stream
+      this.closeStreamSubscribers(viberId);
 
-        // Send message to the node daemon
-        node.ws.send(
-          JSON.stringify({
-            type: "viber:create",
-            viberId,
-            goal: goal || viber.goal,
-            messages,
-            environment,
-            settings,
-            oauthTokens,
-            options: model ? { model } : undefined,
-          }),
-        );
+      // Send message to the node daemon
+      node.ws.send(
+        JSON.stringify({
+          type: "viber:create",
+          viberId,
+          goal: goal || viber.goal,
+          messages,
+          environment,
+          settings,
+          oauthTokens,
+          options: model ? { model } : undefined,
+        }),
+      );
 
-        res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ viberId, nodeId: node.id }));
-      } catch (error) {
-        res.writeHead(400, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: "Invalid request body" }));
-      }
-    });
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ viberId, nodeId: node.id }));
+    } catch (error) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Invalid request body" }));
+    }
   }
 
-  private handleStopTask(viberId: string, res: ServerResponse): void {
+  private handleStopTask(
+    _req: IncomingMessage,
+    res: ServerResponse,
+    params: Record<string, string>
+  ): void {
+    const viberId = params.id;
     const viber = this.vibers.get(viberId);
 
     if (!viber) {
@@ -662,11 +606,12 @@ export class GatewayServer {
   /**
    * POST /api/nodes/:nodeId/job - Push a job config to a node. The node writes it to its local jobs dir and reloads the scheduler.
    */
-  private handlePushJobToNode(
-    nodeId: string,
+  private async handlePushJobToNode(
     req: IncomingMessage,
     res: ServerResponse,
-  ): void {
+    params: Record<string, string>
+  ): Promise<void> {
+    const nodeId = params.id;
     const node = this.nodes.get(nodeId);
     if (!node) {
       res.writeHead(404, { "Content-Type": "application/json" });
@@ -674,57 +619,54 @@ export class GatewayServer {
       return;
     }
 
-    let body = "";
-    req.on("data", (chunk) => (body += chunk));
-    req.on("end", () => {
-      try {
-        const config = JSON.parse(body || "{}");
-        const { name, schedule, prompt, description, model } = config;
-        if (!name || !schedule || !prompt) {
-          res.writeHead(400, { "Content-Type": "application/json" });
-          res.end(
-            JSON.stringify({
-              error: "Missing required fields: name, schedule, prompt",
-            }),
-          );
-          return;
-        }
-        const message = {
-          type: "job:create",
-          name: String(name).trim(),
-          schedule: String(schedule).trim(),
-          prompt: String(prompt).trim(),
-          ...(description != null && {
-            description: String(description).trim(),
-          }),
-          ...(model != null && { model: String(model).trim() }),
-          ...(config.nodeId != null && {
-            nodeId: String(config.nodeId).trim(),
-          }),
-        };
-        node.ws.send(JSON.stringify(message));
-        res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ ok: true, message: "Job pushed to node" }));
-      } catch (err) {
+    try {
+      const config = await readJsonBody(req);
+      const { name, schedule, prompt, description, model } = config;
+      if (!name || !schedule || !prompt) {
         res.writeHead(400, { "Content-Type": "application/json" });
         res.end(
           JSON.stringify({
-            error: err instanceof Error ? err.message : "Invalid JSON body",
+            error: "Missing required fields: name, schedule, prompt",
           }),
         );
+        return;
       }
-    });
+      const message = {
+        type: "job:create",
+        name: String(name).trim(),
+        schedule: String(schedule).trim(),
+        prompt: String(prompt).trim(),
+        ...(description != null && {
+          description: String(description).trim(),
+        }),
+        ...(model != null && { model: String(model).trim() }),
+        ...(config.nodeId != null && {
+          nodeId: String(config.nodeId).trim(),
+        }),
+      };
+      node.ws.send(JSON.stringify(message));
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: true, message: "Job pushed to node" }));
+    } catch (err) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(
+        JSON.stringify({
+          error: err instanceof Error ? err.message : "Invalid JSON body",
+        }),
+      );
+    }
   }
 
   /**
    * POST /api/nodes/:nodeId/skills/provision - Run deterministic skill setup actions on a node.
    * The gateway sends a direct command to the node and waits for a result payload.
    */
-  private handleProvisionNodeSkill(
-    nodeId: string,
+  private async handleProvisionNodeSkill(
     req: IncomingMessage,
     res: ServerResponse,
-  ): void {
+    params: Record<string, string>
+  ): Promise<void> {
+    const nodeId = params.id;
     const node = this.nodes.get(nodeId);
     if (!node) {
       res.writeHead(404, { "Content-Type": "application/json" });
@@ -732,76 +674,72 @@ export class GatewayServer {
       return;
     }
 
-    let body = "";
-    req.on("data", (chunk) => (body += chunk));
-    req.on("end", () => {
-      let requestId = "";
-      try {
-        const parsed = JSON.parse(body || "{}");
-        const skillId = String(parsed.skillId || "").trim();
-        if (!skillId) {
-          res.writeHead(400, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ error: "Missing skillId" }));
-          return;
-        }
-
-        const requestId = String(parsed.requestId || `skill-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
-        const authAction =
-          parsed.authAction === "none" ||
-            parsed.authAction === "copy" ||
-            parsed.authAction === "start"
-            ? parsed.authAction
-            : "copy";
-
-        const timeout = setTimeout(() => {
-          this.pendingSkillProvisionResolvers.delete(requestId);
-          if (!res.writableEnded) {
-            res.writeHead(504, { "Content-Type": "application/json" });
-            res.end(
-              JSON.stringify({
-                error: "Timed out waiting for node skill provisioning result",
-                requestId,
-                skillId,
-              }),
-            );
-          }
-        }, 90_000);
-
-        this.pendingSkillProvisionResolvers.set(requestId, {
-          timeout,
-          resolve: (payload: any) => {
-            if (res.writableEnded) return;
-            res.writeHead(200, { "Content-Type": "application/json" });
-            res.end(JSON.stringify(payload));
-          },
-        });
-
-        node.ws.send(
-          JSON.stringify({
-            type: "skill:provision",
-            requestId,
-            skillId,
-            install: parsed.install !== false,
-            authAction,
-          }),
-        );
-      } catch (error) {
-        if (requestId) {
-          const pending = this.pendingSkillProvisionResolvers.get(requestId);
-          if (pending) {
-            clearTimeout(pending.timeout);
-            this.pendingSkillProvisionResolvers.delete(requestId);
-          }
-        }
+    let requestId = "";
+    try {
+      const parsed = await readJsonBody(req);
+      const skillId = String(parsed.skillId || "").trim();
+      if (!skillId) {
         res.writeHead(400, { "Content-Type": "application/json" });
-        res.end(
-          JSON.stringify({
-            error:
-              error instanceof Error ? error.message : "Invalid JSON body",
-          }),
-        );
+        res.end(JSON.stringify({ error: "Missing skillId" }));
+        return;
       }
-    });
+
+      requestId = String(parsed.requestId || `skill-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+      const authAction =
+        parsed.authAction === "none" ||
+          parsed.authAction === "copy" ||
+          parsed.authAction === "start"
+          ? parsed.authAction
+          : "copy";
+
+      const timeout = setTimeout(() => {
+        this.pendingSkillProvisionResolvers.delete(requestId);
+        if (!res.writableEnded) {
+          res.writeHead(504, { "Content-Type": "application/json" });
+          res.end(
+            JSON.stringify({
+              error: "Timed out waiting for node skill provisioning result",
+              requestId,
+              skillId,
+            }),
+          );
+        }
+      }, 90_000);
+
+      this.pendingSkillProvisionResolvers.set(requestId, {
+        timeout,
+        resolve: (payload: any) => {
+          if (res.writableEnded) return;
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify(payload));
+        },
+      });
+
+      node.ws.send(
+        JSON.stringify({
+          type: "skill:provision",
+          requestId,
+          skillId,
+          install: parsed.install !== false,
+          authAction,
+        }),
+      );
+    } catch (error) {
+      if (requestId) {
+        const pending = this.pendingSkillProvisionResolvers.get(requestId);
+        if (pending) {
+          clearTimeout(pending.timeout);
+          this.pendingSkillProvisionResolvers.delete(requestId);
+        }
+      }
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(
+        JSON.stringify({
+          error:
+            error instanceof Error ? error.message : "Invalid JSON body",
+        }),
+      );
+    }
   }
 
   /**
@@ -811,10 +749,11 @@ export class GatewayServer {
    * Also sends a status:request to the node for fresh data with a short timeout.
    */
   private handleGetNodeStatus(
-    nodeId: string,
     _req: IncomingMessage,
     res: ServerResponse,
+    params: Record<string, string>
   ): void {
+    const nodeId = params.id;
     const node = this.nodes.get(nodeId);
     if (!node) {
       res.writeHead(404, { "Content-Type": "application/json" });
@@ -888,10 +827,11 @@ export class GatewayServer {
    * Holds the response open and pipes task stream chunks from the daemon.
    */
   private handleStreamTask(
-    viberId: string,
     req: IncomingMessage,
     res: ServerResponse,
+    params: Record<string, string>
   ): void {
+    const viberId = params.id;
     const viber = this.vibers.get(viberId);
     if (!viber) {
       res.writeHead(404, { "Content-Type": "application/json" });
@@ -1228,7 +1168,7 @@ export class GatewayServer {
    * The web frontend queries this to observe jobs created from chat or
    * pushed to nodes, giving full visibility across the fleet.
    */
-  private handleListAllJobs(res: ServerResponse): void {
+  private handleListAllJobs(_req: IncomingMessage, res: ServerResponse): void {
     const nodeJobs = Array.from(this.nodes.values()).map((n) => ({
       nodeId: n.id,
       nodeName: n.name,
@@ -1314,7 +1254,12 @@ export class GatewayServer {
    * POST /api/nodes/:id/config-push - Push config to a node.
    * Sends config:push WebSocket message to the target node.
    */
-  private handleConfigPush(nodeId: string, res: ServerResponse): void {
+  private handleConfigPush(
+    _req: IncomingMessage,
+    res: ServerResponse,
+    params: Record<string, string>
+  ): void {
+    const nodeId = params.id;
     const node = this.nodes.get(nodeId);
     if (!node) {
       res.writeHead(404, { "Content-Type": "application/json" });

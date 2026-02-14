@@ -168,7 +168,7 @@
           <Sidebar.MenuItem>
             <Sidebar.MenuButton
               isActive={isArchivedRoute}
-              tooltipContent="Archived vibers"
+              tooltipContent="Archived tasks"
             >
               <a
                 href="/settings/archived"
@@ -176,7 +176,7 @@
               >
                 <Archive class="size-4 shrink-0" />
                 <span class="truncate group-data-[collapsible=icon]:hidden"
-                  >Archived vibers</span
+                  >Archived tasks</span
                 >
               </a>
             </Sidebar.MenuButton>

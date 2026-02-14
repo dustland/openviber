@@ -64,6 +64,7 @@ const DEFAULT_SKILL_SOURCES: Record<string, SkillSourceSetting> = {
 const DEFAULT_CHANNEL_INTEGRATIONS: Record<string, ChannelIntegrationSetting> = {
   discord: { enabled: false, config: {} },
   feishu: { enabled: false, config: {} },
+  wechat: { enabled: false, config: {} },
 };
 
 function normalizeChannelIntegrations(

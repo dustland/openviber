@@ -9,7 +9,7 @@ const ACCESS_TOKEN_COOKIE = "openviber_sb_access_token";
 const REFRESH_TOKEN_COOKIE = "openviber_sb_refresh_token";
 const GITHUB_TOKEN_COOKIE = "openviber_gh_token";
 
-const APP_URL = env.APP_URL || "http://localhost:5173";
+const APP_URL = env.APP_URL || "http://localhost:6006";
 const SUPABASE_URL = env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = env.SUPABASE_ANON_KEY;
 const SUPABASE_SERVICE_ROLE_KEY = env.SUPABASE_SERVICE_ROLE_KEY;
@@ -118,8 +118,7 @@ export function getSupabaseGitHubAuthUrl(nextPath = "/") {
 
   const callbackUrl = new URL(`${APP_URL}/auth/callback`);
   callbackUrl.searchParams.set("next", nextPath);
-  callbackUrl.searchParams.set("state", state);
-  callbackUrl.searchParams.set("provider", "github");
+  callbackUrl.searchParams.set("app_state", state);
 
   const authUrl = new URL("/auth/v1/authorize", supabaseUrl);
   authUrl.searchParams.set("provider", "github");

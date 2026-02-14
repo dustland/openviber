@@ -114,7 +114,7 @@ const AI_PROVIDER_META: Record<
   },
 };
 
-const ALL_CHANNELS = ["discord", "feishu"] as const;
+const ALL_CHANNELS = ["discord", "feishu", "wechat"] as const;
 
 interface ChannelFieldMeta {
   key: string;
@@ -194,7 +194,35 @@ const CHANNEL_META: Record<
       },
     ],
   },
+  wechat: {
+    displayName: "WeChat (微信)",
+    description:
+      "Connect WeChat via proxy API and webhook callback forwarding.",
+    docsUrl: "https://github.com/freestylefly/openclaw-wechat",
+    fields: [
+      {
+        key: "apiKey",
+        label: "API key",
+        placeholder: "wc_live_xxxxxxxxxxxxxxxx",
+        secret: true,
+        type: "password",
+      },
+      {
+        key: "proxyUrl",
+        label: "Proxy URL",
+        placeholder: "https://your-proxy-server",
+        type: "url",
+      },
+      {
+        key: "accountId",
+        label: "Account ID",
+        placeholder: "default",
+        help: "Optional account identifier forwarded as X-Account-ID.",
+      },
+    ],
+  },
 };
+
 
 interface SkillSourceSetting {
   enabled: boolean;

@@ -4,16 +4,16 @@
     Archive,
     ArchiveRestore,
     AlertTriangle,
-    Loader2,
     LoaderCircle,
     RefreshCw,
     Trash2,
   } from "@lucide/svelte";
   import { Button } from "$lib/components/ui/button";
   import { Badge } from "$lib/components/ui/badge";
+  import { Skeleton } from "$lib/components/ui/skeleton";
   import * as Dialog from "$lib/components/ui/dialog";
 
-  interface ArchivedViber {
+  interface ArchivedTask {
     id: string;
     nodeId: string | null;
     nodeName: string | null;
@@ -29,72 +29,72 @@
 
   let loading = $state(true);
   let error = $state<string | null>(null);
-  let archivedVibers = $state<ArchivedViber[]>([]);
-  let busyViberIds = $state<Set<string>>(new Set());
+  let archivedTasks = $state<ArchivedTask[]>([]);
+  let busyTaskIds = $state<Set<string>>(new Set());
   let deleteDialogOpen = $state(false);
-  let deleteTarget = $state<ArchivedViber | null>(null);
+  let deleteTarget = $state<ArchivedTask | null>(null);
   let deleting = $state(false);
 
-  async function fetchArchivedVibers() {
+  async function fetchArchivedTasks() {
     loading = true;
     error = null;
     try {
-      const res = await fetch("/api/vibers?include_archived=true");
+      const res = await fetch("/api/tasks?include_archived=true");
       if (!res.ok) {
-        throw new Error("Failed to load vibers");
+        throw new Error("Failed to load tasks");
       }
-      const data: ArchivedViber[] = await res.json();
-      archivedVibers = data.filter((v) => v.archivedAt);
+      const data: ArchivedTask[] = await res.json();
+      archivedTasks = data.filter((t) => t.archivedAt);
     } catch (e) {
-      error = e instanceof Error ? e.message : "Failed to load archived vibers";
+      error = e instanceof Error ? e.message : "Failed to load archived tasks";
     } finally {
       loading = false;
     }
   }
 
-  async function restoreViber(viberId: string) {
-    if (busyViberIds.has(viberId)) return;
-    busyViberIds.add(viberId);
-    busyViberIds = new Set(busyViberIds);
+  async function restoreTask(taskId: string) {
+    if (busyTaskIds.has(taskId)) return;
+    busyTaskIds.add(taskId);
+    busyTaskIds = new Set(busyTaskIds);
     try {
-      const response = await fetch(`/api/vibers/${viberId}/archive`, {
+      const response = await fetch(`/api/tasks/${taskId}/archive`, {
         method: "DELETE",
       });
       if (response.ok) {
-        archivedVibers = archivedVibers.filter((v) => v.id !== viberId);
+        archivedTasks = archivedTasks.filter((t) => t.id !== taskId);
       } else {
-        console.error("Failed to restore viber");
+        console.error("Failed to restore task");
       }
     } catch (err) {
-      console.error("Failed to restore viber:", err);
+      console.error("Failed to restore task:", err);
     } finally {
-      busyViberIds.delete(viberId);
-      busyViberIds = new Set(busyViberIds);
+      busyTaskIds.delete(taskId);
+      busyTaskIds = new Set(busyTaskIds);
     }
   }
 
-  function openDeleteDialog(viber: ArchivedViber) {
-    deleteTarget = viber;
+  function openDeleteDialog(task: ArchivedTask) {
+    deleteTarget = task;
     deleteDialogOpen = true;
   }
 
   async function confirmDelete() {
     if (!deleteTarget) return;
-    const viberId = deleteTarget.id;
+    const taskId = deleteTarget.id;
     deleting = true;
     try {
-      const response = await fetch(`/api/vibers/${viberId}`, {
+      const response = await fetch(`/api/vibers/${taskId}`, {
         method: "DELETE",
       });
       if (response.ok) {
-        archivedVibers = archivedVibers.filter((v) => v.id !== viberId);
+        archivedTasks = archivedTasks.filter((t) => t.id !== taskId);
         deleteDialogOpen = false;
         deleteTarget = null;
       } else {
-        console.error("Failed to delete viber");
+        console.error("Failed to delete task");
       }
     } catch (err) {
-      console.error("Failed to delete viber:", err);
+      console.error("Failed to delete task:", err);
     } finally {
       deleting = false;
     }
@@ -126,12 +126,12 @@
   }
 
   onMount(() => {
-    fetchArchivedVibers();
+    fetchArchivedTasks();
   });
 </script>
 
 <svelte:head>
-  <title>Archived Vibers — Settings — OpenViber</title>
+  <title>Archived Tasks — Settings — OpenViber</title>
 </svelte:head>
 
 <div class="flex-1 min-h-0 overflow-y-auto">
@@ -146,17 +146,17 @@
           </div>
           <div>
             <h1 class="text-2xl font-semibold text-foreground">
-              Archived Vibers
+              Archived Tasks
             </h1>
             <p class="text-sm text-muted-foreground">
-              Manage archived vibers — restore them or delete them permanently
+              Manage archived tasks — restore them or delete them permanently
             </p>
           </div>
         </div>
         <Button
           variant="outline"
           size="icon"
-          onclick={() => fetchArchivedVibers()}
+          onclick={() => fetchArchivedTasks()}
           disabled={loading}
         >
           <RefreshCw class="size-4 {loading ? 'animate-spin' : ''}" />
@@ -174,26 +174,39 @@
     {/if}
 
     {#if loading}
-      <div class="flex items-center justify-center py-20">
-        <div class="flex flex-col items-center gap-3">
-          <Loader2 class="size-8 text-muted-foreground/50 animate-spin" />
-          <p class="text-sm text-muted-foreground">Loading archived vibers...</p>
-        </div>
+      <div class="space-y-2">
+        {#each Array(4) as _}
+          <div class="rounded-xl border border-border bg-card px-4 py-3">
+            <div class="flex items-center gap-4">
+              <div class="min-w-0 flex-1 space-y-2">
+                <Skeleton class="h-4 w-3/5" />
+                <div class="flex items-center gap-2">
+                  <Skeleton class="h-3 w-16" />
+                  <Skeleton class="h-3 w-24" />
+                </div>
+              </div>
+              <div class="flex items-center gap-1.5 shrink-0">
+                <Skeleton class="h-8 w-20 rounded-md" />
+                <Skeleton class="h-8 w-20 rounded-md" />
+              </div>
+            </div>
+          </div>
+        {/each}
       </div>
-    {:else if archivedVibers.length === 0}
+    {:else if archivedTasks.length === 0}
       <div class="flex flex-col items-center justify-center py-20 text-center">
         <Archive class="size-12 mb-4 text-muted-foreground/30" />
         <p class="text-lg font-medium text-muted-foreground">
-          No archived vibers
+          No archived tasks
         </p>
         <p class="text-sm mt-2 max-w-md text-muted-foreground/80">
-          When you archive a viber, it will appear here. You can then restore it
+          When you archive a task, it will appear here. You can then restore it
           or delete it permanently.
         </p>
       </div>
     {:else}
       <div class="space-y-2">
-        {#each archivedVibers as viber (viber.id)}
+        {#each archivedTasks as task (task.id)}
           <div
             class="group rounded-xl border border-border bg-card hover:bg-accent/30 transition-colors"
           >
@@ -203,27 +216,29 @@
                 <div class="flex items-center gap-2 mb-0.5">
                   <p
                     class="text-sm font-medium text-foreground truncate"
-                    title={viber.goal || viber.id}
+                    title={task.goal || task.id}
                   >
-                    {viber.goal || viber.id}
+                    {task.goal || task.id}
                   </p>
                 </div>
-                <div class="flex items-center gap-2 text-xs text-muted-foreground">
-                  {#if viber.environmentName}
+                <div
+                  class="flex items-center gap-2 text-xs text-muted-foreground"
+                >
+                  {#if task.environmentName}
                     <Badge variant="outline" class="text-[10px] px-1.5 py-0">
-                      {viber.environmentName}
+                      {task.environmentName}
                     </Badge>
                   {/if}
-                  {#if viber.nodeName}
-                    <span>{viber.nodeName}</span>
+                  {#if task.nodeName}
+                    <span>{task.nodeName}</span>
                     <span class="text-muted-foreground/40">·</span>
                   {/if}
-                  {#if viber.archivedAt}
-                    <span>Archived {formatTimeAgo(viber.archivedAt)}</span>
+                  {#if task.archivedAt}
+                    <span>Archived {formatTimeAgo(task.archivedAt)}</span>
                   {/if}
-                  {#if viber.createdAt}
+                  {#if task.createdAt}
                     <span class="text-muted-foreground/40">·</span>
-                    <span>Created {formatDate(viber.createdAt)}</span>
+                    <span>Created {formatDate(task.createdAt)}</span>
                   {/if}
                 </div>
               </div>
@@ -234,10 +249,10 @@
                   variant="outline"
                   size="sm"
                   class="h-8 gap-1.5"
-                  disabled={busyViberIds.has(viber.id)}
-                  onclick={() => restoreViber(viber.id)}
+                  disabled={busyTaskIds.has(task.id)}
+                  onclick={() => restoreTask(task.id)}
                 >
-                  {#if busyViberIds.has(viber.id)}
+                  {#if busyTaskIds.has(task.id)}
                     <LoaderCircle class="size-3.5 animate-spin" />
                   {:else}
                     <ArchiveRestore class="size-3.5" />
@@ -248,7 +263,7 @@
                   variant="outline"
                   size="sm"
                   class="h-8 gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10 hover:border-destructive/30"
-                  onclick={() => openDeleteDialog(viber)}
+                  onclick={() => openDeleteDialog(task)}
                 >
                   <Trash2 class="size-3.5" />
                   Delete
@@ -260,7 +275,7 @@
       </div>
 
       <p class="text-xs text-muted-foreground/60 mt-4">
-        {archivedVibers.length} archived viber{archivedVibers.length !== 1
+        {archivedTasks.length} archived task{archivedTasks.length !== 1
           ? "s"
           : ""}
       </p>
@@ -274,10 +289,10 @@
     <Dialog.Header>
       <Dialog.Title class="flex items-center gap-2">
         <AlertTriangle class="size-5 text-destructive" />
-        Delete viber permanently?
+        Delete task permanently?
       </Dialog.Title>
       <Dialog.Description>
-        This action cannot be undone. The viber and all its associated data will
+        This action cannot be undone. The task and all its associated data will
         be permanently removed.
       </Dialog.Description>
     </Dialog.Header>
@@ -313,7 +328,7 @@
         class="gap-1.5"
       >
         {#if deleting}
-          <Loader2 class="size-4 animate-spin" />
+          <LoaderCircle class="size-4 animate-spin" />
           Deleting...
         {:else}
           <Trash2 class="size-4" />

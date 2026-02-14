@@ -70,17 +70,17 @@ You can manage built-in and custom intent templates in **Settings → Intents**:
 - replicate built-in templates into editable user templates
 - keep intent instructions aligned with your team workflows
 
-## What Makes a Task
+## What Makes a Viber
 
-A Task combines three elements that no chat-only AI has:
+A Viber combines three elements that no chat-only AI has:
 
 | Element                 | What It Gives You                                                            |
 | ----------------------- | ---------------------------------------------------------------------------- |
-| **Persona & Goals**     | Role focus — not a generic assistant, but a specialist with clear objectives |
+| **Persona & Goals**     | Role focus — configured per-task, allowing the Viber to switch contexts      |
 | **Machine Runtime**     | Real execution — terminal, browser, files, apps on your machine              |
 | **Identity & Accounts** | Agency — acts on your behalf across GitHub, email, cloud services            |
 
-This is what separates OpenViber tasks from chatbots: they don't just answer questions, they **do the work**.
+This is what separates a Viber from a chatbot: it doesn't just answer questions, it **does the work**.
 
 ## Working Modes
 

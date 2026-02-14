@@ -173,9 +173,9 @@ A capability that extends what vibers can do. Tools allow vibers to:
 
 ### Task
 
-A role-scoped AI worker that runs on a Viber. Each task has its own:
+A role-scoped unit of work or assignment that runs on a Viber. Each task has its own:
 
-- **Persona** — Name, personality, communication style
+- **Persona** — Name, personality, communication style (adopted by the Viber for this task)
 - **Goals** — What it's designed to accomplish
 - **Tools** — What actions it can take
 - **Skills** — Domain knowledge it applies
@@ -185,7 +185,7 @@ Tasks are configured through YAML files in `~/.openviber/vibers/`.
 
 ### Viber
 
-A machine running the OpenViber runtime that hosts one or more tasks. A Viber provides:
+A machine running the OpenViber runtime that executes tasks. The Viber is the **AI Worker**. A Viber provides:
 
 - **Runtime** — The Viber runtime (daemon) process that executes tasks and connects to the Gateway
 - **Scheduler** — Cron-based job scheduling for automated tasks
@@ -212,8 +212,8 @@ The core class that orchestrates a task's execution. ViberAgent:
 
 | Concept | Definition |
 |---------|-----------|
-| **Task** | A role-scoped AI worker with persona, goals, tools, and skills |
-| **Viber** | A machine running OpenViber, hosting one or more tasks |
+| **Task** | A role-scoped unit of work with persona, goals, tools, and skills |
+| **Viber** | A machine running OpenViber (the AI Worker) that executes tasks |
 | **Space** | A persistent workspace container for a viber's work |
 | **Skill** | Domain knowledge bundle (`SKILL.md` + optional tools) that teaches agents domain-specific approaches |
 | **Tool** | An action capability (file ops, terminal, browser, search) |

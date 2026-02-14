@@ -61,9 +61,9 @@ openviber channels
 
 | Concept | What It Is |
 |---------|------------|
-| **Viber** | Your machine running the OpenViber daemon — manages tasks, jobs, and skills |
-| **Task** | A chat session / unit of work running on a viber |
-| **Tools** | Actions vibers can take (file, search, web, browser, desktop, schedule, notify) |
+| **Viber** | Your machine (the AI Worker) running the OpenViber daemon — executes tasks |
+| **Task** | A role-scoped unit of work assigned to a Viber |
+| **Tools** | Actions the Viber can take (file, search, web, browser, desktop, schedule, notify) |
 | **Skills** | Domain knowledge bundles (`SKILL.md` + optional tools) — antigravity, cursor-agent, codex-cli, github, terminal |
 | **Jobs** | Cron-scheduled tasks that run agents autonomously on a timer |
 

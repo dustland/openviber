@@ -295,14 +295,19 @@
       <Button
         variant={showArchived ? "secondary" : "outline"}
         size="sm"
+        class="gap-2"
+        aria-label={showArchived ? "Hide archived tasks" : "Show archived tasks"}
+        title={showArchived ? "Hide archived tasks" : "Show archived tasks"}
         onclick={() => (showArchived = !showArchived)}
       >
-        <Archive class="size-4 mr-1" />
-        {showArchived ? "Hide Archived" : "Show Archived"}
+        <Archive class="size-4" />
+        <span class="hidden sm:inline"
+          >{showArchived ? "Hide Archived" : "Show Archived"}</span
+        >
       </Button>
-      <Button variant="outline" size="sm" href="/">
-        <Plus class="size-4 mr-1" />
-        New Task
+      <Button variant="outline" size="sm" href="/" class="gap-2" title="New Task">
+        <Plus class="size-4" />
+        <span class="hidden sm:inline">New Task</span>
       </Button>
       <Button
         variant="outline"

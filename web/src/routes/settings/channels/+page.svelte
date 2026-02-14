@@ -8,9 +8,11 @@
     EyeOff,
     Loader2,
     MessageSquare,
+    FlaskConical,
     Save,
     Shield,
   } from "@lucide/svelte";
+  import { Button } from "$lib/components/ui/button";
 
   interface ChannelFieldMeta {
     key: string;
@@ -39,6 +41,10 @@
   let error = $state<string | null>(null);
   let successMessage = $state<string | null>(null);
   let revealedFields = $state<Set<string>>(new Set());
+  let testingChannels = $state<Set<string>>(new Set());
+  let channelTestResults = $state<
+    Record<string, { status: "success" | "error"; message: string }>
+  >({});
 
   function initEditState(data: Record<string, ChannelConfig>) {
     const edit: Record<string, { enabled: boolean; config: Record<string, string> }> =
@@ -136,6 +142,62 @@
       next.add(fieldKey);
     }
     revealedFields = next;
+  }
+
+  async function testChannel(channelId: string) {
+    if (testingChannels.has(channelId)) return;
+
+    const edit = editChannels[channelId];
+    if (!edit) return;
+
+    const nextTesting = new Set(testingChannels);
+    nextTesting.add(channelId);
+    testingChannels = nextTesting;
+
+    const nextResults = { ...channelTestResults };
+    delete nextResults[channelId];
+    channelTestResults = nextResults;
+
+    try {
+      const response = await fetch("/api/settings/channels/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          channelId,
+          config: edit.config,
+        }),
+      });
+
+      const payload = (await response.json().catch(() => ({}))) as {
+        message?: string;
+        error?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(payload.error || "Channel test failed");
+      }
+
+      channelTestResults = {
+        ...channelTestResults,
+        [channelId]: {
+          status: "success",
+          message: payload.message || "Connection test passed.",
+        },
+      };
+    } catch (err) {
+      channelTestResults = {
+        ...channelTestResults,
+        [channelId]: {
+          status: "error",
+          message:
+            err instanceof Error ? err.message : "Channel test request failed",
+        },
+      };
+    } finally {
+      const doneTesting = new Set(testingChannels);
+      doneTesting.delete(channelId);
+      testingChannels = doneTesting;
+    }
   }
 
   const enabledCount = $derived(
@@ -265,19 +327,50 @@
                   </div>
 
                   <div class="shrink-0">
-                    {#if edit.enabled}
-                      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                        <span class="size-1.5 rounded-full bg-emerald-500"></span>
-                        Enabled
-                      </span>
-                    {:else}
-                      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground">
-                        <span class="size-1.5 rounded-full bg-muted-foreground/40"></span>
-                        Disabled
-                      </span>
-                    {/if}
+                    <div class="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        class="h-8"
+                        onclick={() => testChannel(key)}
+                        disabled={testingChannels.has(key)}
+                      >
+                        {#if testingChannels.has(key)}
+                          <Loader2 class="size-3.5 animate-spin" />
+                          Testing...
+                        {:else}
+                          <FlaskConical class="size-3.5" />
+                          Test
+                        {/if}
+                      </Button>
+
+                      {#if edit.enabled}
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                          <span class="size-1.5 rounded-full bg-emerald-500"></span>
+                          Enabled
+                        </span>
+                      {:else}
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground">
+                          <span class="size-1.5 rounded-full bg-muted-foreground/40"></span>
+                          Disabled
+                        </span>
+                      {/if}
+                    </div>
                   </div>
                 </div>
+
+                {#if channelTestResults[key]}
+                  {@const testResult = channelTestResults[key]}
+                  <div
+                    class="mx-4 mb-3 rounded-md border px-3 py-2 text-xs {testResult.status ===
+                    'success'
+                      ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                      : 'border-destructive/40 bg-destructive/10 text-destructive'}"
+                  >
+                    {testResult.message}
+                  </div>
+                {/if}
 
                 {#if edit.enabled}
                   <div class="border-t border-border/50 px-4 py-3 bg-muted/20">

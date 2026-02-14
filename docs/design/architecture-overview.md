@@ -51,5 +51,5 @@ flowchart LR
 - `docs/design/streaming.md`
 - `docs/design/error-handling.md`
 - `docs/design/security.md`
-- `docs/design/environments-and-threads.md`
+- `docs/design/environments-and-tasks.md`
 - `docs/design/polyglot-integration-contract.md`

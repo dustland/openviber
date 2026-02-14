@@ -83,6 +83,28 @@
           viber_id: v.viber_id ?? null,
           status: v.status ?? "offline",
         }));
+
+        // Extract skills from connected vibers as a fallback
+        // in case /api/skills (Supabase) has no data yet.
+        const viberSkills: ComposerSkill[] = [];
+        const seen = new Set<string>();
+        for (const v of data.vibers ?? []) {
+          for (const s of v.skills ?? []) {
+            const id = s.id || s.name;
+            if (!id || seen.has(id)) continue;
+            seen.add(id);
+            viberSkills.push({
+              id,
+              name: s.name || id,
+              description: s.description || "",
+            });
+          }
+        }
+
+        // Use viber-reported skills as fallback
+        if (viberSkills.length > 0 && composerSkills.length === 0) {
+          composerSkills = viberSkills;
+        }
       }
 
       if (envsRes.ok) {
@@ -92,13 +114,17 @@
 
       if (skillsRes.ok) {
         const data = await skillsRes.json();
-        composerSkills = (data.skills ?? []).map(
+        const supabaseSkills = (data.skills ?? []).map(
           (s: { id: string; name: string; description?: string }) => ({
             id: s.id,
             name: s.name,
             description: s.description || "",
           }),
         );
+        // Only replace if Supabase actually has skills
+        if (supabaseSkills.length > 0) {
+          composerSkills = supabaseSkills;
+        }
       }
 
       if (settingsRes.ok) {
@@ -269,14 +295,19 @@
       <Button
         variant={showArchived ? "secondary" : "outline"}
         size="sm"
+        class="gap-2"
+        aria-label={showArchived ? "Hide archived tasks" : "Show archived tasks"}
+        title={showArchived ? "Hide archived tasks" : "Show archived tasks"}
         onclick={() => (showArchived = !showArchived)}
       >
-        <Archive class="size-4 mr-1" />
-        {showArchived ? "Hide Archived" : "Show Archived"}
+        <Archive class="size-4" />
+        <span class="hidden sm:inline"
+          >{showArchived ? "Hide Archived" : "Show Archived"}</span
+        >
       </Button>
-      <Button variant="outline" size="sm" href="/">
-        <Plus class="size-4 mr-1" />
-        New Task
+      <Button variant="outline" size="sm" href="/" class="gap-2" title="New Task">
+        <Plus class="size-4" />
+        <span class="hidden sm:inline">New Task</span>
       </Button>
       <Button
         variant="outline"

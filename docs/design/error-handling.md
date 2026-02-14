@@ -5,16 +5,16 @@ description: "Failure modes, retry policies, and recovery strategies for OpenVib
 
 # Error Handling & Recovery
 
-OpenViber operates in open environments where failures are expected. This document defines how the system handles errors at each layer while maintaining the stateless node principle.
+OpenViber operates in open environments where failures are expected. This document defines how the system handles errors at each layer while maintaining the stateless Viber principle.
 
 ## 1. Failure Categories
 
 | Category | Examples | Recovery Owner |
 |----------|----------|----------------|
-| **Provider Failures** | LLM timeout, rate limit, API error | Node (retry) |
-| **Tool Failures** | Command timeout, permission denied, network error | Node (report) |
+| **Provider Failures** | LLM timeout, rate limit, API error | Viber (retry) |
+| **Tool Failures** | Command timeout, permission denied, network error | Viber (report) |
 | **Protocol Failures** | WebSocket disconnect, malformed message | Transport layer |
-| **Configuration Errors** | Invalid viber YAML, missing credentials | Startup validation |
+| **Configuration Errors** | Invalid task YAML, missing credentials | Startup validation |
 | **Resource Exhaustion** | Budget exceeded, context overflow | Policy enforcement |
 
 ## 2. LLM Provider Error Handling
@@ -103,7 +103,7 @@ async function executeTool(tool: Tool, params: unknown): Promise<ToolResult> {
 
 ### Error Classification
 
-| Type | Meaning | Viber Action |
+| Type | Meaning | Action |
 |------|---------|--------------|
 | `timeout` | Execution exceeded limit | Retry with simpler params or report |
 | `permission` | Access denied | Report to user, suggest approval |
@@ -147,13 +147,13 @@ interface TaskSubmitRequest {
 }
 ```
 
-The node deduplicates requests with the same key within a 5-minute window.
+The Viber deduplicates requests with the same key within a 5-minute window.
 
 ## 5. Configuration Errors
 
 ### Startup Validation
 
-The node validates configuration at startup and fails fast:
+The Viber validates configuration at startup and fails fast:
 
 ```typescript
 // Startup sequence
@@ -171,8 +171,8 @@ async function start() {
     await verifyProviders();
   }
 
-  // 3. Start node
-  await startNode();
+  // 3. Start Viber
+  await startViber();
 }
 ```
 
@@ -232,17 +232,17 @@ interface ContextOverflowError {
 }
 ```
 
-## 8. Node Crash Recovery
+## 8. Viber Crash Recovery
 
-Since the node is stateless, recovery is straightforward:
+Since the Viber is stateless, recovery is straightforward:
 
-1. **Restart node** — No state to restore
+1. **Restart Viber** — No state to restore
 2. **Viber Board re-sends** — Current task context on next request
 3. **In-flight work** — Lost; Viber Board should retry with same idempotency key
 
 ### Crash Detection
 
-The Viber Board detects node unavailability via:
+The Viber Board detects Viber unavailability via:
 
 - WebSocket disconnect without clean close
 - Heartbeat timeout (default: 30s)
@@ -309,12 +309,12 @@ Local logs follow structured format:
 
 | Failure Type | Strategy | Owner |
 |--------------|----------|-------|
-| LLM transient | Retry with backoff | Node |
-| LLM permanent | Fail fast, report | Node → Board |
-| Tool error | Return structured error to LLM | Node |
+| LLM transient | Retry with backoff | Viber |
+| LLM permanent | Fail fast, report | Viber → Board |
+| Tool error | Return structured error to LLM | Viber |
 | Connection loss | Reconnect with backoff | Transport |
 | Budget exceeded | Pause or warn based on mode | Policy layer |
-| Context overflow | Compact or fail with suggestion | Node → Board |
-| Node crash | Stateless restart, Board re-sends | Board |
+| Context overflow | Compact or fail with suggestion | Viber → Board |
+| Viber crash | Stateless restart, Board re-sends | Board |
 
-The key principle: **errors are data, not exceptions**. The node reports errors clearly; the Viber Board decides how to proceed.
+The key principle: **errors are data, not exceptions**. The Viber reports errors clearly; the Viber Board decides how to proceed.

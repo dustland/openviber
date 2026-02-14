@@ -118,24 +118,47 @@
 
     const hasViberSkillInventory = selectedViberSkills.length > 0;
 
-    return accountSkills.map((skill) => {
-      const fromViber =
-        viberSkillMap.get(skill.id) || viberSkillMap.get(skill.name);
-      const available = hasViberSkillInventory
-        ? Boolean(fromViber?.available)
-        : skill.available;
+    // When accountSkills (from Supabase) is populated, use it as the base
+    // with viber availability overlaid.
+    if (accountSkills.length > 0) {
+      return accountSkills.map((skill) => {
+        const fromViber =
+          viberSkillMap.get(skill.id) || viberSkillMap.get(skill.name);
+        const available = hasViberSkillInventory
+          ? Boolean(fromViber?.available)
+          : skill.available;
 
-      return {
-        ...skill,
-        available,
-        status: (fromViber?.status as AccountSkill["status"]) ?? skill.status,
-        healthSummary:
-          fromViber?.healthSummary ||
-          (hasViberSkillInventory && available === false
-            ? "Not ready on selected viber"
-            : skill.healthSummary),
-      };
-    });
+        return {
+          ...skill,
+          available,
+          status: (fromViber?.status as AccountSkill["status"]) ?? skill.status,
+          healthSummary:
+            fromViber?.healthSummary ||
+            (hasViberSkillInventory && available === false
+              ? "Not ready on selected viber"
+              : skill.healthSummary),
+        };
+      });
+    }
+
+    // Fallback: derive skills directly from connected vibers' runtime inventory.
+    // This covers dev mode and first-load before Supabase sync completes.
+    const allViberSkills = vibers.flatMap((v) => v.skills ?? []);
+    const seen = new Set<string>();
+    return allViberSkills
+      .filter((s) => {
+        if (seen.has(s.id)) return false;
+        seen.add(s.id);
+        return true;
+      })
+      .map((s) => ({
+        id: s.id,
+        name: s.name,
+        description: s.description || "",
+        available: s.available ?? true,
+        status: s.status || "UNKNOWN",
+        healthSummary: s.healthSummary || "",
+      }));
   });
 
   const activeVibers = $derived(vibers.filter((v) => v.status === "active"));
@@ -543,18 +566,21 @@
           {/if}
         </h1>
         <p class="mt-1 text-sm text-muted-foreground">
-          Launch a task from chat, pick a quick-start intent, or continue a recent
-          conversation.
+          Launch a task from chat, pick a quick-start intent, or continue a
+          recent conversation.
         </p>
       </section>
 
       {#if activeVibers.length === 0}
-        <section class="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+        <section
+          class="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4"
+        >
           <p class="text-sm font-medium text-amber-900 dark:text-amber-100">
             Action needed: connect a viber
           </p>
           <p class="mt-1 text-xs text-amber-900/80 dark:text-amber-100/80">
-            Start a viber daemon first, then launch tasks directly from this page.
+            Start a viber daemon first, then launch tasks directly from this
+            page.
           </p>
           <a
             href="/vibers"
@@ -567,7 +593,9 @@
 
       <section class="mb-8">
         <div class="mb-3 flex items-center justify-between">
-          <h2 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <h2
+            class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+          >
             Start with Intents
           </h2>
           <div class="flex items-center gap-3">
@@ -593,15 +621,24 @@
         </div>
 
         {#if intentsLoading}
-          <div class="rounded-xl border border-dashed border-border bg-card/40 px-4 py-8 text-center text-sm text-muted-foreground">
+          <div
+            class="rounded-xl border border-dashed border-border bg-card/40 px-4 py-8 text-center text-sm text-muted-foreground"
+          >
             Loading intents...
           </div>
         {:else if intents.length === 0}
-          <div class="rounded-xl border border-dashed border-border bg-card/40 px-4 py-8 text-center text-sm text-muted-foreground">
-            No intents found. <a href="/settings/intents" class="text-primary hover:underline">Create one</a> to get started.
+          <div
+            class="rounded-xl border border-dashed border-border bg-card/40 px-4 py-8 text-center text-sm text-muted-foreground"
+          >
+            No intents found. <a
+              href="/settings/intents"
+              class="text-primary hover:underline">Create one</a
+            > to get started.
           </div>
         {:else}
-          <div class="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-1 lg:mx-0 lg:grid lg:grid-cols-3 lg:overflow-visible lg:px-0 lg:pb-0">
+          <div
+            class="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-1 lg:mx-0 lg:grid lg:grid-cols-3 lg:overflow-visible lg:px-0 lg:pb-0"
+          >
             {#each previewIntents as intent (intent.id)}
               <button
                 type="button"
@@ -611,8 +648,12 @@
                   : 'border-border bg-card hover:border-primary/30 hover:bg-accent/40'}"
                 onclick={() => selectIntent(intent)}
               >
-                <p class="truncate text-sm font-medium text-foreground">{intent.name}</p>
-                <p class="mt-0.5 truncate text-xs text-muted-foreground">{intent.description}</p>
+                <p class="truncate text-sm font-medium text-foreground">
+                  {intent.name}
+                </p>
+                <p class="mt-0.5 truncate text-xs text-muted-foreground">
+                  {intent.description}
+                </p>
               </button>
             {/each}
           </div>
@@ -620,7 +661,9 @@
 
         {#if enabledChannels.length > 0}
           <div class="mt-4">
-            <p class="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <p
+              class="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
+            >
               Deliver updates to channels
             </p>
             <div class="flex flex-wrap gap-2">
@@ -645,7 +688,9 @@
       <section>
         <div class="mb-3 flex items-center gap-2">
           <Sparkles class="size-4 text-primary" />
-          <h2 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <h2
+            class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+          >
             Recent tasks
           </h2>
         </div>
@@ -653,7 +698,9 @@
         {#if loadingRecentTasks}
           <p class="text-sm text-muted-foreground">Loading recent tasks...</p>
         {:else if recentTasks.length === 0}
-          <p class="text-sm text-muted-foreground">No tasks yet — start one below.</p>
+          <p class="text-sm text-muted-foreground">
+            No tasks yet — start one below.
+          </p>
         {:else}
           <div class="grid gap-2 sm:grid-cols-2">
             {#each recentTasks as task (task.id)}
@@ -662,7 +709,9 @@
                 class="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground hover:bg-accent"
               >
                 <p class="truncate font-medium">{task.goal}</p>
-                <p class="mt-0.5 text-xs text-muted-foreground">{task.status}</p>
+                <p class="mt-0.5 text-xs text-muted-foreground">
+                  {task.status}
+                </p>
               </a>
             {/each}
           </div>
@@ -671,7 +720,7 @@
     </div>
   </div>
 
-  <div class="shrink-0 border-t border-border/70 bg-background/85 p-3 backdrop-blur sm:p-4">
+  <div class="shrink-0 p-3 sm:p-4">
     <div class="mx-auto w-full max-w-5xl">
       <ChatComposer
         bind:value={taskInput}
@@ -716,8 +765,12 @@
               showIntentDialog = false;
             }}
           >
-            <p class="truncate text-sm font-medium text-foreground">{intent.name}</p>
-            <p class="mt-0.5 truncate text-xs text-muted-foreground">{intent.description}</p>
+            <p class="truncate text-sm font-medium text-foreground">
+              {intent.name}
+            </p>
+            <p class="mt-0.5 truncate text-xs text-muted-foreground">
+              {intent.description}
+            </p>
           </button>
         {/each}
       </div>
@@ -736,12 +789,16 @@
     </Dialog.Header>
 
     {#if setupSkill?.healthSummary}
-      <p class="rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+      <p
+        class="rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground"
+      >
         {setupSkill.healthSummary}
       </p>
     {/if}
 
-    <div class="space-y-2 rounded-md border border-border bg-muted/20 px-3 py-2">
+    <div
+      class="space-y-2 rounded-md border border-border bg-muted/20 px-3 py-2"
+    >
       <p class="text-xs font-medium text-foreground">If auth is needed</p>
       <div class="flex flex-wrap gap-2">
         <button
@@ -768,9 +825,13 @@
     </div>
 
     {#if setupAuthCommand}
-      <div class="space-y-2 rounded-md border border-border bg-background px-3 py-2">
+      <div
+        class="space-y-2 rounded-md border border-border bg-background px-3 py-2"
+      >
         <p class="text-xs text-muted-foreground">Run this auth command:</p>
-        <code class="block rounded-md bg-muted px-2 py-1 text-[11px] text-foreground">
+        <code
+          class="block rounded-md bg-muted px-2 py-1 text-[11px] text-foreground"
+        >
           {setupAuthCommand}
         </code>
         <button
@@ -784,7 +845,9 @@
     {/if}
 
     {#if setupSkillError}
-      <p class="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+      <p
+        class="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+      >
         {setupSkillError}
       </p>
     {/if}

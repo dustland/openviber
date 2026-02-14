@@ -72,6 +72,9 @@ export class Agent {
   private loadedSkillTools: Record<string, any> = {};
   private skillsLoaded: boolean = false;
 
+  // Proxy-aware fetch (set by runtime when proxy is configured)
+  public proxyFetch?: typeof fetch;
+
   constructor(config: AgentConfig) {
     this.config = config;
     this.id = config.id || config.name;
@@ -281,6 +284,7 @@ export class Agent {
       modelName: this.model,
       spaceId: context?.spaceId,
       userId: context?.userId,
+      proxyFetch: this.proxyFetch,
     });
 
     // OpenRouter API expects upstream provider/model only (e.g. "deepseek/deepseek-chat"), not "openrouter/..."

@@ -1,13 +1,13 @@
 ---
 title: "Introduction"
-description: "You Imagine It. Vibers Build It."
+description: "You Imagine It. Tasks Build It."
 ---
 
 # Introduction
 
-**You Imagine It. Vibers Build It.**
+**You Imagine It. Tasks Build It.**
 
-**OpenViber** is an open-source platform that turns your machine into a **Viber Node** — a runtime that hosts role-scoped AI workers. You describe what you want, and vibers handle the work autonomously. Runs locally with full privacy, connects to your channels, and works while you sleep.
+**OpenViber** is an open-source platform that turns your machine into a **Viber** — a runtime that executes autonomous AI tasks. You describe what you want, and the Viber handles the work autonomously. Runs locally with full privacy, connects to your channels, and works while you sleep.
 
 The CLI is available as both `openviber` and the shorter alias `viber` (when installed).
 
@@ -26,10 +26,10 @@ OpenViber handles tasks that require multiple steps, file operations, web browsi
 
 ### 1. Viber Board (Web UI)
 
-Open the browser-based interface to chat with your viber:
+Open the browser-based interface to chat with your task:
 
 ```bash
-# Start the full stack (Gateway, Viber runtime, and Web UI)
+# Start the full stack (Gateway, Viber, and Web UI)
 pnpm dev
 # Open http://localhost:6006
 ```
@@ -39,7 +39,7 @@ pnpm dev
 Run one-off tasks or interact via terminal:
 
 ```bash
-# Start a task (local runtime)
+# Start a task (on your local Viber)
 openviber run "Create a README for this project"
 
 # Interactive terminal chat (tmux-friendly)
@@ -61,11 +61,11 @@ openviber channels
 
 | Concept | What It Is |
 |---------|------------|
-| **Viber** | Your machine running the OpenViber daemon — manages tasks, jobs, and skills |
-| **Task** | A chat session / unit of work running on a viber |
-| **Tools** | Actions vibers can take (file, search, web, browser, desktop, schedule, notify) |
+| **Viber** | Your machine (the AI Worker) running the OpenViber daemon — executes tasks |
+| **Task** | A role-scoped unit of work assigned to a Viber |
+| **Tools** | Actions the Viber can take (file, search, web, browser, desktop, schedule, notify) |
 | **Skills** | Domain knowledge bundles (`SKILL.md` + optional tools) — antigravity, cursor-agent, codex-cli, github, terminal |
-| **Jobs** | Cron-scheduled tasks that run agents autonomously on a timer |
+| **Jobs** | Cron-scheduled tasks that run tasks autonomously on a timer |
 
 ## Working Modes
 
@@ -73,8 +73,8 @@ OpenViber supports three levels of autonomy:
 
 | Mode | Behavior |
 |------|----------|
-| **Always Ask** | Viber asks before each action — you approve everything |
-| **Viber Decides** | Viber acts within policy, escalates risky actions |
+| **Always Ask** | Task asks before each action — you approve everything |
+| **Task Decides** | Task acts within policy, escalates risky actions (also known as "Viber Decides") |
 | **Always Execute** | Maximum autonomy, intervene by exception |
 
 Start with "Always Ask" and gradually increase autonomy as you build trust.

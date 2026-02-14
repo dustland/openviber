@@ -72,5 +72,5 @@ You can create custom tools by writing a skill with an `index.ts` that exports a
 
 - [Skills](/docs/concepts/skills) — Domain knowledge bundles with specialized tools
 - [Jobs](/docs/concepts/jobs) — Scheduled tasks that use tools
-- [Viber](/docs/concepts/viber) — How vibers use tools
+- [Viber](/docs/concepts/viber) — How tasks use tools
 - [Security](/docs/design/security) — Tool permissions and safety

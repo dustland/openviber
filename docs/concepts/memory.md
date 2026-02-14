@@ -1,19 +1,19 @@
 ---
 title: "Memory"
-description: "How your viber remembers context across conversations"
+description: "How your task remembers context across conversations"
 ---
 
 # Memory
 
-**Memory** is how your viber maintains context and remembers what has been discussed, decided, and produced. It enables truly resumable work — you can come back after days and pick up where you left off.
+**Memory** is how your task maintains context and remembers what has been discussed, decided, and produced. It enables truly resumable work — you can come back after days and pick up where you left off.
 
 ## Two Components
 
 OpenViber's memory system has two parts:
 
-### 1. Viber Memory (Human-Readable)
+### 1. Task Memory (Human-Readable)
 
-Each viber maintains its own memory:
+Each task maintains its own memory:
 
 - **Notes** — Important decisions and context (`memory.md`)
 - **Daily logs** — Rolling record of work (`memory/YYYY-MM-DD.md`)
@@ -24,12 +24,12 @@ You can browse, edit, and version-control these files like any project.
 
 ### Working Data (Spaces)
 
-The things vibers produce and work on live in **spaces**:
+The things tasks produce and work on live in **spaces**:
 
 - **Plans** — Current tasks and goals
 - **Artifacts** — Files, documents, code produced
 
-**Location:** `~/openviber_spaces/` (or any directory the viber is pointed at)
+**Location:** `~/openviber_spaces/` (or any directory the task is pointed at)
 
 ### 2. Semantic Memory (AI-Optimized)
 
@@ -65,9 +65,9 @@ All memory lives on your machine at `~/.openviber/vibers/{id}/`. This means:
 
 - **Privacy** — Your context never leaves your machine
 - **Persistence** — Switching chat apps doesn't lose context
-- **Transparency** — You can see exactly what the viber remembers
-- **Isolation** — Each viber has independent memory
+- **Transparency** — You can see exactly what the task remembers
+- **Isolation** — Each task has independent memory
 
 ## Next Steps
 
-- [Viber](/docs/concepts/viber) — Core viber concepts and working modes
+- [Viber](/docs/concepts/viber) — Core task concepts and working modes

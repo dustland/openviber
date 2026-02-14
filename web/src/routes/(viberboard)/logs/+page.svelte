@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import {
-    ScrollText,
+    Logs,
     Activity,
     Server,
     AlertCircle,
@@ -199,7 +199,7 @@
   <div class="border-b border-border px-4 py-4 sm:px-6 lg:px-8">
     <div class="flex items-center justify-between mb-4">
       <div class="flex items-center gap-3">
-        <ScrollText class="size-5 text-muted-foreground" />
+        <Logs class="size-5 text-muted-foreground" />
         <div>
           <h1 class="text-lg font-semibold text-foreground">Logs</h1>
           <p class="text-sm text-muted-foreground">
@@ -331,7 +331,9 @@
   </div>
 
   <!-- Log entries -->
-  <div class="flex-1 overflow-y-auto px-4 py-3 sm:px-6 lg:px-8">
+  <div
+    class="flex-1 overflow-y-auto overflow-x-hidden px-4 py-3 sm:px-6 lg:px-8"
+  >
     {#if loading && logs.length === 0}
       <!-- Skeleton loading -->
       <div class="space-y-2">
@@ -361,7 +363,7 @@
       </div>
     {:else if filteredLogs.length === 0}
       <div class="flex flex-col items-center justify-center py-16 text-center">
-        <ScrollText class="size-10 text-muted-foreground/40 mb-3" />
+        <Logs class="size-10 text-muted-foreground/40 mb-3" />
         <p class="text-sm font-medium text-muted-foreground">No logs yet</p>
         <p class="text-xs text-muted-foreground/60 mt-1">
           {#if searchQuery}
@@ -386,7 +388,7 @@
             <button
               type="button"
               onclick={() => hasMetadata && toggleExpanded(log.id)}
-              class="flex w-full items-start gap-3 p-3 text-left"
+              class="flex w-full items-start gap-3 p-3 text-left overflow-hidden"
               disabled={!hasMetadata}
               aria-label="Toggle log details"
             >

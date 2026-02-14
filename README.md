@@ -69,11 +69,11 @@ cp .env.example .env
 
 ### 3. Launch full stack
 ```bash
-# Starts Hub (6007), Viber runtime (connects to Hub), and Web UI (6006)
+# Starts Gateway (6007), Viber runtime (connects to Gateway), and Web UI (6006)
 pnpm dev
 ```
 - **Viber Board (Web UI)**: [http://localhost:6006](http://localhost:6006)
-- **Viber Hub**: [http://localhost:6007](http://localhost:6007)
+- **Viber Gateway**: [http://localhost:6007](http://localhost:6007)
 
 ---
 
@@ -90,10 +90,10 @@ viber chat
 ```
 
 ### 🌐 Viber Board (Web UI)
-A modern, visual interface to manage your vibers, monitor jobs, and chat in real-time. Accessible at `http://localhost:6006` when running `pnpm dev`.
+A modern, visual interface to manage your tasks, monitor jobs, and chat in real-time. Accessible at `http://localhost:6006` when running `pnpm dev`.
 
 ### 🏢 Enterprise Channels
-Deploy your vibers to where your team works. Support for **DingTalk** and **WeCom** is built-in.
+Deploy your tasks to where your team works. Support for **DingTalk** and **WeCom** is built-in.
 
 ```bash
 # Start the enterprise channel server
@@ -119,7 +119,7 @@ Location: `~/.openviber/vibers/default/`
 
 ## ✨ Key Features
 
-### 🤖 Viber Workforce (Jobs)
+### 🤖 Task Workforce (Jobs)
 Deploy autonomous workers via simple YAML cron jobs.
 ```yaml
 # examples/jobs/morning-standup.yaml
@@ -153,7 +153,7 @@ Maintain control with approval gates. Tasks can be configured to pause and ask f
 │                    Viber                        │
 │                                                 │
 │  ┌────────────────────────────────────────────┐  │
-│  │  dev-viber │ researcher-viber │ pm-viber   │  │
+│  │  dev-task  │ researcher-task  │ pm-task    │  │
 │  └────────────────────────────────────────────┘  │
 │        │                                        │
 │   ┌────┴─────────────────────┐                  │

@@ -14,12 +14,12 @@
     BookOpen,
     Check,
     ChevronRight,
-    Laptop,
     LogOut,
     Moon,
     Sun,
     Settings,
     Sparkles,
+    Laptop,
   } from "@lucide/svelte";
   import { themeStore, type Theme } from "$lib/stores/theme";
 
@@ -61,7 +61,7 @@
             >
               <img src="/favicon.png" alt="OpenViber" class="size-5" />
               <span
-                class="truncate font-medium group-data-[collapsible=icon]:hidden"
+                class="hidden truncate font-medium sm:inline group-data-[collapsible=icon]:hidden"
               >
                 OpenViber
               </span>

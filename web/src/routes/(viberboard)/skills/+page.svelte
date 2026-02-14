@@ -20,11 +20,13 @@
     Server,
     Sparkles,
     Play,
+    Circle,
   } from "@lucide/svelte";
   import * as Dialog from "$lib/components/ui/dialog";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import { Button } from "$lib/components/ui/button";
   import { Textarea } from "$lib/components/ui/textarea";
+  import { Skeleton } from "$lib/components/ui/skeleton";
 
   interface UnmetRequirement {
     type: "oauth" | "env" | "bin";
@@ -120,6 +122,12 @@
   let expandedSetup = $state<string | null>(null);
   let copiedHint = $state<string | null>(null);
   let vibers = $state<ViberOption[]>([]);
+
+  // Hub dialog
+  let hubDialogOpen = $state(false);
+  let hubInitialized = false;
+
+  // Playground dialog
   let playgroundDialogOpen = $state(false);
   let playgroundSkill = $state<InstalledSkill | null>(null);
   let selectedPlaygroundViberId = $state<string>("");
@@ -132,9 +140,7 @@
   const enabledSourcesCount = $derived(enabledSources.length);
   const sourceLabelMap = $derived.by(() => {
     const map = new Map<string, string>();
-    for (const source of sources) {
-      map.set(source.id, source.label);
-    }
+    for (const source of sources) map.set(source.id, source.label);
     return map;
   });
   const activeVibers = $derived(vibers.filter((v) => v.status === "active"));
@@ -147,16 +153,6 @@
   }
   function getSourceLabel(source: string) {
     return sourceLabelMap.get(source) || source;
-  }
-  function formatDate(value?: string) {
-    if (!value) return "";
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) return value;
-    return parsed.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
   }
 
   async function fetchInstalled() {
@@ -192,6 +188,29 @@
     }
   }
 
+  function backfillInstalledFromVibers() {
+    if (installed.length > 0) return;
+    const seen = new Set<string>();
+    const derived: InstalledSkill[] = [];
+    for (const v of vibers) {
+      for (const s of (v as any).skills ?? []) {
+        const id = s.id || s.name;
+        if (!id || seen.has(id)) continue;
+        seen.add(id);
+        derived.push({
+          id,
+          name: s.name || id,
+          description: s.description || "",
+          usedByVibers: [{ id: v.id, name: v.name }],
+        });
+      }
+    }
+    if (derived.length > 0) {
+      installed = derived;
+      installedError = null;
+    }
+  }
+
   async function fetchSources() {
     sourcesLoading = true;
     sourcesError = null;
@@ -206,13 +225,12 @@
         string,
         { displayName?: string; enabled?: boolean; docsUrl?: string }
       >;
-      const next: SourceOption[] = Object.entries(raw).map(([id, meta]) => ({
+      sources = Object.entries(raw).map(([id, meta]) => ({
         id,
         label: meta?.displayName || id,
         enabled: Boolean(meta?.enabled),
         docsUrl: meta?.docsUrl || undefined,
       }));
-      sources = next;
     } catch (e) {
       sourcesError = e instanceof Error ? e.message : "Failed to load sources";
     } finally {
@@ -323,11 +341,8 @@
   }
 
   async function checkAllRequirements() {
-    // Skills that have known requirements
     const skillsToCheck = ["gmail"];
-    for (const skillId of skillsToCheck) {
-      await checkRequirements(skillId);
-    }
+    for (const id of skillsToCheck) await checkRequirements(id);
   }
 
   function toggleSetup(skillId: string) {
@@ -349,6 +364,14 @@
     }
   }
 
+  function openHub() {
+    hubDialogOpen = true;
+    if (!hubInitialized && enabledSourcesCount > 0) {
+      hubInitialized = true;
+      searchDiscover(1);
+    }
+  }
+
   function viberSupportsSkill(viber: ViberOption, skillId: string) {
     return (viber.skills ?? []).some((skill) => {
       const id = (skill.id || skill.name || "").toLowerCase();
@@ -361,12 +384,8 @@
     playgroundSkill = skill;
     playgroundError = null;
     playgroundResult = null;
-
     const preferredViber = activeVibers.find((v) =>
-      skill.usedByVibers.some(
-        (usedByViber) =>
-          usedByViber.id === v.id || usedByViber.id === v.viber_id,
-      ),
+      skill.usedByVibers.some((u) => u.id === v.id || u.id === v.viber_id),
     );
     const fallbackViber = activeVibers.find((v) =>
       viberSupportsSkill(v, skill.id),
@@ -394,16 +413,13 @@
         }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to run playground");
-      }
+      if (!res.ok) throw new Error(data.error || "Failed to run playground");
       playgroundResult = data;
-      if (!data.ok) {
+      if (!data.ok)
         playgroundError =
           data.message ||
           data.error ||
           "Playground run did not complete successfully.";
-      }
     } catch (error) {
       playgroundError =
         error instanceof Error ? error.message : "Failed to run playground";
@@ -430,10 +446,8 @@
 
   onMount(async () => {
     await Promise.all([fetchInstalled(), fetchSources(), fetchVibers()]);
+    backfillInstalledFromVibers();
     await checkAllRequirements();
-    if (!sourcesError && enabledSourcesCount > 0) {
-      await searchDiscover(1);
-    }
   });
 </script>
 
@@ -441,490 +455,350 @@
   <title>Skills - OpenViber</title>
 </svelte:head>
 
-<div class="p-6 h-full overflow-y-auto">
-  <div class="space-y-10">
-    <header>
-      <h1 class="text-2xl font-semibold text-foreground mb-1">Skills</h1>
-      <p class="text-sm text-muted-foreground">
-        View installed skills on your vibers and discover new ones from
-        configured sources.
-      </p>
-    </header>
-
-    <!-- Installed skills -->
-    <section>
-      <h2
-        class="text-lg font-semibold text-foreground mb-3 flex items-center gap-2"
+<div class="skills-page">
+  <header class="skills-header">
+    <div>
+      <h1>Skills</h1>
+      <p class="subtitle">Manage capabilities available to your vibers.</p>
+    </div>
+    <div class="header-actions">
+      <span class="skill-count"
+        >{installed.length} skill{installed.length === 1 ? "" : "s"}</span
       >
-        <Puzzle class="size-5 text-muted-foreground" />
-        Installed skills
-      </h2>
-      {#if installedError}
-        <div
-          class="rounded-lg border border-destructive/50 bg-destructive/10 p-4 flex items-center gap-3"
-        >
-          <AlertCircle class="size-5 text-destructive shrink-0" />
-          <p class="text-sm text-destructive">{installedError}</p>
-        </div>
-      {:else if installedLoading}
-        <div class="flex items-center justify-center py-12">
-          <div class="animate-pulse flex flex-col items-center gap-3">
-            <Puzzle class="size-10 text-muted-foreground/50" />
-            <p class="text-sm text-muted-foreground">Loading skills…</p>
-          </div>
-        </div>
-      {:else if installed.length === 0}
-        <div
-          class="flex-1 flex flex-col items-center justify-center rounded-xl border border-dashed border-border p-8 text-center"
-        >
-          <Puzzle class="size-12 text-muted-foreground/50 mx-auto mb-3" />
-          <p class="text-sm text-muted-foreground">
-            No skills on connected vibers yet. Connect a viber or import skills
-            from the discover section below.
-          </p>
-          <a
-            href="/docs/concepts/skills"
-            class="inline-flex items-center gap-2 mt-3 text-sm text-primary hover:underline"
-          >
-            <FileText class="size-4" />
-            Learn about skills
-          </a>
-        </div>
-      {:else}
-        <div class="grid gap-4">
-          {#each installed as skill (skill.id)}
-            {@const reqStatus = requirementStatuses[skill.id]}
-            {@const isExpanded = expandedSetup === skill.id}
+      <Button variant="outline" size="sm" onclick={openHub}>
+        <Sparkles class="size-3.5" />
+        Browse Hub
+      </Button>
+    </div>
+  </header>
+
+  {#if installedError}
+    <div class="error-banner">
+      <AlertCircle class="size-4" />
+      <span>{installedError}</span>
+    </div>
+  {/if}
+
+  {#if installedLoading}
+    <div class="skills-grid">
+      {#each Array(3) as _}
+        <div class="skill-card">
+          <div class="card-top">
+            <Skeleton class="size-9 rounded-lg shrink-0" />
             <div
-              class="rounded-xl border border-border bg-card p-5 transition-all hover:border-primary/30 hover:shadow-sm"
+              class="card-info"
+              style="display:flex;flex-direction:column;gap:0.375rem;flex:1"
             >
-              <div class="flex items-start justify-between gap-4">
-                <div class="flex-1 min-w-0">
-                  <h3 class="text-base font-semibold text-card-foreground mb-1">
-                    {skill.name}
-                  </h3>
-                  {#if skill.description}
-                    <p class="text-sm text-muted-foreground mb-3">
-                      {skill.description}
-                    </p>
-                  {/if}
-                  {#if skill.usedByVibers.length > 0}
-                    <div class="flex flex-wrap items-center gap-2 text-sm">
-                      <Server class="size-4 text-muted-foreground shrink-0" />
-                      <span class="text-muted-foreground">On:</span>
-                      {#each skill.usedByVibers as viber}
-                        <span
-                          class="inline-flex items-center rounded-md bg-muted/80 px-2 py-0.5 text-xs font-medium text-muted-foreground"
-                        >
-                          {viber.name}
-                        </span>
-                      {/each}
-                    </div>
-                  {/if}
-                </div>
-                <div class="flex items-center gap-2 shrink-0">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onclick={() => openPlayground(skill)}
-                  >
-                    <Play class="size-3.5 mr-1" />
-                    Playground
-                  </Button>
-                  {#if reqStatus?.loading}
-                    <Loader2
-                      class="size-4 animate-spin text-muted-foreground"
-                    />
-                  {:else if reqStatus && !reqStatus.ready}
-                    <button
-                      type="button"
-                      onclick={() => toggleSetup(skill.id)}
-                      class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-950/50 transition-colors"
-                    >
-                      <AlertTriangle class="size-3.5" />
-                      Needs Setup
-                      {#if isExpanded}
-                        <ChevronUp class="size-3" />
-                      {:else}
-                        <ChevronDown class="size-3" />
-                      {/if}
-                    </button>
-                  {:else if reqStatus?.ready}
-                    <span
-                      class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-950/30 dark:text-green-400"
-                    >
-                      <Check class="size-3.5" />
-                      Ready
-                    </span>
-                  {:else}
-                    <span
-                      class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary"
-                    >
-                      <Puzzle class="size-3.5" />
-                      {skill.usedByVibers.length === 0
-                        ? "Available"
-                        : skill.usedByVibers.length === 1
-                          ? "1 viber"
-                          : `${skill.usedByVibers.length} vibers`}
-                    </span>
-                  {/if}
-                </div>
+              <Skeleton class="h-4 w-28 rounded" />
+              <Skeleton class="h-3 w-full rounded" />
+            </div>
+          </div>
+          <div class="card-meta">
+            <Skeleton class="h-3 w-20 rounded" />
+            <Skeleton class="h-5 w-14 rounded-full" />
+          </div>
+          <div class="card-actions">
+            <Skeleton class="h-8 w-16 rounded-md" />
+          </div>
+        </div>
+      {/each}
+    </div>
+  {:else if installed.length === 0}
+    <div class="empty-state">
+      <Puzzle class="size-14 empty-icon" />
+      <h2>No skills installed</h2>
+      <p>Connect a viber or browse the Skill Hub to get started.</p>
+      <button type="button" class="empty-action" onclick={openHub}>
+        <Sparkles class="size-4" />
+        Browse Skill Hub
+      </button>
+    </div>
+  {:else}
+    <div class="skills-grid">
+      {#each installed as skill (skill.id)}
+        {@const reqStatus = requirementStatuses[skill.id]}
+        {@const isExpanded = expandedSetup === skill.id}
+        <div class="skill-card" class:expanded={isExpanded}>
+          <div class="card-top">
+            <div class="card-icon">
+              <Puzzle class="size-5" />
+            </div>
+            <div class="card-info">
+              <h3>{skill.name}</h3>
+              {#if skill.description}
+                <p class="card-desc">{skill.description}</p>
+              {/if}
+            </div>
+          </div>
+
+          <div class="card-meta">
+            {#if skill.usedByVibers.length > 0}
+              <div class="viber-badges">
+                <Server class="size-3.5" />
+                {#each skill.usedByVibers as viber}
+                  <span class="viber-badge">{viber.name}</span>
+                {/each}
               </div>
+            {/if}
 
-              <!-- Setup wizard panel -->
-              {#if isExpanded && reqStatus && !reqStatus.ready}
-                <div
-                  class="mt-4 rounded-lg border border-amber-200 dark:border-amber-900 bg-amber-50/50 dark:bg-amber-950/20 p-4 space-y-3"
+            <div class="card-status">
+              {#if reqStatus?.loading}
+                <Loader2 class="size-3.5 animate-spin" />
+              {:else if reqStatus && !reqStatus.ready}
+                <button
+                  type="button"
+                  onclick={() => toggleSetup(skill.id)}
+                  class="status-badge warning"
                 >
-                  <p
-                    class="text-sm font-medium text-amber-800 dark:text-amber-300"
-                  >
-                    This skill needs the following to work:
-                  </p>
-                  {#each reqStatus.unmet as req, i (i)}
-                    <div
-                      class="flex items-start gap-3 rounded-md bg-background/60 p-3"
-                    >
-                      <div
-                        class="mt-0.5 flex size-6 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-950/40 shrink-0"
-                      >
-                        {#if req.type === "oauth"}
-                          <Link2
-                            class="size-3.5 text-amber-600 dark:text-amber-400"
-                          />
-                        {:else if req.type === "env"}
-                          <AlertTriangle
-                            class="size-3.5 text-amber-600 dark:text-amber-400"
-                          />
-                        {:else}
-                          <Download
-                            class="size-3.5 text-amber-600 dark:text-amber-400"
-                          />
-                        {/if}
-                      </div>
-                      <div class="flex-1 min-w-0">
-                        <p class="text-sm font-medium">{req.label}</p>
-                        {#if req.hint}
-                          <div class="flex items-center gap-2 mt-1">
-                            <code
-                              class="text-xs text-muted-foreground bg-muted rounded px-1.5 py-0.5"
-                              >{req.hint}</code
-                            >
-                            <button
-                              type="button"
-                              class="text-muted-foreground hover:text-foreground"
-                              onclick={() =>
-                                copyToClipboard(req.hint || "", `hint-${i}`)}
-                            >
-                              {#if copiedHint === `hint-${i}`}
-                                <Check class="size-3" />
-                              {:else}
-                                <Copy class="size-3" />
-                              {/if}
-                            </button>
-                          </div>
-                        {/if}
-                      </div>
-                      {#if req.connectUrl}
-                        <a
-                          href={req.connectUrl}
-                          class="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors shrink-0"
-                        >
-                          <Link2 class="size-3" />
-                          Connect
-                        </a>
-                      {/if}
-                    </div>
-                  {/each}
-                  <button
-                    type="button"
-                    class="text-xs text-primary hover:underline"
-                    onclick={async () => {
-                      await checkRequirements(skill.id);
-                    }}
-                  >
-                    Re-check requirements
-                  </button>
-                </div>
-              {/if}
-            </div>
-          {/each}
-        </div>
-        <p class="mt-3 text-center text-sm text-muted-foreground">
-          {installed.length} skill{installed.length === 1 ? "" : "s"} installed
-        </p>
-      {/if}
-    </section>
-
-    <!-- Discover & import -->
-    <section>
-      <h2
-        class="text-lg font-semibold text-foreground mb-3 flex items-center gap-2"
-      >
-        <Sparkles class="size-5 text-muted-foreground" />
-        Discover & import
-      </h2>
-      <p class="text-sm text-muted-foreground mb-4">
-        Search your configured skill sources and import skills to
-        <code class="rounded bg-muted px-1.5 py-0.5 text-xs"
-          >~/.openviber/skills</code
-        >. Configure which sources to use in
-        <a href="/settings/skills" class="text-primary hover:underline"
-          >Settings → Skills</a
-        >.
-      </p>
-
-      <div class="rounded-xl border border-border bg-card p-4 mb-4">
-        <div class="grid gap-4 lg:grid-cols-[2fr,1fr,1fr,auto] lg:items-end">
-          <div>
-            <label
-              class="block text-xs font-medium text-muted-foreground mb-2"
-              for="skill-search"
-            >
-              Search
-            </label>
-            <div class="relative">
-              <Search
-                class="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground"
-              />
-              <input
-                id="skill-search"
-                type="search"
-                bind:value={searchQuery}
-                onkeydown={handleSearchKeydown}
-                placeholder="OpenClaw, GitHub, npm, and more…"
-                class="w-full h-10 rounded-md border border-input bg-background pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
-              />
-            </div>
-          </div>
-          <div>
-            <label
-              class="block text-xs font-medium text-muted-foreground mb-2"
-              for="source-filter"
-            >
-              Source
-            </label>
-            <select
-              id="source-filter"
-              bind:value={sourceFilter}
-              onchange={() => searchDiscover(1)}
-              class="w-full h-10 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
-            >
-              <option value="">All enabled</option>
-              {#each sources as source (source.id)}
-                <option value={source.id} disabled={!source.enabled}>
-                  {source.label}{source.enabled ? "" : " (disabled)"}
-                </option>
-              {/each}
-            </select>
-          </div>
-          <div>
-            <label
-              class="block text-xs font-medium text-muted-foreground mb-2"
-              for="sort-order"
-            >
-              Sort
-            </label>
-            <select
-              id="sort-order"
-              bind:value={sortOrder}
-              onchange={() => searchDiscover(1)}
-              class="w-full h-10 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
-            >
-              <option value="relevance">Relevance</option>
-              <option value="popularity">Popularity</option>
-              <option value="recent">Recent</option>
-              <option value="name">Name</option>
-            </select>
-          </div>
-          <div class="flex items-end">
-            <button
-              type="button"
-              onclick={() => searchDiscover(1)}
-              disabled={discoverLoading ||
-                sourcesLoading ||
-                enabledSourcesCount === 0}
-              class="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {#if discoverLoading}
-                <Loader2 class="size-4 animate-spin" />
-                Searching...
+                  <AlertTriangle class="size-3" />
+                  Setup
+                  {#if isExpanded}<ChevronUp
+                      class="size-3"
+                    />{:else}<ChevronDown class="size-3" />{/if}
+                </button>
               {:else}
-                <Search class="size-4" />
-                Search
+                <span class="status-badge ok">
+                  <Circle class="size-2.5" style="fill: currentColor" />
+                  Active
+                </span>
               {/if}
-            </button>
+            </div>
           </div>
-        </div>
-      </div>
 
-      {#if sourcesError}
-        <div
-          class="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive flex items-center gap-2 mb-4"
-        >
-          <AlertCircle class="size-4" />
-          {sourcesError}
-        </div>
-      {:else if enabledSourcesCount === 0}
-        <div
-          class="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-800 dark:text-amber-200 mb-4"
-        >
-          No skill sources enabled. <a
-            href="/settings/skills"
-            class="font-medium underline">Enable sources in Settings → Skills</a
-          > to discover and import skills.
-        </div>
-      {/if}
+          <div class="card-actions">
+            <Button
+              variant="outline"
+              size="sm"
+              onclick={() => openPlayground(skill)}
+            >
+              <Play class="size-3.5" />
+              Test
+            </Button>
+          </div>
 
-      {#if discoverError}
-        <div
-          class="rounded-lg border border-destructive/50 bg-destructive/10 p-4 flex items-center gap-3 mb-4"
-        >
-          <AlertCircle class="size-5 text-destructive shrink-0" />
-          <p class="text-sm text-destructive">{discoverError}</p>
-        </div>
-      {:else if discoverLoading && discoverSkills.length === 0}
-        <div class="flex items-center justify-center py-12">
-          <Loader2 class="size-8 text-muted-foreground/60 animate-spin" />
-        </div>
-      {:else if discoverSkills.length === 0}
-        <div
-          class="rounded-xl border border-dashed border-border p-8 text-center"
-        >
-          <Sparkles class="size-12 text-muted-foreground/50 mx-auto mb-3" />
-          <p class="text-sm text-muted-foreground">
-            {enabledSourcesCount === 0
-              ? "Enable sources in Settings → Skills to search."
-              : "Run a search to find skills from your enabled sources."}
-          </p>
-        </div>
-      {:else}
-        <div class="flex items-center justify-between mb-3">
-          <p class="text-sm text-muted-foreground">
-            {total} result{total === 1 ? "" : "s"}
-          </p>
-          <p class="text-xs text-muted-foreground">
-            Page {page} of {Math.max(totalPages, 1)}
-          </p>
-        </div>
-        <div class="grid gap-4">
-          {#each discoverSkills as skill (getSkillKey(skill))}
-            {@const skillKey = getSkillKey(skill)}
-            {@const importState = importStates[skillKey]}
-            {@const isImporting = importState?.status === "importing"}
-            {@const isImported = importState?.status === "success"}
-            {@const hasError = importState?.status === "error"}
-            <div class="rounded-xl border border-border bg-card p-5">
-              <div class="flex flex-col gap-3">
-                <div class="flex items-start justify-between gap-3">
-                  <div class="flex-1 min-w-0">
-                    <h3
-                      class="text-base font-semibold text-card-foreground mb-1"
-                    >
-                      {skill.name}
-                    </h3>
-                    {#if skill.description}
-                      <p class="text-sm text-muted-foreground">
-                        {skill.description}
-                      </p>
+          {#if isExpanded && reqStatus && !reqStatus.ready}
+            <div class="setup-panel">
+              <p class="setup-title">This skill needs:</p>
+              {#each reqStatus.unmet as req, i (i)}
+                <div class="setup-item">
+                  <div class="setup-icon">
+                    {#if req.type === "oauth"}<Link2 class="size-3.5" />
+                    {:else if req.type === "env"}<AlertTriangle
+                        class="size-3.5"
+                      />
+                    {:else}<Download class="size-3.5" />{/if}
+                  </div>
+                  <div class="setup-content">
+                    <p class="setup-label">{req.label}</p>
+                    {#if req.hint}
+                      <div class="setup-hint">
+                        <code>{req.hint}</code>
+                        <button
+                          type="button"
+                          onclick={() =>
+                            copyToClipboard(req.hint || "", `hint-${i}`)}
+                        >
+                          {#if copiedHint === `hint-${i}`}<Check
+                              class="size-3"
+                            />{:else}<Copy class="size-3" />{/if}
+                        </button>
+                      </div>
                     {/if}
                   </div>
-                  <span
-                    class="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary"
-                  >
-                    {getSourceLabel(skill.source)}
-                  </span>
-                </div>
-                <div
-                  class="flex flex-wrap items-center gap-3 text-xs text-muted-foreground"
-                >
-                  <span>{skill.author}</span>
-                  <span class="text-muted-foreground/40">|</span>
-                  <span>v{skill.version}</span>
-                  {#if skill.updatedAt}
-                    <span class="text-muted-foreground/40">|</span>
-                    <span>{formatDate(skill.updatedAt)}</span>
+                  {#if req.connectUrl}
+                    <a href={req.connectUrl} class="connect-btn"
+                      ><Link2 class="size-3" />Connect</a
+                    >
                   {/if}
                 </div>
-                <div class="flex flex-wrap items-center gap-3">
+              {/each}
+              <button
+                type="button"
+                class="recheck-btn"
+                onclick={async () => {
+                  await checkRequirements(skill.id);
+                }}
+              >
+                Re-check requirements
+              </button>
+            </div>
+          {/if}
+        </div>
+      {/each}
+    </div>
+  {/if}
+</div>
+
+<!-- Skill Hub Dialog -->
+<Dialog.Root bind:open={hubDialogOpen}>
+  <Dialog.Content class="sm:max-w-3xl max-h-[85vh] flex flex-col gap-0 p-0">
+    <Dialog.Header class="px-6 pt-5 pb-4 border-b border-border">
+      <Dialog.Title class="flex items-center gap-2">
+        <Sparkles class="size-5" />
+        Skill Hub
+      </Dialog.Title>
+      <Dialog.Description>
+        Search and import skills from your <a
+          href="/settings/skills"
+          class="text-primary hover:underline">configured sources</a
+        >.
+      </Dialog.Description>
+    </Dialog.Header>
+
+    <div class="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+      {#if sourcesError}
+        <div class="error-banner">
+          <AlertCircle class="size-4" />
+          <span>{sourcesError}</span>
+        </div>
+      {:else if sourcesLoading}
+        <div class="loading-state compact">
+          <Loader2 class="size-5 animate-spin" />
+        </div>
+      {:else if enabledSourcesCount === 0}
+        <div class="warning-banner">
+          No skill sources enabled. <a href="/settings/skills"
+            >Enable in Settings → Skills</a
+          >.
+        </div>
+      {:else}
+        <div class="search-bar">
+          <div class="search-input-wrap">
+            <Search class="size-4 search-icon" />
+            <input
+              type="search"
+              bind:value={searchQuery}
+              onkeydown={handleSearchKeydown}
+              placeholder="Search skills..."
+            />
+          </div>
+          <select bind:value={sourceFilter} onchange={() => searchDiscover(1)}>
+            <option value="">All sources</option>
+            {#each sources as source (source.id)}
+              <option value={source.id} disabled={!source.enabled}>
+                {source.label}{source.enabled ? "" : " (disabled)"}
+              </option>
+            {/each}
+          </select>
+          <button
+            type="button"
+            class="search-btn"
+            onclick={() => searchDiscover(1)}
+            disabled={discoverLoading}
+          >
+            {#if discoverLoading}<Loader2
+                class="size-4 animate-spin"
+              />{:else}<Search class="size-4" />{/if}
+            Search
+          </button>
+        </div>
+
+        {#if discoverError}
+          <div class="error-banner">
+            <AlertCircle class="size-4" />
+            <span>{discoverError}</span>
+          </div>
+        {:else if discoverLoading && discoverSkills.length === 0}
+          <div class="loading-state compact">
+            <Loader2 class="size-5 animate-spin" />
+          </div>
+        {:else if discoverSkills.length === 0 && !discoverLoading}
+          <div class="empty-state hub-empty">
+            <Search class="size-8 empty-icon" />
+            <h2>Search the Skill Hub</h2>
+            <p>Find and import skills from your configured sources.</p>
+          </div>
+        {:else}
+          <p class="result-count">{total} result{total === 1 ? "" : "s"}</p>
+          <div class="discover-grid">
+            {#each discoverSkills as skill (getSkillKey(skill))}
+              {@const skillKey = getSkillKey(skill)}
+              {@const importState = importStates[skillKey]}
+              {@const isImporting = importState?.status === "importing"}
+              {@const isImported = importState?.status === "success"}
+              {@const hasError = importState?.status === "error"}
+              <div class="discover-card">
+                <div class="discover-card-top">
+                  <h4>{skill.name}</h4>
+                  <span class="source-badge"
+                    >{getSourceLabel(skill.source)}</span
+                  >
+                </div>
+                {#if skill.description}
+                  <p class="discover-desc-text">{skill.description}</p>
+                {/if}
+                <div class="discover-meta">
+                  <span>{skill.author}</span>
+                  <span>v{skill.version}</span>
+                </div>
+                <div class="discover-actions">
                   <button
                     type="button"
                     onclick={() => importSkill(skill)}
                     disabled={isImporting || isImported}
-                    class="inline-flex items-center gap-2 rounded-md border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                    class="import-btn"
                   >
-                    {#if isImported}
-                      <CheckCircle class="size-3.5" />
-                      Imported
-                    {:else if isImporting}
-                      <Loader2 class="size-3.5 animate-spin" />
-                      Importing...
-                    {:else if hasError}
-                      <Download class="size-3.5" />
-                      Retry
-                    {:else}
-                      <Download class="size-3.5" />
-                      Import
-                    {/if}
+                    {#if isImported}<CheckCircle class="size-3.5" />Imported
+                    {:else if isImporting}<Loader2
+                        class="size-3.5 animate-spin"
+                      />Importing…
+                    {:else if hasError}<Download class="size-3.5" />Retry
+                    {:else}<Download class="size-3.5" />Import{/if}
                   </button>
                   {#if skill.url}
                     <a
                       href={skill.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      class="inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground"
+                      class="source-link"
                     >
                       <ExternalLink class="size-3.5" />
-                      View source
                     </a>
                   {/if}
                 </div>
                 {#if importState?.message}
-                  <p
-                    class="text-xs {hasError
-                      ? 'text-destructive'
-                      : 'text-muted-foreground'}"
-                  >
+                  <p class="import-msg" class:error={hasError}>
                     {importState.message}
                   </p>
                 {/if}
               </div>
-            </div>
-          {/each}
-        </div>
-        <div class="mt-4 flex items-center justify-between">
-          <button
-            type="button"
-            onclick={() => searchDiscover(page - 1)}
-            disabled={page <= 1 || discoverLoading}
-            class="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <ArrowLeft class="size-4" />
-            Previous
-          </button>
-          <button
-            type="button"
-            onclick={() => searchDiscover(page + 1)}
-            disabled={page >= totalPages || discoverLoading}
-            class="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            Next
-            <ArrowRight class="size-4" />
-          </button>
-        </div>
+            {/each}
+          </div>
+          <div class="pagination">
+            <button
+              type="button"
+              onclick={() => searchDiscover(page - 1)}
+              disabled={page <= 1 || discoverLoading}
+            >
+              <ArrowLeft class="size-4" />Prev
+            </button>
+            <span class="page-info"
+              >Page {page} of {Math.max(totalPages, 1)}</span
+            >
+            <button
+              type="button"
+              onclick={() => searchDiscover(page + 1)}
+              disabled={page >= totalPages || discoverLoading}
+            >
+              Next<ArrowRight class="size-4" />
+            </button>
+          </div>
+        {/if}
       {/if}
-    </section>
-  </div>
-</div>
+    </div>
+  </Dialog.Content>
+</Dialog.Root>
 
+<!-- Playground Dialog -->
 <Dialog.Root bind:open={playgroundDialogOpen}>
-  <Dialog.Content class="sm:max-w-xl">
+  <Dialog.Content class="sm:max-w-2xl">
     <Dialog.Header>
-      <Dialog.Title>Skill Playground</Dialog.Title>
+      <Dialog.Title class="flex items-center gap-2">
+        <Play class="size-5" />
+        Test: {playgroundSkill?.name || playgroundSkill?.id}
+      </Dialog.Title>
       <Dialog.Description>
-        Run a quick verification on a target viber to confirm <code
-          >{playgroundSkill?.id}</code
-        > works end-to-end.
+        Run the <code>{playgroundSkill?.id}</code> skill on a viber and see the output.
       </Dialog.Description>
     </Dialog.Header>
 
@@ -933,8 +807,7 @@
         <div
           class="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
         >
-          No active vibers available. Bring a viber online to run playground
-          checks.
+          No active vibers available. Bring a viber online first.
         </div>
       {:else}
         <div class="space-y-2">
@@ -965,25 +838,15 @@
           </DropdownMenu.Root>
         </div>
 
-        <div
-          class="rounded-md border border-border bg-muted/20 p-3 text-xs text-muted-foreground"
-        >
-          This creates a temporary viber on the selected viber and asks it to
-          run the playground verification flow for the selected skill.
-        </div>
-
         <div class="space-y-2">
           <p class="text-xs font-medium text-muted-foreground">
-            Scenario (optional)
+            Scenario <span class="text-muted-foreground/50">(optional)</span>
           </p>
           <Textarea
             bind:value={playgroundScenario}
-            class="min-h-24"
-            placeholder="Optional: describe a specific user flow or edge case you want this skill to execute."
+            class="min-h-20"
+            placeholder="Describe what you want the skill to do, or leave blank for a default demo."
           />
-          <p class="text-[11px] text-muted-foreground">
-            Leave blank to run the default verification flow.
-          </p>
         </div>
       {/if}
 
@@ -996,47 +859,31 @@
       {/if}
 
       {#if playgroundResult}
-        <div
-          class="space-y-2 rounded-md border border-border bg-muted/20 p-3 text-xs"
-        >
-          <p>
-            <span class="font-medium">Status:</span>
+        <div class="playground-output">
+          <div class="output-header">
             <span
-              class={playgroundResult.ok
-                ? "text-green-600"
-                : "text-destructive"}
+              class="output-status"
+              class:ok={playgroundResult.ok}
+              class:fail={!playgroundResult.ok}
             >
+              {#if playgroundResult.ok}<CheckCircle
+                  class="size-3.5"
+                />{:else}<AlertCircle class="size-3.5" />{/if}
               {playgroundResult.status}
             </span>
-          </p>
-          <p>
-            <span class="font-medium">Viber:</span>
-            {playgroundResult.viberId}
-          </p>
-          {#if playgroundResult.message}
-            <p>
-              <span class="font-medium">Message:</span>
-              {playgroundResult.message}
-            </p>
-          {/if}
+          </div>
           {#if playgroundResult.partialText}
-            <div class="space-y-1">
-              <p class="font-medium">Model summary</p>
-              <pre
-                class="max-h-56 overflow-auto rounded-md border border-border bg-background p-2 text-[11px] whitespace-pre-wrap">{playgroundResult.partialText}</pre>
+            <div class="output-content">
+              <pre>{playgroundResult.partialText}</pre>
             </div>
           {/if}
+          {#if playgroundResult.message && !playgroundResult.partialText}
+            <p class="output-message">{playgroundResult.message}</p>
+          {/if}
           {#if playgroundResult.result}
-            <details>
-              <summary class="cursor-pointer font-medium"
-                >Raw result payload</summary
-              >
-              <pre
-                class="mt-2 max-h-64 overflow-auto rounded-md border border-border bg-background p-2 text-[11px]">{JSON.stringify(
-                  playgroundResult.result,
-                  null,
-                  2,
-                )}</pre>
+            <details class="output-raw">
+              <summary>Raw JSON</summary>
+              <pre>{JSON.stringify(playgroundResult.result, null, 2)}</pre>
             </details>
           {/if}
         </div>
@@ -1052,13 +899,720 @@
           !selectedPlaygroundViberId}
       >
         {#if playgroundRunning}
-          <Loader2 class="size-4 mr-1 animate-spin" />
-          Running...
+          <Loader2 class="size-4 mr-1 animate-spin" />Running…
         {:else}
-          <Play class="size-4 mr-1" />
-          Run playground
+          <Play class="size-4 mr-1" />Run
         {/if}
       </Button>
     </Dialog.Footer>
   </Dialog.Content>
 </Dialog.Root>
+
+<style>
+  .skills-page {
+    padding: 1.5rem;
+    height: 100%;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .skills-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .skills-header h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--foreground);
+    line-height: 1.2;
+  }
+
+  .subtitle {
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+    margin-top: 0.25rem;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
+  }
+
+  .skill-count {
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    background: var(--muted);
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-weight: 500;
+  }
+
+  /* ── Common ────────────────────────── */
+
+  .error-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid hsl(var(--destructive) / 0.4);
+    background: hsl(var(--destructive) / 0.08);
+    font-size: 0.875rem;
+    color: var(--destructive);
+  }
+
+  .warning-banner {
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid hsl(38 92% 50% / 0.3);
+    background: hsl(38 92% 50% / 0.08);
+    font-size: 0.875rem;
+    color: hsl(38 40% 40%);
+  }
+
+  :global(.dark) .warning-banner {
+    color: hsl(38 80% 75%);
+  }
+  .warning-banner a {
+    font-weight: 500;
+    text-decoration: underline;
+  }
+
+  .loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 3rem 0;
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+  }
+
+  .loading-state.compact {
+    padding: 2rem 0;
+  }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 4rem 2rem;
+    border: 1px dashed var(--border);
+    border-radius: 0.75rem;
+  }
+
+  .empty-state.hub-empty {
+    padding: 3rem 2rem;
+  }
+
+  .empty-state h2 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--foreground);
+    margin-top: 0.75rem;
+  }
+
+  .empty-state p {
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+    margin-top: 0.25rem;
+  }
+
+  :global(.empty-icon) {
+    color: var(--muted-foreground);
+    opacity: 0.4;
+  }
+
+  .empty-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    background: var(--primary);
+    color: var(--primary-foreground);
+    font-size: 0.875rem;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+  }
+
+  .empty-action:hover {
+    opacity: 0.9;
+  }
+
+  /* ── Skills Grid ────────────────────── */
+
+  .skills-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 0.75rem;
+  }
+
+  .skill-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    border: 1px solid hsl(var(--border));
+    border-radius: 0.75rem;
+    background: hsl(var(--card));
+    box-shadow:
+      0 1px 3px 0 rgb(0 0 0 / 0.04),
+      0 1px 2px -1px rgb(0 0 0 / 0.04);
+    transition:
+      border-color 0.15s,
+      box-shadow 0.15s;
+  }
+
+  .skill-card:hover {
+    border-color: hsl(var(--primary) / 0.3);
+    box-shadow:
+      0 2px 8px 0 rgb(0 0 0 / 0.06),
+      0 1px 3px -1px rgb(0 0 0 / 0.06);
+  }
+
+  .card-top {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+  }
+
+  .card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 0.5rem;
+    background: hsl(var(--primary) / 0.08);
+    color: var(--primary);
+    flex-shrink: 0;
+  }
+
+  .card-info {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .card-info h3 {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--card-foreground);
+    line-height: 1.3;
+  }
+
+  .card-desc {
+    font-size: 0.8125rem;
+    color: var(--muted-foreground);
+    margin-top: 0.125rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.4;
+  }
+
+  .card-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .viber-badges {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+  }
+
+  .viber-badge {
+    background: var(--muted);
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: var(--muted-foreground);
+  }
+
+  .card-status {
+    margin-left: auto;
+  }
+
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.1875rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.6875rem;
+    font-weight: 500;
+  }
+
+  .status-badge.ok {
+    background: hsl(142 71% 45% / 0.1);
+    color: hsl(142 71% 35%);
+  }
+
+  :global(.dark) .status-badge.ok {
+    background: hsl(142 50% 30% / 0.2);
+    color: hsl(142 60% 65%);
+  }
+
+  .status-badge.warning {
+    background: hsl(38 92% 50% / 0.1);
+    color: hsl(38 80% 35%);
+    border: none;
+    cursor: pointer;
+  }
+
+  .status-badge.warning:hover {
+    background: hsl(38 92% 50% / 0.18);
+  }
+
+  :global(.dark) .status-badge.warning {
+    background: hsl(38 60% 30% / 0.2);
+    color: hsl(38 80% 65%);
+  }
+
+  .card-actions {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  /* ── Setup panel ────────────────────── */
+
+  .setup-panel {
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    border: 1px solid hsl(38 80% 50% / 0.25);
+    background: hsl(38 80% 50% / 0.04);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .setup-title {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: hsl(38 60% 35%);
+  }
+
+  :global(.dark) .setup-title {
+    color: hsl(38 60% 70%);
+  }
+
+  .setup-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: var(--background);
+    border-radius: 0.375rem;
+  }
+
+  .setup-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    background: hsl(38 80% 50% / 0.1);
+    color: hsl(38 70% 45%);
+    flex-shrink: 0;
+  }
+
+  :global(.dark) .setup-icon {
+    color: hsl(38 70% 70%);
+  }
+
+  .setup-content {
+    flex: 1;
+    min-width: 0;
+  }
+  .setup-label {
+    font-size: 0.8125rem;
+    font-weight: 500;
+  }
+
+  .setup-hint {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    margin-top: 0.25rem;
+  }
+
+  .setup-hint code {
+    font-size: 0.6875rem;
+    padding: 0.125rem 0.375rem;
+    background: var(--muted);
+    border-radius: 0.25rem;
+    color: var(--muted-foreground);
+  }
+
+  .setup-hint button {
+    color: var(--muted-foreground);
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+  }
+
+  .setup-hint button:hover {
+    color: var(--foreground);
+  }
+
+  .connect-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.375rem;
+    background: var(--primary);
+    color: var(--primary-foreground);
+    font-size: 0.75rem;
+    font-weight: 500;
+    flex-shrink: 0;
+  }
+
+  .connect-btn:hover {
+    opacity: 0.9;
+  }
+
+  .recheck-btn {
+    font-size: 0.75rem;
+    color: var(--primary);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    align-self: flex-start;
+  }
+
+  .recheck-btn:hover {
+    text-decoration: underline;
+  }
+
+  /* ── Hub Dialog internals ──────────── */
+
+  .search-bar {
+    display: flex;
+    gap: 0.5rem;
+    align-items: stretch;
+  }
+
+  .search-input-wrap {
+    position: relative;
+    flex: 1;
+  }
+
+  :global(.search-icon) {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted-foreground);
+  }
+
+  .search-input-wrap input {
+    width: 100%;
+    height: 2.25rem;
+    border: 1px solid var(--input);
+    border-radius: 0.375rem;
+    background: var(--background);
+    padding-left: 2.25rem;
+    padding-right: 0.75rem;
+    font-size: 0.8125rem;
+    color: var(--foreground);
+  }
+
+  .search-input-wrap input:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--ring);
+  }
+
+  .search-bar select {
+    height: 2.25rem;
+    border: 1px solid var(--input);
+    border-radius: 0.375rem;
+    background: var(--background);
+    padding: 0 0.5rem;
+    font-size: 0.8125rem;
+    min-width: 7rem;
+    color: var(--foreground);
+  }
+
+  .search-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    height: 2.25rem;
+    padding: 0 0.75rem;
+    border-radius: 0.375rem;
+    background: var(--primary);
+    color: var(--primary-foreground);
+    border: none;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .search-btn:hover {
+    opacity: 0.9;
+  }
+  .search-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .result-count {
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+  }
+
+  .discover-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 0.75rem;
+  }
+
+  .discover-card {
+    padding: 1rem 1.25rem;
+    border: 1px solid hsl(var(--border));
+    border-radius: 0.75rem;
+    background: hsl(var(--card));
+    box-shadow:
+      0 1px 3px 0 rgb(0 0 0 / 0.04),
+      0 1px 2px -1px rgb(0 0 0 / 0.04);
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    transition:
+      border-color 0.15s,
+      box-shadow 0.15s;
+  }
+
+  .discover-card:hover {
+    border-color: hsl(var(--primary) / 0.3);
+    box-shadow:
+      0 2px 8px 0 rgb(0 0 0 / 0.06),
+      0 1px 3px -1px rgb(0 0 0 / 0.06);
+  }
+
+  .discover-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .discover-card-top h4 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--card-foreground);
+  }
+
+  .source-badge {
+    font-size: 0.625rem;
+    padding: 0.125rem 0.375rem;
+    border-radius: 9999px;
+    background: hsl(var(--primary) / 0.08);
+    color: var(--primary);
+    font-weight: 500;
+  }
+
+  .discover-desc-text {
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.4;
+  }
+
+  .discover-meta {
+    display: flex;
+    gap: 0.5rem;
+    font-size: 0.6875rem;
+    color: var(--muted-foreground);
+  }
+
+  .discover-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+  }
+
+  .import-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.625rem;
+    border: 1px solid hsl(var(--primary) / 0.2);
+    border-radius: 0.375rem;
+    background: hsl(var(--primary) / 0.04);
+    color: var(--primary);
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .import-btn:hover:not(:disabled) {
+    background: hsl(var(--primary) / 0.1);
+  }
+  .import-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .source-link {
+    color: var(--muted-foreground);
+  }
+  .source-link:hover {
+    color: var(--foreground);
+  }
+
+  .import-msg {
+    font-size: 0.6875rem;
+    color: var(--muted-foreground);
+  }
+  .import-msg.error {
+    color: var(--destructive);
+  }
+
+  .pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 0.5rem;
+  }
+
+  .pagination button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.8125rem;
+    color: var(--muted-foreground);
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+
+  .pagination button:hover:not(:disabled) {
+    color: var(--foreground);
+  }
+  .pagination button:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+  .page-info {
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+  }
+
+  /* ── Playground output ────────────────── */
+
+  .playground-output {
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    overflow: hidden;
+  }
+
+  .output-header {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    background: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .output-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+
+  .output-status.ok {
+    color: hsl(142 71% 35%);
+  }
+  :global(.dark) .output-status.ok {
+    color: hsl(142 60% 60%);
+  }
+  .output-status.fail {
+    color: var(--destructive);
+  }
+
+  .output-content {
+    padding: 0.75rem;
+    max-height: 20rem;
+    overflow: auto;
+  }
+
+  .output-content pre {
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin: 0;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+      monospace;
+  }
+
+  .output-message {
+    padding: 0.75rem;
+    font-size: 0.8125rem;
+    color: var(--muted-foreground);
+  }
+
+  .output-raw {
+    border-top: 1px solid var(--border);
+  }
+
+  .output-raw summary {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    color: var(--muted-foreground);
+  }
+
+  .output-raw summary:hover {
+    color: var(--foreground);
+  }
+
+  .output-raw pre {
+    padding: 0.75rem;
+    font-size: 0.6875rem;
+    max-height: 16rem;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin: 0;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+      monospace;
+  }
+</style>

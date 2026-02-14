@@ -20,7 +20,7 @@
     repoUrl: string | null;
     repoBranch: string | null;
     workingDir: string | null;
-    threadCount: number;
+    taskCount: number;
   }
 
   interface ViberDetail {
@@ -63,7 +63,7 @@
     return `/environments/new${buildQuery({})}`;
   }
 
-  function getNewThreadHref(environmentId: string) {
+  function getNewTaskHref(environmentId: string) {
     const params = new URLSearchParams({ environment: environmentId });
     if (nodeId) {
       params.set("node", nodeId);
@@ -287,7 +287,7 @@
                   <FolderGit2 class="size-3.5" />
                   Tasks
                 </span>
-                <span class="text-foreground">{environment.threadCount}</span>
+                <span class="text-foreground">{environment.taskCount}</span>
               </div>
 
               {#if environment.repoUrl}
@@ -333,10 +333,10 @@
                   {/if}
                 </button>
                 <a
-                  href={getNewThreadHref(environment.id)}
+                  href={getNewTaskHref(environment.id)}
                   class="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs text-foreground hover:bg-muted transition-colors"
                 >
-                  New Thread
+                  New Task
                 </a>
               {/if}
             </div>

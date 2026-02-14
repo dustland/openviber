@@ -14,7 +14,6 @@
     AlertCircle,
     CheckCircle2,
     ChevronRight,
-    CornerDownLeft,
     Cpu,
     LoaderCircle,
     MessageSquare,
@@ -619,6 +618,15 @@
   // Track message count so we only auto-scroll when there is a new message, not on every reactive tick
   let prevMessageCount = $state(0);
 
+  // Show the inline session indicator in the message stream only while
+  // waiting for the assistant to emit the first response chunk.
+  let showInlineSessionIndicator = $derived(
+    sending &&
+      (!chat?.messages ||
+        chat.messages.length === 0 ||
+        chat.messages[chat.messages.length - 1]?.role === "user"),
+  );
+
   // Scroll only when message count actually increased (new message), not when user has scrolled up and conversation is done
   $effect(() => {
     const chatLen = chat?.messages?.length ?? 0;
@@ -753,16 +761,14 @@
     sending = true;
     sessionStartedAt = Date.now();
 
-    // Persist user message to DB
-    try {
-      await fetch(`/api/tasks/${viber.id}/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: "user", content }),
-      });
-    } catch (_) {
+    // Persist user message to DB without blocking UI rendering.
+    void fetch(`/api/tasks/${viber.id}/messages`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role: "user", content }),
+    }).catch(() => {
       /* ignore */
-    }
+    });
 
     // (Re-)create Chat each send so the transport picks up the latest model selection
     {
@@ -1334,7 +1340,7 @@
                   {/if}
                 {/each}
 
-                {#if sending && (!chat?.messages || chat.messages.length === 0 || chat.messages[chat.messages.length - 1]?.role === "user")}
+                {#if showInlineSessionIndicator}
                   <div class="min-w-0 w-full">
                     {#if sessionStartedAt}
                       <SessionIndicator
@@ -1387,7 +1393,7 @@
             bind:selectedModelId
             bind:selectedEnvironmentId
             placeholder={viber?.nodeConnected === true
-              ? "Send a task or command..."
+              ? "Send a task or command... (⏎ send, ⇧⏎ newline)"
               : "Viber is offline"}
             disabled={viber?.nodeConnected !== true}
             {sending}
@@ -1429,7 +1435,7 @@
               {/if}
 
               <!-- Persistent session activity bar for long-running tasks -->
-              {#if sending && sessionStartedAt}
+              {#if sending && sessionStartedAt && !showInlineSessionIndicator}
                 <SessionIndicator
                   startedAt={sessionStartedAt}
                   steps={activitySteps}
@@ -1437,12 +1443,6 @@
               {/if}
             {/snippet}
           </ChatComposer>
-          <p
-            class="flex items-center gap-1.5 px-1 mt-2 text-[11px] text-muted-foreground"
-          >
-            <CornerDownLeft class="size-3" />
-            Press Enter to send, Shift + Enter for a new line.
-          </p>
         </div>
       </Resizable.Pane>
 
@@ -1721,14 +1721,6 @@
   :global([data-pane]) {
     overflow: hidden;
     min-width: 0;
-  }
-
-  .chat-composer-wrap {
-    background: linear-gradient(
-      to top,
-      hsl(var(--background)) 58%,
-      hsl(var(--background) / 0.78)
-    );
   }
 
   .user-bubble {

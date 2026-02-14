@@ -7,9 +7,9 @@
     Cpu,
     FolderGit2,
     Package,
-    Laptop,
     Sparkles,
   } from "@lucide/svelte";
+  import ViberIcon from "$lib/components/icons/viber-icon.svelte";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
 
   export interface ComposerViber {
@@ -42,23 +42,22 @@
       label: "Claude Opus 4.6",
       badge: "Flagship",
     },
-    { id: "openai/gpt-5.3", label: "GPT-5.3", badge: "Flagship" },
-    { id: "google/gemini-3.0-pro", label: "Gemini 3.0 Pro", badge: "Flagship" },
+    { id: "openai/gpt-5.2", label: "GPT-5.2", badge: "Flagship" },
+    { id: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro", badge: "Flagship" },
     // Fast
     {
-      id: "anthropic/claude-sonnet-4.6",
-      label: "Claude Sonnet 4.6",
+      id: "anthropic/claude-sonnet-4",
+      label: "Claude Sonnet 4",
       badge: "Fast",
     },
-    { id: "google/gemini-3.0-flash", label: "Gemini 3.0 Flash", badge: "Fast" },
-    { id: "openai/gpt-5.3-mini", label: "GPT-5.3 Mini", badge: "Fast" },
+    { id: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash", badge: "Fast" },
+    { id: "openai/gpt-4o-mini", label: "GPT-4o Mini", badge: "Fast" },
     // Value
-    { id: "deepseek/deepseek-v3.2", label: "DeepSeek 3.2", badge: "Value" },
-    { id: "zhipu/glm-4.7", label: "GLM-4.7", badge: "Value" },
-    { id: "qwen/qwen-3.5-max", label: "Qwen 3.5 Max", badge: "Value" },
+    { id: "deepseek/deepseek-v3.2", label: "DeepSeek V3.2", badge: "Value" },
+    { id: "qwen/qwen3-max", label: "Qwen3 Max", badge: "Value" },
     // Reasoning
-    { id: "deepseek/deepseek-r2", label: "DeepSeek R2", badge: "Reasoning" },
-    { id: "openai/o4-pro", label: "o4 Pro", badge: "Reasoning" },
+    { id: "deepseek/deepseek-r1", label: "DeepSeek R1", badge: "Reasoning" },
+    { id: "openai/o3-pro", label: "o3 Pro", badge: "Reasoning" },
   ];
 
   interface Props {
@@ -221,7 +220,7 @@
                 ></span>
                 <span class="truncate max-w-[100px]">{selectedViber.name}</span>
               {:else}
-                <Laptop class="size-3.5" />
+                <ViberIcon class="size-3.5" />
                 <span>Viber</span>
               {/if}
               <ChevronDown class="size-3 opacity-50" />

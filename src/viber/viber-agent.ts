@@ -283,7 +283,7 @@ export class ViberAgent extends Agent {
 
     const existingMessages = task.history.getMessages();
     // When client sends only the new message(s), messages.length <= existingMessages.length:
-    // append incoming messages. When client sends full thread, take only the new tail.
+    // append incoming messages. When client sends full conversation, take only the new tail.
     const newMessages =
       messages.length > existingMessages.length
         ? messages.slice(existingMessages.length)

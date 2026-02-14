@@ -23,6 +23,8 @@ export interface ModelConfig {
   modelName: string;
   apiKey?: string;
   baseURL?: string;
+  /** Optional proxy-aware fetch to route API calls through an HTTP proxy */
+  proxyFetch?: typeof fetch;
   // Viber-specific options
   spaceId?: string;
   userId?: string; // For usage tracking (e.g., Helicone)
@@ -51,12 +53,14 @@ export function getModelProvider(config: ModelConfig) {
       return createAnthropic({
         apiKey: apiKey || process.env.ANTHROPIC_API_KEY,
         baseURL: baseURL || process.env.ANTHROPIC_BASE_URL,
+        fetch: config.proxyFetch,
       });
 
     case "openai":
       return createOpenAI({
         apiKey: apiKey || process.env.OPENAI_API_KEY,
         baseURL: baseURL || process.env.OPENAI_BASE_URL,
+        fetch: config.proxyFetch,
       });
 
     case "deepseek":
@@ -66,6 +70,7 @@ export function getModelProvider(config: ModelConfig) {
       // Use the official OpenRouter SDK (v2.0.2+ for AI SDK 6 compatibility)
       const openrouterConfig: any = {
         apiKey: apiKey || process.env.OPENROUTER_API_KEY,
+        fetch: config.proxyFetch,
       };
 
       // Use Helicone gateway for observability if configured
@@ -87,7 +92,7 @@ export function getModelProvider(config: ModelConfig) {
       // by providing the appropriate imports and configuration
       throw new Error(
         `Provider '${provider}' is not configured. ` +
-          `To use ${provider}, add the appropriate AI SDK provider import and configuration to core/provider.ts`,
+        `To use ${provider}, add the appropriate AI SDK provider import and configuration to core/provider.ts`,
       );
   }
 }

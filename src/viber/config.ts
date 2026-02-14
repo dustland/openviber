@@ -6,6 +6,7 @@
 export type { SpaceConfig, SpaceState, SpaceModel } from "../types";
 import path from "path";
 import os from "os";
+import { getModuleDirname } from "../utils/module-path";
 import fs from "fs/promises";
 import * as yaml from "yaml";
 
@@ -98,6 +99,8 @@ export interface GlobalConfig {
   security?: any;
   mcp_servers?: McpServerConfig[];
 }
+
+const __dirname = getModuleDirname();
 
 let config: ViberConfig | null = null;
 

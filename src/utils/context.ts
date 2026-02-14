@@ -3,7 +3,8 @@
  * Handles token counting, message compression, and context window management
  */
 
-import type { ModelMessage } from "ai";
+import type { ModelMessage, LanguageModel } from "ai";
+import { summarizeConversation } from "./llm";
 
 /**
  * Simple token estimation (4 chars ≈ 1 token)
@@ -53,7 +54,8 @@ export function calculateContextBudget(
  */
 export async function compressMessages(
   messages: ModelMessage[],
-  budget: ContextBudget
+  budget: ContextBudget,
+  model?: LanguageModel
 ): Promise<ModelMessage[]> {
   // Calculate current token usage
   let totalTokens = messages.reduce(
@@ -71,8 +73,9 @@ export async function compressMessages(
   );
 
   // Strategy 1: Summarize old messages (for long conversations)
-  if (messages.length > 10) {
-    const summaryResult = await summarizeConversation(messages.slice(0, -8));
+  // Only attempt if model is provided
+  if (messages.length > 10 && model) {
+    const summaryResult = await summarizeConversation(messages.slice(0, -8), model);
     if (summaryResult) {
       const compressedMessages: ModelMessage[] = [
         {
@@ -113,32 +116,6 @@ export async function compressMessages(
   );
 
   return truncated;
-}
-
-/**
- * Summarize a conversation (placeholder - should use LLM in production)
- */
-async function summarizeConversation(
-  messages: ModelMessage[]
-): Promise<string | null> {
-  // In production, this should use an LLM to generate a proper summary
-  // For now, just extract key points
-
-  try {
-    const keyPoints: string[] = [];
-
-    for (const msg of messages) {
-      if (msg.role === "user" && typeof msg.content === "string") {
-        // Extract first 100 chars of user messages
-        keyPoints.push(msg.content.substring(0, 100) + "...");
-      }
-    }
-
-    return keyPoints.slice(0, 5).join("; ");
-  } catch (error) {
-    console.error("[Context] Summarization failed:", error);
-    return null;
-  }
 }
 
 /**

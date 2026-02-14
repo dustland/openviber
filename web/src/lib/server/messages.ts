@@ -4,7 +4,6 @@ import { supabaseRequest } from "./supabase";
 interface MessageRow {
   id: string;
   task_id: string | null;
-  thread_id: string | null;
   viber_id: string;
   role: string;
   content: string;
@@ -26,7 +25,6 @@ export interface StoredMessage {
   parts: unknown[] | null;
   createdAt: string;
   taskId: string | null;
-  threadId: string | null;
 }
 
 export interface MessageInsertInput {
@@ -34,7 +32,6 @@ export interface MessageInsertInput {
   content: string;
   parts?: unknown[] | null;
   taskId?: string | null;
-  threadId?: string | null;
 }
 
 function decodeStoredContent(
@@ -80,7 +77,6 @@ function mapMessageRow(row: MessageRow): StoredMessage {
     parts: decoded.parts,
     createdAt: row.created_at,
     taskId: row.task_id,
-    threadId: row.thread_id,
   };
 }
 
@@ -111,17 +107,12 @@ async function ensureViberRow(viberId: string) {
 
 export async function listMessagesForViber(
   viberId: string,
-  threadId: string | null,
 ): Promise<StoredMessage[]> {
   const params: Record<string, string> = {
     viber_id: `eq.${viberId}`,
     select: "*",
     order: "created_at.asc",
   };
-
-  if (threadId) {
-    params.thread_id = `eq.${threadId}`;
-  }
 
   const rows = await supabaseRequest<MessageRow[]>("messages", { params });
   return rows.map(mapMessageRow);
@@ -153,7 +144,6 @@ export async function appendMessagesForViber(
       return {
         id: `msg_${nanoid(12)}`,
         task_id: input.taskId ?? null,
-        thread_id: input.threadId ?? null,
         viber_id: viberId,
         role,
         content,

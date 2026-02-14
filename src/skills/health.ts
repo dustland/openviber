@@ -64,6 +64,7 @@ const DEFAULT_SKILL_IDS = [
   "github",
   "gmail",
   "railway",
+  "system-info",
   "terminal",
 ] as const;
 
@@ -349,14 +350,50 @@ async function checkGeminiHealth(skill: SkillInfo): Promise<SkillHealthResult> {
     candidates: ["gemini"],
     hint: "Install with: pnpm add -g @google/gemini-cli",
   });
-  const authCheck = buildAuthCheck({
-    id: "gemini-auth",
-    label: "Gemini auth",
-    envVars: ["GEMINI_API_KEY", "GOOGLE_APPLICATION_CREDENTIALS"],
-    command: commandCheck.command,
-    commandArgs: ["auth", "status"],
-    hint: "Run `gemini` to login or set GEMINI_API_KEY",
-  });
+
+  // Check env vars first, then ~/.gemini/oauth_creds.json (web-injected or
+  // CLI-native tokens), then fall back to `gemini auth status`.
+  let authCheck: SkillHealthCheck;
+  const envOk =
+    !!process.env.GEMINI_API_KEY || !!process.env.GOOGLE_APPLICATION_CREDENTIALS;
+
+  if (envOk) {
+    authCheck = {
+      id: "gemini-auth",
+      label: "Gemini auth",
+      ok: true,
+      required: true,
+      message: "Authenticated via environment variable",
+      actionType: "auth_cli",
+    };
+  } else {
+    // Try file-based credential detection (fast, no subprocess)
+    try {
+      const { hasGeminiCredentials } = await import("./gemini-cli/gemini-auth");
+      if (hasGeminiCredentials()) {
+        authCheck = {
+          id: "gemini-auth",
+          label: "Gemini auth",
+          ok: true,
+          required: true,
+          message: "Authenticated via OAuth credentials",
+          actionType: "auth_cli",
+        };
+      } else {
+        throw new Error("no creds");
+      }
+    } catch {
+      // Fall back to CLI auth status command
+      authCheck = buildAuthCheck({
+        id: "gemini-auth",
+        label: "Gemini auth",
+        envVars: [],
+        command: commandCheck.command,
+        commandArgs: ["auth", "status"],
+        hint: "Run `gemini` to login or set GEMINI_API_KEY",
+      });
+    }
+  }
 
   return buildResult(skill, [commandCheck.check, authCheck]);
 }
@@ -457,6 +494,19 @@ async function checkGmailHealth(skill: SkillInfo): Promise<SkillHealthResult> {
   ]);
 }
 
+async function checkSystemInfoHealth(skill: SkillInfo): Promise<SkillHealthResult> {
+  // No external deps — always available (uses only Node.js os module)
+  return buildResult(skill, [
+    {
+      id: "nodejs-os",
+      label: "Node.js os module",
+      ok: true,
+      required: true,
+      message: "Built-in module always available",
+    },
+  ]);
+}
+
 const SKILL_CHECKERS: Record<
   string,
   (skill: SkillInfo) => Promise<SkillHealthResult>
@@ -468,6 +518,7 @@ const SKILL_CHECKERS: Record<
   github: checkGithubHealth,
   gmail: checkGmailHealth,
   railway: checkRailwayHealth,
+  "system-info": checkSystemInfoHealth,
   terminal: checkTerminalHealth,
 };
 

@@ -21,12 +21,13 @@ const GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo";
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_REVOKE_URL = "https://oauth2.googleapis.com/revoke";
 
-/** Default Gmail scopes requested during OAuth */
-export const GOOGLE_GMAIL_SCOPES = [
+/** Google OAuth scopes requested during authorization */
+export const GOOGLE_OAUTH_SCOPES = [
   "https://www.googleapis.com/auth/gmail.readonly",
   "https://www.googleapis.com/auth/gmail.send",
   "https://www.googleapis.com/auth/gmail.modify",
   "https://www.googleapis.com/auth/userinfo.email",
+  "https://www.googleapis.com/auth/cloud-platform",
 ];
 
 // ==================== Types ====================
@@ -89,7 +90,7 @@ export function getGoogleAuthUrl(state: string): string {
     client_id: GOOGLE_CLIENT_ID(),
     redirect_uri: `${APP_URL()}/auth/google/callback`,
     response_type: "code",
-    scope: GOOGLE_GMAIL_SCOPES.join(" "),
+    scope: GOOGLE_OAUTH_SCOPES.join(" "),
     access_type: "offline",
     prompt: "consent",
     state,

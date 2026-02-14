@@ -324,6 +324,8 @@ export const GET: RequestHandler = async ({ locals }) => {
     primaryCodingCli: settings.primaryCodingCli ?? null,
     chatModel: settings.chatModel ?? null,
     timezone: settings.timezone ?? null,
+    proxyUrl: settings.proxyUrl ?? null,
+    proxyEnabled: settings.proxyEnabled ?? false,
     codingCliOptions: CODING_CLI_OPTIONS,
   });
 };
@@ -337,6 +339,8 @@ interface UserSettingsRow {
   chat_model: string | null;
   ai_providers: Record<string, ServerAiProviderSetting>;
   timezone: string | null;
+  proxy_url: string | null;
+  proxy_enabled: boolean;
 }
 
 /**
@@ -357,6 +361,8 @@ export const PUT: RequestHandler = async ({ request, locals }) => {
       primaryCodingCli?: string | null;
       chatModel?: string | null;
       timezone?: string | null;
+      proxyUrl?: string | null;
+      proxyEnabled?: boolean;
     };
     const {
       sources,
@@ -365,6 +371,8 @@ export const PUT: RequestHandler = async ({ request, locals }) => {
       primaryCodingCli: primaryCodingCliPayload,
       chatModel: chatModelPayload,
       timezone: timezonePayload,
+      proxyUrl: proxyUrlPayload,
+      proxyEnabled: proxyEnabledPayload,
     } = payload;
 
     const userId = locals.user.id;
@@ -377,6 +385,8 @@ export const PUT: RequestHandler = async ({ request, locals }) => {
     let primaryCodingCli: string | null = current.primaryCodingCli;
     let chatModel: string | null = current.chatModel;
     let timezone: string | null = current.timezone;
+    let proxyUrl: string | null = current.proxyUrl;
+    let proxyEnabled: boolean = current.proxyEnabled;
 
     if (sources && typeof sources === "object") {
       for (const key of ALL_PROVIDERS) {
@@ -504,6 +514,17 @@ export const PUT: RequestHandler = async ({ request, locals }) => {
           : chatModelPayload;
     }
 
+    // Proxy settings
+    if (proxyUrlPayload !== undefined) {
+      proxyUrl =
+        proxyUrlPayload === "" || proxyUrlPayload === null
+          ? null
+          : proxyUrlPayload.trim();
+    }
+    if (proxyEnabledPayload !== undefined) {
+      proxyEnabled = !!proxyEnabledPayload;
+    }
+
     const existing = await supabaseRequest<UserSettingsRow[]>("user_settings", {
       params: { select: "id", user_id: `eq.${userId}` },
     });
@@ -521,6 +542,8 @@ export const PUT: RequestHandler = async ({ request, locals }) => {
           primary_coding_cli: primaryCodingCli,
           chat_model: chatModel,
           timezone: timezone,
+          proxy_url: proxyUrl,
+          proxy_enabled: proxyEnabled,
           updated_at: now,
         },
       });
@@ -536,6 +559,8 @@ export const PUT: RequestHandler = async ({ request, locals }) => {
           primary_coding_cli: primaryCodingCli,
           chat_model: chatModel,
           timezone: timezone,
+          proxy_url: proxyUrl,
+          proxy_enabled: proxyEnabled,
           updated_at: now,
         },
       });

@@ -388,6 +388,15 @@
     healthSummary?: string;
   }
 
+  interface MessageSkillSummary {
+    key: string;
+    id?: string;
+    name: string;
+    status: "running" | "completed" | "error";
+    tools: string[];
+    summary?: string;
+  }
+
   interface Viber {
     id: string;
     name: string;
@@ -516,6 +525,7 @@
   let toolOutputContainer = $state<HTMLDivElement | null>(null);
   let toolOutputUserScrolledUp = $state(false);
   let selectedToolOutputId = $state<string | null>(null);
+  let expandedSkillMessages = $state<Record<string, boolean>>({});
   let highlightedToolOutputId = $state<string | null>(null);
   let showMobileToolOutput = $state(false);
   let toolOutputHighlightTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -988,6 +998,105 @@
     }));
   });
 
+  function resolveSkillFromToolPart(part: any, toolName: string): {
+    id?: string;
+    name: string;
+  } | null {
+    const allSkills = viber?.skills ?? [];
+    const explicitSkill =
+      part?.input?.skillId || part?.input?.skill || part?.output?.skillId;
+
+    if (typeof explicitSkill === "string" && explicitSkill.trim().length > 0) {
+      const normalized = explicitSkill.toLowerCase();
+      const direct = allSkills.find(
+        (skill) =>
+          skill.id.toLowerCase() === normalized ||
+          skill.name.toLowerCase() === normalized,
+      );
+      if (direct) {
+        return { id: direct.id, name: direct.name };
+      }
+      return { name: explicitSkill };
+    }
+
+    const normalizedToolName = toolName.toLowerCase();
+    const matchedSkill = allSkills.find((skill) => {
+      const id = skill.id.toLowerCase();
+      const name = skill.name.toLowerCase().replace(/\s+/g, "-");
+      return (
+        normalizedToolName === id ||
+        normalizedToolName.startsWith(`${id}-`) ||
+        normalizedToolName.startsWith(`${id}_`) ||
+        normalizedToolName.includes(`-${id}-`) ||
+        normalizedToolName.includes(`_${id}_`) ||
+        normalizedToolName.includes(name)
+      );
+    });
+
+    if (matchedSkill) {
+      return { id: matchedSkill.id, name: matchedSkill.name };
+    }
+
+    return null;
+  }
+
+  function buildMessageSkillSummaries(message: any): MessageSkillSummary[] {
+    const summaries = new Map<string, MessageSkillSummary>();
+    for (const part of message?.parts || []) {
+      const toolName = getPartToolName(part);
+      if (!toolName) continue;
+
+      const resolved = resolveSkillFromToolPart(part, toolName);
+      if (!resolved) continue;
+
+      const key = resolved.id || resolved.name;
+      const previous = summaries.get(key);
+      const state = part.state || "input-available";
+      const status: MessageSkillSummary["status"] = isToolStateError(state)
+        ? "error"
+        : state === "output-available" || state === "result"
+          ? "completed"
+          : "running";
+      const summary = getToolInputSummary(part);
+
+      if (!previous) {
+        summaries.set(key, {
+          key,
+          id: resolved.id,
+          name: resolved.name,
+          status,
+          tools: [toolName],
+          summary,
+        });
+        continue;
+      }
+
+      if (status === "error") previous.status = "error";
+      else if (status === "running" && previous.status !== "error") {
+        previous.status = "running";
+      }
+      if (!previous.tools.includes(toolName)) previous.tools.push(toolName);
+      if (!previous.summary && summary) previous.summary = summary;
+    }
+
+    return Array.from(summaries.values());
+  }
+
+  const lastAssistantMessageId = $derived.by(() => {
+    const assistants = (displayMessages as any[]).filter(
+      (message) => message.role === "assistant",
+    );
+    return assistants.at(-1)?.id;
+  });
+
+  function isStreamingAssistantMessage(message: any): boolean {
+    if (!sending || message.id !== lastAssistantMessageId) return false;
+    return (message.parts || []).some((part: any) => {
+      const state = part?.state;
+      return state === "input-available" || state === "input-streaming";
+    });
+  }
+
   let toolOutputEntries = $derived.by((): ToolOutputEntry[] => {
     const entries: ToolOutputEntry[] = [];
     for (const message of displayMessages as any[]) {
@@ -1278,7 +1387,46 @@
                     </div>
                   {:else}
                     <!-- Assistant message: full-width, transparent background -->
-                    <div class="min-w-0 w-full">
+                    <div class="min-w-0 w-full rounded-2xl border border-border/40 bg-card/20 px-4 py-3 sm:px-5">
+                      {#each [buildMessageSkillSummaries(message)] as messageSkills}
+                        {#if messageSkills.length > 0}
+                        <Collapsible
+                          open={expandedSkillMessages[message.id] ?? isStreamingAssistantMessage(message)}
+                          onOpenChange={(open) => {
+                            expandedSkillMessages = {
+                              ...expandedSkillMessages,
+                              [message.id]: open,
+                            };
+                          }}
+                          class="mb-3 rounded-lg border border-border/50 bg-muted/20"
+                        >
+                          <CollapsibleTrigger class="flex w-full items-center justify-between px-3 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                            <span class="inline-flex items-center gap-2">
+                              <Cpu class="size-3.5" />
+                              Skills used ({messageSkills.length})
+                            </span>
+                            <ChevronRight class="size-3.5 transition-transform duration-200 {(expandedSkillMessages[message.id] ?? isStreamingAssistantMessage(message)) ? 'rotate-90' : ''}" />
+                          </CollapsibleTrigger>
+                          <CollapsibleContent>
+                            <div class="space-y-2 border-t border-border/40 px-3 py-2.5">
+                              {#each messageSkills as skill}
+                                <div class="rounded-md border border-border/40 bg-card/70 px-2.5 py-2">
+                                  <div class="flex items-center justify-between gap-2">
+                                    <p class="text-xs font-medium text-foreground">{skill.name}</p>
+                                    <span class="text-[10px] uppercase tracking-wide {skill.status === 'completed' ? 'text-emerald-500' : skill.status === 'error' ? 'text-red-500' : 'text-amber-500'}">{skill.status}</span>
+                                  </div>
+                                  <p class="mt-1 text-[11px] text-muted-foreground">{skill.tools.join(" · ")}</p>
+                                  {#if skill.summary}
+                                    <p class="mt-1 text-[11px] text-muted-foreground/90 truncate">{skill.summary}</p>
+                                  {/if}
+                                </div>
+                              {/each}
+                            </div>
+                          </CollapsibleContent>
+                        </Collapsible>
+                        {/if}
+                      {/each}
+
                       {#each message.parts as part, i}
                         {#if part.type === "text" && (part as any).text}
                           <div class="message-markdown text-foreground">
@@ -1289,7 +1437,7 @@
                             content={(part as any).reasoning ||
                               (part as any).text ||
                               ""}
-                            isStreaming={false}
+                            isStreaming={isStreamingAssistantMessage(message)}
                           />
                         {:else if isToolPart(part)}
                           {@const toolName = getPartToolName(part)}
@@ -1331,6 +1479,12 @@
                           {/if}
                         {/if}
                       {/each}
+                      {#if isStreamingAssistantMessage(message)}
+                        <div class="mt-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <LoaderCircle class="size-3.5 animate-spin" />
+                          Responding…
+                        </div>
+                      {/if}
                       <p class="text-[11px] mt-1.5 opacity-30 tracking-wide">
                         {new Date(
                           (message as any).createdAt || Date.now(),

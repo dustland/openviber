@@ -7,7 +7,9 @@
     Cpu,
     FolderGit2,
     Package,
+    Paperclip,
     Sparkles,
+    X,
   } from "@lucide/svelte";
   import ViberIcon from "$lib/components/icons/viber-icon.svelte";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
@@ -32,6 +34,14 @@
     available?: boolean;
     /** Human-readable health summary (e.g. "Missing: gh CLI") */
     healthSummary?: string;
+  }
+
+  export interface ComposerImageAttachment {
+    id: string;
+    name: string;
+    mediaType: string;
+    dataUrl: string;
+    size: number;
   }
 
   export const MODEL_OPTIONS = [
@@ -96,6 +106,8 @@
 
     /** Bindable ref to the underlying textarea element (for focus management) */
     inputElement?: HTMLTextAreaElement | null;
+    /** Bindable image attachments queued for sending */
+    imageAttachments?: ComposerImageAttachment[];
   }
 
   let {
@@ -120,7 +132,10 @@
     leftAction,
 
     inputElement = $bindable(null),
+    imageAttachments = $bindable([]),
   }: Props = $props();
+
+  let fileInputElement = $state<HTMLInputElement | null>(null);
 
   // Derived
   const selectedViber = $derived(
@@ -137,7 +152,77 @@
   );
   const hasViberSelector = $derived(vibers.length > 0);
   const hasEnvSelector = $derived(environments.length > 0);
-  const canSend = $derived(!!value.trim() && !sending && !disabled);
+  const canSend = $derived(
+    (!!value.trim() || imageAttachments.length > 0) && !sending && !disabled,
+  );
+
+  function resizeTextarea() {
+    if (!inputElement) return;
+    inputElement.style.height = "auto";
+    inputElement.style.height = `${Math.min(inputElement.scrollHeight, 144)}px`;
+  }
+
+  async function convertFileToAttachment(
+    file: File,
+  ): Promise<ComposerImageAttachment | null> {
+    if (!file.type.startsWith("image/")) {
+      return null;
+    }
+
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error("Failed to read selected image."));
+      reader.readAsDataURL(file);
+    });
+
+    return {
+      id:
+        typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      name: file.name || "image",
+      mediaType: file.type,
+      dataUrl,
+      size: file.size,
+    };
+  }
+
+  async function appendFiles(files: FileList | File[]) {
+    const candidates = Array.from(files);
+    const converted = await Promise.all(candidates.map(convertFileToAttachment));
+    const next = converted.filter(
+      (attachment): attachment is ComposerImageAttachment => attachment !== null,
+    );
+    if (next.length > 0) {
+      imageAttachments = [...imageAttachments, ...next];
+    }
+  }
+
+  async function handleFileInputChange(event: Event) {
+    const target = event.currentTarget as HTMLInputElement;
+    if (!target.files || target.files.length === 0) return;
+    await appendFiles(target.files);
+    target.value = "";
+  }
+
+  async function handlePaste(event: ClipboardEvent) {
+    const files = event.clipboardData?.files;
+    if (!files || files.length === 0) return;
+    const hasImage = Array.from(files).some((file) => file.type.startsWith("image/"));
+    if (!hasImage) return;
+    event.preventDefault();
+    await appendFiles(files);
+  }
+
+  function removeAttachment(id: string) {
+    imageAttachments = imageAttachments.filter((attachment) => attachment.id !== id);
+  }
+
+  $effect(() => {
+    value;
+    resizeTextarea();
+  });
 
   function toggleSkill(skillId: string) {
     const skill = skills.find((s) => s.id === skillId);
@@ -195,6 +280,8 @@
         bind:this={inputElement}
         bind:value
         onkeydown={handleKeydown}
+        oninput={resizeTextarea}
+        onpaste={handlePaste}
         rows="1"
         {placeholder}
         class="min-h-[36px] max-h-36 flex-1 resize-none bg-transparent py-1.5 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none disabled:opacity-50"
@@ -202,9 +289,51 @@
       ></textarea>
     </div>
 
+    {#if imageAttachments.length > 0}
+      <div class="flex flex-wrap gap-2 px-4 pb-2">
+        {#each imageAttachments as attachment (attachment.id)}
+          <div class="relative size-16 overflow-hidden rounded-md border border-border bg-muted/30">
+            <img
+              src={attachment.dataUrl}
+              alt={attachment.name}
+              class="size-full object-cover"
+              loading="lazy"
+            />
+            <button
+              type="button"
+              class="absolute right-1 top-1 inline-flex size-5 items-center justify-center rounded-full bg-background/90 text-foreground shadow-sm"
+              onclick={() => removeAttachment(attachment.id)}
+              aria-label={`Remove ${attachment.name}`}
+            >
+              <X class="size-3" />
+            </button>
+          </div>
+        {/each}
+      </div>
+    {/if}
+
     <!-- Toolbar row (inside card) -->
     <div class="flex items-center justify-between gap-2 px-3 pb-2.5 pt-0.5">
       <div class="flex items-center gap-0.5 min-w-0 overflow-x-auto">
+        <input
+          bind:this={fileInputElement}
+          type="file"
+          class="hidden"
+          accept="image/*"
+          multiple
+          onchange={handleFileInputChange}
+        />
+        <button
+          type="button"
+          class="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer shrink-0"
+          onclick={() => fileInputElement?.click()}
+          disabled={disabled || sending}
+          title="Upload images"
+        >
+          <Paperclip class="size-3.5" />
+          <span>Attach</span>
+        </button>
+
         <!-- Viber selector -->
         {#if hasViberSelector}
           <DropdownMenu.Root>

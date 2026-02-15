@@ -121,6 +121,22 @@ export function inferIntentSkills(intent: Pick<Intent, "skills" | "body">): stri
  */
 export const BUILTIN_INTENTS: Intent[] = [
   {
+    id: "check-system-info",
+    name: "Check System Info",
+    description: "Inspect the viber's environment and system details",
+    icon: "heart-pulse",
+    builtin: true,
+    body: `Check and report the system information of the current environment.
+
+- Operating system name, version, and architecture
+- Node.js / runtime version
+- Available disk space and memory
+- Current working directory and user
+- Installed CLI tools (git, node, pnpm, etc.)
+- Network connectivity status
+- Any environment variables relevant to the project`,
+  },
+  {
     id: "beautify-homepage",
     name: "Beautify Homepage",
     description: "Polish a homepage with modern UI improvements",

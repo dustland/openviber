@@ -1428,7 +1428,6 @@
               : "Viber is offline"}
             disabled={viber?.nodeConnected !== true}
             {sending}
-            nodes={[]}
             environments={composerEnvironments}
             skills={viber?.skills ?? []}
             bind:selectedSkillIds

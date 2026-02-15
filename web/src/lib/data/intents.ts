@@ -20,14 +20,14 @@ export interface Intent {
 }
 
 const KNOWN_SKILL_IDS = [
-  "cursor-agent",
-  "codex-cli",
-  "gemini-cli",
   "github",
   "railway",
   "gmail",
   "tmux",
   "system-info",
+  "gemini-cli",
+  "cursor-agent",
+  "codex-cli",
 ] as const;
 
 const SKILL_KEYWORD_PATTERNS: Record<string, RegExp[]> = {

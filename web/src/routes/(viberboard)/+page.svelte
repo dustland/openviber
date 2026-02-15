@@ -521,7 +521,11 @@
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          goal: content,
+          goal:
+            content
+              .split("\n")
+              .map((l) => l.trim())
+              .find((l) => l.length > 0) || content,
           title: selectedIntent?.name ?? undefined,
           viberId: viber.viber_id ?? undefined,
           environmentId: selectedEnvironmentId ?? undefined,

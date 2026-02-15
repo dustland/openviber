@@ -423,18 +423,6 @@
                             </div>
                           {/if}
                         </div>
-                        <!-- Actions -->
-                        <div
-                          class="border-t border-border/40 px-2 py-1.5 flex items-center gap-1"
-                        >
-                          <a
-                            href={`/tasks/${task.id}/jobs`}
-                            class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                          >
-                            <CalendarClock class="size-3.5" />
-                            Jobs
-                          </a>
-                        </div>
                       </HoverCard.Content>
                     </HoverCard.Root>
                     <!-- Time badge (visible by default, hidden on hover) -->
@@ -606,18 +594,6 @@
                                       >
                                     </div>
                                   {/if}
-                                </div>
-                                <!-- Actions -->
-                                <div
-                                  class="border-t border-border/40 px-2 py-1.5 flex items-center gap-1"
-                                >
-                                  <a
-                                    href={`/tasks/${task.id}/jobs`}
-                                    class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                                  >
-                                    <CalendarClock class="size-3.5" />
-                                    Jobs
-                                  </a>
                                 </div>
                               </HoverCard.Content>
                             </HoverCard.Root>

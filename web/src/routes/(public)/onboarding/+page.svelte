@@ -503,7 +503,7 @@
                   <Loader2 class="size-4 animate-spin" />
                   Saving…
                 {:else}
-                  Launch Dashboard
+                  Launch Viberboard
                   <ArrowRight class="size-4" />
                 {/if}
               </button>

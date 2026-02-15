@@ -65,7 +65,7 @@
             class="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors shrink-0 px-2.5 py-1.5 rounded-md hover:bg-accent"
           >
             <LayoutDashboard class="size-4 shrink-0" />
-            <span class="hidden sm:inline text-sm">Dashboard</span>
+            <span class="hidden sm:inline text-sm">Viberboard</span>
           </a>
         {/if}
         <a
@@ -114,7 +114,7 @@
                 onSelect={() => goto("/")}
               >
                 <LayoutDashboard class="size-4" />
-                Dashboard
+                Viberboard
               </DropdownMenuItem>
             {/if}
             <DropdownMenuItem

@@ -1,5 +1,4 @@
-import { redirect } from "@sveltejs/kit";
-
+// No-op: allow /tasks/new to render normally
 export const load = () => {
-  throw redirect(307, "/");
+  return {};
 };

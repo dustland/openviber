@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
+  import { page } from "$app/stores";
   import {
     FolderGit2,
     Check,
@@ -173,8 +174,13 @@
     }
   }
 
-  onMount(() => {
-    void fetchComposerData();
+  onMount(async () => {
+    await fetchComposerData();
+    // Pre-select environment from query param (e.g. from sidebar + icon)
+    const envParam = $page.url.searchParams.get("environmentId");
+    if (envParam && environments.some((e) => e.id === envParam)) {
+      selectedEnvironmentId = envParam;
+    }
   });
 </script>
 

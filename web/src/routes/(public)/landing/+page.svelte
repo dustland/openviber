@@ -287,7 +287,7 @@
             href="/"
             class="cta-primary group inline-flex items-center gap-2.5 rounded-full bg-primary px-10 py-4 text-base font-bold text-primary-foreground shadow-[0_0_30px_hsl(var(--primary)/0.3)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_40px_hsl(var(--primary)/0.4)]"
           >
-            Go to Dashboard
+            Go to Viberboard
             <ArrowRight
               class="size-5 transition-transform duration-300 group-hover:translate-x-0.5"
             />

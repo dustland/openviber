@@ -14,8 +14,10 @@
     FolderGit2,
     LoaderCircle,
     Pin,
+    Plus,
     Puzzle,
     Logs,
+    SquarePen,
     Wifi,
     WifiOff,
   } from "@lucide/svelte";
@@ -124,20 +126,11 @@
   const allTasks = $derived(tasks);
 
   const pathname = $derived($page.url.pathname);
-  const isTasksRoute = $derived(
-    pathname === "/tasks" || pathname.startsWith("/tasks/"),
-  );
   const isVibersRoute = $derived(
     pathname === "/vibers" || pathname.startsWith("/vibers/"),
   );
-  const isEnvironmentsRoute = $derived(
-    pathname === "/environments" || pathname.startsWith("/environments/"),
-  );
   const isJobsRoute = $derived(
     pathname === "/jobs" || pathname.startsWith("/jobs/"),
-  );
-  const isSkillsRoute = $derived(
-    pathname === "/skills" || pathname.startsWith("/skills/"),
   );
   const isLogsRoute = $derived(
     pathname === "/logs" || pathname.startsWith("/logs/"),
@@ -183,11 +176,14 @@
       <Sidebar.GroupContent>
         <Sidebar.Menu>
           <Sidebar.MenuItem>
-            <Sidebar.MenuButton isActive={isTasksRoute} tooltipContent="Tasks">
-              <a href="/tasks" class="w-full inline-flex items-center gap-2">
-                <Cpu class="size-4 shrink-0" />
+            <Sidebar.MenuButton tooltipContent="New Task">
+              <a
+                href="/tasks/new"
+                class="w-full inline-flex items-center gap-2"
+              >
+                <SquarePen class="size-4 shrink-0" />
                 <span class="truncate group-data-[collapsible=icon]:hidden"
-                  >Tasks</span
+                  >New Task</span
                 >
               </a>
             </Sidebar.MenuButton>
@@ -208,42 +204,11 @@
           </Sidebar.MenuItem>
 
           <Sidebar.MenuItem>
-            <Sidebar.MenuButton
-              isActive={isEnvironmentsRoute}
-              tooltipContent="Environments"
-            >
-              <a
-                href="/environments"
-                class="w-full inline-flex items-center gap-2"
-              >
-                <FolderGit2 class="size-4 shrink-0" />
-                <span class="truncate group-data-[collapsible=icon]:hidden"
-                  >Environments</span
-                >
-              </a>
-            </Sidebar.MenuButton>
-          </Sidebar.MenuItem>
-
-          <Sidebar.MenuItem>
             <Sidebar.MenuButton isActive={isJobsRoute} tooltipContent="Jobs">
               <a href="/jobs" class="w-full inline-flex items-center gap-2">
                 <CalendarClock class="size-4 shrink-0" />
                 <span class="truncate group-data-[collapsible=icon]:hidden"
                   >Jobs</span
-                >
-              </a>
-            </Sidebar.MenuButton>
-          </Sidebar.MenuItem>
-
-          <Sidebar.MenuItem>
-            <Sidebar.MenuButton
-              isActive={isSkillsRoute}
-              tooltipContent="Skills"
-            >
-              <a href="/skills" class="w-full inline-flex items-center gap-2">
-                <Puzzle class="size-4 shrink-0" />
-                <span class="truncate group-data-[collapsible=icon]:hidden"
-                  >Skills</span
                 >
               </a>
             </Sidebar.MenuButton>
@@ -458,17 +423,28 @@
             {#each unpinnedTaskGroups as group (group.environmentId ?? "__unassigned__")}
               <Collapsible open={true} class="group/collapsible">
                 <Sidebar.MenuItem>
-                  <CollapsibleTrigger class="w-full">
-                    <Sidebar.MenuButton class="text-sidebar-foreground/70">
-                      <FolderGit2 class="size-4 shrink-0" />
-                      <span class="truncate text-xs font-medium">
-                        {group.label}
-                      </span>
-                      <ChevronRight
-                        class="ml-auto size-3.5 shrink-0 transition-transform group-data-[state=open]/collapsible:rotate-90"
-                      />
-                    </Sidebar.MenuButton>
-                  </CollapsibleTrigger>
+                  <div class="flex w-full items-center">
+                    <CollapsibleTrigger class="flex-1 min-w-0">
+                      <Sidebar.MenuButton class="text-sidebar-foreground/70">
+                        <ChevronRight
+                          class="size-3.5 shrink-0 transition-transform group-data-[state=open]/collapsible:rotate-90"
+                        />
+                        <span class="truncate text-xs font-medium">
+                          {group.label}
+                        </span>
+                      </Sidebar.MenuButton>
+                    </CollapsibleTrigger>
+                    {#if group.environmentId}
+                      <a
+                        href={`/tasks/new?environmentId=${group.environmentId}`}
+                        title="New task in {group.label}"
+                        class="flex size-7 shrink-0 items-center justify-center rounded-md text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+                        onclick={(e) => e.stopPropagation()}
+                      >
+                        <Plus class="size-4" />
+                      </a>
+                    {/if}
+                  </div>
                   <CollapsibleContent>
                     <Sidebar.MenuSub
                       class="mx-0 translate-x-0 border-0 px-0 py-1"

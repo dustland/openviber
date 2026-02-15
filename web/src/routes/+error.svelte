@@ -21,8 +21,7 @@
       return `No page exists at "${$page.url.pathname}".`;
     }
     return (
-      error?.message ||
-      "An unexpected error occurred while loading this page."
+      error?.message || "An unexpected error occurred while loading this page."
     );
   });
 
@@ -37,17 +36,27 @@
 </script>
 
 <svelte:head>
-  <title>{isNotFound ? "404 - Page not found" : `${status} - Error`} - OpenViber</title>
+  <title
+    >{isNotFound ? "404 - Page not found" : `${status} - Error`} - OpenViber</title
+  >
 </svelte:head>
 
-<section class="flex min-h-full flex-1 items-center justify-center bg-background px-4 py-10 sm:px-6">
-  <div class="w-full max-w-2xl rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-8">
-    <div class="mb-5 inline-flex items-center gap-2 rounded-full border border-border bg-muted/40 px-3 py-1 text-xs text-muted-foreground">
+<section
+  class="flex min-h-full flex-1 items-center justify-center bg-background px-4 py-10 sm:px-6"
+>
+  <div
+    class="w-full max-w-2xl rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-8"
+  >
+    <div
+      class="mb-5 inline-flex items-center gap-2 rounded-full border border-border bg-muted/40 px-3 py-1 text-xs text-muted-foreground"
+    >
       <AlertTriangle class="size-3.5" />
       Error {status}
     </div>
 
-    <h1 class="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+    <h1
+      class="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl"
+    >
       {title}
     </h1>
     <p class="mt-2 text-sm text-muted-foreground sm:text-base">{description}</p>
@@ -73,7 +82,7 @@
         class="inline-flex items-center gap-2 rounded-md border border-border bg-background px-3.5 py-2 text-sm text-foreground hover:bg-accent"
       >
         <LayoutDashboard class="size-4" />
-        Dashboard
+        Viberboard
       </a>
       <a
         href="/landing"

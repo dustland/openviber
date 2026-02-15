@@ -11,7 +11,7 @@ import { getGoogleAuthUrl, googleOAuthConfigured } from "$lib/server/oauth";
 
 const GOOGLE_OAUTH_STATE_COOKIE = "openviber_google_oauth_state";
 
-export const GET: RequestHandler = async ({ cookies, locals }) => {
+export const GET: RequestHandler = async ({ cookies, locals, url }) => {
   if (!googleOAuthConfigured()) {
     return new Response("Google OAuth is not configured on this server.", { status: 503 });
   }
@@ -26,7 +26,7 @@ export const GET: RequestHandler = async ({ cookies, locals }) => {
   cookies.set(GOOGLE_OAUTH_STATE_COOKIE, state, {
     path: "/",
     httpOnly: true,
-    secure: true,
+    secure: url.protocol === "https:",
     sameSite: "lax",
     maxAge: 600, // 10 minutes
   });

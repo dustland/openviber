@@ -27,6 +27,7 @@ const KNOWN_SKILL_IDS = [
   "railway",
   "gmail",
   "tmux",
+  "system-info",
 ] as const;
 
 const SKILL_KEYWORD_PATTERNS: Record<string, RegExp[]> = {
@@ -37,6 +38,7 @@ const SKILL_KEYWORD_PATTERNS: Record<string, RegExp[]> = {
   railway: [/\brailway\b/i],
   gmail: [/\bgmail\b/i],
   tmux: [/\btmux\b/i],
+  "system-info": [/\bsystem[- ]?info\b/i, /\bsystem information\b/i],
 };
 
 function normalizeSkillToken(raw: string): string | null {
@@ -126,6 +128,7 @@ export const BUILTIN_INTENTS: Intent[] = [
     description: "Inspect the viber's environment and system details",
     icon: "heart-pulse",
     builtin: true,
+    skills: ["system-info"],
     body: `Check and report the system information of the current environment.
 
 - Operating system name, version, and architecture

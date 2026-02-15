@@ -148,7 +148,7 @@ function mapReadmeToSkills(readme: string): CuratedSkill[] {
       source: "openclaw",
       url:
         parsed.url ||
-        `https://github.com/openclaw/skills/tree/main/${encodeURIComponent(parsed.id)}`,
+        `https://github.com/openclaw/skills/tree/main/${parsed.importId || parsed.id}`,
       tags: categoryTag ? [categoryTag] : [],
       category: currentCategory || undefined,
       rank,

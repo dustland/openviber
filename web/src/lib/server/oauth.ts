@@ -14,12 +14,21 @@ import { supabaseRequest } from "./supabase";
 
 const GOOGLE_CLIENT_ID = () => env.GOOGLE_CLIENT_ID || "";
 const GOOGLE_CLIENT_SECRET = () => env.GOOGLE_CLIENT_SECRET || "";
-const APP_URL = () => env.APP_URL || "http://localhost:6006";
+const APP_URL = () => env.APP_URL?.trim() || "";
 
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo";
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_REVOKE_URL = "https://oauth2.googleapis.com/revoke";
+
+function requireAppUrl(): string {
+  const appUrl = APP_URL();
+  if (!appUrl) {
+    throw new Error("APP_URL is required for OAuth callbacks.");
+  }
+
+  return appUrl;
+}
 
 /** Google OAuth scopes requested during authorization */
 export const GOOGLE_OAUTH_SCOPES = [
@@ -79,16 +88,17 @@ export interface GoogleTokenResponse {
  * Check if Google OAuth is configured for this deployment.
  */
 export function googleOAuthConfigured(): boolean {
-  return Boolean(GOOGLE_CLIENT_ID() && GOOGLE_CLIENT_SECRET());
+  return Boolean(GOOGLE_CLIENT_ID() && GOOGLE_CLIENT_SECRET() && APP_URL());
 }
 
 /**
  * Build the Google OAuth consent URL.
  */
 export function getGoogleAuthUrl(state: string): string {
+  const appUrl = requireAppUrl();
   const params = new URLSearchParams({
     client_id: GOOGLE_CLIENT_ID(),
-    redirect_uri: `${APP_URL()}/auth/google/callback`,
+    redirect_uri: `${appUrl}/auth/google/callback`,
     response_type: "code",
     scope: GOOGLE_OAUTH_SCOPES.join(" "),
     access_type: "offline",
@@ -102,6 +112,7 @@ export function getGoogleAuthUrl(state: string): string {
  * Exchange an authorization code for tokens.
  */
 export async function exchangeGoogleCode(code: string): Promise<GoogleTokenResponse> {
+  const appUrl = requireAppUrl();
   const response = await fetch(GOOGLE_TOKEN_URL, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -109,7 +120,7 @@ export async function exchangeGoogleCode(code: string): Promise<GoogleTokenRespo
       code,
       client_id: GOOGLE_CLIENT_ID(),
       client_secret: GOOGLE_CLIENT_SECRET(),
-      redirect_uri: `${APP_URL()}/auth/google/callback`,
+      redirect_uri: `${appUrl}/auth/google/callback`,
       grant_type: "authorization_code",
     }),
   });

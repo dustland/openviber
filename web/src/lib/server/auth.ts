@@ -9,10 +9,18 @@ const ACCESS_TOKEN_COOKIE = "openviber_sb_access_token";
 const REFRESH_TOKEN_COOKIE = "openviber_sb_refresh_token";
 const GITHUB_TOKEN_COOKIE = "openviber_gh_token";
 
-const APP_URL = env.APP_URL || "http://localhost:6006";
+const APP_URL = env.APP_URL?.trim() || "";
 const SUPABASE_URL = env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = env.SUPABASE_ANON_KEY;
 const SUPABASE_SERVICE_ROLE_KEY = env.SUPABASE_SERVICE_ROLE_KEY;
+
+function requireAppUrl(): string {
+  if (!APP_URL) {
+    throw new Error("APP_URL is required for OAuth callbacks.");
+  }
+
+  return APP_URL;
+}
 
 /**
  * E2E test mode — set E2E_TEST_MODE=true in .env to enable.
@@ -105,7 +113,7 @@ function createPkcePair() {
  * Returns true when Supabase OAuth is configured for this deployment.
  */
 export function supabaseAuthConfigured() {
-  return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
+  return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY && APP_URL);
 }
 
 /**
@@ -115,8 +123,7 @@ export function getSupabaseGitHubAuthUrl(nextPath = "/") {
   const { supabaseUrl } = requireSupabaseAuthConfig();
   const state = randomBytes(24).toString("hex");
   const { verifier, challenge } = createPkcePair();
-
-  const callbackUrl = new URL(`${APP_URL}/auth/callback`);
+  const callbackUrl = new URL(`/auth/callback`, requireAppUrl());
   callbackUrl.searchParams.set("next", nextPath);
   callbackUrl.searchParams.set("app_state", state);
 

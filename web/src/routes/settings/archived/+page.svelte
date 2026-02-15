@@ -83,7 +83,7 @@
     const taskId = deleteTarget.id;
     deleting = true;
     try {
-      const response = await fetch(`/api/vibers/${taskId}`, {
+      const response = await fetch(`/api/tasks/${taskId}`, {
         method: "DELETE",
       });
       if (response.ok) {

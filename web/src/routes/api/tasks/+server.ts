@@ -113,6 +113,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       : await summarizeTaskTitle(goal, viberModel);
 
     if (locals.user?.id) {
+      // Persist viber environment assignment (existing flow for viber daemon tracking)
       try {
         const assignResult = await setViberEnvironmentForUser(
           locals.user.id,
@@ -124,6 +125,25 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         console.log("[POST /api/tasks] setViberEnvironmentForUser result:", JSON.stringify(assignResult));
       } catch (e) {
         console.error("Failed to persist viber or assign environment:", e);
+      }
+
+      // Persist the task session to the dedicated tasks table
+      try {
+        await supabaseRequest("tasks", {
+          method: "POST",
+          prefer: "return=minimal",
+          body: {
+            id: result.viberId,
+            user_id: locals.user.id,
+            goal: displayName,
+            viber_id: targetViberId ?? null,
+            environment_id: environmentId ?? null,
+            status: "pending",
+            skills: extraSkills && extraSkills.length > 0 ? extraSkills : [],
+          },
+        });
+      } catch (e) {
+        console.error("Failed to persist task:", e);
       }
     }
 
@@ -154,14 +174,15 @@ export const POST: RequestHandler = async ({ request, locals }) => {
   }
 };
 
-// Persisted viber row from Supabase (used for listing)
-interface PersistedViberRow {
-  id: string;
-  name: string | null;
+// Persisted task row from Supabase tasks table
+interface PersistedTaskRow {
+  id: string;              // gateway session ID (text PK)
+  goal: string | null;
+  viber_id: string | null; // daemon viber ID
+  environment_id: string | null;
+  status: string | null;
   created_at: string | null;
   archived_at: string | null;
-  environment_id: string | null;
-  viber_id: string | null;
 }
 
 // GET /api/tasks - List tasks: Supabase as source of truth, gateway for live state
@@ -173,43 +194,71 @@ export const GET: RequestHandler = async ({ locals, url }) => {
   // E2E test mode: synthetic user can't query Supabase (FK violations).
   // Return tasks from gateway only.
   if (isE2ETestMode()) {
+    const includeArchivedE2E = url.searchParams.get("include_archived") === "true";
     try {
-      const [{ vibers: hubVibers }, persistedRows, environments] = await Promise.all([
+      const [{ vibers: hubVibers }, allPersistedTasks, environments] = await Promise.all([
         gatewayClient.getTasks(),
-        supabaseRequest<PersistedViberRow[]>("vibers", {
+        supabaseRequest<PersistedTaskRow[]>("tasks", {
           params: {
-            select: "id,name,created_at,archived_at,environment_id,viber_id",
-            archived_at: "is.null",
+            select: "id,goal,viber_id,environment_id,status,created_at,archived_at",
             order: "created_at.desc",
           },
-        }).catch(() => [] as PersistedViberRow[]),
+        }).catch(() => [] as PersistedTaskRow[]),
         listEnvironmentsForUser(locals.user!.id).catch(() => []),
       ]);
 
-      // Map by viber_id (gateway text ID) since Supabase id is UUID
-      const persistedByViberId = new Map(
-        persistedRows.filter((r) => r.viber_id).map((r) => [r.viber_id!, r]),
-      );
-      const persistedById = new Map(persistedRows.map((r) => [r.id, r]));
+      const persistedById = new Map(allPersistedTasks.map((r) => [r.id, r]));
       const envNameMap = new Map(environments.map((e) => [e.id, e.name]));
+      const seenIds = new Set<string>();
 
-      const result = hubVibers.map((v) => {
-        const persisted = persistedByViberId.get(v.id) ?? persistedById.get(v.id);
-        const environmentId = persisted?.environment_id ?? null;
-        return {
-          id: v.id,
-          viberId: v.viberId ?? null,
-          viberName: v.viberName ?? null,
-          environmentId,
-          environmentName: environmentId ? (envNameMap.get(environmentId) ?? null) : null,
-          goal: persisted?.name ?? v.goal ?? v.id,
-          status: v.status ?? "unknown",
-          createdAt: v.createdAt ?? new Date().toISOString(),
-          completedAt: v.completedAt ?? null,
-          viberConnected: v.isConnected !== false,
-          archivedAt: persisted?.archived_at ?? null,
-        };
-      });
+      const result = hubVibers
+        .filter((v) => {
+          const persisted = persistedById.get(v.id);
+          // If archived and not requesting archived, exclude
+          if (persisted?.archived_at && !includeArchivedE2E) return false;
+          return true;
+        })
+        .map((v) => {
+          seenIds.add(v.id);
+          const persisted = persistedById.get(v.id);
+          const environmentId = persisted?.environment_id ?? null;
+          return {
+            id: v.id,
+            viberId: v.viberId ?? null,
+            viberName: v.viberName ?? null,
+            environmentId,
+            environmentName: environmentId ? (envNameMap.get(environmentId) ?? null) : null,
+            goal: persisted?.goal ?? v.goal ?? v.id,
+            status: v.status ?? persisted?.status ?? "unknown",
+            createdAt: v.createdAt ?? persisted?.created_at ?? new Date().toISOString(),
+            completedAt: v.completedAt ?? null,
+            viberConnected: v.isConnected !== false,
+            archivedAt: persisted?.archived_at ?? null,
+          };
+        });
+
+      // Include archived tasks that are no longer in the gateway
+      if (includeArchivedE2E) {
+        for (const row of allPersistedTasks) {
+          if (row.archived_at && !seenIds.has(row.id)) {
+            const environmentId = row.environment_id ?? null;
+            result.push({
+              id: row.id,
+              viberId: row.viber_id ?? null,
+              viberName: null as string | null,
+              environmentId,
+              environmentName: environmentId ? (envNameMap.get(environmentId) ?? null) : null,
+              goal: row.goal ?? row.id,
+              status: (row.status as "pending" | "running" | "completed" | "error" | "stopped") ?? "unknown",
+              createdAt: row.created_at ?? new Date().toISOString(),
+              completedAt: null as string | null,
+              viberConnected: false,
+              archivedAt: row.archived_at,
+            });
+          }
+        }
+      }
+
       return json(result);
     } catch (error) {
       console.error("[E2E] Failed to fetch tasks:", error);
@@ -220,10 +269,10 @@ export const GET: RequestHandler = async ({ locals, url }) => {
   const includeArchived = url.searchParams.get("include_archived") === "true";
 
   try {
-    const [persistedRows, { vibers: hubVibers }, environments] = await Promise.all([
-      supabaseRequest<PersistedViberRow[]>("vibers", {
+    const [persistedTasks, { vibers: hubVibers }, environments] = await Promise.all([
+      supabaseRequest<PersistedTaskRow[]>("tasks", {
         params: {
-          select: "id,name,created_at,archived_at,environment_id,viber_id",
+          select: "id,goal,viber_id,environment_id,status,created_at,archived_at",
           ...(includeArchived ? {} : { archived_at: "is.null" }),
           order: "created_at.desc",
         },
@@ -234,21 +283,22 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 
     const hubMap = new Map(hubVibers.map((v) => [v.id, v]));
     const envNameMap = new Map(environments.map((e) => [e.id, e.name]));
+    const persistedIds = new Set(persistedTasks.map((r) => r.id));
 
-    const result = persistedRows
+    // Start with persisted tasks (source of truth)
+    const result = persistedTasks
       .filter((row) => includeArchived || !row.archived_at)
       .map((row) => {
-        // Match by viber_id (gateway text ID) first, then fallback to UUID id
-        const hub = (row.viber_id ? hubMap.get(row.viber_id) : null) ?? hubMap.get(row.id);
+        const hub = hubMap.get(row.id);
         const environmentId = row.environment_id ?? null;
         return {
-          id: hub?.id ?? row.viber_id ?? row.id,
+          id: row.id,
           viberId: hub?.viberId ?? row.viber_id ?? null,
           viberName: hub?.viberName ?? null,
           environmentId,
           environmentName: environmentId ? (envNameMap.get(environmentId) ?? null) : null,
-          goal: row.name ?? hub?.goal ?? row.id,
-          status: hub?.status ?? "unknown",
+          goal: row.goal ?? hub?.goal ?? row.id,
+          status: hub?.status ?? row.status ?? "unknown",
           createdAt: hub?.createdAt ?? row.created_at ?? new Date().toISOString(),
           completedAt: hub?.completedAt ?? null,
           viberConnected:
@@ -257,9 +307,29 @@ export const GET: RequestHandler = async ({ locals, url }) => {
         };
       });
 
+    // Also include gateway tasks that aren't yet persisted in the tasks table
+    // (e.g. tasks created before the migration)
+    for (const hub of hubVibers) {
+      if (!persistedIds.has(hub.id)) {
+        result.push({
+          id: hub.id,
+          viberId: hub.viberId ?? null,
+          viberName: hub.viberName ?? null,
+          environmentId: null,
+          environmentName: null,
+          goal: hub.goal ?? hub.id,
+          status: hub.status ?? "unknown",
+          createdAt: hub.createdAt ?? new Date().toISOString(),
+          completedAt: hub.completedAt ?? null,
+          viberConnected: hub.isConnected !== false,
+          archivedAt: null,
+        });
+      }
+    }
+
     return json(result);
   } catch (error) {
-    console.error("Failed to fetch vibers:", error);
-    return json({ error: "Failed to fetch vibers" }, { status: 500 });
+    console.error("Failed to fetch tasks:", error);
+    return json({ error: "Failed to fetch tasks" }, { status: 500 });
   }
 };

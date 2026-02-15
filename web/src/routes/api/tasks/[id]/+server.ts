@@ -248,8 +248,8 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
       // Ignore — viber may already be stopped or hub unreachable
     }
 
-    // Delete from Supabase
-    await supabaseRequest("vibers", {
+    // Delete from tasks table (text PK = gateway session ID)
+    await supabaseRequest("tasks", {
       method: "DELETE",
       params: { id: `eq.${params.id}` },
     });

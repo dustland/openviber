@@ -449,18 +449,19 @@
       </div>
     </div>
   {:else}
+    <!-- Empty state: centered message + bottom-pinned composer (matches dashboard layout) -->
     <div class="flex-1 flex flex-col items-center justify-center">
-      <div class="w-full max-w-xl text-center">
-        <MessageSquarePlus
-          class="size-10 mx-auto mb-3 text-muted-foreground/40"
-        />
-        <p class="text-lg font-medium text-foreground mb-1">No tasks yet</p>
-        <p class="text-sm text-muted-foreground mb-6">
-          Describe what you'd like to accomplish and a viber will get to work.
-        </p>
+      <MessageSquarePlus class="size-10 mb-3 text-muted-foreground/40" />
+      <p class="text-lg font-medium text-foreground mb-1">No tasks yet</p>
+      <p class="text-sm text-muted-foreground">
+        Describe what you'd like to accomplish and a viber will get to work.
+      </p>
+    </div>
 
+    <div class="shrink-0 pb-3 sm:pb-4">
+      <div class="mx-auto w-full max-w-5xl">
         <!-- Viber & Environment selectors -->
-        <div class="mb-3 flex flex-wrap items-center gap-2 justify-center">
+        <div class="mb-3 flex flex-wrap items-center gap-2">
           {#if vibers.length > 0}
             <DropdownMenu.Root>
               <DropdownMenu.Trigger
@@ -562,6 +563,7 @@
             </DropdownMenu.Root>
           {/if}
         </div>
+
         <ChatComposer
           bind:value={taskInput}
           bind:error={composerError}

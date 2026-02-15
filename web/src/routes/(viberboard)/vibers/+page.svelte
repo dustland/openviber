@@ -304,7 +304,7 @@
         size="sm"
         onclick={() => (showCreateDialog = true)}
       >
-        <Plus class="size-4 mr-1" />
+        <Plus class="size-4" />
         Add Viber
       </Button>
       <Button variant="outline" size="icon" onclick={() => fetchVibers()}>

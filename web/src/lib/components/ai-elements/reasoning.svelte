@@ -81,28 +81,28 @@
 
 <Collapsible bind:open={isOpen} class="not-prose mb-3 {className}">
   <CollapsibleTrigger
-    class="flex w-full items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+    class="inline-flex items-center gap-1.5 rounded-full border border-border/50 bg-muted/40 px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
   >
-    <Brain class="size-4 shrink-0" />
-    <span class="flex-1 text-left">
+    <Brain class="size-3 shrink-0" />
+    <span>
       {#if isStreaming || displayDuration === 0}
         <Shimmer>Thinking...</Shimmer>
       {:else if displayDuration !== undefined}
-        Thought for {displayDuration} seconds
+        Thought for {displayDuration}s
       {:else}
-        Thought for a few seconds
+        Thought
       {/if}
     </span>
     <ChevronDown
-      class="size-4 shrink-0 transition-transform duration-200 {isOpen
+      class="size-3 shrink-0 opacity-50 transition-transform duration-200 {isOpen
         ? 'rotate-180'
         : ''}"
     />
   </CollapsibleTrigger>
 
-  <CollapsibleContent class="mt-3">
+  <CollapsibleContent class="mt-2">
     <div
-      class="reasoning-content rounded-lg border border-border/40 bg-muted/30 p-3 text-sm text-muted-foreground leading-relaxed"
+      class="reasoning-content rounded-lg border border-border/30 bg-muted/20 px-3 py-2.5 text-xs text-muted-foreground leading-relaxed"
     >
       {@html renderedContent}
     </div>

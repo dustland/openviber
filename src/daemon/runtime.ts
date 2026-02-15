@@ -374,6 +374,7 @@ Follow this systematic approach for every coding task:
 
 ## Tool Usage
 
+- **IMPORTANT**: Before saying you cannot do something, always check your available tools first. You likely have tools that can accomplish what is being asked. Never claim you lack capabilities without first reviewing the tools provided to you.
 - Use tools proactively to explore the codebase before making changes.
 - When delegating to Cursor Agent CLI, provide clear, specific prompts.
 - When using GitHub tools, follow the clone → branch → fix → commit → PR workflow.

@@ -1074,9 +1074,8 @@
       hsl(var(--card)) 0%,
       hsl(var(--card) / 0.94) 100%
     );
-    box-shadow:
-      0 18px 34px -28px hsl(var(--foreground) / 0.5),
-      0 3px 10px -8px hsl(var(--foreground) / 0.18);
+    border: 1px solid hsl(var(--border));
+    box-shadow: 0 1px 3px 0 hsl(var(--foreground) / 0.06);
     transition:
       transform 0.15s,
       box-shadow 0.15s;
@@ -1085,8 +1084,8 @@
   .skill-card:hover {
     transform: translateY(-1px);
     box-shadow:
-      0 20px 36px -26px hsl(var(--primary) / 0.35),
-      0 6px 14px -8px hsl(var(--foreground) / 0.2);
+      0 4px 12px -4px hsl(var(--primary) / 0.15),
+      0 1px 3px 0 hsl(var(--foreground) / 0.06);
   }
 
   .card-top {

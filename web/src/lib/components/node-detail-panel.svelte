@@ -112,6 +112,7 @@
   interface Props {
     nodeId: string;
     nodeName: string;
+    mode?: "config" | "analytics";
     configSyncState?: {
       configVersion?: string;
       lastConfigPullAt?: string;
@@ -125,7 +126,16 @@
     onClose: () => void;
   }
 
-  let { nodeId, nodeName, configSyncState, onClose }: Props = $props();
+  let {
+    nodeId,
+    nodeName,
+    mode = "config",
+    configSyncState,
+    onClose,
+  }: Props = $props();
+
+  const isConfig = $derived(mode === "config");
+  const isAnalytics = $derived(mode === "analytics");
 
   let status = $state<DetailedStatus | null>(null);
   let loading = $state(true);
@@ -290,6 +300,11 @@
         >
           <Monitor class="size-5" />
           {nodeName}
+          <span
+            class="text-xs font-normal text-muted-foreground px-2 py-0.5 rounded-full bg-muted"
+          >
+            {isConfig ? "Config" : "Analytics"}
+          </span>
         </h2>
         <p class="text-xs text-muted-foreground mt-0.5">
           {nodeId}
@@ -392,8 +407,8 @@
         </div>
       {:else}
         <div class="space-y-6">
-          <!-- Config Sync State Section -->
-          {#if configSyncState || (status?.viber && !status.viber.connected)}
+          <!-- Config Sync State Section (Config mode only) -->
+          {#if isConfig && (configSyncState || (status?.viber && !status.viber.connected))}
             <section>
               <h3
                 class="text-sm font-semibold text-foreground mb-3 flex items-center gap-2"
@@ -492,8 +507,8 @@
             </section>
           {/if}
 
-          <!-- Machine Resources Section -->
-          {#if status.machine}
+          <!-- Machine Resources Section (Analytics mode only) -->
+          {#if isAnalytics && status.machine}
             <section>
               <h3
                 class="text-sm font-semibold text-foreground mb-3 flex items-center gap-2"
@@ -766,170 +781,173 @@
                 Viber Running Status
               </h3>
 
-              <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-                <div class="rounded-lg border border-border bg-muted/30 p-3">
-                  <div
-                    class="text-[10px] text-muted-foreground uppercase tracking-wider mb-1"
-                  >
-                    Version
+              {#if isAnalytics}
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                  <div class="rounded-lg border border-border bg-muted/30 p-3">
+                    <div
+                      class="text-[10px] text-muted-foreground uppercase tracking-wider mb-1"
+                    >
+                      Version
+                    </div>
+                    <div class="text-sm font-medium text-foreground">
+                      {status.viber.version}
+                    </div>
                   </div>
-                  <div class="text-sm font-medium text-foreground">
-                    {status.viber.version}
+                  <div class="rounded-lg border border-border bg-muted/30 p-3">
+                    <div
+                      class="text-[10px] text-muted-foreground uppercase tracking-wider mb-1"
+                    >
+                      Daemon Uptime
+                    </div>
+                    <div class="text-sm font-medium text-foreground">
+                      {formatUptime(status.viber.daemonUptimeSeconds)}
+                    </div>
+                  </div>
+                  <div class="rounded-lg border border-border bg-muted/30 p-3">
+                    <div
+                      class="text-[10px] text-muted-foreground uppercase tracking-wider mb-1"
+                    >
+                      Running Tasks
+                    </div>
+                    <div
+                      class="text-sm font-medium {status.viber
+                        .runningTaskCount > 0
+                        ? 'text-emerald-500'
+                        : 'text-foreground'}"
+                    >
+                      {status.viber.runningTaskCount}
+                    </div>
+                  </div>
+                  <div class="rounded-lg border border-border bg-muted/30 p-3">
+                    <div
+                      class="text-[10px] text-muted-foreground uppercase tracking-wider mb-1"
+                    >
+                      Total Executed
+                    </div>
+                    <div class="text-sm font-medium text-foreground">
+                      {status.viber.totalTasksExecuted}
+                    </div>
                   </div>
                 </div>
-                <div class="rounded-lg border border-border bg-muted/30 p-3">
-                  <div
-                    class="text-[10px] text-muted-foreground uppercase tracking-wider mb-1"
-                  >
-                    Daemon Uptime
-                  </div>
-                  <div class="text-sm font-medium text-foreground">
-                    {formatUptime(status.viber.daemonUptimeSeconds)}
-                  </div>
-                </div>
-                <div class="rounded-lg border border-border bg-muted/30 p-3">
-                  <div
-                    class="text-[10px] text-muted-foreground uppercase tracking-wider mb-1"
-                  >
-                    Running Tasks
-                  </div>
-                  <div
-                    class="text-sm font-medium {status.viber.runningTaskCount >
-                    0
-                      ? 'text-emerald-500'
-                      : 'text-foreground'}"
-                  >
-                    {status.viber.runningTaskCount}
-                  </div>
-                </div>
-                <div class="rounded-lg border border-border bg-muted/30 p-3">
-                  <div
-                    class="text-[10px] text-muted-foreground uppercase tracking-wider mb-1"
-                  >
-                    Total Executed
-                  </div>
-                  <div class="text-sm font-medium text-foreground">
-                    {status.viber.totalTasksExecuted}
-                  </div>
-                </div>
-              </div>
 
-              <!-- Process Memory -->
-              <div class="rounded-lg border border-border p-4 mb-3">
-                <div
-                  class="flex items-center gap-2 text-sm font-medium text-foreground mb-3"
-                >
-                  <MemoryStick class="size-4" />
-                  Process Memory
-                </div>
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div>
-                    <div
-                      class="text-[10px] text-muted-foreground uppercase tracking-wider"
-                    >
-                      RSS
-                    </div>
-                    <div
-                      class="text-sm font-medium text-foreground tabular-nums"
-                    >
-                      {formatBytes(status.viber.processMemory.rss)}
-                    </div>
-                  </div>
-                  <div>
-                    <div
-                      class="text-[10px] text-muted-foreground uppercase tracking-wider"
-                    >
-                      Heap Total
-                    </div>
-                    <div
-                      class="text-sm font-medium text-foreground tabular-nums"
-                    >
-                      {formatBytes(status.viber.processMemory.heapTotal)}
-                    </div>
-                  </div>
-                  <div>
-                    <div
-                      class="text-[10px] text-muted-foreground uppercase tracking-wider"
-                    >
-                      Heap Used
-                    </div>
-                    <div
-                      class="text-sm font-medium text-foreground tabular-nums"
-                    >
-                      {formatBytes(status.viber.processMemory.heapUsed)}
-                    </div>
-                  </div>
-                  <div>
-                    <div
-                      class="text-[10px] text-muted-foreground uppercase tracking-wider"
-                    >
-                      External
-                    </div>
-                    <div
-                      class="text-sm font-medium text-foreground tabular-nums"
-                    >
-                      {formatBytes(status.viber.processMemory.external)}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Running Tasks -->
-              {#if status.viber.runningTasks && status.viber.runningTasks.length > 0}
+                <!-- Process Memory (Analytics) -->
                 <div class="rounded-lg border border-border p-4 mb-3">
                   <div
                     class="flex items-center gap-2 text-sm font-medium text-foreground mb-3"
                   >
-                    <ListTodo class="size-4" />
-                    Active Tasks ({status.viber.runningTasks.length})
+                    <MemoryStick class="size-4" />
+                    Process Memory
                   </div>
-                  <div class="space-y-2">
-                    {#each status.viber.runningTasks as task}
+                  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div>
                       <div
-                        class="rounded-md border border-border bg-muted/20 p-3"
+                        class="text-[10px] text-muted-foreground uppercase tracking-wider"
                       >
-                        <div class="flex items-start justify-between gap-2">
-                          <div class="min-w-0 flex-1">
-                            <div
-                              class="text-xs font-medium text-foreground truncate"
-                            >
-                              {task.goal || task.taskId}
-                            </div>
-                            <div
-                              class="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-2"
-                            >
-                              <span class="font-mono"
-                                >{task.taskId.slice(0, 16)}...</span
-                              >
-                              {#if task.model}
-                                <span class="text-muted-foreground/60">|</span>
-                                <span>{task.model}</span>
-                              {/if}
-                              <span class="text-muted-foreground/60">|</span>
-                              <span>{task.messageCount} msgs</span>
-                            </div>
-                          </div>
-                          <span
-                            class="shrink-0 flex items-center gap-1 text-[10px] font-medium {task.isRunning
-                              ? 'text-emerald-500'
-                              : 'text-amber-500'}"
-                          >
-                            <span
-                              class="size-1.5 rounded-full {task.isRunning
-                                ? 'bg-emerald-500 animate-pulse'
-                                : 'bg-amber-500'}"
-                            ></span>
-                            {task.isRunning ? "Running" : "Queued"}
-                          </span>
-                        </div>
+                        RSS
                       </div>
-                    {/each}
+                      <div
+                        class="text-sm font-medium text-foreground tabular-nums"
+                      >
+                        {formatBytes(status.viber.processMemory.rss)}
+                      </div>
+                    </div>
+                    <div>
+                      <div
+                        class="text-[10px] text-muted-foreground uppercase tracking-wider"
+                      >
+                        Heap Total
+                      </div>
+                      <div
+                        class="text-sm font-medium text-foreground tabular-nums"
+                      >
+                        {formatBytes(status.viber.processMemory.heapTotal)}
+                      </div>
+                    </div>
+                    <div>
+                      <div
+                        class="text-[10px] text-muted-foreground uppercase tracking-wider"
+                      >
+                        Heap Used
+                      </div>
+                      <div
+                        class="text-sm font-medium text-foreground tabular-nums"
+                      >
+                        {formatBytes(status.viber.processMemory.heapUsed)}
+                      </div>
+                    </div>
+                    <div>
+                      <div
+                        class="text-[10px] text-muted-foreground uppercase tracking-wider"
+                      >
+                        External
+                      </div>
+                      <div
+                        class="text-sm font-medium text-foreground tabular-nums"
+                      >
+                        {formatBytes(status.viber.processMemory.external)}
+                      </div>
+                    </div>
                   </div>
                 </div>
+
+                <!-- Running Tasks (Analytics) -->
+                {#if status.viber.runningTasks && status.viber.runningTasks.length > 0}
+                  <div class="rounded-lg border border-border p-4 mb-3">
+                    <div
+                      class="flex items-center gap-2 text-sm font-medium text-foreground mb-3"
+                    >
+                      <ListTodo class="size-4" />
+                      Active Tasks ({status.viber.runningTasks.length})
+                    </div>
+                    <div class="space-y-2">
+                      {#each status.viber.runningTasks as task}
+                        <div
+                          class="rounded-md border border-border bg-muted/20 p-3"
+                        >
+                          <div class="flex items-start justify-between gap-2">
+                            <div class="min-w-0 flex-1">
+                              <div
+                                class="text-xs font-medium text-foreground truncate"
+                              >
+                                {task.goal || task.taskId}
+                              </div>
+                              <div
+                                class="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-2"
+                              >
+                                <span class="font-mono"
+                                  >{task.taskId.slice(0, 16)}...</span
+                                >
+                                {#if task.model}
+                                  <span class="text-muted-foreground/60">|</span
+                                  >
+                                  <span>{task.model}</span>
+                                {/if}
+                                <span class="text-muted-foreground/60">|</span>
+                                <span>{task.messageCount} msgs</span>
+                              </div>
+                            </div>
+                            <span
+                              class="shrink-0 flex items-center gap-1 text-[10px] font-medium {task.isRunning
+                                ? 'text-emerald-500'
+                                : 'text-amber-500'}"
+                            >
+                              <span
+                                class="size-1.5 rounded-full {task.isRunning
+                                  ? 'bg-emerald-500 animate-pulse'
+                                  : 'bg-amber-500'}"
+                              ></span>
+                              {task.isRunning ? "Running" : "Queued"}
+                            </span>
+                          </div>
+                        </div>
+                      {/each}
+                    </div>
+                  </div>
+                {/if}
               {/if}
 
-              <!-- Skill Health -->
-              {#if status.viber.skillHealth?.skills && status.viber.skillHealth.skills.length > 0}
+              <!-- Skill Health (Config mode only) -->
+              {#if isConfig && status.viber.skillHealth?.skills && status.viber.skillHealth.skills.length > 0}
                 <div class="rounded-lg border border-border p-4 mb-3">
                   <div
                     class="flex items-center gap-2 text-sm font-medium text-foreground mb-3"
@@ -1062,68 +1080,76 @@
                 </div>
               {/if}
 
-              <!-- Skills & Capabilities -->
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {#if status.viber.skills && status.viber.skills.length > 0}
-                  <div class="rounded-lg border border-border p-4">
-                    <div
-                      class="flex items-center gap-2 text-sm font-medium text-foreground mb-2"
-                    >
-                      <Puzzle class="size-4" />
-                      Skills ({status.viber.skills.length})
+              <!-- Skills & Capabilities (Config mode only) -->
+              {#if isConfig}
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {#if status.viber.skills && status.viber.skills.length > 0}
+                    <div class="rounded-lg border border-border p-4">
+                      <div
+                        class="flex items-center gap-2 text-sm font-medium text-foreground mb-2"
+                      >
+                        <Puzzle class="size-4" />
+                        Skills ({status.viber.skills.length})
+                      </div>
+                      <div class="flex flex-wrap gap-1">
+                        {#each status.viber.skills as skill}
+                          <span
+                            class="inline-flex items-center rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary"
+                          >
+                            {skill}
+                          </span>
+                        {/each}
+                      </div>
                     </div>
-                    <div class="flex flex-wrap gap-1">
-                      {#each status.viber.skills as skill}
-                        <span
-                          class="inline-flex items-center rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary"
-                        >
-                          {skill}
-                        </span>
-                      {/each}
-                    </div>
-                  </div>
-                {/if}
+                  {/if}
 
-                {#if status.viber.capabilities && status.viber.capabilities.length > 0}
-                  <div class="rounded-lg border border-border p-4">
-                    <div
-                      class="flex items-center gap-2 text-sm font-medium text-foreground mb-2"
-                    >
-                      <Network class="size-4" />
-                      Capabilities ({status.viber.capabilities.length})
+                  {#if status.viber.capabilities && status.viber.capabilities.length > 0}
+                    <div class="rounded-lg border border-border p-4">
+                      <div
+                        class="flex items-center gap-2 text-sm font-medium text-foreground mb-2"
+                      >
+                        <Network class="size-4" />
+                        Capabilities ({status.viber.capabilities.length})
+                      </div>
+                      <div class="flex flex-wrap gap-1">
+                        {#each status.viber.capabilities as cap}
+                          <span
+                            class="inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
+                          >
+                            {cap}
+                          </span>
+                        {/each}
+                      </div>
                     </div>
-                    <div class="flex flex-wrap gap-1">
-                      {#each status.viber.capabilities as cap}
-                        <span
-                          class="inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
-                        >
-                          {cap}
-                        </span>
-                      {/each}
-                    </div>
-                  </div>
-                {/if}
-              </div>
+                  {/if}
+                </div>
+              {/if}
 
-              <!-- Last Heartbeat & Collection Time -->
-              <div class="text-[11px] text-muted-foreground/60 text-right mt-2">
-                {#if status.viber.lastHeartbeatAt}
-                  Last heartbeat: {new Date(
-                    status.viber.lastHeartbeatAt,
-                  ).toLocaleTimeString()}
-                {/if}
-                {#if status.viber.collectedAt}
-                  <span class="ml-3"
-                    >Collected: {new Date(
-                      status.viber.collectedAt,
-                    ).toLocaleTimeString()}</span
-                  >
-                {/if}
-              </div>
+              <!-- Last Heartbeat & Collection Time (Analytics mode only) -->
+              {#if isAnalytics}
+                <div
+                  class="text-[11px] text-muted-foreground/60 text-right mt-2"
+                >
+                  {#if status.viber.lastHeartbeatAt}
+                    Last heartbeat: {new Date(
+                      status.viber.lastHeartbeatAt,
+                    ).toLocaleTimeString()}
+                  {/if}
+                  {#if status.viber.collectedAt}
+                    <span class="ml-3"
+                      >Collected: {new Date(
+                        status.viber.collectedAt,
+                      ).toLocaleTimeString()}</span
+                    >
+                  {/if}
+                </div>
+              {/if}
             </section>
           {/if}
 
-          <ChannelConfigPanel {nodeId} />
+          {#if isConfig}
+            <ChannelConfigPanel {nodeId} />
+          {/if}
         </div>
       {/if}
     </div>

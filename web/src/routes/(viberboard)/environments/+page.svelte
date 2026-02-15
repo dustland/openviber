@@ -207,7 +207,7 @@
     </header>
 
     {#if loading}
-      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div class="grid gap-4">
         {#each Array(3) as _}
           <div class="rounded-xl border border-border bg-card p-4 space-y-3">
             <div class="flex items-start justify-between">
@@ -253,7 +253,7 @@
         </a>
       </div>
     {:else}
-      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div class="grid gap-4">
         {#each environments as environment (environment.id)}
           <article class="rounded-xl border border-border bg-card p-4">
             <div class="mb-3 flex items-start justify-between gap-3">

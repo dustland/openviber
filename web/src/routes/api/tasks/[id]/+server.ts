@@ -35,6 +35,8 @@ export const GET: RequestHandler = async ({ params, locals }) => {
         status: "unknown",
         nodeConnected: null,
         environmentId,
+        skills: [],
+        enabledSkills: enabledSkills ?? [],
       });
     }
 
@@ -120,7 +122,24 @@ export const PATCH: RequestHandler = async ({ params, request, locals }) => {
       );
     }
 
-    const viber = await gatewayClient.getTask(params.id);
+    // Viber IDs that aren't valid UUIDs (e.g. dev-mode "viber-xxx" format)
+    // can't be persisted to Supabase. Accept the change in-memory only.
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!UUID_RE.test(params.id)) {
+      return json({
+        ok: true,
+        viberId: params.id,
+        environmentId: normalizedEnvironmentId,
+      });
+    }
+
+    // Gateway lookup is best-effort — env assignment still works if hub is offline
+    let viber: Awaited<ReturnType<typeof gatewayClient.getTask>> | null = null;
+    try {
+      viber = await gatewayClient.getTask(params.id);
+    } catch {
+      // Hub may be unreachable; proceed with fallback values
+    }
     const assignment = await setViberEnvironmentForUser(
       locals.user.id,
       params.id,

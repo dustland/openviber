@@ -499,6 +499,9 @@
   let selectedSkillIds = $state<string[]>([]);
   let composerEnvironments = $state<ComposerEnvInfo[]>([]);
   let selectedEnvironmentId = $state<string | null>(null);
+  // Prevent the initial load from triggering a persist-back to server
+  let envInitialized = false;
+  let modelInitialized = false;
   let sending = $state(false);
   let messagesContainer = $state<HTMLDivElement | null>(null);
   let inputEl = $state<HTMLTextAreaElement | null>(null);
@@ -729,9 +732,15 @@
         if (data.enabledSkills && selectedSkillIds.length === 0) {
           selectedSkillIds = data.enabledSkills;
         }
-        // Sync environment selection from viber data (first load)
-        if (data.environmentId && !selectedEnvironmentId) {
-          selectedEnvironmentId = data.environmentId;
+        // Sync environment selection from viber data (first load only)
+        if (!envInitialized) {
+          if (data.environmentId) {
+            selectedEnvironmentId = data.environmentId;
+          }
+          // Mark as initialized AFTER initial value is set, so $effect doesn't fire for load
+          queueMicrotask(() => {
+            envInitialized = true;
+          });
         }
         // Surface task-level errors from the hub/daemon
         if (data.status === "error" && data.error) {
@@ -998,7 +1007,10 @@
     }));
   });
 
-  function resolveSkillFromToolPart(part: any, toolName: string): {
+  function resolveSkillFromToolPart(
+    part: any,
+    toolName: string,
+  ): {
     id?: string;
     name: string;
   } | null {
@@ -1170,6 +1182,12 @@
         if (data?.chatModel && !selectedModelId) {
           selectedModelId = data.chatModel;
         }
+        // Mark model as initialized AFTER initial sync
+        if (!modelInitialized) {
+          queueMicrotask(() => {
+            modelInitialized = true;
+          });
+        }
       }
     } catch (_) {
       /* ignore */
@@ -1188,6 +1206,34 @@
     const viberId = $page.params.id;
     if (!viberId) return;
     window.localStorage.setItem("openviber:last-active-viber", viberId);
+  });
+
+  // Persist environment selection back to server when user changes it
+  $effect(() => {
+    const envId = selectedEnvironmentId;
+    const viberId = viber?.id;
+    if (!envInitialized || !viberId) return;
+    // Fire-and-forget PATCH to persist the environment assignment
+    void fetch(`/api/tasks/${viberId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ environmentId: envId }),
+    }).catch(() => {
+      /* ignore */
+    });
+  });
+
+  // Persist model selection to global user settings when user changes it
+  $effect(() => {
+    const modelId = selectedModelId;
+    if (!modelInitialized) return;
+    void fetch("/api/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chatModel: modelId || null }),
+    }).catch(() => {
+      /* ignore */
+    });
   });
 
   $effect(() => {
@@ -1387,43 +1433,80 @@
                     </div>
                   {:else}
                     <!-- Assistant message: full-width, transparent background -->
-                    <div class="min-w-0 w-full rounded-2xl border border-border/40 bg-card/20 px-4 py-3 sm:px-5">
+                    <div
+                      class="min-w-0 w-full rounded-2xl border border-border/40 bg-card/20 px-4 py-3 sm:px-5"
+                    >
                       {#each [buildMessageSkillSummaries(message)] as messageSkills}
                         {#if messageSkills.length > 0}
-                        <Collapsible
-                          open={expandedSkillMessages[message.id] ?? isStreamingAssistantMessage(message)}
-                          onOpenChange={(open) => {
-                            expandedSkillMessages = {
-                              ...expandedSkillMessages,
-                              [message.id]: open,
-                            };
-                          }}
-                          class="mb-3 rounded-lg border border-border/50 bg-muted/20"
-                        >
-                          <CollapsibleTrigger class="flex w-full items-center justify-between px-3 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                            <span class="inline-flex items-center gap-2">
-                              <Cpu class="size-3.5" />
-                              Skills used ({messageSkills.length})
-                            </span>
-                            <ChevronRight class="size-3.5 transition-transform duration-200 {(expandedSkillMessages[message.id] ?? isStreamingAssistantMessage(message)) ? 'rotate-90' : ''}" />
-                          </CollapsibleTrigger>
-                          <CollapsibleContent>
-                            <div class="space-y-2 border-t border-border/40 px-3 py-2.5">
-                              {#each messageSkills as skill}
-                                <div class="rounded-md border border-border/40 bg-card/70 px-2.5 py-2">
-                                  <div class="flex items-center justify-between gap-2">
-                                    <p class="text-xs font-medium text-foreground">{skill.name}</p>
-                                    <span class="text-[10px] uppercase tracking-wide {skill.status === 'completed' ? 'text-emerald-500' : skill.status === 'error' ? 'text-red-500' : 'text-amber-500'}">{skill.status}</span>
+                          <Collapsible
+                            open={expandedSkillMessages[message.id] ??
+                              isStreamingAssistantMessage(message)}
+                            onOpenChange={(open) => {
+                              expandedSkillMessages = {
+                                ...expandedSkillMessages,
+                                [message.id]: open,
+                              };
+                            }}
+                            class="mb-3 rounded-lg border border-border/50 bg-muted/20"
+                          >
+                            <CollapsibleTrigger
+                              class="flex w-full items-center justify-between px-3 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                              <span class="inline-flex items-center gap-2">
+                                <Cpu class="size-3.5" />
+                                Skills used ({messageSkills.length})
+                              </span>
+                              <ChevronRight
+                                class="size-3.5 transition-transform duration-200 {(expandedSkillMessages[
+                                  message.id
+                                ] ?? isStreamingAssistantMessage(message))
+                                  ? 'rotate-90'
+                                  : ''}"
+                              />
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                              <div
+                                class="space-y-2 border-t border-border/40 px-3 py-2.5"
+                              >
+                                {#each messageSkills as skill}
+                                  <div
+                                    class="rounded-md border border-border/40 bg-card/70 px-2.5 py-2"
+                                  >
+                                    <div
+                                      class="flex items-center justify-between gap-2"
+                                    >
+                                      <p
+                                        class="text-xs font-medium text-foreground"
+                                      >
+                                        {skill.name}
+                                      </p>
+                                      <span
+                                        class="text-[10px] uppercase tracking-wide {skill.status ===
+                                        'completed'
+                                          ? 'text-emerald-500'
+                                          : skill.status === 'error'
+                                            ? 'text-red-500'
+                                            : 'text-amber-500'}"
+                                        >{skill.status}</span
+                                      >
+                                    </div>
+                                    <p
+                                      class="mt-1 text-[11px] text-muted-foreground"
+                                    >
+                                      {skill.tools.join(" · ")}
+                                    </p>
+                                    {#if skill.summary}
+                                      <p
+                                        class="mt-1 text-[11px] text-muted-foreground/90 truncate"
+                                      >
+                                        {skill.summary}
+                                      </p>
+                                    {/if}
                                   </div>
-                                  <p class="mt-1 text-[11px] text-muted-foreground">{skill.tools.join(" · ")}</p>
-                                  {#if skill.summary}
-                                    <p class="mt-1 text-[11px] text-muted-foreground/90 truncate">{skill.summary}</p>
-                                  {/if}
-                                </div>
-                              {/each}
-                            </div>
-                          </CollapsibleContent>
-                        </Collapsible>
+                                {/each}
+                              </div>
+                            </CollapsibleContent>
+                          </Collapsible>
                         {/if}
                       {/each}
 
@@ -1480,7 +1563,9 @@
                         {/if}
                       {/each}
                       {#if isStreamingAssistantMessage(message)}
-                        <div class="mt-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <div
+                          class="mt-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground"
+                        >
                           <LoaderCircle class="size-3.5 animate-spin" />
                           Responding…
                         </div>

@@ -136,10 +136,10 @@ When the operator clicks "Stop" in the Viber Board:
 
 ## 6. Scheduled Tasks (Jobs)
 
-Vibers can have cron-scheduled jobs defined as YAML files in their jobs directory:
+Vibers can use cron-scheduled jobs defined as YAML files in the global jobs directory:
 
 ```
-~/.openviber/vibers/dev/jobs/
+~/.openviber/jobs/
 ├── daily-summary.yaml
 └── health-check.yaml
 ```
@@ -147,7 +147,7 @@ Vibers can have cron-scheduled jobs defined as YAML files in their jobs director
 Each job file specifies a cron schedule, a prompt, and optional agent configuration:
 
 ```yaml
-# ~/.openviber/vibers/dev/jobs/daily-summary.yaml
+# ~/.openviber/jobs/daily-summary.yaml
 name: Daily Summary
 schedule: "0 9 * * *"
 model: deepseek/deepseek-chat
@@ -171,7 +171,7 @@ Unlike interactive tasks, scheduled jobs run independently of the gateway/Viber 
 
 Jobs can also be created through chat using the `create_scheduled_job` tool (which supports natural language scheduling like "8am daily") or pushed from the Viber Board via the `job:create` WebSocket message.
 
-Global jobs (in `~/.openviber/jobs/`) are shared across all vibers. Per-viber jobs (in `~/.openviber/vibers/{id}/jobs/`) are scoped to a specific viber.
+Jobs are loaded from `~/.openviber/jobs/` (or `OPENVIBER_JOBS_DIR` if set).
 
 See [Jobs](/docs/concepts/jobs) for the full reference.
 

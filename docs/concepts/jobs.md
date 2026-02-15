@@ -44,7 +44,7 @@ If no `model` is specified, the job is skipped with a warning — a model is req
 ### Full Schema
 
 ```yaml
-# ~/.openviber/vibers/dev/jobs/daily-summary.yaml
+# ~/.openviber/jobs/daily-summary.yaml
 
 name: Daily Summary
 description: Summarize GitHub activity every morning
@@ -119,28 +119,7 @@ Jobs use standard cron syntax. Both 5-field (minute-level) and 6-field (second-l
 
 ## Job Locations
 
-Jobs can be stored in two places:
-
-### Per-Task Jobs
-
-Each task has its own job directory:
-
-```
-~/.openviber/vibers/
-├── dev/
-│   └── jobs/
-│       ├── daily-summary.yaml
-│       └── health-check.yaml
-└── researcher/
-    └── jobs/
-        └── weekly-report.yaml
-```
-
-Per-task jobs are loaded when the task starts. They inherit the task's context and run in its scope.
-
-### Global Jobs
-
-Shared jobs that aren't tied to a specific task:
+Jobs are stored in the global directory:
 
 ```
 ~/.openviber/jobs/
@@ -148,7 +127,7 @@ Shared jobs that aren't tied to a specific task:
 └── system-health.yaml
 ```
 
-The global jobs directory is configurable via the `OPENVIBER_JOBS_DIR` environment variable. Global jobs are used by the schedule tool and the daemon scheduler.
+The jobs directory is configurable via the `OPENVIBER_JOBS_DIR` environment variable.
 
 ### Disabling a Job
 
@@ -164,7 +143,7 @@ Disabled jobs are skipped during loading.
 
 ### Method 1: YAML File (Manual)
 
-Create a `.yaml` file in the appropriate jobs directory:
+Create a `.yaml` file in `~/.openviber/jobs/`:
 
 ```yaml
 # ~/.openviber/jobs/check-health.yaml

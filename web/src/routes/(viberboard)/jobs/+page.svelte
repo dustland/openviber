@@ -50,11 +50,6 @@
     status: string;
   }
 
-  interface ViberJobsGroup {
-    viberId: string;
-    jobs: JobEntry[];
-  }
-
   interface ViberDaemonJobsGroup {
     viberId: string;
     viberName: string;
@@ -95,7 +90,6 @@
   }
 
   let globalJobs = $state<JobEntry[]>([]);
-  let perViberJobs = $state<ViberJobsGroup[]>([]);
   let daemonJobs = $state<ViberDaemonJobsGroup[]>([]);
   let totalJobs = $state(0);
   let loading = $state(true);
@@ -239,13 +233,11 @@
       }
       const data = await res.json();
       globalJobs = data.globalJobs ?? [];
-      perViberJobs = data.perViberJobs ?? [];
       daemonJobs = data.nodeJobs ?? [];
       totalJobs = data.totalJobs ?? 0;
     } catch (e) {
       error = e instanceof Error ? e.message : "Failed to load jobs";
       globalJobs = [];
-      perViberJobs = [];
       daemonJobs = [];
       totalJobs = 0;
     } finally {
@@ -507,102 +499,6 @@
             </section>
           {/if}
 
-          <!-- Per-viber jobs -->
-          {#each perViberJobs as group}
-            {#if group.jobs.length > 0}
-              <section>
-                <h2
-                  class="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4"
-                >
-                  Viber: {group.viberId}
-                </h2>
-                <div class="grid gap-4">
-                  {#each group.jobs as job}
-                    <div
-                      class="rounded-xl border border-border bg-card p-5 transition-all hover:border-primary/30 hover:shadow-sm"
-                    >
-                      <div class="flex items-start justify-between gap-4">
-                        <div class="flex-1 min-w-0">
-                          <div class="flex items-center gap-2 mb-1">
-                            <h3
-                              class="text-lg font-semibold text-card-foreground truncate"
-                            >
-                              {job.name}
-                            </h3>
-                            {#if !job.enabled}
-                              <span
-                                class="px-2 py-0.5 rounded-full text-xs bg-muted text-muted-foreground"
-                              >
-                                Disabled
-                              </span>
-                            {/if}
-                          </div>
-                          {#if job.description}
-                            <p class="text-sm text-muted-foreground mb-3">
-                              {job.description}
-                            </p>
-                          {/if}
-                          <div
-                            class="flex flex-wrap items-center gap-3 text-sm"
-                          >
-                            <div
-                              class="flex items-center gap-1.5 text-muted-foreground"
-                            >
-                              <Clock class="size-4" />
-                              <span
-                                >{job.scheduleDescription || job.schedule}</span
-                              >
-                            </div>
-                            {#if job.model}
-                              <div
-                                class="flex items-center gap-1.5 text-muted-foreground"
-                              >
-                                <Zap class="size-4" />
-                                <span class="font-mono text-xs"
-                                  >{job.model}</span
-                                >
-                              </div>
-                            {/if}
-                          </div>
-                          {#if job.prompt}
-                            <div
-                              class="mt-3 p-3 rounded-lg bg-muted/50 border border-border/50"
-                            >
-                              <p
-                                class="text-sm text-muted-foreground line-clamp-2"
-                              >
-                                {job.prompt}
-                              </p>
-                            </div>
-                          {/if}
-                        </div>
-                        <div class="shrink-0">
-                          {#if job.enabled}
-                            <span
-                              class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400"
-                            >
-                              <span class="size-1.5 rounded-full bg-current"
-                              ></span>
-                              Active
-                            </span>
-                          {:else}
-                            <span
-                              class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground"
-                            >
-                              <span class="size-1.5 rounded-full bg-current"
-                              ></span>
-                              Paused
-                            </span>
-                          {/if}
-                        </div>
-                      </div>
-                    </div>
-                  {/each}
-                </div>
-              </section>
-            {/if}
-          {/each}
-
           <!-- Daemon-reported jobs (created from chat or locally on daemons) -->
           {#each daemonJobs as group}
             {#if group.jobs.length > 0}
@@ -678,9 +574,6 @@
 
         <p class="mt-6 text-center text-sm text-muted-foreground">
           {totalJobs} job{totalJobs === 1 ? "" : "s"}
-          {#if globalJobs.length > 0 && perViberJobs.length > 0}
-            (global + per-viber)
-          {/if}
         </p>
       {/if}
     {/if}

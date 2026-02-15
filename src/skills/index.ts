@@ -9,7 +9,6 @@ import { getTools as getRailwayTools } from "./railway";
 import { getTools as getGmailTools } from "./gmail";
 import { getTools as getPlaygroundTools } from "./playground";
 import { getTools as getSystemInfoTools } from "./system-info";
-import { getTools as getSysTelemetryTools } from "./sys-telemetry";
 
 // Register default skills and their tools
 // This is called during module initialization to pre-register tools
@@ -35,6 +34,4 @@ export function registerDefaultSkills() {
   defaultRegistry.preRegisterTools("skill-playground", getPlaygroundTools());
   // Pre-register system-info tools (CPU, memory, disk, processes, network)
   defaultRegistry.preRegisterTools("system-info", getSystemInfoTools());
-  // Pre-register sys-telemetry alias tools (same surface as system-info)
-  defaultRegistry.preRegisterTools("sys-telemetry", getSysTelemetryTools());
 }

@@ -532,7 +532,7 @@ async function runHeadlessFlow(
 interface SavedConfig {
   webUrl?: string;
   authToken?: string;
-  nodeId?: string;
+  viberId?: string;
   [key: string]: unknown;
 }
 
@@ -559,7 +559,7 @@ async function loadSavedConfig(): Promise<SavedConfig | null> {
 export async function runConnectedGoogleOAuth(
   webUrl: string,
   authToken: string,
-  nodeId: string,
+  viberId: string,
   options: { noBrowser?: boolean },
 ): Promise<void> {
   const oauthPageUrl = `${webUrl}/settings/integrations`;
@@ -588,7 +588,7 @@ export async function runConnectedGoogleOAuth(
     await sleep(5000);
 
     try {
-      const res = await fetch(`${webUrl}/api/nodes/${nodeId}/config`, {
+      const res = await fetch(`${webUrl}/api/vibers/${viberId}/config`, {
         headers: {
           Authorization: `Bearer ${authToken}`,
         },
@@ -845,13 +845,13 @@ export async function runGoogleAuth(options: {
 }): Promise<void> {
   const savedConfig = await loadSavedConfig();
 
-  if (savedConfig?.webUrl && savedConfig?.authToken && savedConfig?.nodeId) {
+  if (savedConfig?.webUrl && savedConfig?.authToken && savedConfig?.viberId) {
     // Connected mode — delegate to web app
     console.log("[Auth] Connected mode — using web app for Google OAuth");
     await runConnectedGoogleOAuth(
       savedConfig.webUrl,
       savedConfig.authToken,
-      savedConfig.nodeId,
+      savedConfig.viberId,
       options,
     );
   } else {

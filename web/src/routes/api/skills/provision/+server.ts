@@ -4,7 +4,7 @@ import { gatewayClient } from "$lib/server/gateway";
 
 interface ProvisionRequestBody {
   skillId?: string;
-  nodeId?: string;
+  viberId?: string;
   install?: boolean;
   authAction?: "none" | "copy" | "start";
 }
@@ -33,13 +33,13 @@ export const POST: RequestHandler = async ({ request, locals }) => {
   try {
     const body = (await request.json()) as ProvisionRequestBody;
     const skillId = body.skillId?.trim();
-    const nodeId = body.nodeId?.trim();
+    const viberId = body.viberId?.trim();
 
     if (!skillId) {
       return json({ error: "Missing skillId" }, { status: 400 });
     }
-    if (!nodeId) {
-      return json({ error: "Missing nodeId" }, { status: 400 });
+    if (!viberId) {
+      return json({ error: "Missing viberId" }, { status: 400 });
     }
     if (!SUPPORTED_SKILLS.has(skillId)) {
       return json(
@@ -50,8 +50,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       );
     }
 
-    const nodes = await gatewayClient.getNodes();
-    const targetNode = nodes.nodes.find((node) => node.id === nodeId);
+    const nodes = await gatewayClient.getVibers();
+    const targetNode = nodes.vibers.find((node) => node.id === viberId);
     if (!targetNode) {
       return json(
         { error: "Target node is not connected. Bring the node online and retry." },
@@ -59,7 +59,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       );
     }
 
-    const provisionResult = await gatewayClient.provisionNodeSkill(nodeId, {
+    const provisionResult = await gatewayClient.provisionViberSkill(viberId, {
       skillId,
       install: body.install !== false,
       authAction:
@@ -74,7 +74,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       ok: provisionResult.ok,
       ready: provisionResult.ready,
       skillId,
-      nodeId,
+      viberId,
       before: provisionResult.before ?? null,
       after: provisionResult.after ?? null,
       auth: provisionResult.auth ?? { required: false, ready: true },

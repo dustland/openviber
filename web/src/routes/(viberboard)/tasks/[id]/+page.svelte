@@ -402,8 +402,8 @@
   interface Viber {
     id: string;
     name: string;
-    nodeId?: string | null;
-    nodeName?: string | null;
+    viberId?: string | null;
+    viberName?: string | null;
     platform: string | null;
     version: string | null;
     capabilities: string[] | null;
@@ -412,7 +412,7 @@
     /** Skills currently enabled for this viber (persisted in DB) */
     enabledSkills?: string[] | null;
     /** Connection status of the node hosting this viber; null if no node */
-    nodeConnected: boolean | null;
+    viberConnected: boolean | null;
     runningTasks: string[];
     status?: {
       uptime: number;
@@ -767,7 +767,7 @@
 
   async function sendMessage(overrideContent?: string) {
     const content = (overrideContent ?? inputValue).trim();
-    if ((content.length === 0 && imageAttachments.length === 0) || sending || viber?.nodeConnected !== true) return;
+    if ((content.length === 0 && imageAttachments.length === 0) || sending || viber?.viberConnected !== true) return;
 
     const unavailableSelected = (viber?.skills ?? []).filter(
       (skill) =>
@@ -904,7 +904,7 @@
   }
 
   async function runSkillProvision(install: boolean) {
-    if (!setupSkill || !viber?.nodeId) {
+    if (!setupSkill || !viber?.viberId) {
       setupSkillError = "Viber is unavailable for this viber.";
       return;
     }
@@ -918,7 +918,7 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           skillId: targetSkill.id,
-          nodeId: viber.nodeId,
+          viberId: viber.viberId,
           install,
           authAction: install ? setupAuthAction : "none",
         }),
@@ -1174,7 +1174,7 @@
 
   $effect(() => {
     if (typeof window === "undefined") return;
-    if (loading || sending || viber?.nodeConnected !== true) return;
+    if (loading || sending || viber?.viberConnected !== true) return;
     if (bootstrapTaskHandledViberId === viber.id) return;
 
     const storageKey = `openviber:new-viber-task:${viber.id}`;
@@ -1298,7 +1298,7 @@
             >
               Loading...
             </div>
-          {:else if viber?.nodeConnected !== true}
+          {:else if viber?.viberConnected !== true}
             <div
               class="h-full flex items-center justify-center text-center text-muted-foreground p-4"
             >
@@ -1662,10 +1662,10 @@
             bind:inputElement={inputEl}
             bind:selectedModelId
             bind:selectedEnvironmentId
-            placeholder={viber?.nodeConnected === true
+            placeholder={viber?.viberConnected === true
               ? "Send a task or command... (⏎ send, ⇧⏎ newline)"
               : "Viber is offline"}
-            disabled={viber?.nodeConnected !== true}
+            disabled={viber?.viberConnected !== true}
             {sending}
             environments={composerEnvironments}
             skills={viber?.skills ?? []}

@@ -267,7 +267,7 @@ Practical rule:
 ## 11. Acceptance Criteria
 
 1. User can create a GitHub-backed environment with setup script and secure vars from UI.
-2. User can map environment to an active node and see live prepare status.
+2. User can map environment to an active viber daemon and see live prepare status.
 3. User can start a new task inside that environment with no machine-side manual repo/setup commands.
 4. Runtime receives env config; setup script runs before first task task.
 5. Secrets are masked in UI/logs and redacted in streamed output.
@@ -280,9 +280,9 @@ Practical rule:
 Likely files/services to update:
 
 - `web/src/routes/vibers/[id]/+layout.svelte` (sidebar IA)
-- `web/src/routes/vibers/+page.svelte` (environment/node creation entry points)
-- `web/src/lib/server/viber-nodes.ts` (node-bound environment metadata)
-- `web/src/routes/api/nodes/[id]/config/+server.ts` (config pull expansion)
+- `web/src/routes/vibers/+page.svelte` (environment/viber creation entry points)
+- `web/src/lib/server/environments.ts` (viber-bound environment metadata)
+- `web/src/routes/api/vibers/[id]/config/+server.ts` (config pull expansion)
 - `src/daemon/controller.ts` (new control-plane message handlers)
 - `src/daemon/runtime.ts` (environment-aware task bootstrap)
 - `src/daemon/gateway.ts` (relay and status fanout for environment events)

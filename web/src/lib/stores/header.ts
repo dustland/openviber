@@ -12,7 +12,7 @@ export interface ViberHeaderContext {
   viberId: string;
   viberName: string;
   /** Connection status of the node hosting this viber; null if no node */
-  nodeConnected: boolean | null;
+  viberConnected: boolean | null;
   platform: string | null;
   skills: ViberSkillInfo[];
   activeTab: ViberHeaderTab;
@@ -36,7 +36,7 @@ function createHeaderStore() {
         viber: {
           viberId: viber.viberId ?? s.viber?.viberId ?? "",
           viberName: viber.viberName ?? s.viber?.viberName ?? "",
-          nodeConnected: viber.nodeConnected ?? s.viber?.nodeConnected ?? null,
+          viberConnected: viber.viberConnected ?? s.viber?.viberConnected ?? null,
           platform: viber.platform ?? s.viber?.platform ?? null,
           skills: viber.skills ?? s.viber?.skills ?? [],
           activeTab: viber.activeTab ?? s.viber?.activeTab ?? "chat",

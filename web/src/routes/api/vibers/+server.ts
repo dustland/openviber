@@ -8,7 +8,7 @@ import {
   deleteViber,
   ensureDevViber,
 } from "$lib/server/vibers";
-import { gatewayClient } from "$lib/server/gateway";
+import { gatewayClient, type ConnectedViber } from "$lib/server/gateway";
 import { upsertSkillsBatch } from "$lib/server/environments";
 
 // GET /api/vibers - List user's vibers (with live gateway status)
@@ -22,13 +22,13 @@ export const GET: RequestHandler = async ({ locals }) => {
   // Return a mock dev viber sourced only from gateway connectivity data.
   if (isE2ETestMode()) {
     try {
-      const gatewayData = await gatewayClient.getNodes();
+      const gatewayData = await gatewayClient.getVibers();
       const devViberId = env.OPENVIBER_DEV_VIBER_ID?.trim();
       const devViberName = env.OPENVIBER_DEV_VIBER_NAME?.trim() || "Local Dev";
       const now = new Date().toISOString();
 
       // Build vibers from connected gateway nodes
-      const vibers = gatewayData.nodes.map((node) => ({
+      const vibers = gatewayData.vibers.map((node: ConnectedViber) => ({
         id: node.id,
         user_id: locals.user!.id,
         name: node.name || node.id,
@@ -121,12 +121,12 @@ export const GET: RequestHandler = async ({ locals }) => {
 
     const [vibers, gatewayData] = await Promise.all([
       listVibers(locals.user.id),
-      gatewayClient.getNodes(),
+      gatewayClient.getVibers(),
     ]);
 
     // Build a map of connected daemon IDs from the gateway
-    const connectedDaemons = new Map(
-      gatewayData.nodes.map((n) => [n.id, n]),
+    const connectedDaemons = new Map<string, ConnectedViber>(
+      gatewayData.vibers.map((n: ConnectedViber) => [n.id, n]),
     );
 
     // Track which daemon IDs are claimed by DB vibers
@@ -193,12 +193,12 @@ export const GET: RequestHandler = async ({ locals }) => {
     // Backfill: sync viber-reported skills into the account-level skills table
     // so that pre-existing skills are registered even if never imported via the skill hub.
     try {
-      const allViberSkills = gatewayData.nodes.flatMap((n) =>
+      const allViberSkills = gatewayData.vibers.flatMap((n: ConnectedViber) =>
         (n.skills ?? []).map((s: { id?: string; name: string; description?: string }) => ({
           skill_id: s.id || s.name,
           name: s.name,
           description: s.description || "",
-          source: "node" as const,
+          source: "viber" as const,
         })),
       );
       if (allViberSkills.length > 0) {

@@ -52,7 +52,7 @@ async function loadConfig(viberId: string): Promise<{ config: AgentConfig; confi
 export const GET: RequestHandler = async ({ params }) => {
   try {
     const { config, configPath } = await loadConfig(params.id);
-    const { nodes } = await gatewayClient.getNodes();
+    const { vibers } = await gatewayClient.getVibers();
 
     const skillOptions = Array.from(
       new Set(

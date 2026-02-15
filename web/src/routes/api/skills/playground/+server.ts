@@ -5,7 +5,7 @@ import { gatewayClient } from "$lib/server/gateway";
 interface PlaygroundRequestBody {
   skillId?: string;
   viberId?: string;
-  nodeId?: string;
+  viberId?: string;
   scenario?: string;
 }
 
@@ -82,8 +82,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
   try {
     const body = (await request.json()) as PlaygroundRequestBody;
     const skillId = body.skillId?.trim();
-    // Accept both viberId (from frontend) and nodeId (legacy)
-    const nodeId = body.viberId?.trim() || body.nodeId?.trim();
+    // Accept both viberId (from frontend) and viberId (legacy)
+    const viberId = body.viberId?.trim() || body.viberId?.trim();
     const scenario = body.scenario?.trim();
 
     if (!skillId) {
@@ -106,7 +106,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
     const prompt = promptLines.join("\n");
 
-    const created = await gatewayClient.createTask(prompt, nodeId || undefined);
+    const created = await gatewayClient.createTask(prompt, viberId || undefined);
     if (!created?.viberId) {
       return json({ error: "No node available or gateway unreachable" }, { status: 503 });
     }

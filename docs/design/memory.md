@@ -13,7 +13,7 @@ Memory in OpenViber refers to persistent knowledge that outlives a single conver
 
 1. **Per-viber storage**: Memory lives in `~/.openviber/vibers/{id}/` as human-readable files
 2. **Board-controlled injection**: The Viber Board decides what memory to include in each request
-3. **No implicit retrieval**: The node does not autonomously search memory — it receives memory as context
+3. **No implicit retrieval**: The daemon does not autonomously search memory — it receives memory as context
 4. **Optional indexing**: Semantic search is opt-in; flat files work without it
 
 ## 2. Memory Tiers
@@ -59,7 +59,7 @@ Memory in OpenViber refers to persistent knowledge that outlives a single conver
 - Package manager: pnpm (never npm or yarn)
 
 ## Important Decisions
-- 2024-01-10: Chose stateless node architecture
+- 2024-01-10: Chose stateless daemon architecture
 - 2024-01-15: Adopted workspace-first storage model
 
 ## Learned Patterns
@@ -187,7 +187,7 @@ async function updateMemory(result: TaskResult) {
 
 ### Manual Curation
 
-Users can edit memory files directly. The node reads them as static context:
+Users can edit memory files directly. The daemon reads them as static context:
 
 ```bash
 # Edit long-term memory
@@ -371,4 +371,4 @@ Memory in OpenViber is **file-first and Board-controlled**:
 3. **Semantic search is optional** — SQLite index for large memory stores
 4. **Human-readable and editable** — Users can directly edit memory files
 
-This design keeps the node stateless while enabling rich, persistent context across sessions.
+This design keeps the daemon stateless while enabling rich, persistent context across sessions.

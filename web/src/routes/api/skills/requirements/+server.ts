@@ -51,7 +51,7 @@ export const GET: RequestHandler = async ({ url, locals }) => {
   }
 
   // Try to get real health data from gateway nodes first
-  const nodeId = url.searchParams.get("nodeId");
+  const viberId = url.searchParams.get("viberId");
   let skillHealthFromNode: {
     checks?: Array<{
       id: string;
@@ -66,10 +66,10 @@ export const GET: RequestHandler = async ({ url, locals }) => {
     available?: boolean;
   } | null = null;
 
-  if (nodeId) {
+  if (viberId) {
     try {
-      const { nodes } = await gatewayClient.getNodes();
-      const node = nodes.find((n) => n.id === nodeId);
+      const { vibers } = await gatewayClient.getVibers();
+      const node = nodes.find((n) => n.id === viberId);
       if (node?.skills) {
         const skill = node.skills.find((s) => s.id === skillId);
         if (skill) {

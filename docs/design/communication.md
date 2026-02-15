@@ -14,7 +14,7 @@ Communication in OpenViber connects operators to their vibers. The primary inter
 | Surface | Transport | Use Case |
 |---------|-----------|----------|
 | **Viber Board** (web UI) | HTTP + SSE via AI SDK | Primary: chat, observe terminals, manage vibers |
-| **CLI** | Direct node runtime (daemon) call | Quick tasks: `openviber run "build the landing page"` |
+| **CLI** | Direct daemon call | Quick tasks: `openviber run "build the landing page"` |
 | **Enterprise channels** | Channel APIs (future) | DingTalk, WeCom, Slack — async task management |
 
 ---
@@ -27,7 +27,7 @@ The Viber Board (web app) is a SvelteKit app that communicates with vibers throu
 Operator types message
   → @ai-sdk/svelte Chat class sends POST to /api/tasks/[id]/chat
     → SvelteKit API route forwards to gateway: gatewayClient.submitTask()
-      → Gateway creates task, sends task:submit to node runtime (daemon) over WebSocket
+      → Gateway creates task, sends task:submit to daemon over WebSocket
         → Viber daemon runs AI SDK streamText(), streams response back
       → Gateway relays SSE stream to web app
     → Web app pipes SSE to browser
@@ -55,7 +55,7 @@ When the operator returns to a viber's chat page:
 ### Terminal Streaming
 
 Operators can watch viber terminal sessions in real time:
-- Terminal I/O flows over the node runtime (daemon) ↔ gateway WebSocket (separate from the AI stream).
+- Terminal I/O flows over the daemon ↔ gateway WebSocket (separate from the AI stream).
 - The Viber Board renders terminal output using xterm.js.
 - Operators can send keyboard input to terminals.
 - tmux is the default terminal runtime.

@@ -11,10 +11,10 @@
   } from "@lucide/svelte";
 
   interface Props {
-    nodeId: string;
+    viberId: string;
   }
 
-  let { nodeId }: Props = $props();
+  let { viberId }: Props = $props();
 
   type DiscordState = {
     enabled: boolean;
@@ -129,7 +129,7 @@
     error = null;
     try {
       const res = await fetch(
-        `/api/vibers/${encodeURIComponent(nodeId)}/config`,
+        `/api/vibers/${encodeURIComponent(viberId)}/config`,
       );
       const payload = await res.json();
       if (!res.ok) {
@@ -235,7 +235,7 @@
       const nextConfig = { ...baseConfig, channels };
 
       const res = await fetch(
-        `/api/vibers/${encodeURIComponent(nodeId)}/config`,
+        `/api/vibers/${encodeURIComponent(viberId)}/config`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },

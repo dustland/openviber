@@ -246,7 +246,7 @@ Press Ctrl+C to stop.
       };
       if (msg.description) config.description = msg.description;
       if (msg.model) config.model = msg.model;
-      if (msg.nodeId) config.nodeId = msg.nodeId;
+      if (msg.viberId) config.viberId = msg.viberId;
       try {
         await fs.mkdir(jobsDir, { recursive: true });
         await fs.writeFile(jobPath, YAML.stringify(config), "utf8");

@@ -15,7 +15,7 @@
     id: string;
     name: string;
     /** Connection status of the node hosting this viber; null if no node */
-    nodeConnected: boolean | null;
+    viberConnected: boolean | null;
   }
 
   interface Props {
@@ -31,7 +31,7 @@
     tasksState.tasks.map((v) => ({
       id: v.id,
       name: v.goal,
-      nodeConnected: v.viberConnected,
+      viberConnected: v.viberConnected,
     })),
   );
   const loading = $derived(tasksState.loading);
@@ -57,7 +57,7 @@
       <span class="truncate font-semibold text-sm flex-1 text-left">
         {currentViber?.name || "All Vibers"}
       </span>
-      {#if currentViber?.nodeConnected === true}
+      {#if currentViber?.viberConnected === true}
         <span class="size-1.5 rounded-full bg-green-500 shrink-0"></span>
       {:else if currentViber}
         <span class="size-1.5 rounded-full bg-muted-foreground shrink-0"></span>
@@ -94,7 +94,7 @@
           onSelect={() => navigateToViber(viber.id)}
         >
           <Circle
-            class="size-2 {viber.nodeConnected === true
+            class="size-2 {viber.viberConnected === true
               ? 'fill-green-500 text-green-500'
               : 'fill-muted-foreground text-muted-foreground'}"
           />

@@ -66,7 +66,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
         return true;
       })
       .map((e) => ({
-        id: `gateway-${e.at}-${e.viberId || e.nodeId || "sys"}`,
+        id: `gateway-${e.at}-${e.viberId || e.viberId || "sys"}`,
         user_id: locals.user!.id,
         level: e.level || inferLevel(e),
         category: e.category,
@@ -74,7 +74,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
         message: e.message || eventMessage(e),
         viber_id: e.viberId || null,
         task_id: (e.event?.taskId as string) || null,
-        node_id: e.nodeId || null,
+        viber_id: e.viberId || null,
         metadata: e.event || e.metadata || null,
         created_at: e.at,
         source: "gateway" as const,
@@ -124,7 +124,7 @@ function inferComponent(e: GatewayEvent): string {
 
 function eventMessage(e: GatewayEvent): string {
   if (e.message) return e.message;
-  if (e.category === "system") return `System event from ${e.nodeName || e.nodeId || "unknown"}`;
+  if (e.category === "system") return `System event from ${e.viberName || e.viberId || "unknown"}`;
 
   const kind = e.event?.kind as string | undefined;
   switch (kind) {

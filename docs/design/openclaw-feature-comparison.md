@@ -219,7 +219,7 @@ OpenViber is designed to **reduce management burden** by making the web app the 
 | Remote access (SSH/Tailscale) | -- | Yes |
 | Bonjour/mDNS discovery | -- | Yes |
 
-**Trade-off**: OpenClaw invests in CLI wizard, OS daemon install, and plugin SDK. OpenViber invests in **web-first UX**: minimal CLI (start + onboard with token), with node/viber/job management and chat in the Viber Board. Management effort is intentionally concentrated in the browser.
+**Trade-off**: OpenClaw invests in CLI wizard, OS daemon install, and plugin SDK. OpenViber invests in **web-first UX**: minimal CLI (start + onboard with token), with viber/job management and chat in the Viber Board. Management effort is intentionally concentrated in the browser.
 
 ---
 

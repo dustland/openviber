@@ -36,15 +36,11 @@
   let selectedViber = $state<ViberDetail | null>(null);
 
   const viberId = $derived($page.url.searchParams.get("viber") || "");
-  const nodeId = $derived($page.url.searchParams.get("node") || "");
 
   function buildQuery(extra: Record<string, string>) {
     const params = new URLSearchParams();
     if (viberId) {
       params.set("viber", viberId);
-    }
-    if (nodeId) {
-      params.set("node", nodeId);
     }
     for (const [key, value] of Object.entries(extra)) {
       if (value) {
@@ -65,8 +61,8 @@
 
   function getNewTaskHref(environmentId: string) {
     const params = new URLSearchParams({ environment: environmentId });
-    if (nodeId) {
-      params.set("node", nodeId);
+    if (viberId) {
+      params.set("viber", viberId);
     }
     return `/vibers/new?${params.toString()}`;
   }

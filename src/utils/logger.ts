@@ -19,7 +19,7 @@ interface LogEntry {
   msg: string;
   viberId?: string;
   taskId?: string;
-  nodeId?: string;
+  viberId?: string;
   data?: Record<string, unknown>;
 }
 
@@ -49,7 +49,7 @@ export function setLogLevel(level: LogLevel): void {
  */
 export function createLogger(
   component: string,
-  scope?: { viberId?: string; taskId?: string; nodeId?: string }
+  scope?: { viberId?: string; taskId?: string }
 ) {
   function emit(
     level: LogLevel,

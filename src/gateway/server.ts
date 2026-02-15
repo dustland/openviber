@@ -1,21 +1,21 @@
 /**
- * Gateway Server - Central coordinator for viber nodes
+ * Gateway Server - Central coordinator for vibers
  *
- * The gateway accepts WebSocket connections from node daemons and provides
+ * The gateway accepts WebSocket connections from viber daemons and provides
  * a REST API for the Viber Board web app to manage them.
  *
  * REST API (for Viber Board):
  *   GET  /health              - Health check
- *   GET  /api/nodes           - List connected nodes
+ *   GET  /api/vibers           - List connected vibers
  *   GET  /api/events          - Unified event stream (activity + system)
  *   GET  /api/tasks           - List all tasks (sessions)
- *   POST /api/tasks           - Create a new task on a node
+ *   POST /api/tasks           - Create a new task on a viber
  *   GET  /api/tasks/:id       - Get task details
  *   POST /api/tasks/:id/stop  - Stop a task
  *   GET  /api/tasks/:id/stream - SSE stream for task output
  *
- * WebSocket (for node daemons):
- *   ws://localhost:6007/ws - Node daemon connection endpoint
+ * WebSocket (for viber daemons):
+ *   ws://localhost:6007/ws - Viber daemon connection endpoint
  */
 
 import { createServer, IncomingMessage, ServerResponse } from "http";
@@ -44,10 +44,10 @@ interface NodeJobEntry {
   prompt: string;
   description?: string;
   model?: string;
-  nodeId?: string;
+  viberId?: string;
 }
 
-interface ConnectedNode {
+interface ConnectedViber {
   id: string;
   name: string;
   version: string;
@@ -74,7 +74,7 @@ interface ConnectedNode {
   connectedAt: Date;
   lastHeartbeat: Date;
   runningVibers: string[];
-  /** Jobs currently loaded on this node's scheduler. */
+  /** Jobs currently loaded on this viber's scheduler. */
   jobs: NodeJobEntry[];
   /** Latest machine resource status from heartbeat */
   machineStatus?: MachineResourceStatus;
@@ -95,8 +95,8 @@ interface SystemEvent {
   component: string;
   level: "info" | "warn" | "error";
   message: string;
-  nodeId?: string;
-  nodeName?: string;
+  viberId?: string;
+  viberName?: string;
   metadata?: Record<string, unknown>;
 }
 
@@ -116,7 +116,7 @@ interface ViberProgressEnvelope {
 
 interface Viber {
   id: string;
-  nodeId: string;
+  viberId: string;
   goal: string;
   status: "pending" | "running" | "completed" | "error" | "stopped";
   result?: any;
@@ -131,17 +131,17 @@ interface Viber {
 
 export class GatewayServer {
   private static readonly MAX_STREAM_BUFFER_BYTES = 2_000_000;
-  private static readonly MAX_NODE_EVENTS = 200;
+  private static readonly MAX_VIBER_EVENTS = 200;
 
   private server: ReturnType<typeof createServer> | null = null;
   private wss: WebSocketServer | null = null;
-  private nodes: Map<string, ConnectedNode> = new Map();
-  private vibers: Map<string, Viber> = new Map();
+  private vibers: Map<string, ConnectedViber> = new Map();
+  private tasks: Map<string, Viber> = new Map();
   // Active SSE stream subscribers per viber.
   private streamSubscribers: Map<string, ServerResponse[]> = new Map();
-  // System-level events ring buffer (node connect/disconnect/heartbeat-miss)
-  private nodeEvents: SystemEvent[] = [];
-  // In-flight skill provisioning requests waiting for node replies
+  // System-level events ring buffer (viber connect/disconnect/heartbeat-miss)
+  private viberEvents: SystemEvent[] = [];
+  // In-flight skill provisioning requests waiting for viber replies
   private pendingSkillProvisionResolvers: Map<
     string,
     {
@@ -156,21 +156,21 @@ export class GatewayServer {
     this.setupRoutes();
   }
 
-  private pushNodeEvent(evt: Omit<SystemEvent, "at" | "category">): void {
-    this.nodeEvents.push({ ...evt, at: new Date().toISOString(), category: "system" });
-    if (this.nodeEvents.length > GatewayServer.MAX_NODE_EVENTS) {
-      this.nodeEvents.shift();
+  private pushViberEvent(evt: Omit<SystemEvent, "at" | "category">): void {
+    this.viberEvents.push({ ...evt, at: new Date().toISOString(), category: "system" });
+    if (this.viberEvents.length > GatewayServer.MAX_VIBER_EVENTS) {
+      this.viberEvents.shift();
     }
   }
 
   private setupRoutes(): void {
     this.router.get("/health", this.handleHealth.bind(this));
 
-    this.router.get("/api/nodes", this.handleListNodes.bind(this));
-    this.router.get("/api/nodes/:id/status", this.handleGetNodeStatus.bind(this));
-    this.router.post("/api/nodes/:id/job", this.handlePushJobToNode.bind(this));
-    this.router.post("/api/nodes/:id/config-push", this.handleConfigPush.bind(this));
-    this.router.post("/api/nodes/:id/skills/provision", this.handleProvisionNodeSkill.bind(this));
+    this.router.get("/api/vibers", this.handleListVibers.bind(this));
+    this.router.get("/api/vibers/:id/status", this.handleGetViberStatus.bind(this));
+    this.router.post("/api/vibers/:id/job", this.handlePushJobToViber.bind(this));
+    this.router.post("/api/vibers/:id/config-push", this.handleConfigPush.bind(this));
+    this.router.post("/api/vibers/:id/skills/provision", this.handleProvisionViberSkill.bind(this));
 
     this.router.get("/api/jobs", this.handleListAllJobs.bind(this));
     this.router.get("/api/events", this.handleListEvents.bind(this));
@@ -212,7 +212,7 @@ export class GatewayServer {
       });
 
       this.wss.on("connection", (ws, req) => {
-        this.handleNodeConnection(ws, req);
+        this.handleViberConnection(ws, req);
       });
 
       this.server.listen(this.config.port, () => {
@@ -225,11 +225,11 @@ export class GatewayServer {
   }
 
   async stop(): Promise<void> {
-    // Close all node connections
-    for (const node of this.nodes.values()) {
+    // Close all viber connections
+    for (const node of this.vibers.values()) {
       node.ws.close();
     }
-    this.nodes.clear();
+    this.vibers.clear();
     for (const pending of this.pendingSkillProvisionResolvers.values()) {
       clearTimeout(pending.timeout);
     }
@@ -263,8 +263,8 @@ export class GatewayServer {
   // ==================== HTTP Handler ====================
 
   private handleHealth(_req: IncomingMessage, res: ServerResponse): void {
-    // Aggregate node health summary
-    const nodesSummary = Array.from(this.nodes.values()).map((n) => {
+    // Aggregate viber health summary
+    const vibersSummary = Array.from(this.vibers.values()).map((n) => {
       const heartbeatAgeMs = Date.now() - n.lastHeartbeat.getTime();
       const isHealthy = heartbeatAgeMs < 90_000; // healthy if heartbeat within 90s
 
@@ -279,23 +279,23 @@ export class GatewayServer {
       };
     });
 
-    const totalRunningVibers = this.vibers.size;
-    const healthyNodes = nodesSummary.filter((n) => n.healthy).length;
+    const totalRunningVibers = this.tasks.size;
+    const healthyVibers = vibersSummary.filter((n) => n.healthy).length;
 
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(
       JSON.stringify({
         status: "ok",
-        nodes: this.nodes.size,
-        healthyNodes,
+        nodes: this.vibers.size,
+        healthyVibers,
         vibers: totalRunningVibers,
-        nodesSummary,
+        vibersSummary,
       }),
     );
   }
 
-  private handleListNodes(_req: IncomingMessage, res: ServerResponse): void {
-    const nodes = Array.from(this.nodes.values()).map((n) => ({
+  private handleListVibers(_req: IncomingMessage, res: ServerResponse): void {
+    const nodes = Array.from(this.vibers.values()).map((n) => ({
       id: n.id,
       name: n.name,
       version: n.version,
@@ -338,19 +338,19 @@ export class GatewayServer {
   }
 
   private handleListTasks(_req: IncomingMessage, res: ServerResponse): void {
-    const vibers = Array.from(this.vibers.values()).map((v) => {
-      const node = this.nodes.get(v.nodeId);
+    const vibers = Array.from(this.tasks.values()).map((v) => {
+      const node = this.vibers.get(v.viberId);
       return {
         id: v.id,
-        nodeId: v.nodeId,
-        nodeName: node?.name ?? v.nodeId,
+        viberId: v.viberId,
+        viberName: node?.name ?? v.viberId,
         goal: v.goal,
         status: v.status,
         createdAt: v.createdAt.toISOString(),
         completedAt: v.completedAt?.toISOString(),
         eventCount: v.events.length,
         partialText: v.partialText,
-        isNodeConnected: !!node,
+        isConnected: !!node,
       };
     });
 
@@ -378,7 +378,7 @@ export class GatewayServer {
       event: any;
     }> = [];
 
-    for (const [id, viber] of this.vibers) {
+    for (const [id, viber] of this.tasks) {
       for (const evt of viber.events) {
         if (sinceMs && new Date(evt.at).getTime() <= sinceMs) continue;
         activityEvents.push({
@@ -394,8 +394,8 @@ export class GatewayServer {
 
     // Collect system events
     const systemEvents = sinceMs
-      ? this.nodeEvents.filter((e) => new Date(e.at).getTime() > sinceMs)
-      : [...this.nodeEvents];
+      ? this.viberEvents.filter((e) => new Date(e.at).getTime() > sinceMs)
+      : [...this.viberEvents];
 
     // Merge and sort descending
     const allEvents = [
@@ -413,7 +413,7 @@ export class GatewayServer {
 
   private async handleCreateTask(req: IncomingMessage, res: ServerResponse): Promise<void> {
     try {
-      const { goal, nodeId, messages, environment, settings, oauthTokens, model } = await readJsonBody(req);
+      const { goal, viberId: requestedViberId, messages, environment, settings, oauthTokens, model } = await readJsonBody(req);
 
       if (!goal) {
         res.writeHead(400, { "Content-Type": "application/json" });
@@ -421,27 +421,27 @@ export class GatewayServer {
         return;
       }
 
-      // Find node (use specified or first available)
-      let node: ConnectedNode | undefined;
-      if (nodeId) {
-        node = this.nodes.get(nodeId);
+      // Find viber (use specified or first available)
+      let node: ConnectedViber | undefined;
+      if (requestedViberId) {
+        node = this.vibers.get(requestedViberId);
       } else {
-        node = this.nodes.values().next().value;
+        node = this.vibers.values().next().value;
       }
 
       if (!node) {
         res.writeHead(503, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: "No node available" }));
+        res.end(JSON.stringify({ error: "No viber available" }));
         return;
       }
 
-      // Create viber
+      // Create task
       const viberId = `viber-${Date.now()}-${Math.random()
         .toString(36)
         .slice(2, 8)}`;
       const viber: Viber = {
         id: viberId,
-        nodeId: node.id,
+        viberId: node.id,
         goal,
         status: "pending",
         createdAt: new Date(),
@@ -450,7 +450,7 @@ export class GatewayServer {
         streamChunks: [],
         streamBytes: 0,
       };
-      this.vibers.set(viberId, viber);
+      this.tasks.set(viberId, viber);
 
       // Tell the node daemon to prepare and run this viber
       node.ws.send(
@@ -467,7 +467,7 @@ export class GatewayServer {
       );
 
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ viberId, nodeId: node.id }));
+      res.end(JSON.stringify({ viberId }));
     } catch (error) {
       res.writeHead(400, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: "Invalid request body" }));
@@ -480,7 +480,7 @@ export class GatewayServer {
     params: Record<string, string>
   ): void {
     const taskId = params.id;
-    const viber = this.vibers.get(taskId);
+    const viber = this.tasks.get(taskId);
 
     if (!viber) {
       res.writeHead(404, { "Content-Type": "application/json" });
@@ -489,14 +489,14 @@ export class GatewayServer {
     }
 
     // Include node info for connectivity
-    const node = this.nodes.get(viber.nodeId);
+    const node = this.vibers.get(viber.viberId);
 
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(
       JSON.stringify({
         id: viber.id,
-        nodeId: viber.nodeId,
-        nodeName: node?.name ?? viber.nodeId,
+        viberId: viber.viberId,
+        viberName: node?.name ?? viber.viberId,
         goal: viber.goal,
         status: viber.status,
         result: viber.result,
@@ -506,14 +506,14 @@ export class GatewayServer {
         events: viber.events,
         eventCount: viber.events.length,
         partialText: viber.partialText,
-        isNodeConnected: !!node,
+        isConnected: !!node,
       }),
     );
   }
 
   /**
    * POST /api/tasks/:id/message - Send a message to an existing task.
-   * Reuses the task ID, resets its status, and sends the messages to the node.
+   * Reuses the task ID, resets its status, and sends the messages to the viber.
    */
   private async handleSendMessage(
     req: IncomingMessage,
@@ -521,14 +521,14 @@ export class GatewayServer {
     params: Record<string, string>
   ): Promise<void> {
     const viberId = params.id;
-    const viber = this.vibers.get(viberId);
+    const viber = this.tasks.get(viberId);
     if (!viber) {
       res.writeHead(404, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: "Task not found" }));
       return;
     }
 
-    const node = this.nodes.get(viber.nodeId);
+    const node = this.vibers.get(viber.viberId);
     if (!node) {
       res.writeHead(503, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: "Node not connected" }));
@@ -552,7 +552,7 @@ export class GatewayServer {
       // Close old stream subscribers so the new request gets a fresh stream
       this.closeStreamSubscribers(viberId);
 
-      // Send message to the node daemon
+      // Send message to the viber daemon
       node.ws.send(
         JSON.stringify({
           type: "viber:create",
@@ -567,7 +567,7 @@ export class GatewayServer {
       );
 
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ viberId, nodeId: node.id }));
+      res.end(JSON.stringify({ viberId }));
     } catch (error) {
       res.writeHead(400, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: "Invalid request body" }));
@@ -580,7 +580,7 @@ export class GatewayServer {
     params: Record<string, string>
   ): void {
     const viberId = params.id;
-    const viber = this.vibers.get(viberId);
+    const viber = this.tasks.get(viberId);
 
     if (!viber) {
       res.writeHead(404, { "Content-Type": "application/json" });
@@ -588,7 +588,7 @@ export class GatewayServer {
       return;
     }
 
-    const node = this.nodes.get(viber.nodeId);
+    const node = this.vibers.get(viber.viberId);
     if (node) {
       node.ws.send(JSON.stringify({ type: "viber:stop", viberId }));
     }
@@ -604,18 +604,18 @@ export class GatewayServer {
   }
 
   /**
-   * POST /api/nodes/:nodeId/job - Push a job config to a node. The node writes it to its local jobs dir and reloads the scheduler.
+   * POST /api/vibers/:viberId/job - Push a job config to a viber. The viber writes it to its local jobs dir and reloads the scheduler.
    */
-  private async handlePushJobToNode(
+  private async handlePushJobToViber(
     req: IncomingMessage,
     res: ServerResponse,
     params: Record<string, string>
   ): Promise<void> {
-    const nodeId = params.id;
-    const node = this.nodes.get(nodeId);
+    const viberId = params.id;
+    const node = this.vibers.get(viberId);
     if (!node) {
       res.writeHead(404, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: "Node not found or not connected" }));
+      res.end(JSON.stringify({ error: "Viber not found or not connected" }));
       return;
     }
 
@@ -640,13 +640,13 @@ export class GatewayServer {
           description: String(description).trim(),
         }),
         ...(model != null && { model: String(model).trim() }),
-        ...(config.nodeId != null && {
-          nodeId: String(config.nodeId).trim(),
+        ...(config.viberId != null && {
+          viberId: String(config.viberId).trim(),
         }),
       };
       node.ws.send(JSON.stringify(message));
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ ok: true, message: "Job pushed to node" }));
+      res.end(JSON.stringify({ ok: true, message: "Job pushed to viber" }));
     } catch (err) {
       res.writeHead(400, { "Content-Type": "application/json" });
       res.end(
@@ -658,19 +658,19 @@ export class GatewayServer {
   }
 
   /**
-   * POST /api/nodes/:nodeId/skills/provision - Run deterministic skill setup actions on a node.
-   * The gateway sends a direct command to the node and waits for a result payload.
+   * POST /api/vibers/:viberId/skills/provision - Run deterministic skill setup actions on a viber.
+   * The gateway sends a direct command to the viber and waits for a result payload.
    */
-  private async handleProvisionNodeSkill(
+  private async handleProvisionViberSkill(
     req: IncomingMessage,
     res: ServerResponse,
     params: Record<string, string>
   ): Promise<void> {
-    const nodeId = params.id;
-    const node = this.nodes.get(nodeId);
+    const viberId = params.id;
+    const node = this.vibers.get(viberId);
     if (!node) {
       res.writeHead(404, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: "Node not found or not connected" }));
+      res.end(JSON.stringify({ error: "Viber not found or not connected" }));
       return;
     }
 
@@ -698,7 +698,7 @@ export class GatewayServer {
           res.writeHead(504, { "Content-Type": "application/json" });
           res.end(
             JSON.stringify({
-              error: "Timed out waiting for node skill provisioning result",
+              error: "Timed out waiting for viber skill provisioning result",
               requestId,
               skillId,
             }),
@@ -743,21 +743,21 @@ export class GatewayServer {
   }
 
   /**
-   * GET /api/nodes/:id/status - Get detailed node observability status.
+   * GET /api/vibers/:id/status - Get detailed viber observability status.
    *
-   * If the node has recent heartbeat data, returns it immediately.
-   * Also sends a status:request to the node for fresh data with a short timeout.
+   * If the viber has recent heartbeat data, returns it immediately.
+   * Also sends a status:request to the viber for fresh data with a short timeout.
    */
-  private handleGetNodeStatus(
+  private handleGetViberStatus(
     _req: IncomingMessage,
     res: ServerResponse,
     params: Record<string, string>
   ): void {
-    const nodeId = params.id;
-    const node = this.nodes.get(nodeId);
+    const viberId = params.id;
+    const node = this.vibers.get(viberId);
     if (!node) {
       res.writeHead(404, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: "Node not found or not connected" }));
+      res.end(JSON.stringify({ error: "Viber not found or not connected" }));
       return;
     }
 
@@ -777,11 +777,11 @@ export class GatewayServer {
         viber: node.viberStatus,
       };
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ nodeId, status, source: "heartbeat-cache" }));
+      res.end(JSON.stringify({ viberId, status, source: "heartbeat-cache" }));
       return;
     }
 
-    // Request fresh status from the node with a timeout
+    // Request fresh status from the viber with a timeout
     if (!node.pendingStatusResolvers) {
       node.pendingStatusResolvers = [];
     }
@@ -798,15 +798,15 @@ export class GatewayServer {
         if (node.machineStatus) status.machine = node.machineStatus;
         if (node.viberStatus) status.viber = node.viberStatus;
         res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ nodeId, status, source: "heartbeat-stale" }));
+        res.end(JSON.stringify({ viberId, status, source: "heartbeat-stale" }));
       } else {
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(
           JSON.stringify({
-            nodeId,
+            viberId,
             status: null,
             source: "unavailable",
-            message: "Node has not reported status yet",
+            message: "Viber has not reported status yet",
           }),
         );
       }
@@ -815,7 +815,7 @@ export class GatewayServer {
     const resolver = (status: ViberSystemStatus) => {
       clearTimeout(timeout);
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ nodeId, status, source: "live" }));
+      res.end(JSON.stringify({ viberId, status, source: "live" }));
     };
 
     node.pendingStatusResolvers.push(resolver);
@@ -832,7 +832,7 @@ export class GatewayServer {
     params: Record<string, string>
   ): void {
     const viberId = params.id;
-    const viber = this.vibers.get(viberId);
+    const viber = this.tasks.get(viberId);
     if (!viber) {
       res.writeHead(404, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: "Viber not found" }));
@@ -881,32 +881,32 @@ export class GatewayServer {
 
   // ==================== WebSocket Handler ====================
 
-  private handleNodeConnection(ws: WebSocket, req: IncomingMessage): void {
-    const nodeId = req.headers["x-viber-id"] as string;
-    console.log(`[Gateway] Viber connecting: ${nodeId || "unknown"}`);
+  private handleViberConnection(ws: WebSocket, req: IncomingMessage): void {
+    const viberId = req.headers["x-viber-id"] as string;
+    console.log(`[Gateway] Viber connecting: ${viberId || "unknown"}`);
 
     ws.on("message", (data) => {
       try {
         const msg = JSON.parse(data.toString());
-        this.handleNodeMessage(ws, msg);
+        this.handleViberMessage(ws, msg);
       } catch (error) {
-        console.error("[Gateway] Failed to parse node message:", error);
+        console.error("[Gateway] Failed to parse viber message:", error);
       }
     });
 
     ws.on("close", () => {
-      // Find and remove node
-      for (const [id, node] of this.nodes) {
+      // Find and remove viber
+      for (const [id, node] of this.vibers) {
         if (node.ws === ws) {
           console.log(`[Gateway] Viber disconnected: ${id}`);
-          this.pushNodeEvent({
-            component: "node",
+          this.pushViberEvent({
+            component: "viber",
             level: "warn",
-            message: `Node disconnected: ${node.name}`,
-            nodeId: id,
-            nodeName: node.name,
+            message: `Viber disconnected: ${node.name}`,
+            viberId: id,
+            viberName: node.name,
           });
-          this.nodes.delete(id);
+          this.vibers.delete(id);
           break;
         }
       }
@@ -917,10 +917,10 @@ export class GatewayServer {
     });
   }
 
-  private handleNodeMessage(ws: WebSocket, msg: any): void {
+  private handleViberMessage(ws: WebSocket, msg: any): void {
     switch (msg.type) {
       case "connected":
-        this.handleNodeConnected(ws, msg.viber);
+        this.handleViberConnected(ws, msg.viber);
         break;
 
       case "viber:started":
@@ -958,7 +958,7 @@ export class GatewayServer {
         break;
 
       case "jobs:list":
-        this.handleNodeJobsList(ws, msg.jobs);
+        this.handleViberJobsList(ws, msg.jobs);
         break;
 
       case "status:report":
@@ -977,10 +977,10 @@ export class GatewayServer {
     }
   }
 
-  private handleNodeConnected(ws: WebSocket, nodeInfo: any): void {
+  private handleViberConnected(ws: WebSocket, nodeInfo: any): void {
     console.log(`[Gateway] Viber registered: ${nodeInfo.id} (${nodeInfo.name})`);
 
-    this.nodes.set(nodeInfo.id, {
+    this.vibers.set(nodeInfo.id, {
       id: nodeInfo.id,
       name: nodeInfo.name,
       version: nodeInfo.version,
@@ -994,12 +994,12 @@ export class GatewayServer {
       jobs: [],
     });
 
-    this.pushNodeEvent({
-      component: "node",
+    this.pushViberEvent({
+      component: "viber",
       level: "info",
-      message: `Node connected: ${nodeInfo.name}`,
-      nodeId: nodeInfo.id,
-      nodeName: nodeInfo.name,
+      message: `Viber connected: ${nodeInfo.name}`,
+      viberId: nodeInfo.id,
+      viberName: nodeInfo.name,
       metadata: {
         version: nodeInfo.version,
         platform: nodeInfo.platform,
@@ -1010,7 +1010,7 @@ export class GatewayServer {
   }
 
   private handleViberStarted(viberId: string): void {
-    const viber = this.vibers.get(viberId);
+    const viber = this.tasks.get(viberId);
     if (viber) {
       viber.status = "running";
       console.log(`[Gateway] Task started: ${viberId}`);
@@ -1018,7 +1018,7 @@ export class GatewayServer {
   }
 
   private handleViberCompleted(viberId: string, result: any): void {
-    const viber = this.vibers.get(viberId);
+    const viber = this.tasks.get(viberId);
     if (viber) {
       viber.status = "completed";
       viber.result = result;
@@ -1034,7 +1034,7 @@ export class GatewayServer {
   }
 
   private handleViberProgress(viberId: string, event: any): void {
-    const viber = this.vibers.get(viberId);
+    const viber = this.tasks.get(viberId);
     if (!viber) return;
 
     const envelope = this.normalizeProgressEvent(viberId, event);
@@ -1081,7 +1081,7 @@ export class GatewayServer {
   }
 
   private handleViberError(viberId: string, error: string, model?: string): void {
-    const viber = this.vibers.get(viberId);
+    const viber = this.tasks.get(viberId);
     if (viber) {
       viber.status = "error";
       viber.error = error;
@@ -1109,7 +1109,7 @@ export class GatewayServer {
    * Handle viber:stream-chunk — pipe raw AI SDK SSE bytes to SSE subscribers.
    */
   private handleViberStreamChunk(viberId: string, chunk: string): void {
-    const viber = this.vibers.get(viberId);
+    const viber = this.tasks.get(viberId);
     if (!viber) {
       return;
     }
@@ -1151,10 +1151,10 @@ export class GatewayServer {
   }
 
   /**
-   * Handle jobs:list message from a node — store the node's loaded job list.
+   * Handle jobs:list message from a viber — store the node's loaded job list.
    */
-  private handleNodeJobsList(ws: WebSocket, jobs: NodeJobEntry[]): void {
-    for (const node of this.nodes.values()) {
+  private handleViberJobsList(ws: WebSocket, jobs: NodeJobEntry[]): void {
+    for (const node of this.vibers.values()) {
       if (node.ws === ws) {
         node.jobs = Array.isArray(jobs) ? jobs : [];
         console.log(`[Gateway] Viber ${node.id} reported ${node.jobs.length} job(s)`);
@@ -1164,21 +1164,21 @@ export class GatewayServer {
   }
 
   /**
-   * GET /api/jobs — Return jobs from all connected nodes.
+   * GET /api/jobs — Return jobs from all connected vibers.
    * The web frontend queries this to observe jobs created from chat or
-   * pushed to nodes, giving full visibility across the fleet.
+   * pushed to vibers, giving full visibility across the fleet.
    */
   private handleListAllJobs(_req: IncomingMessage, res: ServerResponse): void {
-    const nodeJobs = Array.from(this.nodes.values()).map((n) => ({
-      nodeId: n.id,
-      nodeName: n.name,
+    const nodeJobs = Array.from(this.vibers.values()).map((n) => ({
+      viberId: n.id,
+      viberName: n.name,
       jobs: n.jobs.map((j) => ({
         name: j.name,
         description: j.description,
         schedule: j.schedule,
         prompt: j.prompt,
         model: j.model,
-        nodeId: j.nodeId,
+        viberId: j.viberId,
       })),
     }));
 
@@ -1187,7 +1187,7 @@ export class GatewayServer {
   }
 
   private handleHeartbeat(ws: WebSocket, heartbeatStatus?: any): void {
-    for (const node of this.nodes.values()) {
+    for (const node of this.vibers.values()) {
       if (node.ws === ws) {
         node.lastHeartbeat = new Date();
 
@@ -1211,10 +1211,10 @@ export class GatewayServer {
   }
 
   /**
-   * Handle a status:report message from a node (response to status:request).
+   * Handle a status:report message from a viber (response to status:request).
    */
   private handleStatusReport(ws: WebSocket, status: ViberSystemStatus): void {
-    for (const node of this.nodes.values()) {
+    for (const node of this.vibers.values()) {
       if (node.ws === ws) {
         node.lastHeartbeat = new Date();
 
@@ -1251,7 +1251,7 @@ export class GatewayServer {
   }
 
   /**
-   * POST /api/nodes/:id/config-push - Push config to a node.
+   * POST /api/vibers/:id/config-push - Push config to a viber.
    * Sends config:push WebSocket message to the target node.
    */
   private handleConfigPush(
@@ -1259,18 +1259,18 @@ export class GatewayServer {
     res: ServerResponse,
     params: Record<string, string>
   ): void {
-    const nodeId = params.id;
-    const node = this.nodes.get(nodeId);
+    const viberId = params.id;
+    const node = this.vibers.get(viberId);
     if (!node) {
       res.writeHead(404, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: "Node not found or not connected" }));
+      res.end(JSON.stringify({ error: "Viber not found or not connected" }));
       return;
     }
 
     try {
       node.ws.send(JSON.stringify({ type: "config:push" }));
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ ok: true, message: "Config push sent to node" }));
+      res.end(JSON.stringify({ ok: true, message: "Config push sent to viber" }));
     } catch (error) {
       res.writeHead(500, { "Content-Type": "application/json" });
       res.end(
@@ -1282,7 +1282,7 @@ export class GatewayServer {
   }
 
   /**
-   * Handle config:ack message from a node (response to config:push).
+   * Handle config:ack message from a viber (response to config:push).
    */
   private handleConfigAck(
     ws: WebSocket,
@@ -1294,7 +1294,7 @@ export class GatewayServer {
       checkedAt: string;
     }>,
   ): void {
-    for (const node of this.nodes.values()) {
+    for (const node of this.vibers.values()) {
       if (node.ws === ws) {
         console.log(
           `[Gateway] Viber ${node.id} acknowledged config push: version=${configVersion}, validations=${validations.length}`,
@@ -1312,7 +1312,7 @@ export class GatewayServer {
           };
 
           // Call web API asynchronously (don't block)
-          fetch(`${webApiUrl}/api/nodes/${encodeURIComponent(node.id)}/config-sync-state`, {
+          fetch(`${webApiUrl}/api/vibers/${encodeURIComponent(node.id)}/config-sync-state`, {
             method: "PUT",
             headers: {
               Authorization: `Bearer ${webApiToken}`,

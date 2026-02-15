@@ -1,12 +1,12 @@
 /**
  * Gateway Client - Connects to the OpenViber gateway
  *
- * The OpenViber web app (Viber Board) delegates node/viber management to the gateway,
- * which handles WebSocket connections from node daemons.
+ * The OpenViber web app (Viber Board) delegates viber management to the gateway,
+ * which handles WebSocket connections from viber daemons.
  *
  * Terminology:
- *   - Node: a machine running the daemon process (connected via WebSocket)
- *   - Viber: a task/conversation session running on a node
+ *   - Viber: a machine running the daemon process (connected via WebSocket)
+ *   - Task: a task/conversation session running on a viber
  */
 
 import { env } from "$env/dynamic/private";
@@ -44,17 +44,17 @@ async function gatewayFetch(path: string, init: RequestInit = {}) {
   return response;
 }
 
-export interface NodeSkillInfo {
+export interface ViberSkillInfo {
   id: string;
   name: string;
   description: string;
-  /** Whether this skill is runnable on the node */
+  /** Whether this skill is runnable on the viber */
   available: boolean;
   /** Health check status */
   status: "AVAILABLE" | "NOT_AVAILABLE" | "UNKNOWN";
   /** Human-readable summary (e.g. "Missing: gh CLI") */
   healthSummary?: string;
-  /** Optional detailed health checks reported by node */
+  /** Optional detailed health checks reported by viber */
   checks?: Array<{
     id: string;
     label: string;
@@ -67,7 +67,7 @@ export interface NodeSkillInfo {
 }
 
 /** Summary machine resource metrics (from heartbeat) */
-export interface NodeMachineMetrics {
+export interface ViberMachineMetrics {
   hostname: string;
   arch: string;
   systemUptimeSeconds: number;
@@ -84,7 +84,7 @@ export interface NodeMachineMetrics {
 }
 
 /** Summary viber metrics (from heartbeat) */
-export interface NodeViberMetrics {
+export interface ViberDaemonMetrics {
   daemonUptimeSeconds: number;
   runningTaskCount: number;
   totalTasksExecuted: number;
@@ -96,8 +96,8 @@ export interface NodeViberMetrics {
   };
 }
 
-/** A connected node (daemon) on the gateway */
-export interface ConnectedNode {
+/** A connected viber (daemon) on the gateway */
+export interface ConnectedViber {
   id: string;
   name: string;
   version: string;
@@ -105,15 +105,15 @@ export interface ConnectedNode {
   capabilities: string[];
   connectedAt: string;
   lastHeartbeat: string;
-  skills?: NodeSkillInfo[];
+  skills?: ViberSkillInfo[];
   runningVibers: string[];
   /** Machine resource metrics (from heartbeat) */
-  machine?: NodeMachineMetrics;
+  machine?: ViberMachineMetrics;
   /** Viber daemon metrics (from heartbeat) */
-  viber?: NodeViberMetrics;
+  viber?: ViberDaemonMetrics;
 }
 
-/** Full machine resource status snapshot (from node status request) */
+/** Full machine resource status snapshot (from viber status request) */
 export interface MachineResourceStatus {
   hostname: string;
   platform: string;
@@ -151,7 +151,7 @@ export interface MachineResourceStatus {
   collectedAt: string;
 }
 
-/** Full viber running status (from node status request) */
+/** Full viber running status (from viber status request) */
 export interface ViberRunningStatus {
   viberId: string;
   viberName: string;
@@ -203,13 +203,13 @@ export interface SkillHealthReport {
   skills: SkillHealthResult[];
 }
 
-/** Full node observability status (from node status request) */
-export interface NodeObservabilityStatus {
+/** Full viber observability status (from viber status request) */
+export interface ViberObservabilityStatus {
   machine: MachineResourceStatus;
   viber: ViberRunningStatus;
 }
 
-export interface NodeSkillProvisionResponse {
+export interface ViberSkillProvisionResponse {
   type?: "skill:provision-result";
   requestId: string;
   skillId: string;
@@ -245,7 +245,7 @@ export interface ViberEnvironmentContext {
 /** A viber session on the gateway */
 export interface GatewayViber {
   id: string;
-  nodeId: string;
+  viberId: string;
   goal: string;
   status: "pending" | "running" | "completed" | "error" | "stopped";
   createdAt: string;
@@ -254,8 +254,8 @@ export interface GatewayViber {
   error?: string;
   eventCount?: number;
   partialText?: string;
-  nodeName?: string;
-  isNodeConnected?: boolean;
+  viberName?: string;
+  isConnected?: boolean;
 }
 
 /** An event from the gateway's unified event stream */
@@ -271,23 +271,24 @@ export interface GatewayEvent {
   component?: string;
   level?: "info" | "warn" | "error";
   message?: string;
-  nodeId?: string;
-  nodeName?: string;
+  viberName?: string;
   metadata?: Record<string, unknown>;
 }
 
 export const gatewayClient = {
-  /** List connected nodes (daemons) from the gateway */
-  async getNodes(): Promise<{ connected: boolean; nodes: ConnectedNode[] }> {
+  /** List connected vibers (daemons) from the gateway */
+  async getVibers(): Promise<{ connected: boolean; vibers: ConnectedViber[] }> {
     try {
-      const response = await gatewayFetch("/api/nodes");
+      const response = await gatewayFetch("/api/vibers");
       if (!response.ok) {
         throw new Error(`Gateway returned ${response.status}`);
       }
-      return await response.json();
+      const data = await response.json();
+      // Gateway returns { connected, nodes } — remap to { connected, vibers }
+      return { connected: data.connected, vibers: data.nodes ?? [] };
     } catch (error) {
-      console.error("[GatewayClient] Failed to get nodes:", error);
-      return { connected: false, nodes: [] };
+      console.error("[GatewayClient] Failed to get vibers:", error);
+      return { connected: false, vibers: [] };
     }
   },
 
@@ -305,10 +306,10 @@ export const gatewayClient = {
     }
   },
 
-  /** Create a new task on a viber node */
+  /** Create a new task on a viber */
   async createTask(
     goal: string,
-    nodeId?: string,
+    viberId?: string,
     messages?: { role: string; content: string }[],
     environment?: ViberEnvironmentContext,
     settings?: {
@@ -320,12 +321,12 @@ export const gatewayClient = {
     },
     oauthTokens?: Record<string, { accessToken: string; refreshToken?: string | null }>,
     model?: string,
-  ): Promise<{ viberId: string; nodeId: string } | null> {
+  ): Promise<{ viberId: string } | null> {
     try {
       const response = await gatewayFetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ goal, nodeId, messages, environment, settings, oauthTokens, model }),
+        body: JSON.stringify({ goal, viberId, messages, environment, settings, oauthTokens, model }),
       });
 
       if (!response.ok) {
@@ -372,7 +373,7 @@ export const gatewayClient = {
     },
     oauthTokens?: Record<string, { accessToken: string; refreshToken?: string | null }>,
     model?: string,
-  ): Promise<{ viberId: string; nodeId: string } | null> {
+  ): Promise<{ viberId: string } | null> {
     try {
       const response = await gatewayFetch(`/api/tasks/${viberId}/message`, {
         method: "POST",
@@ -409,87 +410,89 @@ export const gatewayClient = {
     }
   },
 
-  /** Push a job config to a node. The node writes it locally and reloads its scheduler. */
-  async pushJobToNode(
-    nodeId: string,
+  /** Push a job config to a viber. The viber writes it locally and reloads its scheduler. */
+  async pushJobToViber(
+    viberId: string,
     job: {
       name: string;
       schedule: string;
       prompt: string;
       description?: string;
       model?: string;
-      nodeId?: string;
+      viberId?: string;
     },
   ): Promise<boolean> {
     try {
-      const response = await gatewayFetch(`/api/nodes/${encodeURIComponent(nodeId)}/job`, {
+      const response = await gatewayFetch(`/api/vibers/${encodeURIComponent(viberId)}/job`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(job),
       });
       return response.ok;
     } catch (error) {
-      console.error("[GatewayClient] Failed to push job to node:", error);
+      console.error("[GatewayClient] Failed to push job to viber:", error);
       return false;
     }
   },
 
-  /** Fetch jobs reported by all connected nodes from the hub. */
-  async getNodeJobs(): Promise<{
-    nodeJobs: Array<{
-      nodeId: string;
-      nodeName: string;
+  /** Fetch jobs reported by all connected vibers from the hub. */
+  async getViberJobs(): Promise<{
+    viberJobs: Array<{
+      viberId: string;
+      viberName: string;
       jobs: Array<{
         name: string;
         description?: string;
         schedule: string;
         prompt: string;
         model?: string;
-        nodeId?: string;
+        viberId?: string;
       }>;
     }>;
   }> {
     try {
       const response = await gatewayFetch("/api/jobs");
       if (!response.ok) {
-        return { nodeJobs: [] };
+        return { viberJobs: [] };
       }
-      return await response.json();
+      // Gateway returns { nodeJobs } — accept both old and new keys
+      const data = await response.json();
+      return { viberJobs: data.viberJobs ?? data.nodeJobs ?? [] };
     } catch (error) {
-      console.error("[GatewayClient] Failed to get node jobs:", error);
-      return { nodeJobs: [] };
+      console.error("[GatewayClient] Failed to get viber jobs:", error);
+      return { viberJobs: [] };
     }
   },
 
-  /** Get detailed observability status for a specific node */
-  async getNodeStatus(nodeId: string): Promise<{
-    nodeId: string;
-    status: NodeObservabilityStatus | null;
+  /** Get detailed observability status for a specific viber */
+  async getViberStatus(viberId: string): Promise<{
+    viberId: string;
+    status: ViberObservabilityStatus | null;
     source: string;
   } | null> {
     try {
-      const response = await gatewayFetch(`/api/nodes/${encodeURIComponent(nodeId)}/status`);
+      const response = await gatewayFetch(`/api/vibers/${encodeURIComponent(viberId)}/status`);
       if (!response.ok) {
         return null;
       }
       return await response.json();
     } catch (error) {
-      console.error("[GatewayClient] Failed to get node status:", error);
+      console.error("[GatewayClient] Failed to get viber status:", error);
       return null;
     }
   },
 
-  /** Run deterministic skill provisioning actions on a connected node */
-  async provisionNodeSkill(
-    nodeId: string,
+  /** Run deterministic skill provisioning actions on a connected viber */
+  async provisionViberSkill(
+    viberId: string,
     payload: {
       skillId: string;
       install?: boolean;
       authAction?: "none" | "copy" | "start";
     },
-  ): Promise<NodeSkillProvisionResponse> {
+  ): Promise<ViberSkillProvisionResponse> {
     const response = await gatewayFetch(
-      `/api/nodes/${encodeURIComponent(nodeId)}/skills/provision`,
+      `/api/vibers/${encodeURIComponent(viberId)}/skills/provision`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -501,7 +504,7 @@ export const gatewayClient = {
       const message = data?.error || `Gateway returned ${response.status}`;
       throw new Error(message);
     }
-    return data as NodeSkillProvisionResponse;
+    return data as ViberSkillProvisionResponse;
   },
 
   /** Fetch unified event stream from the hub (activity + system events) */
@@ -525,10 +528,10 @@ export const gatewayClient = {
 
   async checkHealth(): Promise<{
     status: string;
-    nodes: number;
-    healthyNodes: number;
     vibers: number;
-    nodesSummary?: {
+    healthyVibers: number;
+    tasks: number;
+    vibersSummary?: {
       id: string;
       name: string;
       healthy: boolean;
@@ -549,19 +552,19 @@ export const gatewayClient = {
     }
   },
 
-  /** Push config to a node (triggers config:push WebSocket message) */
-  async pushConfigToNode(nodeId: string): Promise<boolean> {
+  /** Push config to a viber (triggers config:push WebSocket message) */
+  async pushConfigToViber(viberId: string): Promise<boolean> {
     try {
-      const response = await gatewayFetch(`/api/nodes/${encodeURIComponent(nodeId)}/config-push`, {
+      const response = await gatewayFetch(`/api/vibers/${encodeURIComponent(viberId)}/config-push`, {
         method: "POST",
       });
       if (!response.ok) {
-        console.error(`[GatewayClient] Failed to push config to node ${nodeId}: ${response.status}`);
+        console.error(`[GatewayClient] Failed to push config to viber ${viberId}: ${response.status}`);
         return false;
       }
       return true;
     } catch (error) {
-      console.error(`[GatewayClient] Failed to push config to node ${nodeId}:`, error);
+      console.error(`[GatewayClient] Failed to push config to viber ${viberId}:`, error);
       return false;
     }
   },

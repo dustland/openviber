@@ -4,20 +4,20 @@ import { gatewayClient } from "$lib/server/gateway";
 
 /**
  * GET /api/vibers/:id/status - Get detailed observability status for a node.
- * Proxies to the gateway's /api/nodes/:id/status endpoint.
+ * Proxies to the gateway's /api/vibers/:id/status endpoint.
  */
 export const GET: RequestHandler = async ({ params, locals }) => {
   if (!locals.user) {
     return json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const nodeId = params.id;
-  if (!nodeId) {
+  const viberId = params.id;
+  if (!viberId) {
     return json({ error: "Missing node id" }, { status: 400 });
   }
 
   try {
-    const result = await gatewayClient.getNodeStatus(nodeId);
+    const result = await gatewayClient.getViberStatus(viberId);
 
     if (!result) {
       return json(

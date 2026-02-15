@@ -12,7 +12,7 @@ export const CONFIG_FILE = path.join(OPENVIBER_DIR, "config.yaml");
 
 export interface SavedConfig {
   mode?: string;
-  nodeId?: string;
+  viberId?: string;
   name?: string;
   gatewayUrl?: string;
   /** @deprecated Use gatewayUrl instead */

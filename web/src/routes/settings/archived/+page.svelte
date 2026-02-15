@@ -15,15 +15,15 @@
 
   interface ArchivedTask {
     id: string;
-    nodeId: string | null;
-    nodeName: string | null;
+    viberId: string | null;
+    viberName: string | null;
     environmentId: string | null;
     environmentName: string | null;
     goal: string;
     status: string;
     createdAt: string | null;
     completedAt: string | null;
-    nodeConnected: boolean | null;
+    viberConnected: boolean | null;
     archivedAt: string | null;
   }
 
@@ -229,8 +229,8 @@
                       {task.environmentName}
                     </Badge>
                   {/if}
-                  {#if task.nodeName}
-                    <span>{task.nodeName}</span>
+                  {#if task.viberName}
+                    <span>{task.viberName}</span>
                     <span class="text-muted-foreground/40">·</span>
                   {/if}
                   {#if task.archivedAt}

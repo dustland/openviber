@@ -23,37 +23,37 @@ export const GET: RequestHandler = async ({ params, locals }) => {
       getViberSkills(params.id),
       listSkills(locals.user.id),
       getViberEnvironmentForUser(locals.user.id, params.id),
-      gatewayClient.getNodes(),
+      gatewayClient.getVibers(),
     ]);
 
     if (!viber) {
       return json({
         id: params.id,
         name: params.id,
-        nodeId: null,
+        viberId: null,
         goal: "",
         status: "unknown",
-        nodeConnected: null,
+        viberConnected: null,
         environmentId,
         skills: [],
         enabledSkills: enabledSkills ?? [],
       });
     }
 
-    // Build per-node skill availability map so chat UI can proactively
-    // prompt setup when a selected skill is missing on the current node.
-    const nodeSkillMap = new Map<
+    // Build per-viber skill availability map so chat UI can proactively
+    // prompt setup when a selected skill is missing on the current viber.
+    const viberSkillMap = new Map<
       string,
       { available: boolean; status: string; healthSummary?: string }
     >();
-    const nodeInfo = gatewayNodes.nodes.find((node) => node.id === viber.nodeId);
+    const nodeInfo = gatewayNodes.vibers.find((node: any) => node.id === viber.viberId);
     for (const skill of nodeInfo?.skills ?? []) {
-      nodeSkillMap.set(skill.id, {
+      viberSkillMap.set(skill.id, {
         available: skill.available,
         status: skill.status,
         healthSummary: skill.healthSummary,
       });
-      nodeSkillMap.set(skill.name, {
+      viberSkillMap.set(skill.name, {
         available: skill.available,
         status: skill.status,
         healthSummary: skill.healthSummary,
@@ -63,7 +63,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
     // Use account-level skills as the list, annotated with node readiness.
     const skills = accountSkillRows.map((row) => {
       const fromNode =
-        nodeSkillMap.get(row.skill_id) || nodeSkillMap.get(row.name);
+        viberSkillMap.get(row.skill_id) || viberSkillMap.get(row.name);
       return {
         id: row.skill_id,
         name: row.name,
@@ -77,12 +77,12 @@ export const GET: RequestHandler = async ({ params, locals }) => {
     return json({
       id: viber.id,
       name: viber.goal,
-      nodeId: viber.nodeId,
-      nodeName: viber.nodeName ?? viber.nodeId,
+      viberId: viber.viberId,
+      viberName: viber.viberName ?? viber.viberId,
       goal: viber.goal,
       status: viber.status,
       error: viber.error ?? null,
-      nodeConnected: viber.isNodeConnected !== false,
+      viberConnected: viber.isConnected !== false,
       createdAt: viber.createdAt,
       completedAt: viber.completedAt,
       environmentId,
@@ -145,7 +145,7 @@ export const PATCH: RequestHandler = async ({ params, request, locals }) => {
       params.id,
       normalizedEnvironmentId,
       viber?.goal || params.id,
-      viber?.nodeId ?? null,
+      viber?.viberId ?? null,
     );
 
     if (!assignment) {
@@ -196,9 +196,9 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 
     const settings = await getSettingsForUser(locals.user.id);
     const viber = await gatewayClient.getTask(params.id);
-    const nodeId = viber?.nodeId;
+    const connectedViberId = viber?.viberId;
 
-    const result = await gatewayClient.createTask(goal, nodeId, messages, undefined, {
+    const result = await gatewayClient.createTask(goal, connectedViberId, messages, undefined, {
       primaryCodingCli: settings.primaryCodingCli ?? undefined,
       proxyUrl: settings.proxyUrl ?? undefined,
       proxyEnabled: settings.proxyEnabled ?? undefined,

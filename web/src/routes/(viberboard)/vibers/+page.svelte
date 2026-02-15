@@ -21,7 +21,7 @@
   import { Button } from "$lib/components/ui/button";
   import { Skeleton } from "$lib/components/ui/skeleton";
   import { Badge } from "$lib/components/ui/badge";
-  import NodeDetailPanel from "$lib/components/node-detail-panel.svelte";
+  import NodeDetailPanel from "$lib/components/viber-detail-panel.svelte";
 
   interface MachineMetrics {
     hostname?: string;
@@ -396,14 +396,16 @@
                     {#if getConfigSyncBadge(viber.config_sync_state)}
                       {@const badge = getConfigSyncBadge(
                         viber.config_sync_state,
-                      )!}
-                      <div class="mt-1.5">
-                        <span
-                          class={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-medium ${badge.class}`}
-                        >
-                          {badge.label}
-                        </span>
-                      </div>
+                      )}
+                      {#if badge}
+                        <div class="mt-1.5">
+                          <span
+                            class={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-medium ${badge.class}`}
+                          >
+                            {badge.label}
+                          </span>
+                        </div>
+                      {/if}
                     {/if}
                   </div>
                   <div
@@ -785,8 +787,8 @@
 {#if configViberId}
   {@const configViber = vibers.find((v) => v.id === configViberId)}
   <NodeDetailPanel
-    nodeId={configViberId}
-    nodeName={configViberName}
+    viberId={configViberId}
+    viberName={configViberName}
     mode="config"
     configSyncState={configViber?.config_sync_state}
     onClose={() => {
@@ -798,8 +800,8 @@
 <!-- Analytics Panel -->
 {#if analyticsViberId}
   <NodeDetailPanel
-    nodeId={analyticsViberId}
-    nodeName={analyticsViberName}
+    viberId={analyticsViberId}
+    viberName={analyticsViberName}
     mode="analytics"
     onClose={() => {
       analyticsViberId = null;

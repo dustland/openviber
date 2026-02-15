@@ -75,7 +75,7 @@ interface EnvironmentRow {
 interface ViberEnvironmentRow {
   id: string;
   environment_id: string | null;
-  node_id?: string | null;
+  viber_id?: string | null;
 }
 
 export interface ViberEnvironmentAssignment {
@@ -382,7 +382,7 @@ export async function setViberEnvironmentForUser(
   viberId: string,
   environmentId: string | null,
   goal?: string,
-  nodeId?: string | null,
+  viberId?: string | null,
   skills?: string[],
 ): Promise<ViberEnvironmentAssignment | null> {
   const normalizedEnvironmentId = environmentId?.trim() || null;
@@ -409,8 +409,8 @@ export async function setViberEnvironmentForUser(
     created_at: now,
     updated_at: now,
   };
-  if (nodeId != null && nodeId !== "") {
-    body.node_id = nodeId;
+  if (viberId != null && viberId !== "") {
+    body.viber_id = viberId;
   }
   if (skills && skills.length > 0) {
     body.skills = skills;
@@ -419,7 +419,7 @@ export async function setViberEnvironmentForUser(
   const rows = await supabaseRequest<ViberEnvironmentRow[]>("vibers", {
     method: "POST",
     params: {
-      select: "id,environment_id,node_id",
+      select: "id,environment_id,viber_id",
       on_conflict: "id",
     },
     prefer: "resolution=merge-duplicates,return=representation",
@@ -429,7 +429,7 @@ export async function setViberEnvironmentForUser(
   const row = rows[0] ?? {
     id: viberId,
     environment_id: normalizedEnvironmentId,
-    node_id: nodeId ?? null,
+    viber_id: viberId ?? null,
   };
   return {
     viberId: row.id,
@@ -744,7 +744,7 @@ export async function deleteEnvironmentForUser(
 }
 
 export async function listEnvironmentConfigForNode(
-  nodeId: string,
+  viberId: string,
   options: { includeSecrets?: boolean } = {},
 ): Promise<Array<Record<string, unknown>>> {
   // Find vibers linked to this node, then get their environments

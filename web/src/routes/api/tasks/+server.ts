@@ -21,7 +21,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
   try {
     const body = await request.json();
-    const { goal, title, viberId, nodeId: legacyNodeId, environmentId, channelIds, model, skills } = body;
+    const { goal, title, viberId, viberId: requestedViberId, environmentId, channelIds, model, skills } = body;
     const targetViberId = viberId ?? legacyNodeId;
 
     if (!goal) {
@@ -118,7 +118,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
           result.viberId,
           environmentId ?? null,
           displayName,
-          result.nodeId ?? null,
+          result.viberId ?? null,
           extraSkills,
         );
       } catch (e) {
@@ -134,7 +134,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       component: "task",
       message: `Viber created: ${displayName}`,
       viber_id: result.viberId,
-      node_id: result.nodeId ?? null,
+      viber_id: result.viberId ?? null,
       metadata: { environmentId: environmentId ?? null },
     });
 
@@ -161,7 +161,7 @@ interface PersistedViberRow {
   created_at: string | null;
   archived_at: string | null;
   environment_id: string | null;
-  node_id: string | null;
+  viber_id: string | null;
 }
 
 // GET /api/tasks - List tasks: Supabase as source of truth, gateway for live state
@@ -177,15 +177,15 @@ export const GET: RequestHandler = async ({ locals, url }) => {
       const { vibers: hubVibers } = await gatewayClient.getTasks();
       const result = hubVibers.map((v) => ({
         id: v.id,
-        nodeId: v.nodeId ?? null,
-        nodeName: v.nodeName ?? null,
+        viberId: v.viberId ?? null,
+        viberName: v.viberName ?? null,
         environmentId: null,
         environmentName: null,
         goal: v.goal ?? v.id,
         status: v.status ?? "unknown",
         createdAt: v.createdAt ?? new Date().toISOString(),
         completedAt: v.completedAt ?? null,
-        nodeConnected: v.isNodeConnected !== false,
+        viberConnected: v.isConnected !== false,
         archivedAt: null,
       }));
       return json(result);
@@ -201,7 +201,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
     const [persistedRows, { vibers: hubVibers }, environments] = await Promise.all([
       supabaseRequest<PersistedViberRow[]>("vibers", {
         params: {
-          select: "id,name,created_at,archived_at,environment_id,node_id",
+          select: "id,name,created_at,archived_at,environment_id,viber_id",
           ...(includeArchived ? {} : { archived_at: "is.null" }),
           order: "created_at.desc",
         },
@@ -220,16 +220,16 @@ export const GET: RequestHandler = async ({ locals, url }) => {
         const environmentId = row.environment_id ?? null;
         return {
           id: row.id,
-          nodeId: hub?.nodeId ?? row.node_id ?? null,
-          nodeName: hub?.nodeName ?? null,
+          viberId: hub?.viberId ?? row.viber_id ?? null,
+          viberName: hub?.viberName ?? null,
           environmentId,
           environmentName: environmentId ? (envNameMap.get(environmentId) ?? null) : null,
           goal: row.name ?? hub?.goal ?? row.id,
           status: hub?.status ?? "unknown",
           createdAt: hub?.createdAt ?? row.created_at ?? new Date().toISOString(),
           completedAt: hub?.completedAt ?? null,
-          nodeConnected:
-            hub != null ? (hub.isNodeConnected !== false) : null,
+          viberConnected:
+            hub != null ? (hub.isConnected !== false) : null,
           archivedAt: row.archived_at,
         };
       });

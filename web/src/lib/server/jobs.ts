@@ -18,7 +18,7 @@ export interface JobEntry {
   prompt?: string;
   enabled: boolean;
   filename: string;
-  nodeId?: string | null;
+  viberId?: string | null;
 }
 
 function getBaseDir(): string {
@@ -110,7 +110,7 @@ export async function listGlobalJobs(): Promise<JobEntry[]> {
         prompt: config.prompt,
         enabled: true,
         filename: file,
-        nodeId: config.nodeId ?? null,
+        viberId: config.viberId ?? null,
       });
     } catch {
       // skip invalid files

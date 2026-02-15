@@ -133,7 +133,7 @@ If a session becomes too noisy or context-polluted:
 3. **Re-inject memory** — load relevant memory entries from `memory.md`.
 4. **Discard stale tool results** — only bring forward conclusions, not raw outputs.
 
-This keeps the node stateless while preserving continuity in the Board.
+This keeps the daemon stateless while preserving continuity in the Board.
 
 ---
 
@@ -146,4 +146,4 @@ When context exceeds the model's window despite compaction, the Board should fol
 3. **File content drop** — remove injected workspace files (they can be re-read by tools).
 4. **Session reset** — as a last resort, start a fresh session with a transfer summary.
 
-The node reports context overflow via `task:error` with error type `context_overflow`, giving the Board a chance to compact and retry.
+The daemon reports context overflow via `task:error` with error type `context_overflow`, giving the Board a chance to compact and retry.

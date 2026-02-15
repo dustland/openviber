@@ -1,6 +1,6 @@
 ---
 title: "Protocol"
-description: "Communication protocol between OpenViber components: gateway, node runtime (daemon), and web app"
+description: "Communication protocol between OpenViber components: gateway, daemon, and web app"
 ---
 
 # Protocol
@@ -49,13 +49,13 @@ The gateway exposes a REST API for the web app (via `gateway.ts`):
 | Method | Endpoint | Purpose |
 |--------|----------|---------|
 | `GET` | `/health` | Health check (status, Viber count, Task count) |
-| `GET` | `/api/nodes` | List connected Vibers |
+| `GET` | `/api/vibers` | List connected Vibers |
 | `GET` | `/api/tasks` | List all tasks |
 | `POST` | `/api/tasks` | Create a new task on a Viber |
 | `GET` | `/api/tasks/:id` | Get task status and events |
 | `POST` | `/api/tasks/:id/stop` | Stop a running task |
 | `GET` | `/api/tasks/:id/stream` | SSE stream of AI SDK response chunks |
-| `POST` | `/api/nodes/:id/config-push` | Push config to a Viber (triggers config:push WS message) |
+| `POST` | `/api/vibers/:id/config-push` | Push config to a Viber (triggers config:push WS message) |
 
 ### SSE Stream Endpoint
 

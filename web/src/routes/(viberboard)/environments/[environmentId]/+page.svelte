@@ -102,7 +102,6 @@
   let branchDropdownOpen = $state(false);
 
   const viberId = $derived($page.url.searchParams.get("viber") || "");
-  const nodeId = $derived($page.url.searchParams.get("node") || "");
   const environmentRouteId = $derived($page.params.environmentId || "new");
   const isCreateMode = $derived(environmentRouteId === "new");
 
@@ -110,9 +109,6 @@
     const params = new URLSearchParams();
     if (viberId) {
       params.set("viber", viberId);
-    }
-    if (nodeId) {
-      params.set("node", nodeId);
     }
     const query = params.toString();
     return `/environments${query ? `?${query}` : ""}`;
@@ -314,15 +310,9 @@
         const params = new URLSearchParams({ environment: savedEnvironmentId });
         if (viberId) {
           await assignEnvironmentToViber(savedEnvironmentId);
+          params.set("viber", viberId);
         }
-        if (nodeId) {
-          params.set("node", nodeId);
-        }
-        if (viberId) {
-          await goto(`/vibers/new?${params.toString()}`);
-        } else {
-          await goto(`/vibers/new?${params.toString()}`);
-        }
+        await goto(`/vibers/new?${params.toString()}`);
       } else {
         await goto(getListHref());
       }

@@ -46,7 +46,7 @@ export const onboardCommand = new Command("onboard")
       const webBaseUrl = options.gateway || options.board || options.hub || process.env.OPENVIBER_WEB_URL || "http://localhost:6006";
 
       try {
-        const response = await fetch(`${webBaseUrl}/api/nodes/onboard`, {
+        const response = await fetch(`${webBaseUrl}/api/vibers/onboard`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ token: options.token }),
@@ -61,7 +61,7 @@ export const onboardCommand = new Command("onboard")
 
         const data = await response.json() as {
           ok: boolean;
-          nodeId: string;
+          viberId: string;
           name: string;
           authToken: string;
           config: Record<string, unknown>;
@@ -75,7 +75,7 @@ export const onboardCommand = new Command("onboard")
         // Save config for future `openviber start` calls
         const savedConfig = {
           mode: "connected",
-          nodeId: data.nodeId,
+          viberId: data.viberId,
           name: data.name,
           gatewayUrl: gatewayWsUrl,
           boardUrl: gatewayWsUrl, // deprecated compat
@@ -93,7 +93,7 @@ ${YAML.stringify(savedConfig)}`,
         );
 
         console.log(`  ✓ Connected to ${webBaseUrl}`);
-        console.log(`  ✓ Node: ${data.name} (${data.nodeId.slice(0, 8)}...)`);
+        console.log(`  ✓ Viber: ${data.name} (${data.viberId.slice(0, 8)}...)`);
         console.log(`  ✓ Config saved to ${CONFIG_FILE}`);
 
       } catch (error: any) {

@@ -59,8 +59,8 @@ Viber Status
       let gatewayNodeStatus = null;
       if (!options.local) {
         try {
-          const nodeId = options.node || viberId;
-          const res = await fetch(`${statusGatewayUrl}/api/nodes/${nodeId}/status`);
+          const daemonId = options.node || viberId;
+          const res = await fetch(`${statusGatewayUrl}/api/vibers/${daemonId}/status`);
           if (res.ok) {
             gatewayNodeStatus = await res.json();
           }
@@ -147,8 +147,8 @@ Machine Resources
         "http://localhost:6007";
 
       try {
-        const nodeId = options.node || viberId;
-        const res = await fetch(`${statusGatewayUrl2}/api/nodes/${nodeId}/status`);
+        const daemonId = options.node || viberId;
+        const res = await fetch(`${statusGatewayUrl2}/api/vibers/${daemonId}/status`);
         if (res.ok) {
           const data = await res.json() as any;
           if (data.status?.viber) {

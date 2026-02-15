@@ -173,7 +173,7 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
       // This ensures the viber pulls and validates the latest config
       if (viber.viber_id) {
         try {
-          await gatewayClient.pushConfigToNode(viber.viber_id);
+          await gatewayClient.pushConfigToViber(viber.viber_id);
         } catch (error) {
           // Non-fatal: config is saved to Supabase, viber will get it on next pull
           console.warn(`[Config API] Failed to push config to viber ${viber.viber_id}:`, error);

@@ -8,7 +8,7 @@ A **Viber** is your machine running the OpenViber runtime. It is the engine that
 
 ```mermaid
 graph TB
-    subgraph node["Viber (your machine)"]
+    subgraph daemon["Viber Daemon (your machine)"]
         subgraph openviber["OpenViber runtime"]
             t1["dev-task"]
             t2["researcher-task"]

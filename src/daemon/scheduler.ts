@@ -17,7 +17,7 @@ export interface CronJobConfig {
   tools?: string[];
   prompt: string;
   /** When set, job is intended for this node (daemon id). Hub may push only jobs matching this node. */
-  nodeId?: string;
+  viberId?: string;
 }
 
 /**
@@ -30,7 +30,7 @@ export interface JobSummary {
   schedule: string;
   prompt: string;
   model?: string;
-  nodeId?: string;
+  viberId?: string;
 }
 
 export class JobScheduler extends EventEmitter {
@@ -52,7 +52,7 @@ export class JobScheduler extends EventEmitter {
       schedule: c.schedule,
       prompt: c.prompt,
       model: c.model,
-      nodeId: c.nodeId,
+      viberId: c.viberId,
     }));
   }
 

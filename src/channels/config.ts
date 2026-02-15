@@ -15,7 +15,7 @@ export interface GatewayBootstrapConfig {
 
 interface SavedCliConfig {
   mode?: string;
-  nodeId?: string;
+  viberId?: string;
   name?: string;
   gatewayUrl?: string;
   /** @deprecated Use gatewayUrl instead */
@@ -91,12 +91,12 @@ async function loadRemoteNodeConfig(): Promise<{
   channels?: ChannelsConfig;
 } | null> {
   const saved = await loadSavedCliConfig();
-  if (!saved?.webUrl || !saved?.authToken || !saved?.nodeId) {
+  if (!saved?.webUrl || !saved?.authToken || !saved?.viberId) {
     return null;
   }
 
   try {
-    const url = `${saved.webUrl.replace(/\/$/, "")}/api/nodes/${saved.nodeId}/config`;
+    const url = `${saved.webUrl.replace(/\/$/, "")}/api/vibers/${saved.viberId}/config`;
     const response = await fetch(url, {
       headers: { Authorization: `Bearer ${saved.authToken}` },
     });

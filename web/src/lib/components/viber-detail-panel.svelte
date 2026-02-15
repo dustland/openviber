@@ -110,8 +110,8 @@
   }
 
   interface Props {
-    nodeId: string;
-    nodeName: string;
+    viberId: string;
+    viberName: string;
     mode?: "config" | "analytics";
     configSyncState?: {
       configVersion?: string;
@@ -127,8 +127,8 @@
   }
 
   let {
-    nodeId,
-    nodeName,
+    viberId,
+    viberName,
     mode = "config",
     configSyncState,
     onClose,
@@ -254,7 +254,7 @@
     error = null;
     try {
       const res = await fetch(
-        `/api/vibers/${encodeURIComponent(nodeId)}/status`,
+        `/api/vibers/${encodeURIComponent(viberId)}/status`,
       );
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -272,7 +272,7 @@
   }
 
   $effect(() => {
-    if (nodeId) {
+    if (viberId) {
       fetchStatus();
     }
   });
@@ -299,7 +299,7 @@
           class="text-lg font-semibold text-foreground flex items-center gap-2"
         >
           <Monitor class="size-5" />
-          {nodeName}
+          {viberName}
           <span
             class="text-xs font-normal text-muted-foreground px-2 py-0.5 rounded-full bg-muted"
           >
@@ -307,7 +307,7 @@
           </span>
         </h2>
         <p class="text-xs text-muted-foreground mt-0.5">
-          {nodeId}
+          {viberId}
           {#if source}
             <span class="ml-2 text-muted-foreground/60">({source})</span>
           {/if}
@@ -1148,7 +1148,7 @@
           {/if}
 
           {#if isConfig}
-            <ChannelConfigPanel {nodeId} />
+            <ChannelConfigPanel {viberId} />
           {/if}
         </div>
       {/if}

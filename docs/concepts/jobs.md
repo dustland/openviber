@@ -71,7 +71,7 @@ prompt: |
 | `skills` | No | `[]` | Skills to enable for this job |
 | `tools` | No | `[]` | Additional tools to enable |
 | `prompt` | Yes | — | The task/instruction for the agent |
-| `nodeId` | No | — | Target a specific Viber (for gateway/Board-pushed jobs) |
+| `viberId` | No | — | Target a specific Viber (for gateway/Board-pushed jobs) |
 
 *Jobs without a `model` field are skipped at execution time.
 

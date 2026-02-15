@@ -157,7 +157,7 @@ export type ControllerServerMessage =
     prompt: string;
     description?: string;
     model?: string;
-    nodeId?: string;
+    viberId?: string;
   }
   | { type: "status:request" }
   | {
@@ -209,7 +209,7 @@ export type ControllerClientMessage =
   }
   | { type: "config:ack"; configVersion: string; validations: import("./telemetry").ConfigValidation[] }
   // Job reporting
-  | { type: "jobs:list"; jobs: Array<{ name: string; schedule: string; prompt: string; description?: string; model?: string; nodeId?: string }> };
+  | { type: "jobs:list"; jobs: Array<{ name: string; schedule: string; prompt: string; description?: string; model?: string; viberId?: string }> };
 
 interface TaskProgressEnvelope {
   eventId: string;
@@ -1280,7 +1280,7 @@ export class ViberController extends EventEmitter {
    * Report the daemon's loaded job list to the hub so the web can observe all jobs.
    * Called after the scheduler loads/reloads jobs.
    */
-  reportJobs(jobs: Array<{ name: string; schedule: string; prompt: string; description?: string; model?: string; nodeId?: string }>): void {
+  reportJobs(jobs: Array<{ name: string; schedule: string; prompt: string; description?: string; model?: string; viberId?: string }>): void {
     this.send({ type: "jobs:list", jobs });
   }
 
@@ -1380,7 +1380,7 @@ export class ViberController extends EventEmitter {
       }
 
       // Call web API to get config
-      const configUrl = `${webApiUrl}/api/nodes/${encodeURIComponent(this.config.viberId)}/config`;
+      const configUrl = `${webApiUrl}/api/vibers/${encodeURIComponent(this.config.viberId)}/config`;
       const response = await fetch(configUrl, {
         headers: {
           Authorization: `Bearer ${this.config.token}`,

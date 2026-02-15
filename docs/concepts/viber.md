@@ -30,6 +30,27 @@ You:   "Go ahead"
 Task:  On it. You can watch in the terminal panel...
 ```
 
+## The Viber Runtime
+
+A **Viber** is a single machine running the OpenViber runtime. It provides:
+
+- **Scheduler** — Runs tasks on cron schedules (daily research, weekly reports)
+- **Credentials** — Shared account access for all tasks on the Viber
+- **Config** — Identity and settings at `~/.openviber/` (lightweight, portable)
+- **Spaces** — Working data at `~/openviber_spaces/` (repos, research, outputs)
+
+### Connecting a Viber
+
+From the OpenViber Board, click **Add Viber** to generate a start command:
+
+```bash
+npx openviber start --token eyJub2RlIjoiYTFiMmMz...
+```
+
+This bootstraps the Viber, creates `~/.openviber/`, and connects to the Board — no inbound ports needed.
+
+Multiple tasks coordinate through **external systems** (GitHub issues, email) rather than talking to each other directly. This keeps everything simple and stateless.
+
 ## Tasks
 
 A **Task** is the unit of work in OpenViber. It combines:
@@ -82,18 +103,6 @@ You can manage built-in and custom intent templates in **Settings → Intents**:
 - replicate built-in templates into editable user templates
 - keep intent instructions aligned with your team workflows
 
-## What Makes a Viber
-
-A Viber combines three elements that no chat-only AI has:
-
-| Element                 | What It Gives You                                                            |
-| ----------------------- | ---------------------------------------------------------------------------- |
-| **Persona & Goals**     | Role focus — configured per-task, allowing the Viber to switch contexts      |
-| **Machine Runtime**     | Real execution — terminal, browser, files, apps on your machine              |
-| **Identity & Accounts** | Agency — acts on your behalf across GitHub, email, cloud services            |
-
-This is what separates a Viber from a chatbot: it doesn't just answer questions, it **does the work**.
-
 ## Working Modes
 
 | Mode               | When to Use                                                    |
@@ -112,27 +121,6 @@ Your Viber works autonomously but you always have oversight:
 - **Intervene** — Pause, redirect, or stop at any point through chat
 - **Approve** — Sensitive actions require explicit permission
 - **Audit** — Every action is logged; budget limits prevent runaway costs
-
-## The Viber Runtime
-
-A **Viber** is a single machine running the OpenViber runtime. It provides:
-
-- **Scheduler** — Runs tasks on cron schedules (daily research, weekly reports)
-- **Credentials** — Shared account access for all tasks on the Viber
-- **Config** — Identity and settings at `~/.openviber/` (lightweight, portable)
-- **Spaces** — Working data at `~/openviber_spaces/` (repos, research, outputs)
-
-### Connecting a Viber
-
-From the OpenViber Board, click **Add Viber** to generate a one-liner:
-
-```bash
-npx openviber connect --token eyJub2RlIjoiYTFiMmMz...
-```
-
-This bootstraps the Viber, creates `~/.openviber/`, and connects to the Board — no inbound ports needed.
-
-Multiple tasks coordinate through **external systems** (GitHub issues, email) rather than talking to each other directly. This keeps everything simple and stateless.
 
 ## Next Steps
 

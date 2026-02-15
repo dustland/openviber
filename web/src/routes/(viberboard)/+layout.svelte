@@ -126,6 +126,7 @@
   const allTasks = $derived(tasks);
 
   const pathname = $derived($page.url.pathname);
+  const isNewTaskRoute = $derived(pathname.startsWith("/tasks/new"));
   const isVibersRoute = $derived(
     pathname === "/vibers" || pathname.startsWith("/vibers/"),
   );
@@ -176,7 +177,10 @@
       <Sidebar.GroupContent>
         <Sidebar.Menu>
           <Sidebar.MenuItem>
-            <Sidebar.MenuButton tooltipContent="New Task">
+            <Sidebar.MenuButton
+              isActive={isNewTaskRoute}
+              tooltipContent="New Task"
+            >
               <a
                 href="/tasks/new"
                 class="w-full inline-flex items-center gap-2"

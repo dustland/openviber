@@ -359,17 +359,27 @@
 
 <div class="p-6 h-full overflow-y-auto flex flex-col">
   <div class="flex flex-col flex-1 min-h-0">
-    <header class="mb-8">
-      <h1 class="text-3xl font-bold text-foreground mb-2">Jobs</h1>
-      <p class="text-muted-foreground">
-        Task automation on a schedule. For example: “Summarize my emails and
-        send me a report at 8am every day.” Jobs are stored in
-        <code class="rounded bg-muted px-1.5 py-0.5 text-xs"
-          >~/.openviber/jobs/</code
-        >
-        and run when the daemon is started.
-      </p>
-    </header>
+    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-8 gap-4">
+      <header class="min-w-0">
+        <h1 class="text-3xl font-bold text-foreground mb-2">Jobs</h1>
+        <p class="text-muted-foreground">
+          Task automation on a schedule. For example: “Summarize my emails and
+          send me a report at 8am every day.” Jobs are stored in
+          <code class="rounded bg-muted px-1.5 py-0.5 text-xs"
+            >~/.openviber/jobs/</code
+          >
+          and run when the daemon is started.
+        </p>
+      </header>
+      {#if !loading && !error}
+        <div class="shrink-0">
+          <Button onclick={() => (showCreateForm = true)}>
+            <Plus class="size-4 sm:mr-1" />
+            <span class="hidden sm:inline">Create job</span>
+          </Button>
+        </div>
+      {/if}
+    </div>
 
     {#if error}
       <div
@@ -386,14 +396,6 @@
         </div>
       </div>
     {:else}
-      <!-- Create job -->
-      <div class="mb-8">
-        <Button onclick={() => (showCreateForm = true)}>
-          <Plus class="size-4" />
-          Create job
-        </Button>
-      </div>
-
       {#if !hasAnyJobs}
         <div
           class="flex-1 flex flex-col items-center justify-center rounded-xl border border-dashed border-border p-12 text-center"

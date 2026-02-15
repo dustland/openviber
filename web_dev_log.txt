@@ -1,0 +1,1383 @@
+
+> @openviber/web@0.1.0 dev /app/web
+> vite dev
+
+
+  VITE v6.4.1  ready in 2048 ms
+
+  ➜  Local:   http://localhost:6006/
+  ➜  Network: http://192.168.0.2:6006/
+[user-settings] Failed to fetch from Supabase: Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:19:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:37:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:55:15)
+    at getSettingsForUser (/app/web/src/lib/server/settings.ts:82:65)
+    at GET (/app/web/src/routes/api/settings/+server.ts:176:70)
+    at eval (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:52:4)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:70)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:70)
+Failed to list environments: Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:19:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:37:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:55:15)
+    at listEnvironmentsForUser (/app/web/src/lib/server/environments.ts:303:71)
+    at GET (/app/web/src/routes/api/environments/+server.ts:17:81)
+    at eval (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:52:4)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:70)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:70)
+Failed to list environments: Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:19:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:37:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:55:15)
+    at listEnvironmentsForUser (/app/web/src/lib/server/environments.ts:303:71)
+    at GET (/app/web/src/routes/api/environments/+server.ts:17:81)
+    at eval (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:52:4)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:70)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:70)
+[GatewayClient] Failed to get nodes: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getNodes (/app/web/src/lib/server/gateway.ts:37:24)
+    at async GET (/app/web/src/routes/api/vibers/+server.ts:23:27)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22)
+    at async file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:562:22 {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+[GatewayClient] Failed to get vibers: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getTasks (/app/web/src/lib/server/gateway.ts:50:24)
+    at async GET (/app/web/src/routes/api/tasks/+server.ts:134:37)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22)
+    at async file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:562:22 {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+[GatewayClient] Failed to get vibers: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getTasks (/app/web/src/lib/server/gateway.ts:50:24)
+    at async GET (/app/web/src/routes/api/tasks/+server.ts:134:37)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22)
+    at async file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:562:22 {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+Failed to list environments: Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:19:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:37:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:55:15)
+    at listEnvironmentsForUser (/app/web/src/lib/server/environments.ts:303:71)
+    at GET (/app/web/src/routes/api/environments/+server.ts:17:81)
+    at eval (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:52:4)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:70)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:70)
+[user-settings] Failed to fetch from Supabase: Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:19:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:37:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:55:15)
+    at getSettingsForUser (/app/web/src/lib/server/settings.ts:82:65)
+    at GET (/app/web/src/routes/api/settings/+server.ts:176:70)
+    at eval (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:52:4)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:70)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:70)
+Failed to list environments: Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:19:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:37:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:55:15)
+    at listEnvironmentsForUser (/app/web/src/lib/server/environments.ts:303:71)
+    at GET (/app/web/src/routes/api/environments/+server.ts:17:81)
+    at eval (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:52:4)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:70)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:70)
+[GatewayClient] Failed to get nodes: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getNodes (/app/web/src/lib/server/gateway.ts:37:24)
+    at async GET (/app/web/src/routes/api/vibers/+server.ts:23:27)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22)
+    at async file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:562:22 {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+[GatewayClient] Failed to get vibers: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getTasks (/app/web/src/lib/server/gateway.ts:50:24)
+    at async GET (/app/web/src/routes/api/tasks/+server.ts:134:37)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22)
+    at async file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:562:22 {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+[GatewayClient] Failed to get vibers: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getTasks (/app/web/src/lib/server/gateway.ts:50:24)
+    at async GET (/app/web/src/routes/api/tasks/+server.ts:134:37)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22)
+    at async file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:562:22 {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+[user-settings] Failed to fetch from Supabase: Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:19:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:37:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:55:15)
+    at getSettingsForUser (/app/web/src/lib/server/settings.ts:82:65)
+    at GET (/app/web/src/routes/api/onboarding/+server.ts:12:70)
+    at eval (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:52:4)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:70)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:70)
+Failed to list environments: Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:19:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:37:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:55:15)
+    at listEnvironmentsForUser (/app/web/src/lib/server/environments.ts:303:71)
+    at GET (/app/web/src/routes/api/environments/+server.ts:17:81)
+    at eval (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:52:4)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:70)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:70)
+[user-settings] Failed to fetch from Supabase: Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:19:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:37:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:55:15)
+    at getSettingsForUser (/app/web/src/lib/server/settings.ts:82:65)
+    at GET (/app/web/src/routes/api/settings/+server.ts:176:70)
+    at eval (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:52:4)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:70)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:70)
+Failed to list environments: Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:19:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:37:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:55:15)
+    at listEnvironmentsForUser (/app/web/src/lib/server/environments.ts:303:71)
+    at GET (/app/web/src/routes/api/environments/+server.ts:17:81)
+    at eval (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:52:4)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:70)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:70)
+[GatewayClient] Failed to get vibers: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getTasks (/app/web/src/lib/server/gateway.ts:50:24)
+    at async GET (/app/web/src/routes/api/tasks/+server.ts:134:37)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22)
+    at async file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:562:22 {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+[GatewayClient] Failed to get nodes: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getNodes (/app/web/src/lib/server/gateway.ts:37:24)
+    at async GET (/app/web/src/routes/api/vibers/+server.ts:23:27)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22)
+    at async file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:562:22 {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+[GatewayClient] Failed to get vibers: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getTasks (/app/web/src/lib/server/gateway.ts:50:24)
+    at async GET (/app/web/src/routes/api/tasks/+server.ts:134:37)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22)
+    at async file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:562:22 {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+[GatewayClient] Failed to get vibers: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getTasks (/app/web/src/lib/server/gateway.ts:50:24)
+    at async GET (/app/web/src/routes/api/tasks/+server.ts:134:37)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22)
+    at async file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:562:22 {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+Failed to list environments: Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:19:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:37:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:55:15)
+    at listEnvironmentsForUser (/app/web/src/lib/server/environments.ts:303:71)
+    at GET (/app/web/src/routes/api/environments/+server.ts:17:81)
+    at eval (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:52:4)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:70)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:70)
+[GatewayClient] Failed to get nodes: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getNodes (/app/web/src/lib/server/gateway.ts:37:24)
+    at async GET (/app/web/src/routes/api/vibers/+server.ts:23:27)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22)
+    at async file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:562:22 {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+[GatewayClient] Failed to get vibers: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getTasks (/app/web/src/lib/server/gateway.ts:50:24)
+    at async GET (/app/web/src/routes/api/tasks/+server.ts:134:37)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22)
+    at async file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:562:22 {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+Failed to list environments: Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:19:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:37:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:55:15)
+    at listEnvironmentsForUser (/app/web/src/lib/server/environments.ts:303:71)
+    at GET (/app/web/src/routes/api/environments/+server.ts:17:81)
+    at eval (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:52:4)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:70)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:70)
+[GatewayClient] Failed to get vibers: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getTasks (/app/web/src/lib/server/gateway.ts:50:24)
+    at async GET (/app/web/src/routes/api/tasks/+server.ts:134:37)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22)
+    at async file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:562:22 {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+[GatewayClient] Failed to get node jobs: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getNodeJobs (/app/web/src/lib/server/gateway.ts:146:24)
+    at async Promise.all (index 1)
+    at async GET (/app/web/src/routes/api/jobs/+server.ts:85:43)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22) {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+5:27:31 PM [vite] (client) hmr update /src/routes/(viberboard)/vibers/+page.svelte, /src/app.css
+5:27:31 PM [vite] (ssr) page reload src/routes/(viberboard)/vibers/+page.svelte
+5:27:44 PM [vite] (client) hmr update /src/routes/(viberboard)/tasks/+page.svelte, /src/app.css
+5:27:44 PM [vite] (ssr) page reload src/routes/(viberboard)/tasks/+page.svelte
+5:28:19 PM [vite] (client) hmr update /src/routes/(viberboard)/jobs/+page.svelte, /src/app.css
+5:28:19 PM [vite] (ssr) page reload src/routes/(viberboard)/jobs/+page.svelte
+Failed to list environments: Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:19:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:37:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:55:15)
+    at listEnvironmentsForUser (/app/web/src/lib/server/environments.ts:303:71)
+    at GET (/app/web/src/routes/api/environments/+server.ts:17:81)
+    at eval (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:52:4)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:70)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:70)
+[user-settings] Failed to fetch from Supabase: Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:19:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:37:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:55:15)
+    at getSettingsForUser (/app/web/src/lib/server/settings.ts:82:65)
+    at GET (/app/web/src/routes/api/settings/+server.ts:176:70)
+    at eval (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:52:4)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:70)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:70)
+Failed to list environments: Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:19:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:37:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:55:15)
+    at listEnvironmentsForUser (/app/web/src/lib/server/environments.ts:303:71)
+    at GET (/app/web/src/routes/api/environments/+server.ts:17:81)
+    at eval (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:52:4)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:70)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:70)
+[GatewayClient] Failed to get nodes: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getNodes (/app/web/src/lib/server/gateway.ts:37:24)
+    at async GET (/app/web/src/routes/api/vibers/+server.ts:23:27)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22)
+    at async file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:562:22 {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+[GatewayClient] Failed to get vibers: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getTasks (/app/web/src/lib/server/gateway.ts:50:24)
+    at async GET (/app/web/src/routes/api/tasks/+server.ts:134:37)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22)
+    at async file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:562:22 {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+[GatewayClient] Failed to get vibers: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getTasks (/app/web/src/lib/server/gateway.ts:50:24)
+    at async GET (/app/web/src/routes/api/tasks/+server.ts:134:37)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22)
+    at async file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:562:22 {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+Failed to list environments: Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:19:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:37:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:55:15)
+    at listEnvironmentsForUser (/app/web/src/lib/server/environments.ts:303:71)
+    at GET (/app/web/src/routes/api/environments/+server.ts:17:81)
+    at eval (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:52:4)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:70)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:70)
+[user-settings] Failed to fetch from Supabase: Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:19:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:37:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:55:15)
+    at getSettingsForUser (/app/web/src/lib/server/settings.ts:82:65)
+    at GET (/app/web/src/routes/api/settings/+server.ts:176:70)
+    at eval (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:52:4)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:70)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:70)
+Failed to list environments: Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:19:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:37:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:55:15)
+    at listEnvironmentsForUser (/app/web/src/lib/server/environments.ts:303:71)
+    at GET (/app/web/src/routes/api/environments/+server.ts:17:81)
+    at eval (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:52:4)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:70)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:70)
+[GatewayClient] Failed to get nodes: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getNodes (/app/web/src/lib/server/gateway.ts:37:24)
+    at async GET (/app/web/src/routes/api/vibers/+server.ts:23:27)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22)
+    at async file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:562:22 {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+[GatewayClient] Failed to get vibers: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getTasks (/app/web/src/lib/server/gateway.ts:50:24)
+    at async GET (/app/web/src/routes/api/tasks/+server.ts:134:37)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22)
+    at async file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:562:22 {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+[GatewayClient] Failed to get vibers: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getTasks (/app/web/src/lib/server/gateway.ts:50:24)
+    at async GET (/app/web/src/routes/api/tasks/+server.ts:134:37)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22)
+    at async file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:562:22 {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+[user-settings] Failed to fetch from Supabase: Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:19:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:37:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:55:15)
+    at getSettingsForUser (/app/web/src/lib/server/settings.ts:82:65)
+    at GET (/app/web/src/routes/api/onboarding/+server.ts:12:70)
+    at eval (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:52:4)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:70)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:70)
+Failed to list environments: Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:19:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:37:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:55:15)
+    at listEnvironmentsForUser (/app/web/src/lib/server/environments.ts:303:71)
+    at GET (/app/web/src/routes/api/environments/+server.ts:17:81)
+    at eval (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:52:4)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:70)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:70)
+[user-settings] Failed to fetch from Supabase: Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:19:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:37:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:55:15)
+    at getSettingsForUser (/app/web/src/lib/server/settings.ts:82:65)
+    at GET (/app/web/src/routes/api/settings/+server.ts:176:70)
+    at eval (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:52:4)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:70)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:70)
+Failed to list environments: Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:19:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:37:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:55:15)
+    at listEnvironmentsForUser (/app/web/src/lib/server/environments.ts:303:71)
+    at GET (/app/web/src/routes/api/environments/+server.ts:17:81)
+    at eval (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:52:4)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:70)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:70)
+[GatewayClient] Failed to get vibers: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getTasks (/app/web/src/lib/server/gateway.ts:50:24)
+    at async GET (/app/web/src/routes/api/tasks/+server.ts:134:37)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22)
+    at async file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:562:22 {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+[GatewayClient] Failed to get nodes: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getNodes (/app/web/src/lib/server/gateway.ts:37:24)
+    at async GET (/app/web/src/routes/api/vibers/+server.ts:23:27)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22)
+    at async file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:562:22 {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+[GatewayClient] Failed to get vibers: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getTasks (/app/web/src/lib/server/gateway.ts:50:24)
+    at async GET (/app/web/src/routes/api/tasks/+server.ts:134:37)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22)
+    at async file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:562:22 {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+[GatewayClient] Failed to get vibers: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getTasks (/app/web/src/lib/server/gateway.ts:50:24)
+    at async GET (/app/web/src/routes/api/tasks/+server.ts:134:37)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22)
+    at async file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:562:22 {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+Failed to list environments: Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:19:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:37:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:55:15)
+    at listEnvironmentsForUser (/app/web/src/lib/server/environments.ts:303:71)
+    at GET (/app/web/src/routes/api/environments/+server.ts:17:81)
+    at eval (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:52:4)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:70)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:70)
+[GatewayClient] Failed to get nodes: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getNodes (/app/web/src/lib/server/gateway.ts:37:24)
+    at async GET (/app/web/src/routes/api/vibers/+server.ts:23:27)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22)
+    at async file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:562:22 {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+[GatewayClient] Failed to get vibers: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getTasks (/app/web/src/lib/server/gateway.ts:50:24)
+    at async GET (/app/web/src/routes/api/tasks/+server.ts:134:37)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22)
+    at async file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:562:22 {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+Failed to list environments: Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:19:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:37:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:55:15)
+    at listEnvironmentsForUser (/app/web/src/lib/server/environments.ts:303:71)
+    at GET (/app/web/src/routes/api/environments/+server.ts:17:81)
+    at eval (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:52:4)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:70)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:70)
+[GatewayClient] Failed to get node jobs: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getNodeJobs (/app/web/src/lib/server/gateway.ts:146:24)
+    at async Promise.all (index 1)
+    at async GET (/app/web/src/routes/api/jobs/+server.ts:85:43)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22) {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+[GatewayClient] Failed to get vibers: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getTasks (/app/web/src/lib/server/gateway.ts:50:24)
+    at async GET (/app/web/src/routes/api/tasks/+server.ts:134:37)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22)
+    at async file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:562:22 {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+Failed to list environments: Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:19:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:37:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:55:15)
+    at listEnvironmentsForUser (/app/web/src/lib/server/environments.ts:303:71)
+    at GET (/app/web/src/routes/api/environments/+server.ts:17:81)
+    at eval (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:52:4)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:70)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:70)
+[user-settings] Failed to fetch from Supabase: Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:19:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:37:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:55:15)
+    at getSettingsForUser (/app/web/src/lib/server/settings.ts:82:65)
+    at GET (/app/web/src/routes/api/settings/+server.ts:176:70)
+    at eval (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:52:4)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:70)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:70)
+Failed to list environments: Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:19:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:37:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:55:15)
+    at listEnvironmentsForUser (/app/web/src/lib/server/environments.ts:303:71)
+    at GET (/app/web/src/routes/api/environments/+server.ts:17:81)
+    at eval (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:52:4)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:70)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:70)
+[GatewayClient] Failed to get nodes: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getNodes (/app/web/src/lib/server/gateway.ts:37:24)
+    at async GET (/app/web/src/routes/api/vibers/+server.ts:23:27)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22)
+    at async file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:562:22 {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+[GatewayClient] Failed to get vibers: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getTasks (/app/web/src/lib/server/gateway.ts:50:24)
+    at async GET (/app/web/src/routes/api/tasks/+server.ts:134:37)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22)
+    at async file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:562:22 {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+[GatewayClient] Failed to get vibers: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getTasks (/app/web/src/lib/server/gateway.ts:50:24)
+    at async GET (/app/web/src/routes/api/tasks/+server.ts:134:37)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22)
+    at async file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:562:22 {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+Failed to list environments: Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:19:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:37:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:55:15)
+    at listEnvironmentsForUser (/app/web/src/lib/server/environments.ts:303:71)
+    at GET (/app/web/src/routes/api/environments/+server.ts:17:81)
+    at eval (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:52:4)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:70)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:70)
+[user-settings] Failed to fetch from Supabase: Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:19:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:37:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:55:15)
+    at getSettingsForUser (/app/web/src/lib/server/settings.ts:82:65)
+    at GET (/app/web/src/routes/api/settings/+server.ts:176:70)
+    at eval (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:52:4)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:70)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:70)
+Failed to list environments: Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:19:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:37:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:55:15)
+    at listEnvironmentsForUser (/app/web/src/lib/server/environments.ts:303:71)
+    at GET (/app/web/src/routes/api/environments/+server.ts:17:81)
+    at eval (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:52:4)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:70)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:70)
+[GatewayClient] Failed to get nodes: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getNodes (/app/web/src/lib/server/gateway.ts:37:24)
+    at async GET (/app/web/src/routes/api/vibers/+server.ts:23:27)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22)
+    at async file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:562:22 {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+[GatewayClient] Failed to get vibers: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getTasks (/app/web/src/lib/server/gateway.ts:50:24)
+    at async GET (/app/web/src/routes/api/tasks/+server.ts:134:37)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22)
+    at async file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:562:22 {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+[GatewayClient] Failed to get vibers: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getTasks (/app/web/src/lib/server/gateway.ts:50:24)
+    at async GET (/app/web/src/routes/api/tasks/+server.ts:134:37)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22)
+    at async file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:562:22 {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+[user-settings] Failed to fetch from Supabase: Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:19:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:37:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:55:15)
+    at getSettingsForUser (/app/web/src/lib/server/settings.ts:82:65)
+    at GET (/app/web/src/routes/api/onboarding/+server.ts:12:70)
+    at eval (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:52:4)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:70)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:70)
+Failed to list environments: Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:19:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:37:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:55:15)
+    at listEnvironmentsForUser (/app/web/src/lib/server/environments.ts:303:71)
+    at GET (/app/web/src/routes/api/environments/+server.ts:17:81)
+    at eval (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:52:4)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:70)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:70)
+[user-settings] Failed to fetch from Supabase: Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:19:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:37:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:55:15)
+    at getSettingsForUser (/app/web/src/lib/server/settings.ts:82:65)
+    at GET (/app/web/src/routes/api/settings/+server.ts:176:70)
+    at eval (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:52:4)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:70)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:70)
+Failed to list environments: Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:19:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:37:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:55:15)
+    at listEnvironmentsForUser (/app/web/src/lib/server/environments.ts:303:71)
+    at GET (/app/web/src/routes/api/environments/+server.ts:17:81)
+    at eval (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:52:4)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:70)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:70)
+[GatewayClient] Failed to get vibers: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getTasks (/app/web/src/lib/server/gateway.ts:50:24)
+    at async GET (/app/web/src/routes/api/tasks/+server.ts:134:37)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22)
+    at async file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:562:22 {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+[GatewayClient] Failed to get nodes: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getNodes (/app/web/src/lib/server/gateway.ts:37:24)
+    at async GET (/app/web/src/routes/api/vibers/+server.ts:23:27)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22)
+    at async file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:562:22 {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+[GatewayClient] Failed to get vibers: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getTasks (/app/web/src/lib/server/gateway.ts:50:24)
+    at async GET (/app/web/src/routes/api/tasks/+server.ts:134:37)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22)
+    at async file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:562:22 {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+Failed to list environments: Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:19:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:37:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:55:15)
+    at listEnvironmentsForUser (/app/web/src/lib/server/environments.ts:303:71)
+    at GET (/app/web/src/routes/api/environments/+server.ts:17:81)
+    at eval (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:52:4)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:70)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:70)
+[GatewayClient] Failed to get nodes: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getNodes (/app/web/src/lib/server/gateway.ts:37:24)
+    at async GET (/app/web/src/routes/api/vibers/+server.ts:23:27)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22)
+    at async file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:562:22 {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+[GatewayClient] Failed to get vibers: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getTasks (/app/web/src/lib/server/gateway.ts:50:24)
+    at async GET (/app/web/src/routes/api/tasks/+server.ts:134:37)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22)
+    at async file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:562:22 {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+Failed to list environments: Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:19:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:37:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:55:15)
+    at listEnvironmentsForUser (/app/web/src/lib/server/environments.ts:303:71)
+    at GET (/app/web/src/routes/api/environments/+server.ts:17:81)
+    at eval (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:52:4)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:70)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:70)
+[GatewayClient] Failed to get node jobs: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getNodeJobs (/app/web/src/lib/server/gateway.ts:146:24)
+    at async Promise.all (index 1)
+    at async GET (/app/web/src/routes/api/jobs/+server.ts:85:43)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22) {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+[GatewayClient] Failed to get vibers: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getTasks (/app/web/src/lib/server/gateway.ts:50:24)
+    at async GET (/app/web/src/routes/api/tasks/+server.ts:134:37)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22)
+    at async file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:562:22 {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+[user-settings] Failed to fetch from Supabase: Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:19:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:37:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:55:15)
+    at getSettingsForUser (/app/web/src/lib/server/settings.ts:82:65)
+    at GET (/app/web/src/routes/api/settings/+server.ts:176:70)
+    at eval (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:52:4)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:70)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:70)
+Failed to list environments: Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:19:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:37:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:55:15)
+    at listEnvironmentsForUser (/app/web/src/lib/server/environments.ts:303:71)
+    at GET (/app/web/src/routes/api/environments/+server.ts:17:81)
+    at eval (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:52:4)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:70)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:70)
+[GatewayClient] Failed to get nodes: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getNodes (/app/web/src/lib/server/gateway.ts:37:24)
+    at async GET (/app/web/src/routes/api/vibers/+server.ts:23:27)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22)
+    at async file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:562:22 {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+[GatewayClient] Failed to get vibers: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getTasks (/app/web/src/lib/server/gateway.ts:50:24)
+    at async GET (/app/web/src/routes/api/tasks/+server.ts:134:37)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22)
+    at async file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:562:22 {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+[Server Error] 500 /api/skills/requirements Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:15:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:36:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:70:15)
+    at listOAuthConnections (/app/web/src/lib/server/oauth.ts:228:22)
+    at GET (/app/web/src/routes/api/skills/requirements/+server.ts:142:31)
+    at /app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:48:4
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:47:44)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:586:23)
+[404] GET /vibers/new
+Failed to list environments: Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:19:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:37:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:55:15)
+    at listEnvironmentsForUser (/app/web/src/lib/server/environments.ts:303:71)
+    at GET (/app/web/src/routes/api/environments/+server.ts:17:81)
+    at eval (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:52:4)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:70)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:70)
+[GatewayClient] Failed to get vibers: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getTasks (/app/web/src/lib/server/gateway.ts:50:24)
+    at async GET (/app/web/src/routes/api/tasks/+server.ts:134:37)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22)
+    at async file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:562:22 {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+Failed to fetch logs: Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:19:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:37:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:55:15)
+    at queryLogs (/app/web/src/lib/server/logs.ts:46:51)
+    at GET (/app/web/src/routes/api/logs/+server.ts:22:107)
+    at eval (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:52:4)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:70)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:70)
+[GatewayClient] Failed to get events: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getEvents (/app/web/src/lib/server/gateway.ts:191:24)
+    at async Promise.all (index 1) {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+Failed to fetch logs: Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:19:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:37:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:55:15)
+    at queryLogs (/app/web/src/lib/server/logs.ts:46:51)
+    at GET (/app/web/src/routes/api/logs/+server.ts:22:107)
+    at eval (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:52:4)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:70)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:70)
+[GatewayClient] Failed to get events: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getEvents (/app/web/src/lib/server/gateway.ts:191:24)
+    at async Promise.all (index 1) {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+Failed to list environments: Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:19:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:37:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:55:15)
+    at listEnvironmentsForUser (/app/web/src/lib/server/environments.ts:303:71)
+    at GET (/app/web/src/routes/api/environments/+server.ts:17:81)
+    at eval (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:52:4)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:70)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:70)
+Failed to list environments: Error: Supabase is not configured (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required).
+    at requireSupabaseServiceConfig (/app/web/src/lib/server/supabase.ts:19:11)
+    at restUrl (/app/web/src/lib/server/supabase.ts:37:27)
+    at supabaseRequest (/app/web/src/lib/server/supabase.ts:55:15)
+    at listEnvironmentsForUser (/app/web/src/lib/server/environments.ts:303:71)
+    at GET (/app/web/src/routes/api/environments/+server.ts:17:81)
+    at eval (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:52:4)
+    at AsyncLocalStorage.run (node:internal/async_local_storage/async_hooks:91:14)
+    at with_request_store (file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/internal/event.js:77:20)
+    at render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:70)
+    at resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:70)
+[GatewayClient] Failed to get vibers: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14902:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async gatewayFetch (/app/web/src/lib/server/gateway.ts:24:20)
+    at async Object.getTasks (/app/web/src/lib/server/gateway.ts:50:24)
+    at async GET (/app/web/src/routes/api/tasks/+server.ts:134:37)
+    at async render_endpoint (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/endpoint.js:51:20)
+    at async resolve (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:456:23)
+    at async fn (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:321:16)
+    at async internal_respond (/app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/runtime/server/respond.js:303:22)
+    at async file:///app/node_modules/.pnpm/@sveltejs+kit@2.50.2_@opentelemetry+api@1.9.0_@sveltejs+vite-plugin-svelte@5.1.1_svelte_4eb16e813eb9237ad4e3d280bb6a8bfd/node_modules/@sveltejs/kit/src/exports/vite/dev/index.js:562:22 {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1134:18)
+      at afterConnectMultiple (node:net:1715:7)
+      at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}

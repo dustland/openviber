@@ -291,21 +291,21 @@
 </svelte:head>
 
 <div class="p-6 h-full overflow-y-auto flex flex-col">
-  <div class="flex items-center justify-between mb-6">
-    <div>
+  <div class="flex items-center justify-between mb-6 gap-4">
+    <div class="min-w-0">
       <h1 class="text-2xl font-semibold text-foreground">Vibers</h1>
-      <p class="text-sm mt-0.5 text-muted-foreground">
+      <p class="text-sm mt-0.5 text-muted-foreground truncate sm:text-clip sm:whitespace-normal">
         Manage machine registrations and monitor resource usage.
       </p>
     </div>
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-2 shrink-0">
       <Button
         variant="default"
         size="sm"
         onclick={() => (showCreateDialog = true)}
       >
-        <Plus class="size-4 mr-1" />
-        Add Viber
+        <Plus class="size-4 sm:mr-1" />
+        <span class="hidden sm:inline">Add Viber</span>
       </Button>
       <Button variant="outline" size="icon" onclick={() => fetchVibers()}>
         <RefreshCw class="size-4" />

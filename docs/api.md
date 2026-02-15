@@ -177,7 +177,7 @@ const { streamResult, agent } = await runTask(
   {
     taskId: "task-123",
     singleAgentId: "developer",
-    model: "anthropic/claude-sonnet-4-20250514",
+    model: "anthropic/claude-3-5-sonnet",
   },
   messages
 );

@@ -59,7 +59,7 @@ When primary model fails after retries:
 1. **Report failure** to Viber Board with error details
 2. **Optional fallback model** if configured:
    ```yaml
-   model: anthropic/claude-sonnet-4-20250514
+   model: anthropic/claude-3-5-sonnet
    fallback_model: openai/gpt-4o-mini  # Used on repeated failures
    ```
 3. **No silent degradation** — Viber Board must acknowledge model switch

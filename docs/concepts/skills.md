@@ -262,7 +262,7 @@ Add skills to your task configuration in `~/.openviber/vibers/{id}.yaml`:
 
 ```yaml
 name: "Developer"
-model: "anthropic/claude-sonnet-4-20250514"
+model: "anthropic/claude-3-5-sonnet"
 skills:
   - cursor-agent
   - codex-cli

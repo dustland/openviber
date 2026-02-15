@@ -50,7 +50,7 @@ daemon:
 
 # Default model settings (can be overridden per task)
 defaults:
-  model: "anthropic/claude-sonnet-4-20250514"
+  model: "anthropic/claude-3-5-sonnet"
   temperature: 0.7
   max_tokens: 4096
 
@@ -121,7 +121,7 @@ api_key: "${ANTHROPIC_API_KEY}"  # Reads $ANTHROPIC_API_KEY
 
 # Required fields
 name: "Developer"                    # Display name
-model: "anthropic/claude-sonnet-4-20250514"    # Provider/model identifier
+model: "anthropic/claude-3-5-sonnet"    # Provider/model identifier
 
 # Optional fields
 description: "Full-stack development task"
@@ -185,7 +185,7 @@ context:
 provider/model-name
 
 Examples:
-- anthropic/claude-sonnet-4-20250514
+- anthropic/claude-3-5-sonnet
 - anthropic/claude-3-haiku-20240307
 - openai/gpt-4o
 - openai/gpt-4o-mini
@@ -339,7 +339,7 @@ Costs are estimated using provider pricing:
 
 | Provider | Model | Input (per 1M) | Output (per 1M) |
 |----------|-------|----------------|-----------------|
-| Anthropic | claude-sonnet-4-20250514 | $3.00 | $15.00 |
+| Anthropic | claude-3-5-sonnet | $3.00 | $15.00 |
 | Anthropic | claude-3-haiku | $0.25 | $1.25 |
 | OpenAI | gpt-4o | $5.00 | $15.00 |
 | OpenAI | gpt-4o-mini | $0.15 | $0.60 |
@@ -478,7 +478,7 @@ daemon:
   log_level: "info"
 
 defaults:
-  model: "anthropic/claude-sonnet-4-20250514"
+  model: "anthropic/claude-3-5-sonnet"
 
 providers:
   anthropic:
@@ -503,7 +503,7 @@ security:
 ```yaml
 # ~/.openviber/vibers/default.yaml
 name: "Viber"
-model: "anthropic/claude-sonnet-4-20250514"
+model: "anthropic/claude-3-5-sonnet"
 
 tools:
   - file

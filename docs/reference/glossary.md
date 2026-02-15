@@ -77,7 +77,7 @@ Distinct from the Gateway (central coordinator for Vibers).
 
 ### Job
 
-A scheduled task defined as a YAML file that runs automatically on a cron timer. Jobs specify a schedule, a prompt, and optional configuration (model, skills, tools). They are stored per-task in `~/.openviber/vibers/{id}/jobs/` (where `{id}` is the task ID) or globally in `~/.openviber/jobs/`.
+A scheduled task defined as a YAML file that runs automatically on a cron timer. Jobs specify a schedule, a prompt, and optional configuration (model, skills, tools). They are stored in `~/.openviber/jobs/`.
 
 When a job fires, the `JobScheduler` creates a `Task` (Agent) with the job's configuration and executes the prompt. Jobs can leverage skills for domain knowledge — for example, a health-check job uses the `antigravity` skill.
 

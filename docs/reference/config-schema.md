@@ -23,15 +23,13 @@ This document defines the configuration file formats used by OpenViber. Configur
     │   ├── soul.md                  # Persona for this task
     │   ├── memory.md                # Long-term memory
     │   ├── memory/                  # Daily memory logs
-    │   ├── sessions/                # Conversation logs (*.jsonl)
-    │   └── jobs/                    # Scheduled tasks
+    │   └── sessions/                # Conversation logs (*.jsonl)
     ├── dev.yaml                     # Named task config
     └── dev/
         ├── soul.md
         ├── memory.md
         ├── memory/
-        ├── sessions/
-        └── jobs/
+        └── sessions/
 
 ~/openviber_spaces/                  # Working data (large, git-managed)
 ├── my-webapp/                       # Cloned repo
@@ -348,10 +346,10 @@ Costs are estimated using provider pricing:
 
 ## 6. Job/Schedule Configuration
 
-Jobs are YAML files stored per-task in `~/.openviber/vibers/{id}/jobs/`:
+Jobs are YAML files stored in `~/.openviber/jobs/`:
 
 ```yaml
-# ~/.openviber/vibers/dev/jobs/morning-standup.yaml
+# ~/.openviber/jobs/morning-standup.yaml
 
 name: "morning-standup"
 description: "Daily standup summary"

@@ -223,7 +223,7 @@
       </Sidebar.GroupContent>
     </Sidebar.Group>
 
-    {#if allTasks.length > 0}
+    {#snippet _alwaysShowTasks()}
       <Sidebar.Separator />
 
       <!-- Collapsed view: flat icon list with tooltips -->
@@ -269,12 +269,30 @@
       <!-- Expanded view -->
       <Sidebar.Group class="group-data-[collapsible=icon]:hidden">
         <Sidebar.GroupLabel
-          class="text-[10px] uppercase tracking-wider text-sidebar-foreground/55 px-2"
+          class="text-[10px] uppercase tracking-wider text-sidebar-foreground/55 px-2 flex items-center justify-between"
         >
-          Tasks
+          <span>Tasks</span>
+          <a
+            href="/tasks/new"
+            title="New task"
+            class="flex size-5 items-center justify-center rounded-md text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+          >
+            <Plus class="size-3.5" />
+          </a>
         </Sidebar.GroupLabel>
         <Sidebar.GroupContent>
           <Sidebar.Menu>
+            {#if allTasks.length === 0}
+              <Sidebar.MenuItem>
+                <a
+                  href="/tasks/new"
+                  class="flex items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+                >
+                  <Cpu class="size-3.5 text-muted-foreground/50" />
+                  <span class="italic">No tasks yet — create one</span>
+                </a>
+              </Sidebar.MenuItem>
+            {/if}
             <!-- Pinned tasks -->
             {#if pinnedTasks.length > 0}
               {#each pinnedTasks as task (task.id)}
@@ -600,7 +618,8 @@
           </Sidebar.Menu>
         </Sidebar.GroupContent>
       </Sidebar.Group>
-    {/if}
+    {/snippet}
+    {@render _alwaysShowTasks()}
   {/snippet}
   {@render children()}
 </AppSidebar>

@@ -11,8 +11,14 @@
     Archive,
     LoaderCircle,
     MessageSquarePlus,
+    FolderGit2,
+    Check,
+    ChevronDown,
+    Package,
   } from "@lucide/svelte";
+  import ViberIcon from "$lib/components/icons/viber-icon.svelte";
   import { Button } from "$lib/components/ui/button";
+  import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import {
     Card,
     CardHeader,
@@ -55,6 +61,12 @@
   let composerError = $state<string | null>(null);
 
   const activeVibers = $derived(vibers.filter((v) => v.status === "active"));
+  const selectedViber = $derived(
+    vibers.find((v) => v.id === selectedViberId) ?? null,
+  );
+  const selectedEnvironment = $derived(
+    environments.find((e) => e.id === selectedEnvironmentId) ?? null,
+  );
 
   async function fetchGatewayStatus() {
     try {
@@ -296,7 +308,9 @@
         variant={showArchived ? "secondary" : "outline"}
         size="sm"
         class="gap-2"
-        aria-label={showArchived ? "Hide archived tasks" : "Show archived tasks"}
+        aria-label={showArchived
+          ? "Hide archived tasks"
+          : "Show archived tasks"}
         title={showArchived ? "Hide archived tasks" : "Show archived tasks"}
         onclick={() => (showArchived = !showArchived)}
       >
@@ -305,7 +319,13 @@
           >{showArchived ? "Hide Archived" : "Show Archived"}</span
         >
       </Button>
-      <Button variant="outline" size="sm" href="/" class="gap-2" title="New Task">
+      <Button
+        variant="outline"
+        size="sm"
+        href="/"
+        class="gap-2"
+        title="New Task"
+      >
         <Plus class="size-4" />
         <span class="hidden sm:inline">New Task</span>
       </Button>
@@ -438,18 +458,118 @@
         <p class="text-sm text-muted-foreground mb-6">
           Describe what you'd like to accomplish and a viber will get to work.
         </p>
+
+        <!-- Viber & Environment selectors -->
+        <div class="mb-3 flex flex-wrap items-center gap-2 justify-center">
+          {#if vibers.length > 0}
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger
+                class="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer shrink-0"
+              >
+                {#if selectedViber}
+                  <span
+                    class="inline-block size-2 shrink-0 rounded-full"
+                    class:bg-emerald-500={selectedViber.status === "active"}
+                    class:bg-amber-500={selectedViber.status === "pending"}
+                    class:bg-zinc-400={selectedViber.status === "offline"}
+                  ></span>
+                  <span class="truncate max-w-[140px]"
+                    >{selectedViber.name}</span
+                  >
+                {:else}
+                  <ViberIcon class="size-3.5" />
+                  <span>Viber</span>
+                {/if}
+                <ChevronDown class="size-3 opacity-50" />
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Content align="start" class="w-64">
+                <DropdownMenu.Label>Select viber</DropdownMenu.Label>
+                <DropdownMenu.Separator />
+                {#each vibers as viber (viber.id)}
+                  <DropdownMenu.Item
+                    onclick={() => (selectedViberId = viber.id)}
+                    class="flex items-center gap-2"
+                    disabled={viber.status !== "active"}
+                  >
+                    <span class="flex items-center gap-2 flex-1 min-w-0">
+                      <span
+                        class="inline-block size-2 shrink-0 rounded-full"
+                        class:bg-emerald-500={viber.status === "active"}
+                        class:bg-amber-500={viber.status === "pending"}
+                        class:bg-zinc-400={viber.status === "offline"}
+                      ></span>
+                      {viber.name}
+                      {#if viber.status !== "active"}
+                        <span class="text-xs text-muted-foreground ml-1"
+                          >({viber.status})</span
+                        >
+                      {/if}
+                    </span>
+                    {#if selectedViberId === viber.id}
+                      <Check class="size-3.5 text-primary" />
+                    {/if}
+                  </DropdownMenu.Item>
+                {/each}
+              </DropdownMenu.Content>
+            </DropdownMenu.Root>
+          {/if}
+
+          {#if environments.length > 0}
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger
+                class="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer shrink-0"
+              >
+                <FolderGit2 class="size-3.5" />
+                {#if selectedEnvironment}
+                  <span class="truncate max-w-[140px]"
+                    >{selectedEnvironment.name}</span
+                  >
+                {:else}
+                  <span>Env</span>
+                {/if}
+                <ChevronDown class="size-3 opacity-50" />
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Content align="start" class="w-56">
+                <DropdownMenu.Label>Select environment</DropdownMenu.Label>
+                <DropdownMenu.Separator />
+                <DropdownMenu.Item
+                  onclick={() => (selectedEnvironmentId = null)}
+                  class="flex items-center justify-between"
+                >
+                  <span class="flex items-center gap-2">
+                    <Package class="size-4 opacity-60" />
+                    All environments
+                  </span>
+                  {#if selectedEnvironmentId === null}
+                    <Check class="size-3.5 text-primary" />
+                  {/if}
+                </DropdownMenu.Item>
+                {#each environments as env (env.id)}
+                  <DropdownMenu.Item
+                    onclick={() => (selectedEnvironmentId = env.id)}
+                    class="flex items-center justify-between"
+                  >
+                    <span class="flex items-center gap-2">
+                      <FolderGit2 class="size-4 opacity-60" />
+                      {env.name}
+                    </span>
+                    {#if selectedEnvironmentId === env.id}
+                      <Check class="size-3.5 text-primary" />
+                    {/if}
+                  </DropdownMenu.Item>
+                {/each}
+              </DropdownMenu.Content>
+            </DropdownMenu.Root>
+          {/if}
+        </div>
         <ChatComposer
           bind:value={taskInput}
           bind:error={composerError}
-          bind:selectedViberId
-          bind:selectedEnvironmentId
           bind:selectedModelId
           bind:selectedSkillIds
           placeholder="What would you like to work on?"
           disabled={creating}
           sending={creating}
-          {vibers}
-          {environments}
           skills={composerSkills}
           onsubmit={() => void submitTask()}
         />

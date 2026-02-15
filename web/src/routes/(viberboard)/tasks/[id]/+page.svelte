@@ -767,7 +767,12 @@
 
   async function sendMessage(overrideContent?: string) {
     const content = (overrideContent ?? inputValue).trim();
-    if ((content.length === 0 && imageAttachments.length === 0) || sending || viber?.viberConnected !== true) return;
+    if (
+      (content.length === 0 && imageAttachments.length === 0) ||
+      sending ||
+      viber?.viberConnected !== true
+    )
+      return;
 
     const unavailableSelected = (viber?.skills ?? []).filter(
       (skill) =>
@@ -1661,13 +1666,11 @@
             bind:imageAttachments
             bind:inputElement={inputEl}
             bind:selectedModelId
-            bind:selectedEnvironmentId
             placeholder={viber?.viberConnected === true
               ? "Send a task or command... (⏎ send, ⇧⏎ newline)"
               : "Viber is offline"}
             disabled={viber?.viberConnected !== true}
             {sending}
-            environments={composerEnvironments}
             skills={viber?.skills ?? []}
             bind:selectedSkillIds
             onsetupskill={handleSkillSetupRequest}

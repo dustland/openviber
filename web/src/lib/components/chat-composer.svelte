@@ -5,13 +5,10 @@
     Check,
     ChevronDown,
     Cpu,
-    FolderGit2,
-    Package,
     Paperclip,
     Sparkles,
     X,
   } from "@lucide/svelte";
-  import ViberIcon from "$lib/components/icons/viber-icon.svelte";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
 
   export interface ComposerViber {
@@ -89,13 +86,9 @@
     onsetupskill?: (skill: ComposerSkill) => void;
 
     // -- Selector data --
-    vibers?: ComposerViber[];
-    environments?: ComposerEnvironment[];
     skills?: ComposerSkill[];
     /** Bindable set of enabled skill IDs for this viber */
     selectedSkillIds?: string[];
-    selectedViberId?: string | null;
-    selectedEnvironmentId?: string | null;
     selectedModelId?: string;
 
     // -- Snippet props --
@@ -120,12 +113,8 @@
     ondismisserror,
     onsetupskill,
 
-    vibers = [],
-    environments = [],
     skills = [],
     selectedSkillIds = $bindable([]),
-    selectedViberId = $bindable(null),
-    selectedEnvironmentId = $bindable(null),
     selectedModelId = $bindable(""),
 
     beforeInput,
@@ -138,20 +127,12 @@
   let fileInputElement = $state<HTMLInputElement | null>(null);
 
   // Derived
-  const selectedViber = $derived(
-    vibers.find((v) => v.id === selectedViberId) ?? null,
-  );
-  const selectedEnvironment = $derived(
-    environments.find((e) => e.id === selectedEnvironmentId) ?? null,
-  );
   const selectedModel = $derived(
     MODEL_OPTIONS.find((m) => m.id === selectedModelId) ?? MODEL_OPTIONS[0],
   );
   const selectedSkillCount = $derived(
     selectedSkillIds.filter((id) => skills.some((s) => s.id === id)).length,
   );
-  const hasViberSelector = $derived(vibers.length > 0);
-  const hasEnvSelector = $derived(environments.length > 0);
   const canSend = $derived(
     (!!value.trim() || imageAttachments.length > 0) && !sending && !disabled,
   );
@@ -172,7 +153,8 @@
     const dataUrl = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(String(reader.result || ""));
-      reader.onerror = () => reject(new Error("Failed to read selected image."));
+      reader.onerror = () =>
+        reject(new Error("Failed to read selected image."));
       reader.readAsDataURL(file);
     });
 
@@ -190,9 +172,12 @@
 
   async function appendFiles(files: FileList | File[]) {
     const candidates = Array.from(files);
-    const converted = await Promise.all(candidates.map(convertFileToAttachment));
+    const converted = await Promise.all(
+      candidates.map(convertFileToAttachment),
+    );
     const next = converted.filter(
-      (attachment): attachment is ComposerImageAttachment => attachment !== null,
+      (attachment): attachment is ComposerImageAttachment =>
+        attachment !== null,
     );
     if (next.length > 0) {
       imageAttachments = [...imageAttachments, ...next];
@@ -209,14 +194,18 @@
   async function handlePaste(event: ClipboardEvent) {
     const files = event.clipboardData?.files;
     if (!files || files.length === 0) return;
-    const hasImage = Array.from(files).some((file) => file.type.startsWith("image/"));
+    const hasImage = Array.from(files).some((file) =>
+      file.type.startsWith("image/"),
+    );
     if (!hasImage) return;
     event.preventDefault();
     await appendFiles(files);
   }
 
   function removeAttachment(id: string) {
-    imageAttachments = imageAttachments.filter((attachment) => attachment.id !== id);
+    imageAttachments = imageAttachments.filter(
+      (attachment) => attachment.id !== id,
+    );
   }
 
   $effect(() => {
@@ -292,7 +281,9 @@
     {#if imageAttachments.length > 0}
       <div class="flex flex-wrap gap-2 px-4 pb-2">
         {#each imageAttachments as attachment (attachment.id)}
-          <div class="relative size-16 overflow-hidden rounded-md border border-border bg-muted/30">
+          <div
+            class="relative size-16 overflow-hidden rounded-md border border-border bg-muted/30"
+          >
             <img
               src={attachment.dataUrl}
               alt={attachment.name}
@@ -333,121 +324,6 @@
           <Paperclip class="size-3.5" />
           <span>Attach</span>
         </button>
-
-        <!-- Viber selector -->
-        {#if hasViberSelector}
-          <DropdownMenu.Root>
-            <DropdownMenu.Trigger
-              class="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer shrink-0"
-            >
-              {#if selectedViber}
-                <span
-                  class="inline-block size-2 shrink-0 rounded-full"
-                  class:bg-emerald-500={selectedViber.status === "active"}
-                  class:bg-amber-500={selectedViber.status === "pending"}
-                  class:bg-zinc-400={selectedViber.status === "offline"}
-                ></span>
-                <span class="truncate max-w-[100px]">{selectedViber.name}</span>
-              {:else}
-                <ViberIcon class="size-3.5" />
-                <span>Viber</span>
-              {/if}
-              <ChevronDown class="size-3 opacity-50" />
-            </DropdownMenu.Trigger>
-            <DropdownMenu.Content align="start" class="w-64">
-              <DropdownMenu.Label>Select viber</DropdownMenu.Label>
-              <DropdownMenu.Separator />
-              {#if vibers.length === 0}
-                <div
-                  class="px-2 py-3 text-center text-xs text-muted-foreground"
-                >
-                  No vibers registered. Go to
-                  <a href="/vibers" class="underline">Vibers</a> to add one.
-                </div>
-              {:else}
-                {#each vibers as viber (viber.id)}
-                  <DropdownMenu.Item
-                    onclick={() => (selectedViberId = viber.id)}
-                    class="flex items-center gap-2"
-                    disabled={viber.status !== "active"}
-                  >
-                    <span class="flex items-center gap-2 flex-1 min-w-0">
-                      <span
-                        class="inline-block size-2 shrink-0 rounded-full"
-                        class:bg-emerald-500={viber.status === "active"}
-                        class:bg-amber-500={viber.status === "pending"}
-                        class:bg-zinc-400={viber.status === "offline"}
-                      ></span>
-                      {viber.name}
-                      {#if viber.status !== "active"}
-                        <span class="text-xs text-muted-foreground ml-1"
-                          >({viber.status})</span
-                        >
-                      {/if}
-                    </span>
-                    {#if selectedViberId === viber.id}
-                      <Check class="size-3.5 text-primary" />
-                    {/if}
-                  </DropdownMenu.Item>
-                {/each}
-              {/if}
-            </DropdownMenu.Content>
-          </DropdownMenu.Root>
-        {/if}
-
-        <!-- Environment selector -->
-        {#if hasEnvSelector}
-          <DropdownMenu.Root>
-            <DropdownMenu.Trigger
-              class="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer shrink-0"
-            >
-              <FolderGit2 class="size-3.5" />
-              {#if selectedEnvironment}
-                <span class="truncate max-w-[100px]"
-                  >{selectedEnvironment.name}</span
-                >
-              {:else}
-                <span>Env</span>
-              {/if}
-              <ChevronDown class="size-3 opacity-50" />
-            </DropdownMenu.Trigger>
-            <DropdownMenu.Content align="start" class="w-56">
-              <DropdownMenu.Label>Select environment</DropdownMenu.Label>
-              <DropdownMenu.Separator />
-              <DropdownMenu.Item
-                onclick={() => (selectedEnvironmentId = null)}
-                class="flex items-center justify-between"
-              >
-                <span class="flex items-center gap-2">
-                  <Package class="size-4 opacity-60" />
-                  All environments
-                </span>
-                {#if selectedEnvironmentId === null}
-                  <Check class="size-3.5 text-primary" />
-                {/if}
-              </DropdownMenu.Item>
-              {#each environments as env (env.id)}
-                <DropdownMenu.Item
-                  onclick={() => (selectedEnvironmentId = env.id)}
-                  class="flex items-center justify-between"
-                >
-                  <span class="flex items-center gap-2">
-                    <FolderGit2 class="size-4 opacity-60" />
-                    {env.name}
-                  </span>
-                  {#if selectedEnvironmentId === env.id}
-                    <Check class="size-3.5 text-primary" />
-                  {/if}
-                </DropdownMenu.Item>
-              {/each}
-            </DropdownMenu.Content>
-          </DropdownMenu.Root>
-        {/if}
-
-        <!-- Separator between context selectors and model/skills -->
-        {#if hasViberSelector || hasEnvSelector}
-          <div class="mx-0.5 h-4 w-px bg-border/60 shrink-0"></div>
-        {/if}
 
         <!-- Model selector -->
         <DropdownMenu.Root>

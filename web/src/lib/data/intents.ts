@@ -128,16 +128,16 @@ export const BUILTIN_INTENTS: Intent[] = [
     description: "Inspect the viber's environment and system details",
     icon: "heart-pulse",
     builtin: true,
-    skills: ["system-info"],
     body: `Check and report the system information of the current environment.
 
+Use the built-in system info tools (system_info, system_processes, system_network) to gather details:
+
 - Operating system name, version, and architecture
-- Node.js / runtime version
-- Available disk space and memory
-- Current working directory and user
-- Installed CLI tools (git, node, pnpm, etc.)
-- Network connectivity status
-- Any environment variables relevant to the project`,
+- CPU model, cores, and current load
+- Available and total memory
+- Disk usage and free space
+- Network interfaces and connectivity
+- Top running processes`,
   },
   {
     id: "beautify-homepage",

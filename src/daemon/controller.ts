@@ -1,11 +1,11 @@
 /**
- * ViberController - Daemon controller for outbound connection to command center
+ * ViberController - Daemon controller for outbound connection to gateway
  *
- * A Viber is a local agent daemon that connects OUTBOUND to a central command center
- * (Supen). This eliminates the need for public IPs or port forwarding.
+ * A Viber is a local agent daemon that connects OUTBOUND to a central gateway.
+ * This eliminates the need for public IPs or port forwarding.
  *
  * Features:
- * - Persistent WebSocket connection to command center
+ * - Persistent WebSocket connection to gateway
  * - Auto-reconnection on disconnect
  * - Heartbeat/health monitoring
  * - Task execution and event streaming
@@ -43,7 +43,7 @@ import {
 // ==================== Types ====================
 
 export interface ViberControllerConfig {
-  /** WebSocket URL to connect to (e.g., wss://supen.app/vibers/ws) */
+  /** WebSocket URL to connect to the gateway */
   serverUrl?: string;
   /** Authentication token */
   token?: string;
@@ -107,18 +107,11 @@ export interface ViberStatus {
   configState?: import("./telemetry").ConfigState;
 }
 
-// Server -> Viber messages (messages = full chat history from Viber Board for context)
+// Gateway -> Viber daemon messages
 export type ControllerServerMessage =
   | {
-    type: "task:submit";
+    type: "task:create";
     taskId: string;
-    goal: string;
-    options?: ViberOptions;
-    messages?: { role: string; content: string }[];
-  }
-  | {
-    type: "viber:create";
-    viberId: string;
     goal: string;
     options?: ViberOptions;
     messages?: { role: string; content: string }[];
@@ -134,7 +127,6 @@ export type ControllerServerMessage =
     oauthTokens?: Record<string, { accessToken: string; refreshToken?: string | null }>;
   }
   | { type: "task:stop"; taskId: string }
-  | { type: "viber:stop"; viberId: string }
   | {
     type: "task:message";
     taskId: string;
@@ -144,21 +136,6 @@ export type ControllerServerMessage =
   | { type: "ping" }
   | { type: "config:update"; config: Partial<ViberControllerConfig> }
   | { type: "config:push" }
-  // Terminal streaming messages
-  | { type: "terminal:list" }
-  | { type: "terminal:attach"; target: string; appId?: string }
-  | { type: "terminal:detach"; target: string; appId?: string }
-  | { type: "terminal:input"; target: string; keys: string; appId?: string }
-  | { type: "terminal:resize"; target: string; cols: number; rows: number; appId?: string }
-  | {
-    type: "job:create";
-    name: string;
-    schedule: string;
-    prompt: string;
-    description?: string;
-    model?: string;
-    viberId?: string;
-  }
   | { type: "status:request" }
   | {
     type: "skill:provision";
@@ -168,7 +145,7 @@ export type ControllerServerMessage =
     authAction?: "none" | "copy" | "start";
   };
 
-// Viber -> Server messages
+// Viber daemon -> Gateway messages
 export type ControllerClientMessage =
   | { type: "connected"; viber: ViberInfo }
   | { type: "task:started"; taskId: string; spaceId: string }
@@ -178,12 +155,6 @@ export type ControllerClientMessage =
   | { type: "task:error"; taskId: string; error: string; model?: string }
   | { type: "heartbeat"; status: ViberStatus }
   | { type: "pong" }
-  // Terminal streaming messages
-  | { type: "terminal:list"; apps: any[]; sessions: any[]; panes: any[] }
-  | { type: "terminal:attached"; target: string; appId?: string; ok: boolean; error?: string }
-  | { type: "terminal:detached"; target: string; appId?: string }
-  | { type: "terminal:output"; target: string; appId?: string; data: string }
-  | { type: "terminal:resized"; target: string; appId?: string; ok: boolean }
   | { type: "status:report"; status: ViberSystemStatus }
   | {
     type: "skill:provision-result";
@@ -208,7 +179,6 @@ export type ControllerClientMessage =
     error?: string;
   }
   | { type: "config:ack"; configVersion: string; validations: import("./telemetry").ConfigValidation[] }
-  // Job reporting
   | { type: "jobs:list"; jobs: Array<{ name: string; schedule: string; prompt: string; description?: string; model?: string; viberId?: string }> };
 
 interface TaskProgressEnvelope {
@@ -500,13 +470,9 @@ export class ViberController extends EventEmitter {
       const message = JSON.parse(data.toString()) as ControllerServerMessage;
 
       switch (message.type) {
-        case "task:submit":
-          await this.handleTaskSubmit(message);
-          break;
-
-        case "viber:create":
+        case "task:create":
           await this.handleTaskSubmit({
-            taskId: message.viberId,
+            taskId: message.taskId,
             goal: message.goal,
             options: { ...message.options, settings: message.settings },
             messages: message.messages,
@@ -517,10 +483,6 @@ export class ViberController extends EventEmitter {
 
         case "task:stop":
           await this.handleTaskStop(message.taskId);
-          break;
-
-        case "viber:stop":
-          await this.handleTaskStop(message.viberId);
           break;
 
         case "task:message":
@@ -542,31 +504,6 @@ export class ViberController extends EventEmitter {
 
         case "config:push":
           await this.handleConfigPush();
-          break;
-
-        // Terminal streaming
-        case "terminal:list":
-          this.handleTerminalList();
-          break;
-
-        case "terminal:attach":
-          await this.handleTerminalAttach(message.target, message.appId);
-          break;
-
-        case "terminal:detach":
-          this.handleTerminalDetach(message.target, message.appId);
-          break;
-
-        case "terminal:input":
-          this.handleTerminalInput(message.target, message.keys, message.appId);
-          break;
-
-        case "terminal:resize":
-          this.handleTerminalResize(message.target, message.cols, message.rows, message.appId);
-          break;
-
-        case "job:create":
-          this.emit("job:create", message);
           break;
 
         case "status:request":
@@ -1232,47 +1169,7 @@ export class ViberController extends EventEmitter {
     }
   }
 
-  // ==================== Terminal Streaming ====================
 
-  private handleTerminalList(): void {
-    const { apps, sessions, panes } = this.terminalManager.list();
-    this.send({ type: "terminal:list", apps, sessions, panes });
-  }
-
-  private async handleTerminalAttach(target: string, appId?: string): Promise<void> {
-    this.log.info("Attaching to terminal", { target });
-    const ok = await this.terminalManager.attach(
-      target,
-      (data) => {
-        this.send({ type: "terminal:output", target, appId, data });
-      },
-      () => {
-        this.send({ type: "terminal:detached", target, appId });
-      },
-      appId
-    );
-    this.send({ type: "terminal:attached", target, appId, ok });
-  }
-
-  private handleTerminalDetach(target: string, appId?: string): void {
-    this.log.info("Detaching from terminal", { target });
-    this.terminalManager.detach(target, appId);
-    this.send({ type: "terminal:detached", target, appId });
-  }
-
-  private handleTerminalInput(target: string, keys: string, appId?: string): void {
-    this.terminalManager.sendInput(target, keys, appId);
-  }
-
-  private handleTerminalResize(
-    target: string,
-    cols: number,
-    rows: number,
-    appId?: string
-  ): void {
-    const ok = this.terminalManager.resize(target, cols, rows, appId);
-    this.send({ type: "terminal:resized", target, appId, ok });
-  }
 
   // ==================== Job Reporting ====================
 

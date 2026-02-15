@@ -1,8 +1,6 @@
 import { Command } from "commander";
 import * as os from "os";
 import * as path from "path";
-import * as fs from "fs/promises";
-import YAML from "yaml";
 import { loadSettings, saveSettings } from "../../skills/hub/settings";
 import { OPENVIBER_DIR, getViberId, loadSavedConfig, isInteractiveTerminal } from "../common";
 
@@ -231,31 +229,7 @@ Press Ctrl+C to stop.
       console.error("[Viber] Error:", error.message);
     });
 
-    controller.on("job:create", async (msg: any) => {
-      const sanitize = (s: string) =>
-        s
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-|-$/g, "") || "job";
-      const jobName = sanitize(msg.name);
-      const jobPath = path.join(jobsDir, `${jobName}.yaml`);
-      const config: Record<string, unknown> = {
-        name: msg.name,
-        schedule: msg.schedule,
-        prompt: msg.prompt,
-      };
-      if (msg.description) config.description = msg.description;
-      if (msg.model) config.model = msg.model;
-      if (msg.viberId) config.viberId = msg.viberId;
-      try {
-        await fs.mkdir(jobsDir, { recursive: true });
-        await fs.writeFile(jobPath, YAML.stringify(config), "utf8");
-        await scheduler.reload();
-        console.log(`[Viber] Job "${msg.name}" added and scheduler reloaded.`);
-      } catch (err) {
-        console.error("[Viber] Failed to add job:", err);
-      }
-    });
+
 
     await controller.start();
   });

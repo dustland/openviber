@@ -452,11 +452,11 @@ export class GatewayServer {
       };
       this.tasks.set(viberId, viber);
 
-      // Tell the node daemon to prepare and run this viber
+      // Tell the node daemon to prepare and run this task
       node.ws.send(
         JSON.stringify({
-          type: "viber:create",
-          viberId,
+          type: "task:create",
+          taskId: viberId,
           goal,
           messages,
           environment,
@@ -555,8 +555,8 @@ export class GatewayServer {
       // Send message to the viber daemon
       node.ws.send(
         JSON.stringify({
-          type: "viber:create",
-          viberId,
+          type: "task:create",
+          taskId: viberId,
           goal: goal || viber.goal,
           messages,
           environment,
@@ -590,7 +590,7 @@ export class GatewayServer {
 
     const node = this.vibers.get(viber.viberId);
     if (node) {
-      node.ws.send(JSON.stringify({ type: "viber:stop", viberId }));
+      node.ws.send(JSON.stringify({ type: "task:stop", taskId: viberId }));
     }
 
     viber.status = "stopped";

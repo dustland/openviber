@@ -396,12 +396,14 @@
                     {#if getConfigSyncBadge(viber.config_sync_state)}
                       {@const badge = getConfigSyncBadge(
                         viber.config_sync_state,
-                      )}
-                      <span
-                        class={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${badge.class}`}
-                      >
-                        {badge.label}
-                      </span>
+                      )!}
+                      <div class="mt-1.5">
+                        <span
+                          class={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-medium ${badge.class}`}
+                        >
+                          {badge.label}
+                        </span>
+                      </div>
                     {/if}
                   </div>
                   <div

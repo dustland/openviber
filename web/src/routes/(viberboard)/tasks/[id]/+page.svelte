@@ -23,7 +23,9 @@
     X,
   } from "@lucide/svelte";
   import { marked } from "marked";
-  import ChatComposer from "$lib/components/chat-composer.svelte";
+  import ChatComposer, {
+    type ComposerImageAttachment,
+  } from "$lib/components/chat-composer.svelte";
   import * as Resizable from "$lib/components/ui/resizable";
   import * as Sheet from "$lib/components/ui/sheet";
   import * as Dialog from "$lib/components/ui/dialog";
@@ -495,6 +497,7 @@
   let dbMessages = $state<Message[]>([]);
   let loading = $state(true);
   let inputValue = $state("");
+  let imageAttachments = $state<ComposerImageAttachment[]>([]);
   let selectedModelId = $state("");
   let selectedSkillIds = $state<string[]>([]);
   let composerEnvironments = $state<ComposerEnvInfo[]>([]);
@@ -755,7 +758,7 @@
 
   async function sendMessage(overrideContent?: string) {
     const content = (overrideContent ?? inputValue).trim();
-    if (!content || sending || viber?.nodeConnected !== true) return;
+    if ((content.length === 0 && imageAttachments.length === 0) || sending || viber?.nodeConnected !== true) return;
 
     const unavailableSelected = (viber?.skills ?? []).filter(
       (skill) =>
@@ -767,7 +770,9 @@
     }
 
     chatError = null; // Clear previous error on retry
+    const pendingAttachments = [...imageAttachments];
     inputValue = "";
+    imageAttachments = [];
     sending = true;
     sessionStartedAt = Date.now();
 
@@ -775,7 +780,19 @@
     void fetch(`/api/tasks/${viber.id}/messages`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ role: "user", content }),
+      body: JSON.stringify({
+        role: "user",
+        content,
+        parts: [
+          ...(content ? [{ type: "text", text: content }] : []),
+          ...pendingAttachments.map((attachment) => ({
+            type: "file",
+            mediaType: attachment.mediaType,
+            url: attachment.dataUrl,
+            name: attachment.name,
+          })),
+        ],
+      }),
     }).catch(() => {
       /* ignore */
     });
@@ -852,7 +869,13 @@
     // Send via AI SDK Chat class (handles streaming automatically)
     try {
       if (chat) {
-        await chat.sendMessage({ text: content });
+        await chat.sendMessage({
+          text: content,
+          files: pendingAttachments.map((attachment) => ({
+            type: attachment.mediaType,
+            data: attachment.dataUrl,
+          })),
+        } as any);
       }
     } catch (error) {
       console.error("Failed to send message:", error);
@@ -1376,6 +1399,13 @@
                             <div class="message-markdown">
                               {@html renderMarkdown((part as any).text)}
                             </div>
+                          {:else if part.type === "file" && (part as any).mediaType?.startsWith("image/") && (part as any).url}
+                            <img
+                              src={(part as any).url}
+                              alt={(part as any).name || "Uploaded image"}
+                              class="mt-2 max-h-64 rounded-lg border border-border object-contain"
+                              loading="lazy"
+                            />
                           {/if}
                         {/each}
                         <p class="text-[11px] mt-1.5 opacity-40 tracking-wide">
@@ -1543,6 +1573,7 @@
           {/if}
           <ChatComposer
             bind:value={inputValue}
+            bind:imageAttachments
             bind:inputElement={inputEl}
             bind:selectedModelId
             bind:selectedEnvironmentId
@@ -1551,7 +1582,6 @@
               : "Viber is offline"}
             disabled={viber?.nodeConnected !== true}
             {sending}
-            nodes={[]}
             environments={composerEnvironments}
             skills={viber?.skills ?? []}
             bind:selectedSkillIds

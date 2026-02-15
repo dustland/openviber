@@ -537,6 +537,7 @@
               </label>
               <button
                 id="proxy-enabled"
+                aria-label="Enable proxy"
                 type="button"
                 role="switch"
                 aria-checked={editProxyEnabled}
@@ -549,7 +550,7 @@
                   class="pointer-events-none inline-block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform duration-200 ease-in-out {editProxyEnabled
                     ? 'translate-x-5'
                     : 'translate-x-0'}"
-                />
+                ></span>
               </button>
             </div>
 

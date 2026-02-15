@@ -349,9 +349,7 @@
                       <span>created {formatTimeAgo(viber.created_at)}</span>
                     </CardDescription>
                     {#if getConfigSyncBadge(viber.config_sync_state)}
-                      {@const badge = getConfigSyncBadge(
-                        viber.config_sync_state,
-                      )}
+                      {@const badge = getConfigSyncBadge(viber.config_sync_state)!}
                       <div class="mt-1.5">
                         <span
                           class={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-medium ${badge.class}`}

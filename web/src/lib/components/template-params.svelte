@@ -44,7 +44,7 @@
           <Select
             id={inputId}
             value={values[param.id] ?? ""}
-            on:change={(e) =>
+            onchange={(e) =>
               onChange(
                 param.id,
                 (e.currentTarget as HTMLSelectElement).value,
@@ -59,7 +59,7 @@
             id={inputId}
             value={values[param.id] ?? ""}
             placeholder={param.placeholder}
-            on:input={(e) =>
+            oninput={(e) =>
               onChange(
                 param.id,
                 (e.currentTarget as HTMLInputElement).value,

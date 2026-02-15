@@ -43,10 +43,16 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 
     // Extract the last user message as the goal
     const lastUserMessage = [...messages].reverse().find((m: any) => m.role === "user");
-    const goal =
+    const userText =
       lastUserMessage?.content ||
       lastUserMessage?.parts?.find((p: any) => p.type === "text")?.text ||
       "";
+    const hasUserImage = Array.isArray(lastUserMessage?.parts)
+      ? lastUserMessage.parts.some(
+          (p: any) => p.type === "file" && typeof p.mediaType === "string" && p.mediaType.startsWith("image/"),
+        )
+      : false;
+    const goal = userText || (hasUserImage ? "[Image attached]" : "");
 
     if (!goal) {
       return json({ error: "No user message found" }, { status: 400 });
@@ -54,16 +60,25 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 
     // Convert AI SDK UIMessage format to simple message format for the gateway
     const simpleMessages = messages
-      .map((m: any) => ({
-        role: m.role,
-        content:
+      .map((m: any) => {
+        const textContent =
           typeof m.content === "string"
             ? m.content
             : m.parts
               ?.filter((p: any) => p.type === "text")
               .map((p: any) => p.text)
-              .join("\n") || "",
-      }))
+              .join("\n") || "";
+        const imageCount = Array.isArray(m.parts)
+          ? m.parts.filter(
+              (p: any) => p.type === "file" && typeof p.mediaType === "string" && p.mediaType.startsWith("image/"),
+            ).length
+          : 0;
+        const imageSummary = imageCount > 0 ? `\n[Attached ${imageCount} image${imageCount > 1 ? "s" : ""}]` : "";
+        return {
+          role: m.role,
+          content: `${textContent}${imageSummary}`.trim(),
+        };
+      })
       .filter((m: any) => m.content);
 
     // Look up environment context for this viber

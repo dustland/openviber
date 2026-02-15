@@ -54,6 +54,16 @@ export interface NodeSkillInfo {
   status: "AVAILABLE" | "NOT_AVAILABLE" | "UNKNOWN";
   /** Human-readable summary (e.g. "Missing: gh CLI") */
   healthSummary?: string;
+  /** Optional detailed health checks reported by node */
+  checks?: Array<{
+    id: string;
+    label: string;
+    ok: boolean;
+    required?: boolean;
+    message?: string;
+    hint?: string;
+    actionType?: string;
+  }>;
 }
 
 /** Summary machine resource metrics (from heartbeat) */
@@ -301,7 +311,13 @@ export const gatewayClient = {
     nodeId?: string,
     messages?: { role: string; content: string }[],
     environment?: ViberEnvironmentContext,
-    settings?: { primaryCodingCli?: string; channelIds?: string[] },
+    settings?: {
+      primaryCodingCli?: string;
+      channelIds?: string[];
+      proxyUrl?: string;
+      proxyEnabled?: boolean;
+      skills?: string[];
+    },
     oauthTokens?: Record<string, { accessToken: string; refreshToken?: string | null }>,
     model?: string,
   ): Promise<{ viberId: string; nodeId: string } | null> {
@@ -348,7 +364,12 @@ export const gatewayClient = {
     messages: { role: string; content: string }[],
     goal?: string,
     environment?: ViberEnvironmentContext,
-    settings?: { primaryCodingCli?: string },
+    settings?: {
+      primaryCodingCli?: string;
+      proxyUrl?: string;
+      proxyEnabled?: boolean;
+      skills?: string[];
+    },
     oauthTokens?: Record<string, { accessToken: string; refreshToken?: string | null }>,
     model?: string,
   ): Promise<{ viberId: string; nodeId: string } | null> {

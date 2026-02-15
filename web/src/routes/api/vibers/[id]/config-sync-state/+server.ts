@@ -11,6 +11,9 @@ import { updateConfigSyncState } from "$lib/server/vibers";
 
 export const PUT: RequestHandler = async ({ params, request }) => {
   const viberId = params.id;
+  if (!viberId) {
+    return json({ error: "Missing viber id" }, { status: 400 });
+  }
 
   // Authenticate via gateway API token or service role
   const authHeader = request.headers.get("authorization");

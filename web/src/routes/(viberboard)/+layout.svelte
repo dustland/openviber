@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { goto } from "$app/navigation";
   import { page } from "$app/stores";
   import { onMount } from "svelte";
   import * as Sidebar from "$lib/components/ui/sidebar";
@@ -322,9 +323,9 @@
                     <HoverCard.Root openDelay={400} closeDelay={100}>
                       <HoverCard.Trigger class="min-w-0 w-full">
                         <Sidebar.MenuButton
-                          href={`/tasks/${task.id}`}
                           isActive={pathname.startsWith(`/tasks/${task.id}`)}
                           class="min-h-8 gap-2 rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-sidebar-foreground/85 hover:bg-sidebar-accent data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-foreground pr-8 overflow-hidden"
+                          onclick={() => goto(`/tasks/${task.id}`)}
                         >
                           <!-- Status icon / Unpin toggle on hover -->
                           <button

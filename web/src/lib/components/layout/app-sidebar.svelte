@@ -224,7 +224,9 @@
     <Sidebar.Rail />
   </Sidebar.Root>
 
-  <Sidebar.Inset class="flex flex-col h-full min-h-0 bg-muted/40">
+  <Sidebar.Inset
+    class="flex flex-col h-full min-h-0 min-w-0 overflow-hidden bg-muted/40"
+  >
     <!-- Mobile header: sidebar trigger (visible < md only) -->
     <header
       class="flex md:hidden items-center gap-2 h-11 shrink-0 border-b border-border/40 px-3"

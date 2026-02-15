@@ -22,6 +22,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
   try {
     const body = await request.json();
     const { goal, title, viberId, environmentId, channelIds, model, skills } = body;
+    console.log("[POST /api/tasks] environmentId from body:", JSON.stringify(environmentId), "| viberId:", viberId);
     const targetViberId = viberId;
 
     if (!goal) {
@@ -113,13 +114,14 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
     if (locals.user?.id) {
       try {
-        await setViberEnvironmentForUser(
+        const assignResult = await setViberEnvironmentForUser(
           locals.user.id,
           result.viberId,
           environmentId ?? null,
           displayName,
           extraSkills,
         );
+        console.log("[POST /api/tasks] setViberEnvironmentForUser result:", JSON.stringify(assignResult));
       } catch (e) {
         console.error("Failed to persist viber or assign environment:", e);
       }
@@ -172,20 +174,42 @@ export const GET: RequestHandler = async ({ locals, url }) => {
   // Return tasks from gateway only.
   if (isE2ETestMode()) {
     try {
-      const { vibers: hubVibers } = await gatewayClient.getTasks();
-      const result = hubVibers.map((v) => ({
-        id: v.id,
-        viberId: v.viberId ?? null,
-        viberName: v.viberName ?? null,
-        environmentId: null,
-        environmentName: null,
-        goal: v.goal ?? v.id,
-        status: v.status ?? "unknown",
-        createdAt: v.createdAt ?? new Date().toISOString(),
-        completedAt: v.completedAt ?? null,
-        viberConnected: v.isConnected !== false,
-        archivedAt: null,
-      }));
+      const [{ vibers: hubVibers }, persistedRows, environments] = await Promise.all([
+        gatewayClient.getTasks(),
+        supabaseRequest<PersistedViberRow[]>("vibers", {
+          params: {
+            select: "id,name,created_at,archived_at,environment_id,viber_id",
+            archived_at: "is.null",
+            order: "created_at.desc",
+          },
+        }).catch(() => [] as PersistedViberRow[]),
+        listEnvironmentsForUser(locals.user!.id).catch(() => []),
+      ]);
+
+      // Map by viber_id (gateway text ID) since Supabase id is UUID
+      const persistedByViberId = new Map(
+        persistedRows.filter((r) => r.viber_id).map((r) => [r.viber_id!, r]),
+      );
+      const persistedById = new Map(persistedRows.map((r) => [r.id, r]));
+      const envNameMap = new Map(environments.map((e) => [e.id, e.name]));
+
+      const result = hubVibers.map((v) => {
+        const persisted = persistedByViberId.get(v.id) ?? persistedById.get(v.id);
+        const environmentId = persisted?.environment_id ?? null;
+        return {
+          id: v.id,
+          viberId: v.viberId ?? null,
+          viberName: v.viberName ?? null,
+          environmentId,
+          environmentName: environmentId ? (envNameMap.get(environmentId) ?? null) : null,
+          goal: persisted?.name ?? v.goal ?? v.id,
+          status: v.status ?? "unknown",
+          createdAt: v.createdAt ?? new Date().toISOString(),
+          completedAt: v.completedAt ?? null,
+          viberConnected: v.isConnected !== false,
+          archivedAt: persisted?.archived_at ?? null,
+        };
+      });
       return json(result);
     } catch (error) {
       console.error("[E2E] Failed to fetch tasks:", error);
@@ -214,10 +238,11 @@ export const GET: RequestHandler = async ({ locals, url }) => {
     const result = persistedRows
       .filter((row) => includeArchived || !row.archived_at)
       .map((row) => {
-        const hub = hubMap.get(row.id);
+        // Match by viber_id (gateway text ID) first, then fallback to UUID id
+        const hub = (row.viber_id ? hubMap.get(row.viber_id) : null) ?? hubMap.get(row.id);
         const environmentId = row.environment_id ?? null;
         return {
-          id: row.id,
+          id: hub?.id ?? row.viber_id ?? row.id,
           viberId: hub?.viberId ?? row.viber_id ?? null,
           viberName: hub?.viberName ?? null,
           environmentId,

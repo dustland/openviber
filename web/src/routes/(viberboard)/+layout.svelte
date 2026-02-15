@@ -7,7 +7,6 @@
   import {
     AlertCircle,
     Archive,
-    CalendarClock,
     CheckCircle2,
     ChevronRight,
     Cpu,
@@ -16,7 +15,7 @@
     Pin,
     Plus,
     Puzzle,
-    Logs,
+    Telescope,
     SquarePen,
     Wifi,
     WifiOff,
@@ -130,11 +129,8 @@
   const isVibersRoute = $derived(
     pathname === "/vibers" || pathname.startsWith("/vibers/"),
   );
-  const isJobsRoute = $derived(
-    pathname === "/jobs" || pathname.startsWith("/jobs/"),
-  );
-  const isLogsRoute = $derived(
-    pathname === "/logs" || pathname.startsWith("/logs/"),
+  const isObservabilityRoute = $derived(
+    pathname === "/observability" || pathname.startsWith("/observability/"),
   );
   // Stories route removed — intents live inside /vibers/new and /settings/intents
 
@@ -208,22 +204,17 @@
           </Sidebar.MenuItem>
 
           <Sidebar.MenuItem>
-            <Sidebar.MenuButton isActive={isJobsRoute} tooltipContent="Jobs">
-              <a href="/jobs" class="w-full inline-flex items-center gap-2">
-                <CalendarClock class="size-4 shrink-0" />
+            <Sidebar.MenuButton
+              isActive={isObservabilityRoute}
+              tooltipContent="Observability"
+            >
+              <a
+                href="/observability"
+                class="w-full inline-flex items-center gap-2"
+              >
+                <Telescope class="size-4 shrink-0" />
                 <span class="truncate group-data-[collapsible=icon]:hidden"
-                  >Jobs</span
-                >
-              </a>
-            </Sidebar.MenuButton>
-          </Sidebar.MenuItem>
-
-          <Sidebar.MenuItem>
-            <Sidebar.MenuButton isActive={isLogsRoute} tooltipContent="Logs">
-              <a href="/logs" class="w-full inline-flex items-center gap-2">
-                <Logs class="size-4 shrink-0" />
-                <span class="truncate group-data-[collapsible=icon]:hidden"
-                  >Logs</span
+                  >Observability</span
                 >
               </a>
             </Sidebar.MenuButton>

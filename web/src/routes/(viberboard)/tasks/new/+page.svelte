@@ -8,10 +8,21 @@
     ChevronDown,
     Package,
     MessageSquarePlus,
+    Palette,
+    Sparkles,
+    HeartPulse,
+    Users,
+    ShieldCheck,
+    FileText,
+    Code2,
+    Bug,
+    TrainFront,
   } from "@lucide/svelte";
   import ViberIcon from "$lib/components/icons/viber-icon.svelte";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import ChatComposer from "$lib/components/chat-composer.svelte";
+  import { BUILTIN_INTENTS, inferIntentSkills } from "$lib/data/intents";
+  import type { Intent } from "$lib/data/intents";
   import type {
     ComposerViber,
     ComposerEnvironment,
@@ -29,6 +40,26 @@
   let taskInput = $state("");
   let creating = $state(false);
   let composerError = $state<string | null>(null);
+
+  const intentIconMap: Record<Intent["icon"], typeof Palette> = {
+    palette: Palette,
+    sparkles: Sparkles,
+    "heart-pulse": HeartPulse,
+    users: Users,
+    "shield-check": ShieldCheck,
+    "file-text": FileText,
+    "code-2": Code2,
+    bug: Bug,
+    "train-front": TrainFront,
+  };
+
+  function selectIntent(intent: Intent) {
+    taskInput = intent.body;
+    const inferred = inferIntentSkills(intent);
+    if (inferred.length > 0) {
+      selectedSkillIds = inferred;
+    }
+  }
 
   const activeVibers = $derived(vibers.filter((v) => v.status === "active"));
   const selectedViber = $derived(
@@ -189,13 +220,38 @@
 </svelte:head>
 
 <div class="flex h-full min-h-0 flex-col overflow-hidden p-6">
-  <!-- Centered prompt -->
-  <div class="flex-1 flex flex-col items-center justify-center">
+  <!-- Centered prompt + intents -->
+  <div class="flex-1 flex flex-col items-center justify-center overflow-y-auto">
     <MessageSquarePlus class="size-10 mb-3 text-muted-foreground/40" />
     <p class="text-lg font-medium text-foreground mb-1">New Task</p>
-    <p class="text-sm text-muted-foreground">
-      Describe what you'd like to accomplish and a viber will get to work.
+    <p class="text-sm text-muted-foreground mb-6">
+      Describe what you'd like to accomplish, or pick a template:
     </p>
+
+    {#if !taskInput.trim()}
+      <div
+        class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 w-full max-w-3xl"
+      >
+        {#each BUILTIN_INTENTS as intent (intent.id)}
+          {@const IconComponent = intentIconMap[intent.icon] ?? Sparkles}
+          <button
+            type="button"
+            class="group rounded-xl border border-border bg-card p-4 text-left transition-all hover:border-primary/30 hover:shadow-sm hover:bg-muted/30"
+            onclick={() => selectIntent(intent)}
+          >
+            <IconComponent
+              class="size-5 mb-2 text-muted-foreground group-hover:text-primary transition-colors"
+            />
+            <p class="text-sm font-medium text-foreground truncate">
+              {intent.name}
+            </p>
+            <p class="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+              {intent.description}
+            </p>
+          </button>
+        {/each}
+      </div>
+    {/if}
   </div>
 
   <!-- Bottom-pinned composer -->

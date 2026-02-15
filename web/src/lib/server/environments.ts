@@ -401,31 +401,71 @@ export async function setViberEnvironmentForUser(
       : rawName;
 
   const now = new Date().toISOString();
-  const body: Record<string, unknown> = {
-    id: viberId,
+
+  // Check if a row with this viber_id already exists (viber_id is a text
+  // column that stores the gateway's string ID, distinct from the UUID `id`).
+  const existingRows = await supabaseRequest<ViberEnvironmentRow[]>("vibers", {
+    params: {
+      select: "id,environment_id,viber_id",
+      viber_id: `eq.${viberId}`,
+      user_id: `eq.${userId}`,
+      limit: "1",
+    },
+  });
+
+  if (existingRows.length > 0) {
+    // Update the existing row
+    const patchBody: Record<string, unknown> = {
+      environment_id: normalizedEnvironmentId,
+      name,
+      updated_at: now,
+    };
+    if (skills && skills.length > 0) {
+      patchBody.skills = skills;
+    }
+
+    const rows = await supabaseRequest<ViberEnvironmentRow[]>("vibers", {
+      method: "PATCH",
+      params: {
+        select: "id,environment_id,viber_id",
+        id: `eq.${existingRows[0].id}`,
+      },
+      prefer: "return=representation",
+      body: patchBody,
+    });
+    const row = rows[0] ?? existingRows[0];
+    return {
+      viberId: row.id,
+      environmentId: row.environment_id,
+    };
+  }
+
+  // Insert a new row — let the DB generate the UUID id
+  const insertBody: Record<string, unknown> = {
+    user_id: userId,
+    viber_id: viberId,
     name,
     environment_id: normalizedEnvironmentId,
     created_at: now,
     updated_at: now,
   };
   if (skills && skills.length > 0) {
-    body.skills = skills;
+    insertBody.skills = skills;
   }
 
   const rows = await supabaseRequest<ViberEnvironmentRow[]>("vibers", {
     method: "POST",
     params: {
       select: "id,environment_id,viber_id",
-      on_conflict: "id",
     },
-    prefer: "resolution=merge-duplicates,return=representation",
-    body: [body],
+    prefer: "return=representation",
+    body: [insertBody],
   });
 
   const row = rows[0] ?? {
     id: viberId,
     environment_id: normalizedEnvironmentId,
-    viber_id: viberId ?? null,
+    viber_id: viberId,
   };
   return {
     viberId: row.id,

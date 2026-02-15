@@ -5,8 +5,6 @@
     Clock,
     Copy,
     Cpu,
-    Settings,
-    BarChart3,
     MemoryStick,
     Plus,
     RefreshCw,
@@ -17,11 +15,11 @@
     Globe,
     Puzzle,
     Activity,
+    ExternalLink,
   } from "@lucide/svelte";
   import { Button } from "$lib/components/ui/button";
   import { Skeleton } from "$lib/components/ui/skeleton";
   import { Badge } from "$lib/components/ui/badge";
-  import NodeDetailPanel from "$lib/components/viber-detail-panel.svelte";
 
   interface MachineMetrics {
     hostname?: string;
@@ -85,10 +83,6 @@
   let copiedId = $state<string | null>(null);
   let showCreateDialog = $state(false);
   let newViberName = $state("My Viber");
-  let configViberId = $state<string | null>(null);
-  let configViberName = $state<string>("");
-  let analyticsViberId = $state<string | null>(null);
-  let analyticsViberName = $state<string>("");
 
   const activeVibers = $derived(vibers.filter((v) => v.status === "active"));
   const inactiveVibers = $derived(vibers.filter((v) => v.status !== "active"));
@@ -226,16 +220,9 @@
     }
   }
 
-  function openViberConfig(viber: Viber) {
+  function getViberHref(viber: Viber): string {
     const effectiveId = viber.viber_id || viber.id;
-    configViberId = effectiveId;
-    configViberName = viber.name;
-  }
-
-  function openViberAnalytics(viber: Viber) {
-    const effectiveId = viber.viber_id || viber.id;
-    analyticsViberId = effectiveId;
-    analyticsViberName = viber.name;
+    return `/vibers/${effectiveId}/status`;
   }
 
   function getConfigSyncBadge(syncState?: Viber["config_sync_state"]): {
@@ -378,8 +365,9 @@
         </h2>
         <div class="space-y-4">
           {#each activeVibers as viber (viber.id)}
-            <div
-              class="rounded-xl border border-border bg-card overflow-hidden transition-all hover:border-primary/30 hover:shadow-sm"
+            <a
+              href={getViberHref(viber)}
+              class="block rounded-xl border border-border bg-card overflow-hidden transition-all hover:border-primary/30 hover:shadow-sm"
             >
               <!-- Card Header -->
               <div class="px-5 py-4 flex items-start justify-between gap-4">
@@ -440,30 +428,17 @@
                   <Button
                     variant="outline"
                     size="sm"
-                    class="gap-1.5"
-                    onclick={() => openViberConfig(viber)}
-                  >
-                    <Settings class="size-3.5" />
-                    Config
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    class="size-8"
-                    title="Analytics"
-                    onclick={() => openViberAnalytics(viber)}
-                  >
-                    <BarChart3 class="size-3.5" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
                     class="gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10 hover:border-destructive/30"
-                    onclick={() => deleteViber(viber.id)}
+                    onclick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      deleteViber(viber.id);
+                    }}
                   >
                     <Trash2 class="size-3.5" />
                     Delete
                   </Button>
+                  <ExternalLink class="size-4 text-muted-foreground/50" />
                 </div>
               </div>
 
@@ -656,7 +631,7 @@
                   </div>
                 </div>
               {/if}
-            </div>
+            </a>
           {/each}
         </div>
       </div>
@@ -673,8 +648,9 @@
         </h2>
         <div class="space-y-4">
           {#each inactiveVibers as viber (viber.id)}
-            <div
-              class="rounded-xl border border-border bg-card overflow-hidden"
+            <a
+              href={getViberHref(viber)}
+              class="block rounded-xl border border-border bg-card overflow-hidden transition-all hover:border-primary/30 hover:shadow-sm"
             >
               <div class="px-5 py-4 flex items-start justify-between gap-4">
                 <div class="min-w-0 flex-1">
@@ -696,7 +672,11 @@
                   variant="outline"
                   size="sm"
                   class="gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10 hover:border-destructive/30 shrink-0"
-                  onclick={() => deleteViber(viber.id)}
+                  onclick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    deleteViber(viber.id);
+                  }}
                 >
                   <Trash2 class="size-3.5" />
                   Delete
@@ -734,7 +714,7 @@
                   {/if}
                 </div>
               {/if}
-            </div>
+            </a>
           {/each}
         </div>
       </div>
@@ -781,30 +761,4 @@
       </div>
     </div>
   </div>
-{/if}
-
-<!-- Config Panel -->
-{#if configViberId}
-  {@const configViber = vibers.find((v) => v.id === configViberId)}
-  <NodeDetailPanel
-    viberId={configViberId}
-    viberName={configViberName}
-    mode="config"
-    configSyncState={configViber?.config_sync_state}
-    onClose={() => {
-      configViberId = null;
-    }}
-  />
-{/if}
-
-<!-- Analytics Panel -->
-{#if analyticsViberId}
-  <NodeDetailPanel
-    viberId={analyticsViberId}
-    viberName={analyticsViberName}
-    mode="analytics"
-    onClose={() => {
-      analyticsViberId = null;
-    }}
-  />
 {/if}

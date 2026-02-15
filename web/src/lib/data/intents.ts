@@ -130,14 +130,16 @@ export const BUILTIN_INTENTS: Intent[] = [
     builtin: true,
     body: `Check and report the system information of the current environment.
 
-Use the built-in system info tools (system_info, system_processes, system_network) to gather details:
+Gather and present the following details:
 
 - Operating system name, version, and architecture
 - CPU model, cores, and current load
 - Available and total memory
 - Disk usage and free space
 - Network interfaces and connectivity
-- Top running processes`,
+- Top running processes (sorted by CPU usage)
+
+Present the results in a clear, readable format.`,
   },
   {
     id: "beautify-homepage",

@@ -10,13 +10,12 @@ export const POST: RequestHandler = async ({ params, locals }) => {
   }
 
   try {
-    // Upsert: create the row if it doesn't exist, then set archived_at
+    // Find the viber row by viber_id (gateway text ID) and set archived_at
     await supabaseRequest("vibers", {
-      method: "POST",
-      prefer: "resolution=merge-duplicates,return=minimal",
+      method: "PATCH",
+      params: { viber_id: `eq.${params.id}` },
+      prefer: "return=minimal",
       body: {
-        id: params.id,
-        name: params.id,
         archived_at: new Date().toISOString(),
       },
     });
@@ -47,7 +46,7 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
   try {
     await supabaseRequest("vibers", {
       method: "PATCH",
-      params: { id: `eq.${params.id}` },
+      params: { viber_id: `eq.${params.id}` },
       body: { archived_at: null },
     });
 

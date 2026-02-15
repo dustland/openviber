@@ -201,7 +201,7 @@
       <div class="flex items-center gap-3">
         <Logs class="size-5 text-muted-foreground" />
         <div>
-          <h1 class="text-lg font-semibold text-foreground">Logs</h1>
+          <h1 class="text-lg font-semibold text-foreground">Observability</h1>
           <p class="text-sm text-muted-foreground">
             Real-time activity and system events
           </p>
@@ -383,12 +383,12 @@
           {@const hasMetadata =
             log.metadata && Object.keys(log.metadata).length > 0}
           <div
-            class="group rounded-lg border border-border/50 transition-colors hover:border-border hover:bg-muted/30"
+            class="group rounded-lg border border-border/50 transition-colors hover:border-border hover:bg-muted/30 overflow-hidden"
           >
             <button
               type="button"
               onclick={() => hasMetadata && toggleExpanded(log.id)}
-              class="flex w-full items-start gap-3 p-3 text-left overflow-hidden"
+              class="flex w-full items-start gap-3 p-3 text-left max-w-full overflow-hidden"
               disabled={!hasMetadata}
               aria-label="Toggle log details"
             >
@@ -407,7 +407,7 @@
 
               <!-- Content -->
               <div class="flex-1 min-w-0 overflow-hidden">
-                <div class="flex items-center gap-2 min-w-0">
+                <div class="flex items-center gap-2 min-w-0 overflow-hidden">
                   <!-- Component badge -->
                   <span
                     class="inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground uppercase tracking-wider shrink-0"
@@ -417,7 +417,7 @@
                   </span>
 
                   <!-- Message -->
-                  <span class="text-sm text-foreground truncate min-w-0">
+                  <span class="flex-1 text-sm text-foreground truncate min-w-0">
                     {log.message}
                   </span>
                 </div>

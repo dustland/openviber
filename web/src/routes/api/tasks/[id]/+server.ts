@@ -145,7 +145,6 @@ export const PATCH: RequestHandler = async ({ params, request, locals }) => {
       params.id,
       normalizedEnvironmentId,
       viber?.goal || params.id,
-      viber?.viberId ?? null,
     );
 
     if (!assignment) {

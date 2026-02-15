@@ -21,8 +21,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
   try {
     const body = await request.json();
-    const { goal, title, viberId, viberId: requestedViberId, environmentId, channelIds, model, skills } = body;
-    const targetViberId = viberId ?? legacyNodeId;
+    const { goal, title, viberId, environmentId, channelIds, model, skills } = body;
+    const targetViberId = viberId;
 
     if (!goal) {
       return json({ error: "Missing goal" }, { status: 400 });
@@ -118,7 +118,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
           result.viberId,
           environmentId ?? null,
           displayName,
-          result.viberId ?? null,
           extraSkills,
         );
       } catch (e) {
@@ -133,7 +132,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
       category: "activity",
       component: "task",
       message: `Viber created: ${displayName}`,
-      viber_id: result.viberId,
       viber_id: result.viberId ?? null,
       metadata: { environmentId: environmentId ?? null },
     });

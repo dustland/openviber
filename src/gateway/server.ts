@@ -11,6 +11,7 @@
  *   POST /api/vibers/:id/job   - Push a job to a viber
  *   POST /api/vibers/:id/config-push - Push config to a viber
  *   POST /api/vibers/:id/skills/provision - Provision a skill on a viber
+ *   GET  /api/skills           - List all skills with health status
  *   GET  /api/jobs             - List all jobs across vibers
  *   GET  /api/events           - Unified event stream (activity + system)
  *   GET  /api/tasks            - List all tasks
@@ -31,6 +32,7 @@ import type { GatewayConfig } from "./types";
 import { TaskManager } from "./tasks";
 import { ViberManager } from "./vibers";
 import { EventManager } from "./events";
+import { SkillsManager } from "./skills";
 
 export type { GatewayConfig } from "./types";
 
@@ -42,6 +44,7 @@ export class GatewayServer {
   private eventManager: EventManager;
   private taskManager: TaskManager;
   private viberManager: ViberManager;
+  private skillsManager: SkillsManager;
 
   constructor(private config: GatewayConfig) {
     // Wire up managers with cross-references
@@ -61,6 +64,8 @@ export class GatewayServer {
       webApiToken: config.webApiToken,
     });
 
+    this.skillsManager = new SkillsManager();
+
     this.setupRoutes();
   }
 
@@ -72,6 +77,12 @@ export class GatewayServer {
     this.router.post("/api/vibers/:id/job", this.viberManager.handlePushJobToViber.bind(this.viberManager));
     this.router.post("/api/vibers/:id/config-push", this.viberManager.handleConfigPush.bind(this.viberManager));
     this.router.post("/api/vibers/:id/skills/provision", this.viberManager.handleProvisionViberSkill.bind(this.viberManager));
+
+    this.router.get("/api/skills", this.skillsManager.handleListSkills.bind(this.skillsManager));
+    this.router.get("/api/skills/:id", (req, res) => {
+      const id = (req as any).params?.id || "";
+      this.skillsManager.handleGetSkill(req, res, id);
+    });
 
     this.router.get("/api/jobs", this.eventManager.handleListAllJobs.bind(this.eventManager));
     this.router.get("/api/events", this.eventManager.handleListEvents.bind(this.eventManager));

@@ -5,341 +5,176 @@ description: "Domain knowledge bundles and the actions agents can take"
 
 # Skills & Tools
 
-**Skills** are instruction packages that teach agents how to approach specific tasks. **Tools** are the executable actions agents can take.
+**Skills** teach agents *how* to approach specific tasks. **Tools** are the actions agents can take.
 
 ---
 
-## Skills vs Tools
+## What are Skills?
 
-| | Skills | Tools |
-|---|--------|-------|
-| **Purpose** | Teach *how to think* about a domain | Provide *what to do* (actions) |
-| **Content** | Instructions, best practices, workflows | Executable functions |
-| **Format** | `SKILL.md` with YAML frontmatter | TypeScript modules with `CoreTool` interface |
-| **Location** | `src/skills/<name>/` or `~/.openviber/skills/<name>/` | `src/tools/<name>.ts` |
-| **Example** | "How to use GitHub CLI for issue workflows" | `gh_create_pr()`, `file.write()` |
+A **Skill** is a knowledge package — a `SKILL.md` file that gives the agent instructions, workflows, and best practices for a domain.
 
-Following the **Agent Skills spec** (agentskills.io), skills are instruction packages — they tell the agent WHAT to do and HOW using its existing tools. Skills are NOT tool containers themselves.
+Skills answer questions like:
+- What should I look for?
+- How do I approach this type of problem?
+- What tools do I use, and when?
+- What are the common pitfalls?
+
+Skills are **instruction only** — they contain no executable code.
+
+## What are Tools?
+
+A **Tool** is an executable action — a function the agent can call to do something real.
+
+Tools include:
+- `file.write` — Create or modify a file
+- `shell.run` — Execute a terminal command
+- `gh_create_pr` — Create a GitHub pull request
+- `web.fetch` — Fetch a web page
+
+Tools are **independent** — any task can use any tool, with or without a skill.
+
+---
+
+## How They Work Together
 
 ```mermaid
-graph TB
-    Agent[Agent] --> Skill[Skill: github]
-    Agent --> Tool1[Tool: gh_create_pr]
-    Agent --> Tool2[Tool: file.write]
+graph LR
+    Task[Task] --> Skill[Skill Instructions]
+    Task --> Tool[Executable Tools]
 
-    Skill -.instructions.-> Agent
-    Tool1 -.executed by.-> Agent
-    Tool2 -.executed by.-> Agent
-
-    Style Skill fill:#e1f5fe,stroke:#0288d1
-    Style Tool1 fill:#f3e5f5,stroke:#7b1fa2
-    Style Tool2 fill:#f3e5f5,stroke:#7b1fa2
+    Skill -.teaches.-> Task
+    Tool -.called by.-> Task
 ```
+
+1. The **Task** receives a goal from you
+2. The **Skill** provides domain knowledge and context
+3. The **Task** decides which **Tools** to use based on the skill's guidance
+
+**Example:** To fix a GitHub issue, the task uses the `github` skill, which teaches it to chain `gh_list_issues` → `gh_clone_repo` → `gh_create_branch` → `gh_create_pr`.
 
 ---
 
-## Tools
+## Built-in Skills
 
-Tools are the executable capabilities that give agents real-world actions. When an agent needs to "create a file" or "search the web", it uses tools.
+| Skill | What It Teaches |
+|-------|-----------------|
+| **github** | How to automate GitHub workflows (issues, PRs, branches) |
+| **cursor-agent** | How to use the Cursor CLI for coding tasks |
+| **codex-cli** | How to use OpenAI Codex for autonomous coding |
+| **terminal** | How to manage persistent terminal sessions for TTY-dependent CLIs |
+| **railway** | How to deploy and manage Railway projects |
+| **gmail** | How to send and search Gmail messages |
 
-Tools are independent units registered in the ToolRegistry. Any tool can be used by any task — skills teach the LLM HOW to use tools effectively, but don't control access.
+---
 
-### Available Tools
+## Built-in Tools
 
-| Tool | Description |
-|------|-------------|
-| **File** | Read, write, create, and delete files |
-| **Search** | Find information online |
-| **Web** | Fetch, parse, and crawl web content |
-| **Browser** | Navigate web pages, click, type, and extract content |
-| **Desktop** | Interact with desktop applications |
-| **Schedule** | Create, list, and manage recurring job schedules |
-| **Notify** | Send desktop notifications for important events |
-| **Shell** | Execute one-off terminal commands with timeout and security |
-| **Terminal** | Persistent tmux sessions for TTY-dependent CLIs and long-running processes |
-| `gh_*` | GitHub operations: list issues, clone repos, create branches/PRs |
-| `cursor_agent_run` | Run Cursor CLI for software engineering tasks |
-| `codex_run` | Run OpenAI Codex CLI for autonomous coding |
-| `gemini_run` | Run Google Gemini CLI |
+| Tool | What It Does |
+|------|--------------|
+| `file.*` | Read, write, create, delete files |
+| `shell.run` | Execute one-off terminal commands |
+| `terminal.*` | Persistent tmux sessions for interactive CLIs |
+| `web.*` | Fetch and parse web content |
+| `search` | Find information online |
+| `gh_*` | GitHub operations (issues, clones, branches, PRs) |
+| `cursor_agent_run` | Run Cursor CLI for coding |
+| `codex_run` | Run OpenAI Codex for coding |
 | `railway_*` | Railway deployment and management |
-| `gmail_*` | Send and search Gmail messages |
-| `system_info_*` | Query OS, CPU, memory, disk information |
+| `gmail_*` | Send and search Gmail |
+| `notify` | Send desktop notifications |
 
 **Shell vs Terminal:**
-- Use **Shell** for simple commands (run once, get output)
-- Use **Terminal** for interactive CLIs (Cursor, Codex), long-running processes, or complex multi-terminal layouts
-
-### Tool Registry
-
-Tools are managed by the `ToolRegistry` in `src/tools/registry.ts`:
-
-```typescript
-// Tools are registered under namespaces
-defaultToolRegistry.registerTools("github", getGithubTools());
-defaultToolRegistry.registerTools("terminal", getTerminalTools());
-
-// Get all tools for an agent
-const tools = defaultToolRegistry.getToolsFor(["github", "terminal"]);
-```
+- `shell.run` — Quick commands, run once and get output
+- `terminal.*` — Interactive CLIs (Cursor, Codex), long-running processes, monitoring
 
 ---
 
-## Skills
+## Skill Structure
 
-Skills follow the **Agent Skills spec** with this structure:
+Following the **Agent Skills spec**, every skill is a directory with a `SKILL.md` file:
 
 ```
 skill-name/
-├── SKILL.md       # Required — YAML frontmatter + markdown instructions
-├── _meta.json     # Optional — registry metadata (owner, version, etc.)
-├── scripts/       # Optional — executable scripts for the agent
-└── references/    # Optional — reference documentation
+├── SKILL.md       # Instructions (YAML frontmatter + markdown)
+├── _meta.json     # Optional metadata (version, owner, etc.)
+├── scripts/       # Optional scripts the agent can run
+└── references/    # Optional reference docs
 ```
 
-### SKILL.md Format
-
-Every skill has a `SKILL.md` file with YAML frontmatter:
+**SKILL.md format:**
 
 ```markdown
 ---
 name: github
-version: 1.0.0
-description: GitHub operations via gh CLI — issues, branches, PRs
-requires:
-  binary:
-    - name: gh
-      check: gh --version
-      install: brew install gh
-  auth_cli:
-    - name: GitHub auth
-      check: gh auth status
-      setup: gh auth login
+description: GitHub operations via gh CLI
 ---
 
 # GitHub Skill
 
-Interact with GitHub repositories using the `gh` CLI.
+You work with GitHub using the `gh` CLI.
+
+## When to use
+
+- Checking issues to fix
+- Creating branches and PRs
+- Any GitHub automation
 
 ## Tools
 
-- **gh_list_issues** — List open issues
-- **gh_create_branch** — Create a new branch
-- **gh_create_pr** — Create a pull request
+- `gh_list_issues` — List open issues
+- `gh_create_branch` — Create a branch
+- `gh_create_pr` — Create a pull request
 
 ## Workflow
 
 1. `gh_list_issues` → pick an issue
 2. `gh_clone_repo` → clone to workspace
 3. `gh_create_branch` → create fix branch
-4. Fix the issue (use codex-cli skill)
+4. Fix the issue (use codex-cli)
 5. `gh_commit_and_push` → commit and push
 6. `gh_create_pr` → create PR
 ```
 
-### Frontmatter Fields
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `name` | Required | Skill identifier (used in task config) |
-| `description` | Required | Short description of the skill |
-| `version` | Optional | Semantic version |
-| `requires` | Optional | Skill prerequisites (binaries, auth, env vars) |
-| `playground` | Optional | Verification scenario for testing |
-| `license` | Optional | License identifier |
-| `allowedTools` | Optional | List of tools this skill can use |
-
-### Skill Registry
-
-The `SkillRegistry` (`src/skills/registry.ts`) discovers and loads skills:
-
-1. Scans directories for `SKILL.md` files
-2. Parses YAML frontmatter for metadata
-3. Loads full instructions on demand
-4. Checks for optional `scripts/` and `references/` directories
-
-**Discovery order:**
-1. `~/.openviber/skills/` — User custom skills
-2. `src/skills/` — Bundled skills (dev mode)
-3. Bundled skills in production build
-
 ---
 
-## Skill Health Checks
+## Using Skills
 
-OpenViber can verify that a skill's prerequisites are satisfied:
-
-```typescript
-interface SkillHealthCheck {
-  id: string;
-  label: string;
-  ok: boolean;
-  message?: string;
-  hint?: string;
-  actionType?: "env" | "oauth" | "binary" | "auth_cli" | "manual";
-}
-```
-
-Each skill can define health checks for:
-- **Binary dependencies** — CLI tools installed in PATH
-- **Environment variables** — API keys or configuration
-- **OAuth tokens** — Connected accounts
-- **CLI auth** — Logged-in CLIs like `gh` or `codex`
-
-The Viber Board shows health badges indicating whether a skill is ready to use.
-
----
-
-## Built-in Skills
-
-### github
-
-**Purpose:** GitHub operations via `gh` CLI
-
-**Tools:** `gh_list_issues`, `gh_get_issue`, `gh_clone_repo`, `gh_create_branch`, `gh_commit_and_push`, `gh_create_pr`
-
-**Prerequisites:** `gh` CLI installed and authenticated
-
-**Use case:** Automated issue triage, bug fixing, PR workflows
-
-### cursor-agent
-
-**Purpose:** Run Cursor CLI for software engineering tasks
-
-**Tools:** `cursor_agent_run`
-
-**Prerequisites:** Cursor CLI, terminal skill (for TTY)
-
-**Use case:** Delegate coding tasks to Cursor
-
-### codex-cli
-
-**Purpose:** Run OpenAI Codex CLI for autonomous coding
-
-**Tools:** `codex_run`
-
-**Prerequisites:** `codex` CLI installed and authenticated
-
-**Use case:** Non-interactive coding with structured output
-
-### terminal
-
-**Purpose:** Persistent terminal sessions for TTY-dependent CLIs
-
-**Tools:** `terminal_new_session`, `terminal_run`, `terminal_read`, `terminal_send_keys`, etc.
-
-**Prerequisites:** `tmux` installed
-
-**Use case:** Multi-terminal layouts, monitoring long-running processes
-
-### railway
-
-**Purpose:** Railway deployment and management
-
-**Tools:** `railway_up`, `railway_logs`, `railway_env_*`
-
-**Prerequisites:** `railway` CLI installed and authenticated
-
-**Use case:** Deploy and manage Railway projects
-
-### gmail
-
-**Purpose:** Send and search Gmail messages
-
-**Tools:** `gmail_send`, `gmail_list`, `gmail_search`
-
-**Prerequisites:** Google OAuth connected (`viber auth google` or `GOOGLE_CLIENT_ID`)
-
-**Use case:** Email notifications and searches
-
-### gemini-cli
-
-**Purpose:** Run Google Gemini CLI
-
-**Tools:** `gemini_run`
-
-**Prerequisites:** `gemini` CLI installed, authenticated
-
-**Use case:** Google Gemini model access from CLI
-
-### system-info
-
-**Purpose:** Get system information
-
-**Tools:** `system_info_*`
-
-**Prerequisites:** None (uses Node.js built-ins)
-
-**Use case:** Query OS, CPU, memory, disk info
-
----
-
-## Skill Hub
-
-The **Skill Hub** is a marketplace for discovering and importing skills from external sources:
-
-**Supported sources:**
-- **OpenClaw** — The central Agent Skills registry
-- **npm** — Scoped packages like `@openviber-skills/web-search`
-- **GitHub** — Import directly from repositories
-- **Hugging Face** — ML and AI skills
-- **Smithery** — Agent tool registry
-- **Composio** — Tool integrations
-- **Glama** — AI model skills
-
-### Importing Skills
-
-```bash
-# Auto-detect source
-openviber skill add github
-
-# Specify source
-openviber skill add npm:@openviber-skills/web-search
-openviber skill add openclaw:web-search
-
-# From GitHub
-openviber skill add dustland/viber-skills/github
-```
-
-Imported skills are installed to `~/.openviber/skills/` and become available to all tasks.
-
----
-
-## Using Skills in Tasks
-
-### Via Viber Board
-
-1. Go to a Viber's configuration
-2. Select "Skills"
-3. Toggle skills on/off
-4. Health indicators show readiness
-
-### Via Configuration
+Skills are assigned to tasks via configuration:
 
 ```yaml
 # ~/.openviber/vibers/dev.yaml
 skills:
   - github
-  - cursor-agent
+  - codex-cli
   - terminal
 ```
 
-### In Jobs
+Or through the Viber Board UI — toggle skills on/off per task.
 
-```yaml
-# ~/.openviber/jobs/daily-summary.yaml
-name: Daily Summary
-schedule: "0 9 * * *"
-model: deepseek/deepseek-chat
-skills:
-  - github
-prompt: Summarize my GitHub issues from the last 24 hours.
+---
+
+## Installing Skills
+
+The **Skill Hub** is a marketplace for discovering skills from external sources:
+
+```bash
+# Auto-detect source
+openviber skill add github
+
+# From npm
+openviber skill add npm:@openviber-skills/web-search
+
+# From GitHub
+openviber skill add dustland/viber-skills/github
 ```
+
+**Sources:** OpenClaw, npm, GitHub, Hugging Face, Smithery, Composio, Glama
 
 ---
 
 ## Creating Custom Skills
 
-1. Create a directory in `~/.openviber/skills/`:
+1. Create a directory:
    ```bash
    mkdir -p ~/.openviber/skills/my-skill
    ```
@@ -348,14 +183,12 @@ prompt: Summarize my GitHub issues from the last 24 hours.
    ```markdown
    ---
    name: my-skill
-   description: What this skill teaches the agent
-   version: 1.0.0
+   description: What this skill does
    ---
 
    # My Skill
 
-   You are an expert on [domain]. Your responsibilities are:
-   ...
+   You are an expert on [domain].
 
    ## When to use
 
@@ -364,45 +197,16 @@ prompt: Summarize my GitHub issues from the last 24 hours.
 
    ## Tools
 
-   - **tool1** — What it does
-   - **tool2** — What it does
+   - **tool1** — What it's for
+   - **tool2** — What it's for
    ```
 
-3. Optionally add:
-   - `scripts/` — Executable scripts the agent can run
-   - `references/` — Documentation files
-   - `_meta.json` — Registry metadata
-
-Custom skills are auto-discovered and available immediately.
-
----
-
-## Putting It Together
-
-```mermaid
-graph TB
-    Task[Task] --> Skill1[Skill: github]
-    Task --> Skill2[Skill: terminal]
-    Task --> Tool1[Tool: file.write]
-    Task --> Tool2[Tool: search]
-
-    Skill1 -.instructions.-> Task
-    Skill2 -.instructions.-> Task
-
-    Tool1 -.executed.-> Task
-    Tool2 -.executed.-> Task
-```
-
-- **Task** uses **Skills** for domain knowledge
-- **Task** uses **Tools** for actions
-- **Skills** teach the task HOW to use tools effectively
-- **Tools** provide the actual capabilities
+3. The skill is auto-discovered and available immediately.
 
 ---
 
 ## Next Steps
 
-- [Jobs](/docs/concepts/jobs) — Schedule recurring tasks that use skills
-- [Viber](/docs/concepts/viber) — How to configure tasks with skills
 - [Tasks](/docs/concepts/tasks) — The unit of work in OpenViber
-- [Security](/docs/design/security) — Tool permissions and safety
+- [Viber](/docs/concepts/viber) — How to configure tasks with skills
+- [Jobs](/docs/concepts/jobs) — Schedule recurring tasks that use skills

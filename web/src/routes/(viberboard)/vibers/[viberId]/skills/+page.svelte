@@ -854,6 +854,7 @@
     align-items: flex-start;
     justify-content: space-between;
     gap: 1rem;
+    flex-wrap: wrap;
   }
 
   .skills-header h1 {
@@ -874,6 +875,7 @@
     align-items: center;
     gap: 0.75rem;
     flex-shrink: 0;
+    flex-wrap: wrap;
   }
 
   .skill-count {
@@ -991,7 +993,7 @@
 
   .skills-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
     gap: 0.75rem;
   }
 
@@ -1528,5 +1530,20 @@
   .page-info {
     font-size: 0.75rem;
     color: var(--muted-foreground);
+  }
+
+  @media (max-width: 640px) {
+    .skills-page {
+      padding: 1rem;
+    }
+
+    .skills-header {
+      align-items: stretch;
+    }
+
+    .header-actions {
+      width: 100%;
+      justify-content: space-between;
+    }
   }
 </style>

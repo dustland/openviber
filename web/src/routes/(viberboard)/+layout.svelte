@@ -3,6 +3,7 @@
   import { page } from "$app/stores";
   import { onMount } from "svelte";
   import * as Sidebar from "$lib/components/ui/sidebar";
+  import { useSidebar } from "$lib/components/ui/sidebar/context.svelte";
   import * as HoverCard from "$lib/components/ui/hover-card";
   import {
     AlertCircle,
@@ -116,6 +117,7 @@
   }
 
   const tasksStore = getTasksStore();
+  const sidebar = useSidebar();
   const tasksState = $derived($tasksStore);
   const tasks = $derived(tasksState.tasks as SidebarTask[]);
   let environments = $state<SidebarEnvironment[]>([]);
@@ -190,6 +192,18 @@
 
     return () => clearInterval(interval);
   });
+
+  function closeMobileSidebar() {
+    if (sidebar.isMobile) {
+      sidebar.setOpenMobile(false);
+    }
+  }
+
+  function navigateFromSidebar(path: string) {
+    closeMobileSidebar();
+    goto(path);
+  }
+
 </script>
 
 <AppSidebar>
@@ -201,6 +215,7 @@
             <Sidebar.MenuButton
               isActive={isNewTaskRoute}
               tooltipContent="New Task"
+              onclick={closeMobileSidebar}
             >
               <a
                 href="/tasks/new"
@@ -218,6 +233,7 @@
             <Sidebar.MenuButton
               isActive={isVibersRoute}
               tooltipContent="Vibers"
+              onclick={closeMobileSidebar}
             >
               <a href="/vibers" class="w-full inline-flex items-center gap-2">
                 <ViberIcon class="size-4 shrink-0" />
@@ -232,6 +248,7 @@
             <Sidebar.MenuButton
               isActive={isObservabilityRoute}
               tooltipContent="Observability"
+              onclick={closeMobileSidebar}
             >
               <a
                 href="/observability"
@@ -263,6 +280,7 @@
                 <Sidebar.MenuButton
                   isActive={pathname.startsWith(`/tasks/${task.id}`)}
                   tooltipContent={tooltipText}
+                  onclick={closeMobileSidebar}
                   tooltipContentProps={{
                     class: "max-w-64 whitespace-normal text-xs leading-relaxed",
                   }}
@@ -299,6 +317,7 @@
           <span>Tasks</span>
           <a
             href="/tasks/new"
+            onclick={closeMobileSidebar}
             title="New task"
             class="flex size-5 items-center justify-center rounded-md text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
           >
@@ -311,6 +330,7 @@
               <Sidebar.MenuItem>
                 <a
                   href="/tasks/new"
+                  onclick={closeMobileSidebar}
                   class="flex items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
                 >
                   <Cpu class="size-3.5 text-muted-foreground/50" />
@@ -328,7 +348,7 @@
                         <Sidebar.MenuButton
                           isActive={pathname.startsWith(`/tasks/${task.id}`)}
                           class="min-h-8 gap-2 rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-sidebar-foreground/85 hover:bg-sidebar-accent data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-foreground pr-8 overflow-hidden"
-                          onclick={() => goto(`/tasks/${task.id}`)}
+                          onclick={() => navigateFromSidebar(`/tasks/${task.id}`)}
                         >
                           <!-- Status icon / Unpin toggle on hover -->
                           <button

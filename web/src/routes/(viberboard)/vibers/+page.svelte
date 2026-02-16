@@ -460,12 +460,12 @@
               <!-- Compact Resource Metrics (CPU + Memory) -->
               {#if viber.machine}
                 <div class="border-t border-border px-5 py-3">
-                  <div class="grid grid-cols-2 gap-6">
+                  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
                     <!-- CPU -->
                     <div class="space-y-1.5">
                       <div class="flex items-center justify-between">
                         <span
-                          class="text-xs text-muted-foreground inline-flex items-center gap-1.5"
+                          class="text-xs text-muted-foreground inline-flex items-center gap-1.5 min-w-0"
                         >
                           <Cpu class="size-3.5" />
                           CPU
@@ -495,7 +495,7 @@
                     <div class="space-y-1.5">
                       <div class="flex items-center justify-between">
                         <span
-                          class="text-xs text-muted-foreground inline-flex items-center gap-1.5"
+                          class="text-xs text-muted-foreground inline-flex items-center gap-1.5 min-w-0"
                         >
                           <MemoryStick class="size-3.5" />
                           Memory
@@ -527,23 +527,23 @@
 
               <!-- Quick Links Strip -->
               <div
-                class="border-t border-border grid grid-cols-4 divide-x divide-border"
+                class="border-t border-border grid grid-cols-2 divide-x divide-y divide-border sm:grid-cols-4 sm:divide-y-0"
               >
                 <!-- Tasks -->
                 <a
                   href="/vibers/{effectiveId}/tasks"
-                  class="flex items-center gap-2 px-4 py-3 text-sm hover:bg-muted/40 transition-colors group"
+                  class="flex items-center gap-2 px-3 py-3 text-sm hover:bg-muted/40 transition-colors group min-w-0 sm:px-4"
                 >
                   <ListTodo
                     class="size-4 text-muted-foreground group-hover:text-foreground transition-colors"
                   />
                   <span
-                    class="text-muted-foreground group-hover:text-foreground transition-colors"
+                    class="text-muted-foreground group-hover:text-foreground transition-colors truncate"
                     >Tasks</span
                   >
                   {#if viber.viber}
                     <span
-                      class="ml-auto text-xs font-medium tabular-nums text-muted-foreground/70"
+                      class="ml-auto hidden text-xs font-medium tabular-nums text-muted-foreground/70 xl:inline"
                     >
                       {viber.viber.runningTaskCount} active · {viber.viber
                         .totalTasksExecuted} total
@@ -556,13 +556,13 @@
                 <!-- Skills -->
                 <a
                   href="/vibers/{effectiveId}/skills"
-                  class="flex items-center gap-2 px-4 py-3 text-sm hover:bg-muted/40 transition-colors group"
+                  class="flex items-center gap-2 px-3 py-3 text-sm hover:bg-muted/40 transition-colors group min-w-0 sm:px-4"
                 >
                   <Puzzle
                     class="size-4 text-muted-foreground group-hover:text-foreground transition-colors"
                   />
                   <span
-                    class="text-muted-foreground group-hover:text-foreground transition-colors"
+                    class="text-muted-foreground group-hover:text-foreground transition-colors truncate"
                     >Skills</span
                   >
                   {#if viber.skills && viber.skills.length > 0}
@@ -579,13 +579,13 @@
                 <!-- Jobs -->
                 <a
                   href="/vibers/{effectiveId}/jobs"
-                  class="flex items-center gap-2 px-4 py-3 text-sm hover:bg-muted/40 transition-colors group"
+                  class="flex items-center gap-2 px-3 py-3 text-sm hover:bg-muted/40 transition-colors group min-w-0 sm:px-4"
                 >
                   <CalendarClock
                     class="size-4 text-muted-foreground group-hover:text-foreground transition-colors"
                   />
                   <span
-                    class="text-muted-foreground group-hover:text-foreground transition-colors"
+                    class="text-muted-foreground group-hover:text-foreground transition-colors truncate"
                     >Jobs</span
                   >
                   <ChevronRight
@@ -595,13 +595,13 @@
                 <!-- Channels -->
                 <a
                   href="/vibers/{effectiveId}/channels"
-                  class="flex items-center gap-2 px-4 py-3 text-sm hover:bg-muted/40 transition-colors group"
+                  class="flex items-center gap-2 px-3 py-3 text-sm hover:bg-muted/40 transition-colors group min-w-0 sm:px-4"
                 >
                   <Radio
                     class="size-4 text-muted-foreground group-hover:text-foreground transition-colors"
                   />
                   <span
-                    class="text-muted-foreground group-hover:text-foreground transition-colors"
+                    class="text-muted-foreground group-hover:text-foreground transition-colors truncate"
                     >Channels</span
                   >
                   <ChevronRight

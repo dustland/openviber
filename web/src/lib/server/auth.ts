@@ -14,12 +14,13 @@ const SUPABASE_URL = env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = env.SUPABASE_ANON_KEY;
 const SUPABASE_SERVICE_ROLE_KEY = env.SUPABASE_SERVICE_ROLE_KEY;
 
-function requireAppUrl(): string {
-  if (!APP_URL) {
+function getOAuthBaseUrl(appOrigin?: string): string {
+  const appUrl = APP_URL || appOrigin?.trim() || "";
+  if (!appUrl) {
     throw new Error("APP_URL is required for OAuth callbacks.");
   }
 
-  return APP_URL;
+  return appUrl;
 }
 
 /**
@@ -113,7 +114,7 @@ function createPkcePair() {
  * Returns true when Supabase OAuth is configured for this deployment.
  */
 export function supabaseAuthConfigured() {
-  return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY && APP_URL);
+  return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 }
 
 
@@ -145,7 +146,7 @@ export function getSupabaseGitHubAuthUrl(nextPath = "/", appOrigin?: string) {
   const { supabaseUrl } = requireSupabaseAuthConfig();
   const state = randomBytes(24).toString("hex");
   const { verifier, challenge } = createPkcePair();
-  const callbackUrl = new URL(`/auth/callback`, requireAppUrl());
+  const callbackUrl = new URL(`/auth/callback`, getOAuthBaseUrl(appOrigin));
   callbackUrl.searchParams.set("next", nextPath);
   callbackUrl.searchParams.set("app_state", state);
 

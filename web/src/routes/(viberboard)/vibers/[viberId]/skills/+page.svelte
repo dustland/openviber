@@ -77,6 +77,26 @@
     viber_id: string | null;
     status: "pending" | "active" | "offline";
     skills?: { id?: string; name: string }[];
+    config?: Record<string, unknown>;
+  }
+
+  interface SkillHealthCheck {
+    id: string;
+    label: string;
+    ok: boolean;
+    required?: boolean;
+    message?: string;
+    hint?: string;
+    actionType?: "env" | "oauth" | "binary" | "auth_cli" | "manual";
+  }
+
+  interface SkillHealthResult {
+    id: string;
+    name: string;
+    status: string;
+    available: boolean;
+    checks: SkillHealthCheck[];
+    summary: string;
   }
 
   interface PlaygroundResult {
@@ -120,6 +140,12 @@
   let expandedSetup = $state<string | null>(null);
   let copiedHint = $state<string | null>(null);
   let currentViber = $state<ViberOption | null>(null);
+
+  // Per-viber skill config
+  let enabledSkillIds = $state<Set<string>>(new Set());
+  let viberConfig = $state<Record<string, unknown>>({});
+  let skillHealthMap = $state<Map<string, SkillHealthResult>>(new Map());
+  let togglingSkills = $state<Set<string>>(new Set());
 
   // Hub dialog
   let hubDialogOpen = $state(false);
@@ -177,6 +203,70 @@
         vibers.find((v) => v.viber_id === viberId || v.id === viberId) ?? null;
     } catch {
       currentViber = null;
+    }
+  }
+
+  async function fetchViberConfig() {
+    try {
+      const res = await fetch(
+        `/api/vibers/${encodeURIComponent(viberId)}/config`,
+      );
+      if (!res.ok) return;
+      const data = await res.json();
+      viberConfig = data.config ?? {};
+      const skills = (viberConfig.skills as string[]) ?? [];
+      enabledSkillIds = new Set(skills);
+    } catch {
+      // Non-fatal
+    }
+  }
+
+  async function fetchViberStatus() {
+    try {
+      const res = await fetch(
+        `/api/vibers/${encodeURIComponent(viberId)}/status`,
+      );
+      if (!res.ok) return;
+      const data = await res.json();
+      const health = data.status?.viber?.skillHealth;
+      if (health?.skills) {
+        const map = new Map<string, SkillHealthResult>();
+        for (const s of health.skills) {
+          map.set(s.id, s);
+        }
+        skillHealthMap = map;
+      }
+    } catch {
+      // Non-fatal
+    }
+  }
+
+  async function toggleSkill(skillId: string, enabled: boolean) {
+    togglingSkills = new Set([...togglingSkills, skillId]);
+    try {
+      const currentSkills = [...enabledSkillIds];
+      const newSkills = enabled
+        ? [...currentSkills, skillId]
+        : currentSkills.filter((id) => id !== skillId);
+      const newConfig = { ...viberConfig, skills: newSkills };
+      const res = await fetch(
+        `/api/vibers/${encodeURIComponent(viberId)}/config`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ config: newConfig }),
+        },
+      );
+      if (res.ok) {
+        viberConfig = newConfig;
+        enabledSkillIds = new Set(newSkills);
+      }
+    } catch {
+      // Non-fatal — UI stays at previous state
+    } finally {
+      const next = new Set(togglingSkills);
+      next.delete(skillId);
+      togglingSkills = next;
     }
   }
 
@@ -415,7 +505,13 @@
   });
 
   onMount(async () => {
-    await Promise.all([fetchInstalled(), fetchSources(), fetchViber()]);
+    await Promise.all([
+      fetchInstalled(),
+      fetchSources(),
+      fetchViber(),
+      fetchViberConfig(),
+      fetchViberStatus(),
+    ]);
     backfillInstalledFromVibers();
     await checkAllRequirements();
   });
@@ -488,7 +584,14 @@
       {#each installed as skill (skill.id)}
         {@const reqStatus = requirementStatuses[skill.id]}
         {@const isExpanded = expandedSetup === skill.id}
-        <div class="skill-card" class:expanded={isExpanded}>
+        {@const isEnabled = enabledSkillIds.has(skill.id)}
+        {@const isToggling = togglingSkills.has(skill.id)}
+        {@const health = skillHealthMap.get(skill.id)}
+        <div
+          class="skill-card"
+          class:expanded={isExpanded}
+          class:disabled-skill={!isEnabled}
+        >
           <div class="card-top">
             <div class="card-icon">
               <Puzzle class="size-5" />
@@ -499,11 +602,62 @@
                 <p class="card-desc">{skill.description}</p>
               {/if}
             </div>
+            <label
+              class="skill-toggle"
+              title={isEnabled
+                ? "Disable skill for this viber"
+                : "Enable skill for this viber"}
+            >
+              {#if isToggling}
+                <Loader2 class="size-3.5 animate-spin toggle-spinner" />
+              {:else}
+                <input
+                  type="checkbox"
+                  checked={isEnabled}
+                  onchange={() => toggleSkill(skill.id, !isEnabled)}
+                  class="sr-only"
+                />
+                <span class="toggle-track" class:active={isEnabled}>
+                  <span class="toggle-thumb"></span>
+                </span>
+              {/if}
+            </label>
           </div>
 
           <div class="card-meta">
             <div class="card-status">
-              {#if reqStatus?.loading}
+              {#if health}
+                {#if health.status === "ok" || health.available}
+                  <span class="status-badge ok">
+                    <Circle class="size-2.5" style="fill: currentColor" />
+                    Healthy
+                  </span>
+                {:else if health.status === "degraded"}
+                  <button
+                    type="button"
+                    onclick={() => toggleSetup(skill.id)}
+                    class="status-badge warning"
+                  >
+                    <AlertTriangle class="size-3" />
+                    Degraded
+                    {#if isExpanded}<ChevronUp
+                        class="size-3"
+                      />{:else}<ChevronDown class="size-3" />{/if}
+                  </button>
+                {:else}
+                  <button
+                    type="button"
+                    onclick={() => toggleSetup(skill.id)}
+                    class="status-badge error"
+                  >
+                    <AlertCircle class="size-3" />
+                    Unavailable
+                    {#if isExpanded}<ChevronUp
+                        class="size-3"
+                      />{:else}<ChevronDown class="size-3" />{/if}
+                  </button>
+                {/if}
+              {:else if reqStatus?.loading}
                 <Loader2 class="size-3.5 animate-spin" />
               {:else if reqStatus && !reqStatus.ready}
                 <button
@@ -517,10 +671,15 @@
                       class="size-3"
                     />{:else}<ChevronDown class="size-3" />{/if}
                 </button>
-              {:else}
+              {:else if isEnabled}
                 <span class="status-badge ok">
                   <Circle class="size-2.5" style="fill: currentColor" />
-                  Active
+                  Enabled
+                </span>
+              {:else}
+                <span class="status-badge muted">
+                  <Circle class="size-2.5" />
+                  Disabled
                 </span>
               {/if}
             </div>
@@ -531,6 +690,7 @@
               variant="outline"
               size="sm"
               onclick={() => openPlayground(skill)}
+              disabled={!isEnabled}
             >
               <Play class="size-3.5" />
               Test
@@ -1112,6 +1272,83 @@
   :global(.dark) .status-badge.warning {
     background: hsl(38 60% 30% / 0.2);
     color: hsl(38 80% 65%);
+  }
+
+  .status-badge.error {
+    background: hsl(0 72% 51% / 0.1);
+    color: hsl(0 72% 40%);
+    border: none;
+    cursor: pointer;
+  }
+
+  .status-badge.error:hover {
+    background: hsl(0 72% 51% / 0.18);
+  }
+
+  :global(.dark) .status-badge.error {
+    background: hsl(0 50% 30% / 0.2);
+    color: hsl(0 60% 65%);
+  }
+
+  .status-badge.muted {
+    background: hsl(var(--muted) / 0.5);
+    color: var(--muted-foreground);
+  }
+
+  /* ── Toggle switch ────────────────── */
+
+  .skill-toggle {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-left: auto;
+    padding: 0.125rem;
+  }
+
+  .toggle-spinner {
+    color: var(--muted-foreground);
+  }
+
+  .toggle-track {
+    position: relative;
+    width: 2rem;
+    height: 1.125rem;
+    border-radius: 9999px;
+    background: hsl(var(--muted));
+    transition: background 0.2s ease;
+  }
+
+  .toggle-track.active {
+    background: hsl(142 71% 45%);
+  }
+
+  :global(.dark) .toggle-track.active {
+    background: hsl(142 60% 50%);
+  }
+
+  .toggle-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 0.8125rem;
+    height: 0.8125rem;
+    border-radius: 50%;
+    background: white;
+    transition: transform 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  }
+
+  .toggle-track.active .toggle-thumb {
+    transform: translateX(0.875rem);
+  }
+
+  .disabled-skill {
+    opacity: 0.6;
+  }
+
+  .disabled-skill .card-icon {
+    opacity: 0.5;
   }
 
   .card-actions {

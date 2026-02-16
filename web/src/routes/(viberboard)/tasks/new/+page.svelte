@@ -35,6 +35,7 @@
   let environments = $state<ComposerEnvironment[]>([]);
   let composerSkills = $state<ComposerSkill[]>([]);
   let selectedViberId = $state<string | null>(null);
+  const LAST_ENV_KEY = "openviber:last-environment-id";
   let selectedEnvironmentId = $state<string | null>(null);
   let selectedModelId = $state("");
   let selectedSkillIds = $state<string[]>([]);
@@ -140,7 +141,8 @@
       if (activeVibers.length === 1 && !selectedViberId) {
         selectedViberId = activeVibers[0].id;
       }
-      if (environments.length === 1 && !selectedEnvironmentId) {
+      if (environments.length > 0 && !selectedEnvironmentId) {
+        // Priority: first env, overridden later by localStorage / URL param
         selectedEnvironmentId = environments[0].id;
       }
     } catch {
@@ -211,10 +213,16 @@
 
   onMount(async () => {
     await fetchComposerData();
-    // Pre-select environment from query param (e.g. from sidebar + icon)
+
+    // Priority: URL param > localStorage > first available (already set by fetchComposerData)
     const envParam = $page.url.searchParams.get("environmentId");
     if (envParam && environments.some((e) => e.id === envParam)) {
       selectedEnvironmentId = envParam;
+    } else {
+      const stored = localStorage.getItem(LAST_ENV_KEY);
+      if (stored && environments.some((e) => e.id === stored)) {
+        selectedEnvironmentId = stored;
+      }
     }
   });
 </script>
@@ -317,7 +325,10 @@
               <DropdownMenu.Label>Select environment</DropdownMenu.Label>
               <DropdownMenu.Separator />
               <DropdownMenu.Item
-                onclick={() => (selectedEnvironmentId = null)}
+                onclick={() => {
+                  selectedEnvironmentId = null;
+                  localStorage.removeItem(LAST_ENV_KEY);
+                }}
                 class="flex items-center justify-between"
               >
                 <span class="flex items-center gap-2">
@@ -330,7 +341,10 @@
               </DropdownMenu.Item>
               {#each environments as env (env.id)}
                 <DropdownMenu.Item
-                  onclick={() => (selectedEnvironmentId = env.id)}
+                  onclick={() => {
+                    selectedEnvironmentId = env.id;
+                    localStorage.setItem(LAST_ENV_KEY, env.id);
+                  }}
                   class="flex items-center justify-between"
                 >
                   <span class="flex items-center gap-2">

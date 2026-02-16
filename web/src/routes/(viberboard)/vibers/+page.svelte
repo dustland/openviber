@@ -319,7 +319,7 @@
         onclick={() => (showCreateDialog = true)}
       >
         <Plus class="size-4" />
-        Onboard Viber
+        <span class="hidden sm:inline">Onboard Viber</span>
       </Button>
       <Button variant="outline" size="icon" onclick={() => fetchVibers()}>
         <RefreshCw class="size-4" />

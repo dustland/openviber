@@ -276,9 +276,9 @@
         </button>
       </div>
 
-      <div class="flex items-center gap-2">
+      <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
         <!-- Level filters -->
-        <div class="flex gap-1">
+        <div class="flex gap-1 shrink-0">
           <button
             type="button"
             onclick={() => toggleLevel("info")}
@@ -318,7 +318,7 @@
         </div>
 
         <!-- Search -->
-        <div class="relative">
+        <div class="relative w-full sm:w-auto">
           <Search
             class="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
           />
@@ -327,7 +327,7 @@
             placeholder="Search logs..."
             value={searchQuery}
             oninput={handleSearchInput}
-            class="h-8 w-48 rounded-lg border border-border bg-background pl-8 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background"
+            class="h-8 w-full sm:w-48 rounded-lg border border-border bg-background pl-8 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background"
           />
         </div>
       </div>

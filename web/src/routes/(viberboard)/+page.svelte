@@ -68,6 +68,7 @@
   let loadingRecentTasks = $state(true);
 
   let vibers = $state<Viber[]>([]);
+  let hasLoadedVibers = $state(false);
   let environments = $state<SidebarEnvironment[]>([]);
   let accountSkills = $state<AccountSkill[]>([]);
   let channelOptions = $state<ChannelOption[]>([]);
@@ -206,6 +207,8 @@
               }))
             : [],
         }));
+      } else {
+        vibers = [];
       }
 
       if (envsRes.ok) {
@@ -278,6 +281,7 @@
         selectedEnvironmentId = environments[0].id;
       }
     } finally {
+      hasLoadedVibers = true;
       loadingRecentTasks = false;
     }
   }
@@ -586,7 +590,7 @@
         </p>
       </section>
 
-      {#if activeVibers.length === 0}
+      {#if hasLoadedVibers && activeVibers.length === 0}
         <section
           class="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4"
         >

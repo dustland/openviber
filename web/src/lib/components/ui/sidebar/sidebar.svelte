@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { afterNavigate } from "$app/navigation";
 	import * as Sheet from "$lib/components/ui/sheet/index.js";
 	import { cn, type WithElementRef } from "$lib/utils.js";
 	import type { HTMLAttributes } from "svelte/elements";
@@ -20,6 +21,19 @@
 	} = $props();
 
 	const sidebar = useSidebar();
+
+	function handleMobileNavigationClick(event: MouseEvent) {
+		if (!(event.target instanceof Element)) return;
+		const link = event.target.closest("a[href]");
+		if (!link) return;
+
+		sidebar.setOpenMobile(false);
+	}
+
+	// Ensure mobile sheet is dismissed after any in-app navigation.
+	afterNavigate(() => {
+		sidebar.setOpenMobile(false);
+	});
 </script>
 
 {#if collapsible === "none"}
@@ -44,6 +58,7 @@
 			data-mobile="true"
 			class="bg-sidebar text-sidebar-foreground w-(--sidebar-width) p-0 [&>button]:hidden"
 			style="--sidebar-width: {SIDEBAR_WIDTH_MOBILE};"
+			onclick={handleMobileNavigationClick}
 			{side}
 		>
 			<Sheet.Header class="sr-only">

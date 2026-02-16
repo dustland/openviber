@@ -231,7 +231,7 @@
   <title>New Task — OpenViber</title>
 </svelte:head>
 
-<div class="flex h-full min-h-0 flex-col overflow-hidden p-6">
+<div class="flex h-full min-h-0 flex-col overflow-hidden p-4 sm:p-6">
   {#if intentCreating}
     <!-- Full-page loading state when intent is being created -->
     <div class="flex-1 flex flex-col items-center justify-center gap-4">
@@ -245,7 +245,7 @@
   {:else}
     <!-- Centered prompt + intents -->
     <div
-      class="flex-1 flex flex-col items-center justify-center overflow-y-auto"
+      class="flex-1 min-h-0 flex flex-col items-center justify-start overflow-y-auto py-2 lg:justify-center"
     >
       <MessageSquarePlus class="size-10 mb-3 text-muted-foreground/40" />
       <p class="text-lg font-medium text-foreground mb-1">New Task</p>

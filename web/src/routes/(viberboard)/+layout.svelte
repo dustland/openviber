@@ -3,7 +3,6 @@
   import { page } from "$app/stores";
   import { onMount } from "svelte";
   import * as Sidebar from "$lib/components/ui/sidebar";
-  import { useSidebar } from "$lib/components/ui/sidebar/context.svelte";
   import * as HoverCard from "$lib/components/ui/hover-card";
   import {
     AlertCircle,
@@ -117,7 +116,6 @@
   }
 
   const tasksStore = getTasksStore();
-  const sidebar = useSidebar();
   const tasksState = $derived($tasksStore);
   const tasks = $derived(tasksState.tasks as SidebarTask[]);
   let environments = $state<SidebarEnvironment[]>([]);
@@ -194,13 +192,10 @@
   });
 
   function closeMobileSidebar() {
-    if (sidebar.isMobile) {
-      sidebar.setOpenMobile(false);
-    }
+    // Mobile sidebar auto-closes after route navigation in Sidebar.Root.
   }
 
   function navigateFromSidebar(path: string) {
-    closeMobileSidebar();
     goto(path);
   }
 

@@ -22,6 +22,7 @@
     Settings,
     LogOut,
     Menu,
+    Github,
   } from "@lucide/svelte";
 
   let { children, data } = $props();
@@ -197,6 +198,16 @@
           Sign in
         </a>
       {/if}
+
+      <a
+        href="https://github.com/dustland/openviber"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="size-8 rounded-md border border-border bg-background inline-flex items-center justify-center hover:bg-accent hover:text-accent-foreground text-muted-foreground"
+        aria-label="GitHub"
+      >
+        <Github class="size-4" />
+      </a>
 
       <DropdownMenu>
         <DropdownMenuTrigger

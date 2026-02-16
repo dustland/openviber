@@ -7,6 +7,7 @@ import {
   TelegramConfig,
   InterruptSignal,
 } from "./channel";
+import { chunkForChannel } from "./chunk";
 
 export class TelegramChannel implements Channel {
   readonly id = "telegram";
@@ -136,51 +137,9 @@ export class TelegramChannel implements Channel {
     chatId: string,
     text: string,
   ): Promise<void> {
-    // Telegram max message length is 4096 chars.
-    const chunks = this.chunkText(text, 4000);
+    const chunks = chunkForChannel(text, "telegram");
     for (const chunk of chunks) {
       await this.bot.telegram.sendMessage(chatId, chunk);
     }
-  }
-
-  private chunkText(text: string, limit: number): string[] {
-    if (text.length <= limit) return [text];
-    const lines = text.split("\n");
-    const chunks: string[] = [];
-    let current = "";
-
-    const push = () => {
-      if (current.trim().length > 0) {
-        chunks.push(current);
-        current = "";
-      }
-    };
-
-    for (const line of lines) {
-      if (!line) {
-        if (current.length + 1 > limit) {
-          push();
-        }
-        current += "\n";
-        continue;
-      }
-
-      if (line.length > limit) {
-        if (current) push();
-        for (let i = 0; i < line.length; i += limit) {
-          chunks.push(line.slice(i, i + limit));
-        }
-        continue;
-      }
-
-      const separator = current ? "\n" : "";
-      if (current.length + separator.length + line.length > limit) {
-        push();
-      }
-      current += (current ? "\n" : "") + line;
-    }
-
-    push();
-    return chunks.length > 0 ? chunks : [text];
   }
 }

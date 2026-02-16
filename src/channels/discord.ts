@@ -19,6 +19,7 @@ import type {
   DiscordConfig,
   InboundMessage,
 } from "./channel";
+import { chunkForChannel } from "./chunk";
 
 type DiscordConversation = {
   channelId: string;
@@ -180,7 +181,7 @@ export class DiscordChannel implements Channel {
     const channel = await this.client.channels.fetch(ctx.channelId);
     if (!channel || !channel.isTextBased()) return;
 
-    const chunks = chunkDiscordText(content, 2000);
+    const chunks = chunkForChannel(content, "discord");
     const replyMode = this.config.replyMode ?? "reply";
 
     for (let i = 0; i < chunks.length; i += 1) {
@@ -223,45 +224,4 @@ async function sendToTextChannel(
     return;
   }
   (channel as any).send({ content });
-}
-
-function chunkDiscordText(text: string, limit: number): string[] {
-  if (text.length <= limit) return [text];
-  const lines = text.split("\n");
-  const chunks: string[] = [];
-  let current = "";
-
-  const push = () => {
-    if (current.trim().length > 0) {
-      chunks.push(current);
-      current = "";
-    }
-  };
-
-  for (const line of lines) {
-    if (!line) {
-      if (current.length + 1 > limit) {
-        push();
-      }
-      current += "\n";
-      continue;
-    }
-
-    if (line.length > limit) {
-      if (current) push();
-      for (let i = 0; i < line.length; i += limit) {
-        chunks.push(line.slice(i, i + limit));
-      }
-      continue;
-    }
-
-    const separator = current ? "\n" : "";
-    if (current.length + separator.length + line.length > limit) {
-      push();
-    }
-    current += (current ? "\n" : "") + line;
-  }
-
-  push();
-  return chunks.length > 0 ? chunks : [text];
 }

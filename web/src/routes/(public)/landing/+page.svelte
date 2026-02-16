@@ -3,7 +3,8 @@
   import { onMount } from "svelte";
   import TypewriterEffect from "$lib/components/landing/typewriter-effect.svelte";
   import InfiniteMarquee from "$lib/components/landing/infinite-marquee.svelte";
-  import CodeTyper from "$lib/components/landing/code-typer.svelte";
+  import HeroMockup from "$lib/components/landing/hero-mockup.svelte";
+
   import {
     ArrowRight,
     Bot,
@@ -146,22 +147,6 @@
     { name: "Any MCP Server", category: "Protocol" },
   ];
 
-  const codeLines = [
-    `<span class="text-purple-400">name:</span> <span class="text-green-400">"frontend-dev"</span>`,
-    `<span class="text-purple-400">role:</span> <span class="text-green-400">"Senior Frontend Engineer"</span>`,
-    `<span class="text-purple-400">model:</span> <span class="text-green-400">"claude-3-5-sonnet"</span>`,
-    ``,
-    `<span class="text-purple-400">tools:</span>`,
-    `  <span class="text-blue-400">-</span> <span class="text-yellow-300">browser</span>`,
-    `  <span class="text-blue-400">-</span> <span class="text-yellow-300">filesystem</span>`,
-    `  <span class="text-blue-400">-</span> <span class="text-yellow-300">terminal</span>`,
-    ``,
-    `<span class="text-purple-400">instructions:</span> <span class="text-orange-300">|</span>`,
-    `  <span class="text-gray-400">You are an expert in SvelteKit and Tailwind CSS.</span>`,
-    `  <span class="text-gray-400">Always check existing components before building new ones.</span>`,
-    `  <span class="text-gray-400">Use 'npm run dev' to preview changes.</span>`,
-  ];
-
   // Scroll-reveal with IntersectionObserver
   // Must use the .homepage scroll container as root (it's the overflow element)
   onMount(() => {
@@ -217,14 +202,14 @@
     <div class="orb orb-3"></div>
   </div>
 
-  <main class="container relative mx-auto px-6 py-16 md:px-8 md:py-24 lg:py-28">
+  <main class="container relative mx-auto px-6 py-10 md:px-8 md:py-16 lg:py-20">
     <!-- Hero -->
-    <section class="mx-auto max-w-5xl pt-12 text-center md:pt-20 lg:pt-24">
-      <div class="hero-logo-wrap mx-auto mb-10 w-fit">
+    <section class="mx-auto max-w-5xl pt-6 text-center md:pt-10 lg:pt-14">
+      <div class="hero-logo-wrap mx-auto mb-6 w-fit">
         <img
           src="/favicon.png"
           alt="OpenViber"
-          class="hero-logo size-20 md:size-24 lg:size-28"
+          class="hero-logo size-14 md:size-16 lg:size-20"
         />
       </div>
 
@@ -236,7 +221,7 @@
       </div>
 
       <h1
-        class="hero-title pb-4 text-6xl font-extrabold leading-[1.05] tracking-tighter sm:text-7xl md:text-8xl lg:text-9xl"
+        class="hero-title pb-3 text-4xl font-extrabold leading-[1.08] tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl"
       >
         You Imagine It.<br class="hidden sm:block" />
         <span
@@ -248,7 +233,7 @@
         />
       </h1>
       <p
-        class="hero-subtitle mx-auto mt-8 max-w-2xl text-lg leading-relaxed text-muted-foreground md:text-xl lg:max-w-3xl"
+        class="hero-subtitle mx-auto mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground md:text-lg lg:max-w-3xl"
       >
         Turn your machine into an AI workforce. Deploy role-scoped agents that
         write code, research the web, manage files, and run scheduled jobs — all
@@ -257,7 +242,7 @@
 
       <!-- Open source badge -->
       <div
-        class="hero-badge mx-auto mt-10 flex items-center justify-center gap-2.5"
+        class="hero-badge mx-auto mt-6 flex items-center justify-center gap-2.5"
       >
         <span
           class="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/50 px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur-sm"
@@ -280,7 +265,7 @@
       </div>
 
       <div
-        class="hero-cta mt-10 flex flex-wrap items-center justify-center gap-3 md:gap-4"
+        class="hero-cta mt-8 flex flex-wrap items-center justify-center gap-3 md:gap-4"
       >
         {#if data.user}
           <a
@@ -319,6 +304,11 @@
         >
           Read the Docs
         </a>
+      </div>
+
+      <!-- Hero Mockup -->
+      <div class="hero-cta mt-12 md:mt-16">
+        <HeroMockup />
       </div>
     </section>
 
@@ -388,30 +378,6 @@
             {/if}
           </div>
         {/each}
-      </div>
-    </section>
-
-    <!-- Code Preview -->
-    <section class="reveal mx-auto mt-24 max-w-4xl px-4 md:mt-32">
-      <div
-        class="relative overflow-hidden rounded-xl border border-border/50 bg-[#1e1e1e] shadow-2xl"
-      >
-        <!-- Window controls -->
-        <div
-          class="flex items-center gap-2 border-b border-white/10 bg-white/5 px-4 py-3"
-        >
-          <div class="size-3 rounded-full bg-[#ff5f56]"></div>
-          <div class="size-3 rounded-full bg-[#ffbd2e]"></div>
-          <div class="size-3 rounded-full bg-[#27c93f]"></div>
-          <div class="ml-2 text-xs font-mono text-white/50">viber.yaml</div>
-        </div>
-
-        <!-- Code content -->
-        <div
-          class="overflow-x-auto p-6 font-mono text-sm leading-relaxed text-blue-100 min-h-[300px]"
-        >
-          <CodeTyper lines={codeLines} />
-        </div>
       </div>
     </section>
 
@@ -594,16 +560,9 @@
             The local-first AI workforce for developers. Private, autonomous,
             and capable.
           </p>
-          <div class="flex items-center gap-4">
-            <a
-              href="https://github.com/dustland/openviber"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <Github class="size-5" />
-            </a>
-          </div>
+          <p class="text-xs text-muted-foreground mt-6">
+            &copy; {new Date().getFullYear()} Dustland. All rights reserved.
+          </p>
         </div>
 
         <div>
@@ -665,14 +624,6 @@
             </li>
           </ul>
         </div>
-      </div>
-
-      <div
-        class="border-t border-border/40 mt-16 pt-8 flex flex-col md:flex-row items-center justify-between gap-4"
-      >
-        <p class="text-xs text-muted-foreground">
-          &copy; {new Date().getFullYear()} Dustland. All rights reserved.
-        </p>
       </div>
     </div>
   </footer>

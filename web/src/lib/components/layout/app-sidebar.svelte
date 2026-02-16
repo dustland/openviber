@@ -17,7 +17,6 @@
     FolderGit2,
     LogOut,
     Moon,
-    Puzzle,
     Sun,
     Settings,
     Sparkles,
@@ -136,17 +135,10 @@
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   class="w-full rounded px-2.5 py-2 text-left text-sm hover:bg-accent flex items-center gap-2.5 outline-none cursor-pointer"
-                  onSelect={() => goto("/environments")}
+                  onSelect={() => goto("/settings/environments")}
                 >
                   <FolderGit2 class="size-4" />
                   Environments
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  class="w-full rounded px-2.5 py-2 text-left text-sm hover:bg-accent flex items-center gap-2.5 outline-none cursor-pointer"
-                  onSelect={() => goto("/skills")}
-                >
-                  <Puzzle class="size-4" />
-                  Skills
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   class="w-full rounded px-2.5 py-2 text-left text-sm hover:bg-accent flex items-center gap-2.5 outline-none cursor-pointer"

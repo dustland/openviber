@@ -33,10 +33,15 @@
   let error = $state<string | null>(null);
   let successMessage = $state<string | null>(null);
   let revealedKeys = $state<Set<string>>(new Set());
-  let editSources = $state<Record<string, { enabled: boolean; url: string; apiKey: string }>>({});
+  let editSources = $state<
+    Record<string, { enabled: boolean; url: string; apiKey: string }>
+  >({});
 
   function initEditState(src: Record<string, SourceConfig>) {
-    const edit: Record<string, { enabled: boolean; url: string; apiKey: string }> = {};
+    const edit: Record<
+      string,
+      { enabled: boolean; url: string; apiKey: string }
+    > = {};
     for (const [key, cfg] of Object.entries(src)) {
       edit[key] = {
         enabled: cfg.enabled,
@@ -71,7 +76,10 @@
     error = null;
     successMessage = null;
     try {
-      const payload: Record<string, { enabled: boolean; url?: string; apiKey?: string }> = {};
+      const payload: Record<
+        string,
+        { enabled: boolean; url?: string; apiKey?: string }
+      > = {};
       for (const [key, edit] of Object.entries(editSources)) {
         payload[key] = {
           enabled: edit.enabled,
@@ -139,13 +147,16 @@
   <div class="w-full px-4 py-6 sm:px-6 lg:px-8">
     <header class="mb-8">
       <div class="flex items-center gap-3 mb-2">
-        <div class="flex items-center justify-center size-10 rounded-lg bg-primary/10">
+        <div
+          class="flex items-center justify-center size-10 rounded-lg bg-primary/10"
+        >
           <Puzzle class="size-5 text-primary" />
         </div>
         <div>
           <h1 class="text-2xl font-semibold text-foreground">Skill sources</h1>
           <p class="text-sm text-muted-foreground">
-            Configure where to discover and import skills. Use the Skills page in the sidebar to browse and import.
+            Configure where to discover and import skills. Use the Skills page
+            in the sidebar to browse and import.
           </p>
         </div>
       </div>
@@ -165,7 +176,9 @@
         class="rounded-lg border border-emerald-500/50 bg-emerald-500/10 p-4 flex items-center gap-3 mb-6 animate-in fade-in slide-in-from-top-1 duration-200"
       >
         <Check class="size-5 text-emerald-600 shrink-0" />
-        <p class="text-sm text-emerald-700 dark:text-emerald-400">{successMessage}</p>
+        <p class="text-sm text-emerald-700 dark:text-emerald-400">
+          {successMessage}
+        </p>
       </div>
     {/if}
 
@@ -179,8 +192,9 @@
     {:else}
       <section class="mb-10">
         <p class="text-sm text-muted-foreground mb-4">
-            {enabledCount} of {Object.keys(editSources).length} sources enabled. These are used when you search on the Skills page.
-          </p>
+          {enabledCount} of {Object.keys(editSources).length} sources enabled. These
+          are used when you search on the Skills page.
+        </p>
 
         <div class="space-y-3">
           {#each Object.entries(editSources) as [key, edit] (key)}
@@ -197,7 +211,9 @@
                     onclick={() => toggleSource(key)}
                     role="switch"
                     aria-checked={edit.enabled}
-                    aria-label={edit.enabled ? `Disable ${meta.displayName}` : `Enable ${meta.displayName}`}
+                    aria-label={edit.enabled
+                      ? `Disable ${meta.displayName}`
+                      : `Enable ${meta.displayName}`}
                     class="mt-0.5 relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 {edit.enabled
                       ? 'bg-primary'
                       : 'bg-input'}"
@@ -211,7 +227,11 @@
 
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2 mb-1">
-                      <h3 class="text-base font-semibold text-foreground {!edit.enabled ? 'opacity-60' : ''}">
+                      <h3
+                        class="text-base font-semibold text-foreground {!edit.enabled
+                          ? 'opacity-60'
+                          : ''}"
+                      >
                         {meta.displayName}
                       </h3>
                       {#if meta.docsUrl}
@@ -226,20 +246,31 @@
                         </a>
                       {/if}
                     </div>
-                    <p class="text-sm text-muted-foreground {!edit.enabled ? 'opacity-50' : ''}">
+                    <p
+                      class="text-sm text-muted-foreground {!edit.enabled
+                        ? 'opacity-50'
+                        : ''}"
+                    >
                       {meta.description}
                     </p>
                   </div>
 
                   <div class="shrink-0">
                     {#if edit.enabled}
-                      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                        <span class="size-1.5 rounded-full bg-emerald-500"></span>
+                      <span
+                        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                      >
+                        <span class="size-1.5 rounded-full bg-emerald-500"
+                        ></span>
                         Enabled
                       </span>
                     {:else}
-                      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground">
-                        <span class="size-1.5 rounded-full bg-muted-foreground/40"></span>
+                      <span
+                        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground"
+                      >
+                        <span
+                          class="size-1.5 rounded-full bg-muted-foreground/40"
+                        ></span>
                         Disabled
                       </span>
                     {/if}
@@ -302,14 +333,21 @@
                             </button>
                           </div>
                           {#if meta.apiKeyEnvVar}
-                            <p class="mt-1 text-[11px] text-muted-foreground/60">
-                              Or set <code class="rounded bg-muted px-1 py-0.5 text-[10px]">{meta.apiKeyEnvVar}</code>
+                            <p
+                              class="mt-1 text-[11px] text-muted-foreground/60"
+                            >
+                              Or set <code
+                                class="rounded bg-muted px-1 py-0.5 text-[10px]"
+                                >{meta.apiKeyEnvVar}</code
+                              >
                             </p>
                           {/if}
                         </div>
                       {:else}
                         <div class="flex items-end">
-                          <div class="flex items-center gap-2 text-xs text-muted-foreground/60 pb-1">
+                          <div
+                            class="flex items-center gap-2 text-xs text-muted-foreground/60 pb-1"
+                          >
                             <Shield class="size-3.5" />
                             No auth required
                           </div>
@@ -325,7 +363,8 @@
       </section>
 
       <p class="text-sm text-muted-foreground pb-4">
-        <a href="/skills" class="text-primary hover:underline">Open Skills</a> to discover and import skills from these sources.
+        Go to a viber's <strong>Skills</strong> tab to discover and import skills
+        from these sources.
       </p>
     {/if}
   </div>

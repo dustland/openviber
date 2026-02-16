@@ -3,12 +3,13 @@
 	import { cn, type WithElementRef } from "$lib/utils.js";
 	import type { HTMLAttributes } from "svelte/elements";
 	import {
-		SIDEBAR_COOKIE_MAX_AGE,
-		SIDEBAR_COOKIE_NAME,
 		SIDEBAR_WIDTH,
 		SIDEBAR_WIDTH_ICON,
 	} from "./constants.js";
 	import { setSidebar } from "./context.svelte.js";
+	import { onMount } from "svelte";
+
+	const SIDEBAR_STORAGE_KEY = "sidebar:open";
 
 	let {
 		ref = $bindable(null),
@@ -23,14 +24,22 @@
 		onOpenChange?: (open: boolean) => void;
 	} = $props();
 
+	// Initialize from localStorage on mount
+	onMount(() => {
+		const stored = localStorage.getItem(SIDEBAR_STORAGE_KEY);
+		if (stored !== null) {
+			open = stored === "true";
+		}
+	});
+
 	const sidebar = setSidebar({
 		open: () => open,
 		setOpen: (value: boolean) => {
 			open = value;
 			onOpenChange(value);
 
-			// This sets the cookie to keep the sidebar state.
-			document.cookie = `${SIDEBAR_COOKIE_NAME}=${open}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
+			// Persist to localStorage
+			localStorage.setItem(SIDEBAR_STORAGE_KEY, String(value));
 		},
 	});
 </script>

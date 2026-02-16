@@ -22,6 +22,8 @@
   const tabs = [
     { label: "Status", href: `/vibers/${viberId}/status` },
     { label: "Settings", href: `/vibers/${viberId}/settings` },
+    { label: "Skills", href: `/vibers/${viberId}/skills` },
+    { label: "Channels", href: `/vibers/${viberId}/channels` },
     { label: "Jobs", href: `/vibers/${viberId}/jobs` },
     { label: "Tasks", href: `/vibers/${viberId}/tasks` },
   ] as const;
@@ -30,6 +32,8 @@
   const activeTabs = $derived([
     { label: "Status", href: `/vibers/${viberId}/status` },
     { label: "Settings", href: `/vibers/${viberId}/settings` },
+    { label: "Skills", href: `/vibers/${viberId}/skills` },
+    { label: "Channels", href: `/vibers/${viberId}/channels` },
     { label: "Jobs", href: `/vibers/${viberId}/jobs` },
     { label: "Tasks", href: `/vibers/${viberId}/tasks` },
   ]);

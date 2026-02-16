@@ -1,7 +1,6 @@
 <script lang="ts">
   import { RefreshCw, Puzzle, Network, X, Server } from "@lucide/svelte";
   import { Skeleton } from "$lib/components/ui/skeleton";
-  import ChannelConfigPanel from "$lib/components/channel-config-panel.svelte";
 
   interface DetailedStatus {
     machine?: Record<string, unknown>;
@@ -443,8 +442,5 @@
         {/if}
       </div>
     {/if}
-
-    <!-- Channel Configuration -->
-    <ChannelConfigPanel {viberId} />
   {/if}
 </div>

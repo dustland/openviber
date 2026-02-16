@@ -6,7 +6,6 @@
     ArrowLeft,
     BookOpen,
     Cable,
-    MessageSquare,
     Puzzle,
     Settings,
     Sparkles,
@@ -36,10 +35,7 @@
     pathname === "/settings/integrations" ||
       pathname.startsWith("/settings/integrations/"),
   );
-  const isChannelsRoute = $derived(
-    pathname === "/settings/channels" ||
-      pathname.startsWith("/settings/channels/"),
-  );
+
   const isArchivedRoute = $derived(
     pathname === "/settings/archived" ||
       pathname.startsWith("/settings/archived/"),
@@ -143,23 +139,6 @@
                 <Sparkles class="size-4 shrink-0" />
                 <span class="truncate group-data-[collapsible=icon]:hidden"
                   >Intents</span
-                >
-              </a>
-            </Sidebar.MenuButton>
-          </Sidebar.MenuItem>
-
-          <Sidebar.MenuItem>
-            <Sidebar.MenuButton
-              isActive={isChannelsRoute}
-              tooltipContent="Channels"
-            >
-              <a
-                href="/settings/channels"
-                class="w-full inline-flex items-center gap-2"
-              >
-                <MessageSquare class="size-4 shrink-0" />
-                <span class="truncate group-data-[collapsible=icon]:hidden"
-                  >Channels</span
                 >
               </a>
             </Sidebar.MenuButton>

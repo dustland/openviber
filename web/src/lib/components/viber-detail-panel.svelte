@@ -17,7 +17,6 @@
     Loader2,
   } from "@lucide/svelte";
   import { Skeleton } from "$lib/components/ui/skeleton";
-  import ChannelConfigPanel from "$lib/components/channel-config-panel.svelte";
 
   interface DetailedStatus {
     machine?: {
@@ -1145,10 +1144,6 @@
                 </div>
               {/if}
             </section>
-          {/if}
-
-          {#if isConfig}
-            <ChannelConfigPanel {viberId} />
           {/if}
         </div>
       {/if}

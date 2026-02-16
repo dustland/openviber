@@ -3,8 +3,7 @@ import { supabaseRequest } from "./supabase";
 
 interface MessageRow {
   id: string;
-  task_id: string | null;
-  viber_id: string;
+  task_id: string;
   role: string;
   content: string;
   created_at: string;
@@ -24,14 +23,13 @@ export interface StoredMessage {
   content: string;
   parts: unknown[] | null;
   createdAt: string;
-  taskId: string | null;
+  taskId: string;
 }
 
 export interface MessageInsertInput {
   role: string;
   content: string;
   parts?: unknown[] | null;
-  taskId?: string | null;
 }
 
 function decodeStoredContent(
@@ -80,41 +78,11 @@ function mapMessageRow(row: MessageRow): StoredMessage {
   };
 }
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-/**
- * Best-effort upsert for viber identity row to satisfy optional FK constraints.
- * Skips the upsert when the id is not a valid UUID (e.g. task-xxx ids generated
- * by the gateway) since the vibers table uses UUID for its primary key.
- */
-async function ensureViberRow(viberId: string) {
-  if (!UUID_RE.test(viberId)) return;
-  try {
-    const now = new Date().toISOString();
-    await supabaseRequest<unknown>("vibers", {
-      method: "POST",
-      params: {
-        on_conflict: "id",
-      },
-      prefer: "resolution=merge-duplicates,return=minimal",
-      body: [
-        {
-          id: viberId,
-          name: viberId,
-          created_at: now,
-        },
-      ],
-    });
-  } catch (error) {
-    console.warn("Failed to upsert viber row (continuing):", error);
-  }
-}
-
-export async function listMessagesForViber(
-  viberId: string,
+export async function listMessagesForTask(
+  taskId: string,
 ): Promise<StoredMessage[]> {
   const params: Record<string, string> = {
-    viber_id: `eq.${viberId}`,
+    task_id: `eq.${taskId}`,
     select: "*",
     order: "created_at.asc",
   };
@@ -123,12 +91,10 @@ export async function listMessagesForViber(
   return rows.map(mapMessageRow);
 }
 
-export async function appendMessagesForViber(
-  viberId: string,
+export async function appendMessagesForTask(
+  taskId: string,
   inputs: MessageInsertInput[],
 ): Promise<StoredMessage[]> {
-  await ensureViberRow(viberId);
-
   const now = new Date().toISOString();
 
   const rowsToInsert = inputs
@@ -148,8 +114,7 @@ export async function appendMessagesForViber(
 
       return {
         id: `msg_${nanoid(12)}`,
-        task_id: input.taskId ?? null,
-        viber_id: viberId,
+        task_id: taskId,
         role,
         content,
         created_at: now,

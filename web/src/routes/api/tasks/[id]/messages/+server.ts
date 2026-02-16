@@ -1,8 +1,8 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import {
-  appendMessagesForViber,
-  listMessagesForViber,
+  appendMessagesForTask,
+  listMessagesForTask,
   type MessageInsertInput,
 } from "$lib/server/messages";
 import { touchViberActivity } from "$lib/server/environments";
@@ -14,7 +14,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
   }
 
   try {
-    const rows = await listMessagesForViber(params.id);
+    const rows = await listMessagesForTask(params.id);
 
     const messages = rows.map((row) => ({
       id: row.id,
@@ -40,7 +40,7 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 
   try {
     const body = await request.json();
-    const viberId = params.id;
+    const taskId = params.id;
 
     const rawInputs = Array.isArray(body.messages)
       ? body.messages
@@ -49,7 +49,6 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
           role: body.role,
           content: body.content,
           parts: body.parts,
-          taskId: body.taskId ?? null,
         },
       ];
 
@@ -61,16 +60,12 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
           ? JSON.stringify(input.content)
           : "",
       parts: Array.isArray(input?.parts) ? input.parts : null,
-      taskId:
-        input?.taskId !== undefined
-          ? String(input.taskId || "").trim() || null
-          : null,
     }));
 
-    const createdRows = await appendMessagesForViber(viberId, inputs);
+    const createdRows = await appendMessagesForTask(taskId, inputs);
 
     if (createdRows.length > 0) {
-      await touchViberActivity(viberId);
+      await touchViberActivity(taskId);
     }
 
     const created = createdRows.map((row) => ({

@@ -3,6 +3,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from "http";
+import { randomUUID } from "crypto";
 import { readJsonBody } from "../utils/router";
 import type {
   GatewayTask,
@@ -82,9 +83,7 @@ export class TaskManager {
       }
 
       // Create task
-      const taskId = `task-${Date.now()}-${Math.random()
-        .toString(36)
-        .slice(2, 8)}`;
+      const taskId = randomUUID();
       const task: GatewayTask = {
         id: taskId,
         viberId: connectedViber.id,

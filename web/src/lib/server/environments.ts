@@ -1,6 +1,5 @@
-import { createCipheriv, createDecipheriv, createHash, randomBytes } from "crypto";
+import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID } from "crypto";
 import { env } from "$env/dynamic/private";
-import { nanoid } from "nanoid";
 import { getServerSupabase, supabaseRequest, toInFilter } from "./supabase";
 
 const ENVIRONMENT_TYPES = new Set(["github", "local", "manual"]);
@@ -590,7 +589,7 @@ export async function createEnvironmentForUser(
   },
 ): Promise<EnvironmentDetail> {
   const now = new Date().toISOString();
-  const environmentId = `env_${nanoid(12)}`;
+  const environmentId = randomUUID();
   const name = payload.name.trim();
   const type = normalizeEnvironmentType(payload.type);
   const parsedRepo = parseGitHubRepo(payload.repoUrl);

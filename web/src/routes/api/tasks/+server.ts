@@ -137,7 +137,10 @@ export const POST: RequestHandler = async ({ request, locals }) => {
             viber_id: targetViberId ?? null,
             environment_id: environmentId ?? null,
             status: "pending",
-            skills: extraSkills && extraSkills.length > 0 ? extraSkills : [],
+            config: {
+              skills: extraSkills && extraSkills.length > 0 ? extraSkills : [],
+              ...(viberModel ? { model: viberModel } : {}),
+            },
           },
         });
       } catch (e) {

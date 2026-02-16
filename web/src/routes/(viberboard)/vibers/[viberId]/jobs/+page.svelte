@@ -82,7 +82,7 @@
   });
 </script>
 
-<div class="p-6">
+<div class="h-full overflow-y-auto p-6 flex flex-col">
   {#if error}
     <div
       class="rounded-lg border border-destructive/50 bg-destructive/10 p-4 flex items-center gap-3 mb-6"
@@ -93,7 +93,7 @@
   {/if}
 
   {#if loading}
-    <div class="flex items-center justify-center py-16">
+    <div class="flex items-center justify-center py-16 flex-1">
       <div class="animate-pulse flex flex-col items-center gap-3">
         <CalendarClock class="size-10 text-muted-foreground/50" />
         <p class="text-sm text-muted-foreground">Loading jobs…</p>
@@ -101,7 +101,7 @@
     </div>
   {:else if jobs.length === 0}
     <div
-      class="flex flex-col items-center justify-center rounded-xl border border-dashed border-border p-12 text-center"
+      class="flex flex-col items-center justify-center rounded-xl border border-dashed border-border p-12 text-center flex-1"
     >
       <Mail class="size-12 text-muted-foreground/50 mx-auto mb-4" />
       <h2 class="text-lg font-medium text-foreground mb-2">

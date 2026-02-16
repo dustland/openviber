@@ -263,7 +263,7 @@
   });
 </script>
 
-<section class="mt-6">
+<section>
   <div class="flex items-center justify-between mb-3">
     <div class="flex items-center gap-2">
       <Zap class="size-4 text-muted-foreground" />

@@ -9,6 +9,6 @@
   <title>Channels — OpenViber</title>
 </svelte:head>
 
-<div class="p-6">
+<div class="h-full overflow-y-auto p-6">
   <ChannelConfigPanel {viberId} />
 </div>

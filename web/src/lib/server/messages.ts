@@ -80,10 +80,15 @@ function mapMessageRow(row: MessageRow): StoredMessage {
   };
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /**
  * Best-effort upsert for viber identity row to satisfy optional FK constraints.
+ * Skips the upsert when the id is not a valid UUID (e.g. task-xxx ids generated
+ * by the gateway) since the vibers table uses UUID for its primary key.
  */
 async function ensureViberRow(viberId: string) {
+  if (!UUID_RE.test(viberId)) return;
   try {
     const now = new Date().toISOString();
     await supabaseRequest<unknown>("vibers", {

@@ -69,11 +69,11 @@ cp .env.example .env
 
 ### 3. Launch full stack
 ```bash
-# Starts Gateway (6007), Viber runtime (connects to Gateway), and Web UI (6006)
+# Starts Gateway + Viber runtime (port 6009) and Web UI (port 6006)
 pnpm dev
 ```
 - **Viber Board (Web UI)**: [http://localhost:6006](http://localhost:6006)
-- **Viber Gateway**: [http://localhost:6007](http://localhost:6007)
+- **Viber Gateway**: [http://localhost:6009](http://localhost:6009)
 
 ---
 
@@ -157,13 +157,13 @@ Maintain control with approval gates. Tasks can be configured to pause and ask f
 │  └────────────────────────────────────────────┘  │
 │        │                                        │
 │   ┌────┴─────────────────────┐                  │
+│   │  Gateway (REST + WS)     │                  │
 │   │  Scheduler + Dispatcher  │                  │
-│   │    (YAML Cron Jobs)      │                  │
 │   └──────────────────────────┘                  │
 │        │                                        │
 │   ┌────┴─────────────────────┐                  │
-│   │     Tools + Skills       │                  │
-│   │  (Browser/File/MCP/CLI)  │                  │
+│   │  Worker (Agent Engine)   │                  │
+│   │  Tools + Skills + MCP    │                  │
 │   └──────────────────────────┘                  │
 │        │                                        │
 │   ┌────┴─────────────────────┐                  │

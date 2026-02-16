@@ -40,15 +40,15 @@ Press Ctrl+C to stop.
 
 export const gatewayCommand = new Command("gateway")
   .description("Start the gateway (central coordinator for Viber runtimes)")
-  .option("-p, --port <port>", "Port to listen on", "6007")
+  .option("-p, --port <port>", "Port to listen on", "6009")
   .action(gatewayAction);
 
 export const boardCommand = new Command("board")
   .description("(deprecated: use 'gateway') Start the gateway")
-  .option("-p, --port <port>", "Port to listen on", "6007")
+  .option("-p, --port <port>", "Port to listen on", "6009")
   .action(gatewayAction);
 
 export const hubCommand = new Command("hub")
   .description("(deprecated: use 'gateway') Start the gateway")
-  .option("-p, --port <port>", "Port to listen on", "6007")
+  .option("-p, --port <port>", "Port to listen on", "6009")
   .action(gatewayAction);

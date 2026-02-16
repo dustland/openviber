@@ -54,7 +54,7 @@ Viber Status
       const statusGatewayUrl =
         options.gateway || options.board || options.hub ||
         process.env.VIBER_GATEWAY_URL || process.env.VIBER_BOARD_URL || process.env.VIBER_HUB_URL ||
-        "http://localhost:6007";
+        "http://localhost:6009";
 
       let gatewayNodeStatus = null;
       if (!options.local) {
@@ -144,7 +144,7 @@ Machine Resources
       const statusGatewayUrl2 =
         options.gateway || options.board || options.hub ||
         process.env.VIBER_GATEWAY_URL || process.env.VIBER_BOARD_URL || process.env.VIBER_HUB_URL ||
-        "http://localhost:6007";
+        "http://localhost:6009";
 
       try {
         const daemonId = options.node || viberId;

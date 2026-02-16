@@ -13,18 +13,21 @@ This page is a quick map of the system. For detailed behavior and contracts, fol
 flowchart LR
     User[Operator]
     Web[OpenViber Board\nweb/]
-    Gateway[Gateway\nsrc/gateway + src/channels]
+    Gateway[Gateway\nsrc/gateway]
+    Channels[Channels\nsrc/channels]
     Daemon[Daemon Runtime\nsrc/daemon]
-    Viber[Viber Core\nsrc/viber]
+    Worker[Worker Core\nsrc/worker]
     Tools[Tools + Skills\nsrc/tools + src/skills]
     State[(~/.openviber)]
     Spaces[(workspace repos / files)]
 
     User --> Web
+    User --> Channels
     Web <--> Gateway
+    Channels <--> Gateway
     Gateway <--> Daemon
-    Daemon --> Viber
-    Viber --> Tools
+    Daemon --> Worker
+    Worker --> Tools
     Daemon <--> State
     Tools <--> Spaces
 ```
@@ -32,9 +35,10 @@ flowchart LR
 ## Layer boundaries (summary)
 
 - `web/`: UI only; communicates via API/WebSocket boundaries.
-- `src/channels` and `src/gateway`: transport adapters and routing.
+- `src/gateway`: REST API + WebSocket coordinator (modules: `tasks.ts`, `vibers.ts`, `events.ts`).
+- `src/channels`: enterprise transport adapters (DingTalk, WeCom).
 - `src/daemon`: orchestration, task lifecycle, and runtime coordination.
-- `src/viber`: planning/execution behavior and agent-level loop.
+- `src/worker`: planning/execution behavior and agent-level loop.
 - `src/tools` and `src/skills`: capability surfaces used by vibers.
 - `~/.openviber`: durable runtime state and personalization.
 

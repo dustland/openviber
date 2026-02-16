@@ -140,13 +140,16 @@ export const startCommand = new Command("start")
       process.exit(0);
     });
 
-    // Start embedded gateway so the node is a self-contained unit.
-    // `viber chat` and other tooling connect to this local API.
+    // Start embedded gateway only in standalone mode.
+    // In connected mode the external gateway (pnpm dev:gateway) is already running.
     const apiPort = parseInt(options.apiPort || "6009", 10);
-    const { GatewayServer } = await import("../../gateway/server");
-    const embeddedGateway = new GatewayServer({ port: apiPort });
-    await embeddedGateway.start();
-    console.log(`[Viber] Local API ready on http://localhost:${apiPort}`);
+    let embeddedGateway: import("../../gateway/server").GatewayServer | null = null;
+    if (isStandaloneMode) {
+      const { GatewayServer } = await import("../../gateway/server");
+      embeddedGateway = new GatewayServer({ port: apiPort });
+      await embeddedGateway.start();
+      console.log(`[Viber] Local API ready on http://localhost:${apiPort}`);
+    }
 
     // Start local WebSocket server for terminal streaming (always, both modes)
     const { LocalServer } = await import("../../daemon/local-server");
@@ -157,7 +160,7 @@ export const startCommand = new Command("start")
     const fullCleanup = async () => {
       console.log("\n[Viber] Shutting down...");
       await localServer.stop();
-      await embeddedGateway.stop();
+      if (embeddedGateway) await embeddedGateway.stop();
       await scheduler.stop();
     };
 

@@ -21,8 +21,8 @@ pnpm dev
 
 This starts 3 services:
 - **Web UI** on port **6006** (web/ SvelteKit app)
-- **Hub server** on port **6007** (daemon)
-- **Hub WS** on port **6008** (WebSocket relay)
+- **Gateway** on port **6009** (REST API + WebSocket coordinator)
+- **Viber daemon** connects to gateway via WS
 
 // turbo
 2. Open the web app in browser:
@@ -36,8 +36,9 @@ http://localhost:6006
 
 Run services separately if needed:
 ```bash
-pnpm dev:gateway  # Gateway only (or pnpm dev:hub for deprecated alias)
-pnpm dev:web    # Web UI only
-pnpm dev:viber  # Viber daemon only
-pnpm dev:setup  # Re-run setup (create default agent config)
+pnpm dev:gateway     # Gateway only
+pnpm dev:web         # Web UI only
+pnpm dev:standalone  # Standalone mode (embedded gateway + viber daemon)
+pnpm dev:chat        # CLI chat (connects to gateway at localhost:6009)
+pnpm dev:setup       # Re-run setup (create default agent config)
 ```

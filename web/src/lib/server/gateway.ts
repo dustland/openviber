@@ -12,7 +12,7 @@
 import { env } from "$env/dynamic/private";
 
 // VIBER_GATEWAY_* with deprecated VIBER_BOARD_* and VIBER_HUB_* fallbacks
-const GATEWAY_URL = env.VIBER_GATEWAY_URL || env.VIBER_BOARD_URL || env.VIBER_HUB_URL || "http://localhost:6007";
+const GATEWAY_URL = env.VIBER_GATEWAY_URL || env.VIBER_BOARD_URL || env.VIBER_HUB_URL || "http://localhost:6009";
 const GATEWAY_API_TOKEN = env.VIBER_GATEWAY_API_TOKEN || env.VIBER_BOARD_API_TOKEN || env.VIBER_HUB_API_TOKEN;
 const ENFORCE_SECURE_GATEWAY = (env.VIBER_GATEWAY_SECURE || env.VIBER_BOARD_SECURE || env.VIBER_HUB_SECURE) === "true";
 
@@ -284,8 +284,8 @@ export const gatewayClient = {
         throw new Error(`Gateway returned ${response.status}`);
       }
       const data = await response.json();
-      // Gateway returns { connected, nodes } — remap to { connected, vibers }
-      return { connected: data.connected, vibers: data.nodes ?? [] };
+      // Gateway returns { connected, vibers }
+      return { connected: data.connected, vibers: data.vibers ?? data.nodes ?? [] };
     } catch (error) {
       console.error("[GatewayClient] Failed to get vibers:", error);
       return { connected: false, vibers: [] };
@@ -299,9 +299,11 @@ export const gatewayClient = {
       if (!response.ok) {
         throw new Error(`Gateway returned ${response.status}`);
       }
-      return await response.json();
+      const data = await response.json();
+      // Gateway returns { tasks } (new) or { vibers } (legacy)
+      return { vibers: data.tasks ?? data.vibers ?? [] };
     } catch (error) {
-      console.error("[GatewayClient] Failed to get vibers:", error);
+      console.error("[GatewayClient] Failed to get tasks:", error);
       return { vibers: [] };
     }
   },
@@ -321,7 +323,7 @@ export const gatewayClient = {
     },
     oauthTokens?: Record<string, { accessToken: string; refreshToken?: string | null }>,
     model?: string,
-  ): Promise<{ viberId: string } | null> {
+  ): Promise<{ viberId: string; taskId?: string } | null> {
     try {
       const response = await gatewayFetch("/api/tasks", {
         method: "POST",
@@ -338,7 +340,9 @@ export const gatewayClient = {
         throw err;
       }
 
-      return await response.json();
+      const data = await response.json();
+      // Gateway returns { taskId } but callers expect { viberId }
+      return { viberId: data.taskId ?? data.viberId, taskId: data.taskId };
     } catch (error) {
       console.error("[GatewayClient] Failed to create task:", error);
       throw error;
@@ -373,7 +377,7 @@ export const gatewayClient = {
     },
     oauthTokens?: Record<string, { accessToken: string; refreshToken?: string | null }>,
     model?: string,
-  ): Promise<{ viberId: string } | null> {
+  ): Promise<{ viberId: string; taskId?: string } | null> {
     try {
       const response = await gatewayFetch(`/api/tasks/${viberId}/message`, {
         method: "POST",
@@ -390,7 +394,9 @@ export const gatewayClient = {
         throw err;
       }
 
-      return await response.json();
+      const data = await response.json();
+      // Gateway returns { taskId } but callers expect { viberId }
+      return { viberId: data.taskId ?? data.viberId, taskId: data.taskId };
     } catch (error) {
       console.error("[GatewayClient] Failed to send message:", error);
       throw error;

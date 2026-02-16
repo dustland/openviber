@@ -95,7 +95,7 @@ viber/
 
 ### Key Directories
 
-- **`src/viber/`**: Core abstractions (Agent, Task, etc.)
+- **`src/worker/`**: Core abstractions (Agent, Task, etc.)
 - **`src/daemon/`**: The runtime that manages local execution and scheduling.
 - **`web/`**: The SvelteKit application that provides the UI (Viber Board) and serves documentation.
 - **`src/skills/`**: Standard skill definitions.

@@ -748,10 +748,9 @@
         // Surface task-level errors from the hub/daemon
         if (data.status === "error" && data.error) {
           chatError = data.error;
-        } else if (data.status !== "error") {
-          // Clear stale error when status recovers (e.g. retry)
-          if (chatError) chatError = null;
         }
+        // NOTE: Do NOT auto-clear chatError when status recovers.
+        // Errors persist until user dismisses them (X button) or sends a new message.
         // Only reload messages when NOT actively sending (prevents duplicates)
         if (id && !sending) await fetchMessages(id);
       } else {

@@ -11,7 +11,7 @@ import { getSettingsForUser } from "$lib/server/settings";
 import { getDecryptedOAuthConnections } from "$lib/server/oauth";
 import { writeLog } from "$lib/server/logs";
 
-const GATEWAY_URL = process.env.VIBER_GATEWAY_URL || process.env.VIBER_BOARD_URL || process.env.VIBER_HUB_URL || "http://localhost:6007";
+const GATEWAY_URL = process.env.VIBER_GATEWAY_URL || process.env.VIBER_BOARD_URL || process.env.VIBER_HUB_URL || "http://localhost:6009";
 
 /**
  * POST /api/tasks/[id]/chat
@@ -49,8 +49,8 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
       "";
     const hasUserImage = Array.isArray(lastUserMessage?.parts)
       ? lastUserMessage.parts.some(
-          (p: any) => p.type === "file" && typeof p.mediaType === "string" && p.mediaType.startsWith("image/"),
-        )
+        (p: any) => p.type === "file" && typeof p.mediaType === "string" && p.mediaType.startsWith("image/"),
+      )
       : false;
     const goal = userText || (hasUserImage ? "[Image attached]" : "");
 
@@ -70,8 +70,8 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
               .join("\n") || "";
         const imageCount = Array.isArray(m.parts)
           ? m.parts.filter(
-              (p: any) => p.type === "file" && typeof p.mediaType === "string" && p.mediaType.startsWith("image/"),
-            ).length
+            (p: any) => p.type === "file" && typeof p.mediaType === "string" && p.mediaType.startsWith("image/"),
+          ).length
           : 0;
         const imageSummary = imageCount > 0 ? `\n[Attached ${imageCount} image${imageCount > 1 ? "s" : ""}]` : "";
         return {

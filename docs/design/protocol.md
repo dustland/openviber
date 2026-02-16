@@ -44,7 +44,7 @@ The protocol is intentionally simple. The AI SDK handles the complex parts (stre
 
 ## 2. Gateway REST API
 
-The gateway exposes a REST API for the web app (via `gateway.ts`):
+The gateway exposes a REST API for the web app (via `src/gateway/`):
 
 | Method | Endpoint | Purpose |
 |--------|----------|---------|

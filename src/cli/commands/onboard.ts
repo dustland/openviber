@@ -70,7 +70,7 @@ export const onboardCommand = new Command("onboard")
         // Determine the board server WebSocket URL from the web URL
         const gatewayWsUrl = (options.gateway || options.board || options.hub)
           ? (options.gateway || options.board || options.hub).replace(/^http/, "ws") + "/ws"
-          : webBaseUrl.replace(/^http/, "ws").replace(":6006", ":6007") + "/ws";
+          : webBaseUrl.replace(/^http/, "ws").replace(":6006", ":6009") + "/ws";
 
         // Save config for future `openviber start` calls
         const savedConfig = {

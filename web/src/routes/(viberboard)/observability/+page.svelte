@@ -194,6 +194,10 @@
   const filteredLogs = $derived(logs);
 </script>
 
+<svelte:head>
+  <title>Observability - OpenViber</title>
+</svelte:head>
+
 <div class="flex h-full flex-col">
   <!-- Header -->
   <div class="border-b border-border px-4 py-4 sm:px-6 lg:px-8">

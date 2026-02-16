@@ -21,9 +21,9 @@
     }
   },
   "scripts": {
-    "dev": "tsx scripts/dev-setup.ts && concurrently -n gateway,web,viber \"tsx watch src/cli/index.ts gateway\" \"cd web && pnpm dev\" \"tsx watch src/cli/index.ts start --server ws://localhost:6007/ws\"",
+    "dev": "tsx scripts/dev-setup.ts && concurrently -n gateway,web,viber \"tsx watch src/cli/index.ts gateway\" \"cd web && pnpm dev\" \"tsx watch src/cli/index.ts start --server ws://localhost:6009/ws\"",
     "dev:gateway": "tsx watch src/cli/index.ts gateway",
-    "dev:viber": "tsx watch src/cli/index.ts start",
+    "dev:standalone": "tsx watch src/cli/index.ts start",
     "dev:chat": "tsx src/cli/index.ts chat --gateway http://localhost:6009",
     "dev:web": "cd web && pnpm dev",
     "dev:setup": "tsx scripts/dev-setup.ts",

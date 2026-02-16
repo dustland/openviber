@@ -13,7 +13,7 @@ This document defines the minimum contracts required when integrating non-TypeSc
 
 Polyglot components are treated as **edge adapters**, not core orchestrators.
 
-- Core orchestration remains in `src/daemon` and `src/viber`.
+- Core orchestration remains in `src/daemon` and `src/worker`.
 - Polyglot services must communicate through explicit protocol boundaries.
 - No direct cross-runtime shared mutable state.
 

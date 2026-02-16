@@ -21,7 +21,7 @@
  *   GET  /api/tasks/:id/stream - SSE stream for task output
  *
  * WebSocket (for viber daemons):
- *   ws://localhost:6007/ws - Viber daemon connection endpoint
+ *   ws://localhost:6009/ws - Viber daemon connection endpoint
  */
 
 import { createServer } from "http";

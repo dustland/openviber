@@ -1214,8 +1214,8 @@ export class ViberController extends EventEmitter {
         const gatewayUrl = new URL(this.config.serverUrl);
         // Replace ws:// with http:// or wss:// with https://
         const protocol = gatewayUrl.protocol === "wss:" ? "https:" : "http:";
-        // Default web port is 6006 (gateway is 6007)
-        const port = gatewayUrl.port === "6007" ? "6006" : gatewayUrl.port;
+        // Default web port is 6006 (gateway is 6009)
+        const port = gatewayUrl.port === "6009" ? "6006" : gatewayUrl.port;
         return `${protocol}//${gatewayUrl.hostname}${port ? `:${port}` : ""}`;
       } catch {
         // Invalid URL, return null

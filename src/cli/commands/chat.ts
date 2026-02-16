@@ -152,7 +152,7 @@ export const chatCommand = new Command("chat")
   )
   .option(
     "--gateway <url>",
-    "Gateway URL (defaults to VIBER_GATEWAY_URL or http://localhost:6007)",
+    "Gateway URL (defaults to VIBER_GATEWAY_URL or http://localhost:6009)",
   )
   .option(
     "--board <url>",

@@ -19,6 +19,7 @@ import { statusCommand } from "./commands/status";
 import { onboardCommand } from "./commands/onboard";
 import { skillCommand } from "./commands/skill";
 import { channelsCommand } from "./commands/channels";
+import { envCommand } from "./commands/env";
 
 function getCliName(): string {
   const invokedPath = process.argv[1];
@@ -45,6 +46,7 @@ program.addCommand(statusCommand);
 program.addCommand(onboardCommand);
 program.addCommand(skillCommand);
 program.addCommand(channelsCommand);
+program.addCommand(envCommand);
 
 async function main(): Promise<void> {
   if (shouldRunInteractiveLauncher()) {

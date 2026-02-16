@@ -59,9 +59,9 @@
       title: "Concepts",
       items: [
         { title: "Viber", href: "/docs/concepts/viber" },
+        { title: "Tasks", href: "/docs/concepts/tasks" },
         { title: "Jobs", href: "/docs/concepts/jobs" },
-        { title: "Skills", href: "/docs/concepts/skills" },
-        { title: "Tools", href: "/docs/concepts/tools" },
+        { title: "Skills & Tools", href: "/docs/concepts/skills" },
         { title: "Memory", href: "/docs/concepts/memory" },
       ],
     },

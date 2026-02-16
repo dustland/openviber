@@ -63,6 +63,15 @@ export function getModelProvider(config: ModelConfig) {
         fetch: config.proxyFetch,
       });
 
+    case "custom":
+    case "openai-compatible":
+      // Generic OpenAI-compatible provider (works with vLLM, Ollama, LM Studio, etc.)
+      return createOpenAI({
+        apiKey: apiKey || process.env.OPENAI_API_KEY || "dummy", // Allow dummy key for local models
+        baseURL: baseURL || process.env.OPENAI_BASE_URL,
+        fetch: config.proxyFetch,
+      });
+
     case "deepseek":
       return deepseek;
 
@@ -110,6 +119,9 @@ export function isProviderConfigured(provider: string): boolean {
       return !!process.env.DEEPSEEK_API_KEY;
     case "openrouter":
       return !!process.env.OPENROUTER_API_KEY;
+    case "custom":
+    case "openai-compatible":
+      return true; // Always considered configured as it can use runtime config
     case "google":
       // Google provider needs to be imported and configured
       return false; // Not yet implemented
@@ -131,6 +143,8 @@ export function getConfiguredProviders(): string[] {
     "openai",
     "deepseek",
     "openrouter",
+    "custom",
+    "openai-compatible",
     "google",
     "mistral",
     "cohere",

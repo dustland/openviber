@@ -180,7 +180,7 @@ This keeps each task **independent and stateless** — the handoff state machine
 
 ## What Tasks Can Do
 
-Tasks use **tools** to interact with your machine and external services:
+Tasks use **tools** provided by **skills** to interact with your machine and external services:
 
 | Tool Category | Examples |
 |---------------|----------|
@@ -191,7 +191,7 @@ Tasks use **tools** to interact with your machine and external services:
 | **Communication** | `email.send`, `slack.postMessage` |
 | **Desktop** | `desktop.launch_app`, `desktop.click` |
 
-See [Tools](/docs/concepts/tools) for the complete reference.
+See [Skills & Tools](/docs/concepts/skills) for the complete reference.
 
 **Security**: All tool executions are logged. Sensitive tools require approval. Path traversal attacks are blocked by resolving paths relative to declared spaces.
 
@@ -236,6 +236,5 @@ openviber tasks start dev-task
 ## Next Steps
 
 - [Viber](/docs/concepts/viber) — The machine that runs tasks
-- [Tools](/docs/concepts/tools) — What tasks can do
-- [Skills](/docs/concepts/skills) — Domain knowledge bundles
+- [Skills & Tools](/docs/concepts/skills) — What tasks can do
 - [Memory](/docs/concepts/memory) — How tasks remember context

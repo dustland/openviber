@@ -1,11 +1,13 @@
 ---
-title: "Skills"
-description: "Domain knowledge bundles that teach agents how to approach specific tasks"
+title: "Skills & Tools"
+description: "Domain knowledge bundles and the actions agents can take"
 ---
 
-# Skills
+# Skills & Tools
 
-**Skills** are bundles of domain knowledge that teach agents how to approach specific tasks. Unlike tools (which provide actions), skills provide *knowledge*, *context*, and optionally *specialized tools* scoped to a domain.
+**Skills** are bundles of domain knowledge that teach agents how to approach specific tasks. **Tools** are the actions agents can take to accomplish those tasks.
+
+---
 
 ## Skills vs Tools
 
@@ -15,11 +17,89 @@ description: "Domain knowledge bundles that teach agents how to approach specifi
 | **Content** | Instructions, best practices, workflows | Executable functions |
 | **Format** | Markdown (`SKILL.md`) + optional code (`index.ts`) | TypeScript classes or functions |
 | **Example** | "How to use the Cursor CLI from automation" | `file.write()`, `search()` |
-| **Loaded when** | Referenced in task config or agent setup | Registered in the tool registry |
+| **Loaded when** | Referenced in task config | Registered in the tool registry or bundled with a skill |
 
-A skill can *include* tools, but a tool never includes a skill. Skills are the higher-level concept.
+A skill can *include* tools, but a tool never includes a skill. Skills are the higher-level concept — they provide the knowledge and context, while tools provide the actions.
 
-## How Skills Work
+**Think of it this way:**
+- A **skill** is like training documentation — it teaches the agent *how* to approach a problem
+- A **tool** is like a power tool — it lets the agent *do* something
+
+---
+
+## Tools
+
+Tools are the bridge between AI reasoning and real-world actions. When you ask an agent to "create a file", it uses a **file tool**. When you ask it to "search the web", it uses a **search tool**.
+
+Think of tools like apps on your phone — each one does something specific, and together they let you accomplish many different tasks.
+
+### Built-in Tools
+
+OpenViber comes with several core tools ready to use:
+
+| Tool | What It Does |
+|------|--------------|
+| **File** | Read, write, create, and delete files |
+| **Search** | Find information online |
+| **Web** | Fetch, parse, and crawl web content |
+| **Browser** | Navigate web pages, click, type, and extract content |
+| **Desktop** | Interact with desktop applications |
+| **Schedule** | Create, list, and manage recurring job schedules |
+| **Notify** | Send desktop notifications for important events |
+
+### How Agents Use Tools
+
+When an agent decides to use a tool:
+
+1. It selects the appropriate tool for the task
+2. Provides the necessary inputs (like a filename or search query)
+3. Executes the action
+4. Receives the result and continues reasoning
+
+You can observe this process in real-time through the Viber Board.
+
+### Tool Permissions
+
+For safety, tools can be restricted:
+
+- **Allowed tools** — Only these tools can be used
+- **Blocked tools** — These tools are never used
+- **Approval required** — Agent asks before using these tools
+
+This lets you control the blast radius of agent actions.
+
+### Creating Custom Tools
+
+You can create custom tools by writing a skill with an `index.ts` that exports a `getTools()` function. This keeps tools bundled with their domain context and makes them easy to share.
+
+```typescript
+import { z } from "zod";
+
+export function getTools() {
+  return {
+    my_custom_action: {
+      description: "Description of what this tool does",
+      inputSchema: z.object({
+        param: z.string().describe("Parameter description"),
+      }),
+      execute: async (args: { param: string }) => {
+        // Tool implementation
+        return { ok: true, result: "..." };
+      },
+    },
+  };
+}
+```
+
+Tools exported this way are automatically registered when the skill is loaded. They follow the same `CoreTool` interface as all OpenViber tools (Zod schema + execute function).
+
+---
+
+## Skills
+
+Skills are bundles of domain knowledge that teach agents how to approach specific tasks. Unlike tools (which provide actions), skills provide *knowledge*, *context*, and optionally *specialized tools* scoped to a domain.
+
+### How Skills Work
 
 Each skill is a directory containing a `SKILL.md` file. When a skill is assigned to a task, the instructions from `SKILL.md` are injected into the agent's system prompt. This teaches the agent:
 
@@ -29,7 +109,7 @@ Each skill is a directory containing a `SKILL.md` file. When a skill is assigned
 - **Domain vocabulary** — Specific terms and concepts
 - **Which tools to use** — Specialized tools bundled with the skill
 
-## Skill Structure
+### Skill Structure
 
 A skill lives in a directory under `src/skills/` (built-in) or `~/.openviber/skills/` (user-defined):
 
@@ -98,12 +178,9 @@ export function getTools() {
 }
 ```
 
-Tools exported this way are automatically registered when the skill is loaded. They follow the same `CoreTool` interface as all OpenViber tools (Zod schema + execute function).
+### Skill Playgrounds (Verification)
 
-## Skill Playgrounds (Verification)
-
-Skills can optionally define a **playground** scenario for quick verification. The
-`skill-playground` skill exposes `skill_playground_verify` to run these checks.
+Skills can optionally define a **playground** scenario for quick verification. The `skill-playground` skill exposes `skill_playground_verify` to run these checks.
 
 Add a playground block to your `SKILL.md` frontmatter:
 
@@ -125,7 +202,7 @@ Or call the tool directly:
 skill_playground_verify({ skillId: "cursor-agent" })
 ```
 
-## Skill Registry
+### Skill Registry
 
 The `SkillRegistry` class manages skill discovery and loading:
 
@@ -134,7 +211,7 @@ The `SkillRegistry` class manages skill discovery and loading:
 3. **Tool registration** — Loads and caches tools from `index.ts` via `getTools()`
 4. **Lookup** — Provides `getSkill(id)` and `getAllSkills()` for runtime access
 
-### Discovery Order
+#### Discovery Order
 
 Skills are discovered from multiple paths, in priority order:
 
@@ -142,13 +219,15 @@ Skills are discovered from multiple paths, in priority order:
 2. **Bundled skills** — Relative to the installed package (production)
 3. **Development skills** — `src/skills/` in the working directory (dev mode)
 
-### Pre-registration
+#### Pre-registration
 
 In bundled builds where dynamic import of `.ts` files isn't possible, skills pre-register their tools at startup via `preRegisterTools()`. The application entry point must call `registerDefaultSkills()` from `src/skills/index.ts` to ensure these tools are available.
 
+---
+
 ## Built-in Skills
 
-OpenViber ships with six built-in skills:
+OpenViber ships with several built-in skills that include both domain knowledge and specialized tools:
 
 ### antigravity
 
@@ -251,8 +330,9 @@ Full session lifecycle: create → populate → operate → reorganize → clean
 | **Use case** | Smoke-test skills (e.g., cursor-agent) with a known repo/file |
 | **Depends on** | Git installed; skill-specific dependencies |
 
-The skill-playground tool reads the target skill's playground definition from
-`SKILL.md` and runs a safe, read-only verification flow.
+The skill-playground tool reads the target skill's playground definition from `SKILL.md` and runs a safe, read-only verification flow.
+
+---
 
 ## Using Skills
 
@@ -293,6 +373,8 @@ prompt: "Check Antigravity IDE health and auto-recover if needed."
 
 The skill contains all the detailed knowledge. The task knows what to look for, how to recover, and what tools to call.
 
+---
+
 ## Creating Custom Skills
 
 1. Create a directory under `~/.openviber/skills/`:
@@ -323,9 +405,35 @@ The skill contains all the detailed knowledge. The task knows what to look for, 
 
 Custom skills are discovered automatically on startup. No code changes to OpenViber are needed.
 
+---
+
+## Putting It Together
+
+The relationship between skills, tools, and tasks:
+
+```mermaid
+graph TB
+    Task[Task] --> Skill1[Skill: github]
+    Task --> Skill2[Skill: terminal]
+    Task --> Tool1[Tool: file]
+    Task --> Tool2[Tool: search]
+
+    Skill1 --> ST1[Tool: gh_create_pr]
+    Skill1 --> ST2[Tool: gh_clone_repo]
+
+    Skill2 --> ST3[Tool: terminal_run]
+    Skill2 --> ST4[Tool: terminal_read]
+```
+
+- A **Task** uses multiple **Skills** and **Tools**
+- A **Skill** can provide **Tools**
+- **Tools** are the actual actions the agent takes
+
+---
+
 ## Next Steps
 
-- [Tools](/docs/concepts/tools) — Actions that agents can take
 - [Jobs](/docs/concepts/jobs) — Schedule recurring tasks that use skills
 - [Viber](/docs/concepts/viber) — How to configure tasks with skills
-- [Config Schema](/docs/reference/config-schema) — Full configuration reference
+- [Tasks](/docs/concepts/tasks) — The unit of work in OpenViber
+- [Security](/docs/design/security) — Tool permissions and safety

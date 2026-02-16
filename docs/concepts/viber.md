@@ -121,7 +121,6 @@ Your Viber works autonomously but you always have oversight:
 ## Next Steps
 
 - [Tasks](/docs/concepts/tasks) — The unit of work in OpenViber
-- [Tools](/docs/concepts/tools) — What tasks can do
-- [Skills](/docs/concepts/skills) — Domain knowledge bundles with specialized tools
+- [Skills & Tools](/docs/concepts/skills) — What tasks can do
 - [Jobs](/docs/concepts/jobs) — Schedule recurring tasks
 - [Memory](/docs/concepts/memory) — How tasks remember context

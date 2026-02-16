@@ -1,4 +1,4 @@
-import { nanoid } from "nanoid";
+import { randomUUID } from "crypto";
 import { supabaseRequest } from "./supabase";
 
 interface MessageRow {
@@ -113,7 +113,7 @@ export async function appendMessagesForTask(
       }
 
       return {
-        id: `msg_${nanoid(12)}`,
+        id: randomUUID(),
         task_id: taskId,
         role,
         content,

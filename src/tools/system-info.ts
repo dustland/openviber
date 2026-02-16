@@ -13,7 +13,7 @@ import {
   collectMachineResourceStatus,
   formatBytes,
   formatUptime,
-} from "../../daemon/telemetry";
+} from "../daemon/telemetry";
 
 // ==================== Helpers ====================
 
@@ -85,7 +85,7 @@ function checkDnsConnectivity(hostname: string): {
 
 // ==================== Tools ====================
 
-export function getTools(): Record<string, import("../../viber/tool").CoreTool> {
+export function getTools(): Record<string, import("../worker/tool").CoreTool> {
   return {
     system_info: {
       description:

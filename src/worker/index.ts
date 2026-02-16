@@ -12,7 +12,7 @@ export type {
   SpaceConfig,
   SpaceState,
   SpaceModel,
-  AgentConfig,
+  ViberConfig,
 } from "../types";
 export * from "./message";
 export * from "./plan";

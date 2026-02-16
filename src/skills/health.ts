@@ -369,7 +369,7 @@ async function checkGeminiHealth(skill: SkillInfo): Promise<SkillHealthResult> {
   } else {
     // Try file-based credential detection (fast, no subprocess)
     try {
-      const { hasGeminiCredentials } = await import("./gemini-cli/gemini-auth");
+      const { hasGeminiCredentials } = await import("../tools/gemini-auth");
       if (hasGeminiCredentials()) {
         authCheck = {
           id: "gemini-auth",

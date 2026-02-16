@@ -8,7 +8,7 @@ vi.mock("child_process", () => ({
   spawnSync: (...args: any[]) => spawnSyncMock(...args),
 }));
 
-import { getTools, __private } from "./terminal";
+import { getTools, __private } from "../tools/terminal";
 
 describe("terminal skill helpers", () => {
   it("safeTarget strips unsafe characters", () => {

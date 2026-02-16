@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { CoreTool } from "../../../viber/tool";
+import type { CoreTool } from "../../worker/tool";
 
 export function getTools(): Record<string, CoreTool> {
   return {

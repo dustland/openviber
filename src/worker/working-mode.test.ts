@@ -4,16 +4,16 @@ import {
   resolveRequireApprovalTools,
   resolveWorkingMode,
 } from "./agent";
-import type { AgentConfig } from "../types";
+import type { ViberConfig } from "../types";
 
 describe("working-mode", () => {
   it("resolves default and alias working modes", () => {
-    expect(resolveWorkingMode({} as unknown as AgentConfig)).toBe("agent_decides");
-    expect(resolveWorkingMode({ mode: "always_ask" } as unknown as AgentConfig)).toBe(
+    expect(resolveWorkingMode({} as unknown as ViberConfig)).toBe("agent_decides");
+    expect(resolveWorkingMode({ mode: "always_ask" } as unknown as ViberConfig)).toBe(
       "always_ask"
     );
     expect(
-      resolveWorkingMode({ workingMode: "always_execute" } as unknown as AgentConfig)
+      resolveWorkingMode({ workingMode: "always_execute" } as unknown as ViberConfig)
     ).toBe("always_execute");
   });
 
@@ -22,7 +22,7 @@ describe("working-mode", () => {
       Array.from(
         resolveRequireApprovalTools({
           require_approval: ["create_file"],
-        } as unknown as AgentConfig)
+        } as unknown as ViberConfig)
       )
     ).toEqual(["create_file"]);
 
@@ -30,7 +30,7 @@ describe("working-mode", () => {
       Array.from(
         resolveRequireApprovalTools({
           requireApproval: ["delete_file"],
-        } as unknown as AgentConfig)
+        } as unknown as ViberConfig)
       )
     ).toEqual(["delete_file"]);
   });

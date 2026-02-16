@@ -1,11 +1,11 @@
 import { sleep } from "./common";
 
-export interface HubViberListResponse {
+export interface GatewayViberListResponse {
   connected: boolean;
   vibers: Array<{ id: string; name: string }>;
 }
 
-export interface HubTask {
+export interface GatewayTask {
   id: string;
   viberId: string;
   goal: string;
@@ -14,28 +14,30 @@ export interface HubTask {
   error?: string;
 }
 
-export function normalizeHubUrl(hubUrl: string): string {
-  return String(hubUrl || "").trim().replace(/\/$/, "");
+export function normalizeGatewayUrl(gatewayUrl: string): string {
+  return String(gatewayUrl || "").trim().replace(/\/$/, "");
 }
 
-export async function hubGetVibers(hubUrl: string): Promise<HubViberListResponse> {
+export async function gatewayGetVibers(gatewayUrl: string): Promise<GatewayViberListResponse> {
   try {
-    const res = await fetch(`${normalizeHubUrl(hubUrl)}/api/vibers`);
+    const res = await fetch(`${normalizeGatewayUrl(gatewayUrl)}/api/vibers`);
     if (!res.ok) {
       return { connected: false, vibers: [] };
     }
     const json = (await res.json()) as any;
     return {
       connected: !!json?.connected,
-      vibers: Array.isArray(json?.vibers) ? json.vibers : [],
+      vibers: Array.isArray(json?.vibers) ? json.vibers
+        : Array.isArray(json?.nodes) ? json.nodes
+          : [],
     };
   } catch {
     return { connected: false, vibers: [] };
   }
 }
 
-export async function hubSubmitTask(
-  hubUrl: string,
+export async function gatewaySubmitTask(
+  gatewayUrl: string,
   args: {
     goal: string;
     viberId: string;
@@ -43,7 +45,7 @@ export async function hubSubmitTask(
   },
 ): Promise<{ taskId: string } | null> {
   try {
-    const res = await fetch(`${normalizeHubUrl(hubUrl)}/api/vibers`, {
+    const res = await fetch(`${normalizeGatewayUrl(gatewayUrl)}/api/tasks`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -59,9 +61,9 @@ export async function hubSubmitTask(
   }
 }
 
-export async function hubGetTask(hubUrl: string, taskId: string): Promise<HubTask | null> {
+export async function gatewayGetTask(gatewayUrl: string, taskId: string): Promise<GatewayTask | null> {
   try {
-    const res = await fetch(`${normalizeHubUrl(hubUrl)}/api/tasks/${taskId}`);
+    const res = await fetch(`${normalizeGatewayUrl(gatewayUrl)}/api/tasks/${taskId}`);
     if (!res.ok) return null;
     return (await res.json()) as any;
   } catch {
@@ -69,17 +71,17 @@ export async function hubGetTask(hubUrl: string, taskId: string): Promise<HubTas
   }
 }
 
-export async function pollHubTask(
-  hubUrl: string,
+export async function pollGatewayTask(
+  gatewayUrl: string,
   taskId: string,
   options: { pollIntervalMs: number; maxAttempts: number },
-): Promise<HubTask | null> {
+): Promise<GatewayTask | null> {
   for (let attempt = 0; attempt < options.maxAttempts; attempt++) {
-    const task = await hubGetTask(hubUrl, taskId);
+    const task = await gatewayGetTask(gatewayUrl, taskId);
     if (task && (task.status === "completed" || task.status === "error")) {
       return task;
     }
     await sleep(options.pollIntervalMs);
   }
-  return await hubGetTask(hubUrl, taskId);
+  return await gatewayGetTask(gatewayUrl, taskId);
 }

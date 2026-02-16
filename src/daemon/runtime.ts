@@ -13,12 +13,12 @@
 import * as fs from "fs/promises";
 import * as path from "path";
 import * as yaml from "yaml";
-import { getViberPath, getViberRoot } from "../viber/config";
-import type { AgentConfig } from "../viber/config";
-import { Agent } from "../viber/agent";
-import { parseModelString } from "../viber/provider";
+import { getViberPath, getViberRoot } from "../worker/config";
+import type { ViberConfig } from "../worker/config";
+import { Agent } from "../worker/agent";
+import { parseModelString } from "../worker/provider";
 import { loadSettings, saveSettings } from "../skills/hub/settings";
-import type { ViberMessage } from "../viber/message";
+import type { ViberMessage } from "../worker/message";
 import { getModuleDirname } from "../utils/module-path";
 
 // Inlined FsStorage for local runtime usage
@@ -73,7 +73,7 @@ export interface ViberEnvironmentInfo {
 export interface DaemonRunTaskOptions {
   model?: string;
   singleAgentId?: string;
-  agentConfig?: AgentConfig;
+  agentConfig?: ViberConfig;
   signal?: AbortSignal;
   environment?: ViberEnvironmentInfo;
   /** Settings from hub (Supabase); overrides local file and updates cache */
@@ -395,15 +395,15 @@ Follow this systematic approach for every coding task:
  * Tries built-in defaults then ~/.openviber/viber.yaml (single-machine mode)
  * and finally legacy ~/.openviber/vibers/{id}.yaml.
  */
-export async function loadAgentConfig(
+export async function loadViberConfig(
   agentId: string
-): Promise<AgentConfig | null> {
-  const tryRead = async (filePath: string): Promise<AgentConfig | null> => {
+): Promise<ViberConfig | null> {
+  const tryRead = async (filePath: string): Promise<ViberConfig | null> => {
     try {
       const content = await fs.readFile(filePath, "utf8");
       const parsed = yaml.parse(content) as Record<string, unknown>;
       if (!parsed || typeof parsed !== "object") return null;
-      return { ...parsed, id: agentId } as AgentConfig;
+      return { ...parsed, id: agentId } as ViberConfig;
     } catch {
       return null;
     }
@@ -420,7 +420,7 @@ export async function loadAgentConfig(
   for (const fileName of ["viber.yaml", "viber.yml"]) {
     const singleMachineConfig = await tryRead(path.join(root, fileName));
     if (singleMachineConfig) {
-      return { ...singleMachineConfig, id: agentId } as AgentConfig;
+      return { ...singleMachineConfig, id: agentId } as ViberConfig;
     }
   }
 
@@ -445,7 +445,7 @@ export async function loadAgentConfig(
       systemPrompt: CODING_TASK_SYSTEM_PROMPT,
       tools: [],
       skills: ["github", "codex-cli", "cursor-agent", "terminal", "skill-playground"],
-    } as AgentConfig;
+    } as ViberConfig;
   }
 
   return null;
@@ -521,7 +521,7 @@ function buildEnvironmentPrompt(env: ViberEnvironmentInfo): string {
  * 3. Agent's own system prompt (from config)
  */
 async function buildDaemonSystemPrompt(
-  config: AgentConfig,
+  config: ViberConfig,
   agentId: string,
   environment?: ViberEnvironmentInfo,
 ): Promise<string> {
@@ -584,7 +584,7 @@ export async function runTask(
     }
   }
 
-  let config = overrideConfig ?? (await loadAgentConfig(singleAgentId));
+  let config = overrideConfig ?? (await loadViberConfig(singleAgentId));
   if (!config) {
     throw new Error(
       `Agent '${singleAgentId}' not found. Add ~/.openviber/viber.yaml (or legacy ~/.openviber/vibers/${singleAgentId}.yaml) or use built-in default.`
@@ -645,7 +645,7 @@ export async function runTask(
   );
   config = { ...config, systemPrompt: systemPrompt };
 
-  const agent = new Agent(config as AgentConfig);
+  const agent = new Agent(config as ViberConfig);
 
   // Set up proxy-aware fetch if configured
   try {

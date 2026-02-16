@@ -7,7 +7,7 @@ import { z } from "zod";
 import * as path from "path";
 import { promises as fs } from "fs";
 import "reflect-metadata";
-import { CoreTool } from "../viber/tool";
+import { CoreTool } from "../worker/tool";
 import { getViberRoot } from "../utils/paths";
 
 const TOOLS_METADATA_KEY = Symbol("tools");

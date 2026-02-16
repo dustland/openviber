@@ -4,7 +4,7 @@ import * as path from "path";
 import * as fs from "fs/promises";
 import * as readline from "readline";
 import { isInteractiveTerminal, question, sleep, runSubcommand } from "../common";
-import { hubGetVibers, hubSubmitTask, pollHubTask, HubViberListResponse, HubTask } from "../hub-client";
+import { gatewayGetVibers, gatewaySubmitTask, pollGatewayTask, GatewayViberListResponse, GatewayTask } from "../gateway-client";
 
 const SAFE_SESSION_NAME_RE = /[^a-zA-Z0-9_.-]/g;
 
@@ -48,8 +48,8 @@ async function promptNoVibersAction(
 async function handleChatCommand(
   input: string,
   ctx: {
-    hubUrl: string;
-    vibers: HubViberListResponse;
+    gatewayUrl: string;
+    vibers: GatewayViberListResponse;
     getActiveViberId: () => string;
     setActiveViberId: (id: string) => void;
     resetHistory: () => Promise<void>;
@@ -74,7 +74,7 @@ async function handleChatCommand(
       );
       return "continue";
     case "vibers": {
-      const vibers = await hubGetVibers(ctx.hubUrl);
+      const vibers = await gatewayGetVibers(ctx.gatewayUrl);
       if (!vibers.connected || vibers.vibers.length === 0) {
         console.log("No tasks connected.");
         return "continue";
@@ -92,7 +92,7 @@ async function handleChatCommand(
         console.log("Usage: /use <viberId>");
         return "continue";
       }
-      const vibers = await hubGetVibers(ctx.hubUrl);
+      const vibers = await gatewayGetVibers(ctx.gatewayUrl);
       const exists = vibers.vibers.some((v) => v.id === next);
       if (!exists) {
         console.log(`Task runtime not found: ${next}`);
@@ -189,7 +189,7 @@ export const chatCommand = new Command("chat")
       await fs.mkdir(sessionsDir, { recursive: true });
     }
 
-    const vibers = await hubGetVibers(gatewayUrl);
+    const vibers = await gatewayGetVibers(gatewayUrl);
     if (!vibers.connected || vibers.vibers.length === 0) {
       if (isInteractiveTerminal()) {
         const action = await promptNoVibersAction(gatewayUrl);
@@ -259,7 +259,7 @@ export const chatCommand = new Command("chat")
 
       if (input.startsWith("/")) {
         const handled = await handleChatCommand(input, {
-          hubUrl: gatewayUrl,
+          gatewayUrl: gatewayUrl,
           vibers,
           getActiveViberId: () => activeViberId!,
           setActiveViberId: (id) => {
@@ -281,7 +281,7 @@ export const chatCommand = new Command("chat")
         await appendJsonlMessage(sessionPath, { role: "user", content: input });
       }
 
-      const submit = await hubSubmitTask(gatewayUrl, {
+      const submit = await gatewaySubmitTask(gatewayUrl, {
         goal: input,
         viberId: activeViberId!,
         messages,
@@ -292,7 +292,7 @@ export const chatCommand = new Command("chat")
       }
 
       process.stdout.write("viber> ");
-      const result = await pollHubTask(gatewayUrl, submit.taskId, {
+      const result = await pollGatewayTask(gatewayUrl, submit.taskId, {
         pollIntervalMs: 1200,
         maxAttempts: 120,
       });

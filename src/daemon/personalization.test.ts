@@ -23,7 +23,7 @@ vi.mock("fs/promises", () => ({
   appendFile: vi.fn(),
 }));
 
-vi.mock("../viber/config", () => ({
+vi.mock("../worker/config", () => ({
   getViberRoot: () => "/mock/.openviber",
   getViberPath: (...segments: string[]) =>
     ["/mock/.openviber", ...segments].join("/"),

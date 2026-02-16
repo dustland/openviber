@@ -2,8 +2,9 @@
  * Configuration types for Viber agents and spaces
  */
 
-// Re-export types but avoid ModelConfig conflict
-export type { SpaceConfig, SpaceState, SpaceModel } from "../types";
+// Re-export types
+export type { SpaceConfig, SpaceState, SpaceModel, ViberConfig } from "../types";
+import type { ViberConfig } from "../types";
 import path from "path";
 import os from "os";
 import { getModuleDirname } from "../utils/module-path";
@@ -12,57 +13,13 @@ import * as yaml from "yaml";
 
 export type { SupabaseClient } from "@supabase/supabase-js";
 
-// Re-export AgentConfig if it exists elsewhere, otherwise define it here
-export interface AgentConfig {
-  id?: string;
-  name: string;
-  description: string;
-  provider?: string;
-  model?: string;
-  llm?: {
-    provider: string;
-    model: string;
-    settings?: {
-      temperature?: number;
-      maxTokens?: number;
-      topP?: number;
-      frequencyPenalty?: number;
-      presencePenalty?: number;
-    };
-  };
-  systemPrompt?: string;
-  tools?: string[];
-  skills?: string[];
-  /** Primary coding CLI skill id (from settings); agent prefers it for coding tasks when set. */
-  primaryCodingCli?: string | null;
-  personality?: string;
-  temperature?: number;
-  maxTokens?: number;
-  /** Maximum number of multi-step tool-call rounds (default: 10) */
-  maxSteps?: number;
-  topP?: number;
-  frequencyPenalty?: number;
-  presencePenalty?: number;
-  promptFile?: string; // Optional prompt file path
-  mode?: "always_ask" | "agent_decides" | "always_execute";
-  workingMode?:
-  | "always_ask"
-  | "agent_decides"
-  | "viber_decides"
-  | "always_execute"
-  | "always-ask"
-  | "agent-decides"
-  | "viber-decides"
-  | "always-execute";
-  require_approval?: string[];
-  requireApproval?: string[];
-  [key: string]: any; // Allow additional properties
-}
+
 
 /**
- * OpenViber Runtime Configuration
+ * OpenViber Runtime Configuration (storage paths, supabase factories, etc.)
+ * Separate from ViberConfig which defines an individual viber's agent config.
  */
-export interface ViberConfig {
+export interface RuntimeConfig {
   /** Root directory for file storage */
   storageRoot: string;
 
@@ -102,19 +59,19 @@ export interface GlobalConfig {
 
 const __dirname = getModuleDirname();
 
-let config: ViberConfig | null = null;
+let config: RuntimeConfig | null = null;
 
 /**
  * Configure viber with application-specific settings
  */
-export function configure(newConfig: ViberConfig): void {
+export function configure(newConfig: RuntimeConfig): void {
   config = newConfig;
 }
 
 /**
  * Get current viber configuration
  */
-export function getConfig(): ViberConfig {
+export function getConfig(): RuntimeConfig {
   if (!config) {
     // Default configuration - use ~/.openviber for daemon mode
     return {
@@ -143,13 +100,13 @@ export function getViberPath(...segments: string[]): string {
 /**
  * Load agent configuration from defaults
  */
-export async function loadAgentConfig(agentId: string): Promise<AgentConfig | null> {
+export async function loadViberConfig(agentId: string): Promise<ViberConfig | null> {
   const defaultsPath = getConfig().defaultsPath || path.join(__dirname, "defaults");
   const agentPath = path.join(defaultsPath, "agents", `${agentId}.yaml`);
 
   try {
     const content = await fs.readFile(agentPath, "utf-8");
-    const config = yaml.parse(content) as AgentConfig;
+    const config = yaml.parse(content) as ViberConfig;
     return { ...config, id: agentId };
   } catch (error) {
     return null;

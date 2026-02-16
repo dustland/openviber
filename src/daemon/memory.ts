@@ -1,9 +1,9 @@
 
 import * as fs from "fs/promises";
 import * as path from "path";
-import { getViberRoot } from "../viber/config";
-import { Agent } from "../viber/agent";
-import type { AgentConfig } from "../types";
+import { getViberRoot } from "../worker/config";
+import { Agent } from "../worker/agent";
+import type { ViberConfig } from "../types";
 
 /**
  * Consolidate recent conversation history into long-term memory (MEMORY.md).
@@ -18,7 +18,7 @@ import type { AgentConfig } from "../types";
 export async function consolidateMemory(
   viberId: string,
   messages: { role: string; content: string }[],
-  agentConfig: AgentConfig
+  agentConfig: ViberConfig
 ): Promise<void> {
   const root = getViberRoot();
   // Primary path: ~/.openviber/vibers/{viberId}/MEMORY.md

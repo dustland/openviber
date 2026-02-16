@@ -20,7 +20,7 @@ describe("GatewayServer Integration", () => {
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.status).toBe("ok");
-    expect(data.nodes).toBeDefined();
+    expect(data.vibersSummary).toBeDefined();
   });
 
   it("returns 404 for unknown routes", async () => {

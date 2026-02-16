@@ -17,7 +17,7 @@ import {
   checkSkillHealth,
   type SkillHealthCheck,
   type SkillHealthResult,
-} from "../health";
+} from "../skills/health";
 
 const SAFE_RE = /[^a-zA-Z0-9_.:-]/g;
 const SKILL_SETUP_IDS = [
@@ -312,7 +312,7 @@ async function runInSession(
   return capturePaneOutput(safeSession);
 }
 
-export function getTools(): Record<string, import("../../viber/tool").CoreTool> {
+export function getTools(): Record<string, import("../worker/tool").CoreTool> {
   return {
     // ==================== Health check ====================
 
@@ -535,11 +535,11 @@ export function getTools(): Record<string, import("../../viber/tool").CoreTool> 
           requiresUserInput: pendingAuth,
           ...(authSessionName
             ? {
-                authSession: authSessionName,
-                authTarget,
-                authHint:
-                  "Use terminal_send_keys/terminal_read (or attach locally) to complete interactive login.",
-              }
+              authSession: authSessionName,
+              authTarget,
+              authHint:
+                "Use terminal_send_keys/terminal_read (or attach locally) to complete interactive login.",
+            }
             : {}),
           summary,
         };

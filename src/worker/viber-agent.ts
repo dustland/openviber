@@ -1,6 +1,6 @@
 
 import { Agent, AgentContext, AgentResponse } from "./agent";
-import { AgentConfig } from "../types";
+import { ViberConfig } from "../types";
 import { Space } from "./space";
 import { Plan } from "./plan";
 import { Task, TaskStatus } from "./task";
@@ -40,9 +40,9 @@ export class ViberAgent extends Agent {
   private abortController?: AbortController;
   private singleAgentId?: string; // If set, bypass planning
 
-  constructor(config: AgentConfig, space: Space, options?: ViberOptions) {
+  constructor(config: ViberConfig, space: Space, options?: ViberOptions) {
     // Enhance the config for ViberAgent
-    const xConfig: AgentConfig = {
+    const xConfig: ViberConfig = {
       ...config,
       name: "X",
       description: `I am X, the conversational representative for this space. I manage all aspects of the space and coordinate with other agents to achieve our goals.`,
@@ -174,12 +174,12 @@ export class ViberAgent extends Agent {
     if (!agent) {
       // Load agent on demand
       console.log(`[ViberAgent] Loading agent '${targetAgent}' on demand`);
-      const { loadAgentConfig } = await import("./config");
-      const agentConfig = await loadAgentConfig(targetAgent);
+      const { loadViberConfig } = await import("./config");
+      const agentConfig = await loadViberConfig(targetAgent);
       if (!agentConfig) {
         throw new Error(`Agent '${targetAgent}' not found`);
       }
-      agent = new Agent(agentConfig as unknown as AgentConfig);
+      agent = new Agent(agentConfig as unknown as ViberConfig);
       this.space.registerAgent(targetAgent, agent);
     }
 
@@ -223,14 +223,14 @@ export class ViberAgent extends Agent {
     console.log(`[ViberAgent] Parallel execution: ${agentIds.length} agents`);
 
     // Ensure all agents are loaded
-    const { loadAgentConfig } = await import("./config");
+    const { loadViberConfig } = await import("./config");
     for (const agentId of agentIds) {
       if (!this.space.getAgent(agentId)) {
-        const agentConfig = await loadAgentConfig(agentId);
+        const agentConfig = await loadViberConfig(agentId);
         if (!agentConfig) {
           throw new Error(`Agent '${agentId}' not found`);
         }
-        const agent = new Agent(agentConfig as unknown as AgentConfig);
+        const agent = new Agent(agentConfig as unknown as ViberConfig);
         this.space.registerAgent(agentId, agent);
       }
     }

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { BrowserCDP, CDPTarget } from "../../tools/browser";
+import { BrowserCDP, CDPTarget } from "./browser";
 
 /**
  * Domain Logic for Antigravity App

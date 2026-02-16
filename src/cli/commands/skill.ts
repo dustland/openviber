@@ -235,7 +235,7 @@ skillCommand
   .action(async (skillId, options) => {
     // Ensure skill tools are pre-registered
     await import("../../skills");
-    const { getTools } = await import("../../skills/playground");
+    const { getTools } = await import("../../tools/playground");
     const tool = getTools().skill_playground_verify;
 
     const waitSeconds = parseInt(options.wait, 10);

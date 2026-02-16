@@ -25,19 +25,7 @@ export interface ModelConfig {
   maxTokens?: number;
 }
 
-export interface StorageConfig {
-  type: 'local' | 'supabase';
-  basePath?: string;
-  supabaseUrl?: string;
-  supabaseKey?: string;
-}
 
-export interface ViberConfig {
-  storage: StorageConfig;
-  model: ModelConfig;
-  streaming?: boolean;
-  debug?: boolean;
-}
 
 // ============================================================================
 // Space Types
@@ -236,9 +224,9 @@ export interface DatasourceData {
 }
 
 /**
- * Configuration for creating/initializing an Agent
+ * Configuration for creating/initializing a Viber
  */
-export interface AgentConfig {
+export interface ViberConfig {
   id?: string;
   name: string;
   description: string;
@@ -259,9 +247,20 @@ export interface AgentConfig {
   promptFile?: string;
   tools?: string[];
   skills?: string[];
+  /** Primary coding CLI skill id (from settings); agent prefers it for coding tasks when set. */
+  primaryCodingCli?: string | null;
+  personality?: string;
+  temperature?: number;
+  maxTokens?: number;
+  /** Maximum number of multi-step tool-call rounds (default: 10) */
+  maxSteps?: number;
+  topP?: number;
+  frequencyPenalty?: number;
+  presencePenalty?: number;
   metadata?: Record<string, any>;
   mode?: "always_ask" | "agent_decides" | "always_execute" | "always-ask" | "agent-decides" | "viber_decides" | "viber-decides" | "always-execute";
-  workingMode?: "always_ask" | "agent_decides" | "always_execute" | "always-ask" | "agent-decides" | "viber_decides" | "viber-decides" | "always-execute"; // Alias for mode
+  workingMode?: "always_ask" | "agent_decides" | "always_execute" | "always-ask" | "agent-decides" | "viber_decides" | "viber-decides" | "always-execute";
   requireApproval?: string[];
-  require_approval?: string[]; // Alias for valid yaml
+  require_approval?: string[];
+  [key: string]: any;
 }

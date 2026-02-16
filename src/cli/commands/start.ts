@@ -175,7 +175,7 @@ export const startCommand = new Command("start")
     // Controller connects to the main gateway when available (connected mode),
     // otherwise falls back to the embedded gateway for standalone mode.
     const controller = new ViberController({
-      serverUrl: serverUrl || `ws://localhost:${apiPort}`,
+      serverUrl: serverUrl || `ws://localhost:${apiPort}/ws`,
       token: authToken,
       viberId,
       viberName: options.name || savedConfig?.name || os.hostname(),

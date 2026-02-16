@@ -17,7 +17,7 @@ import * as path from "path";
 import { SkillRegistry } from "./registry";
 import { ToolRegistry } from "../tools/registry";
 import { defaultToolRegistry } from "../tools/registry";
-import type { CoreTool } from "../viber/tool";
+import type { CoreTool } from "../worker/tool";
 
 // Point at the _test skills directory, not the real skills
 const TEST_SKILLS_DIR = path.resolve(__dirname, "_test");
@@ -71,8 +71,8 @@ describe("Skill Pipeline — Tool Registration", () => {
   beforeAll(async () => {
     // Import test tool modules and register them in a fresh ToolRegistry
     toolRegistry = new ToolRegistry();
-    const { getTools: getEchoTools } = await import("./_test/echo");
-    const { getTools: getMathTools } = await import("./_test/math");
+    const { getTools: getEchoTools } = await import("../tools/_test/echo");
+    const { getTools: getMathTools } = await import("../tools/_test/math");
     toolRegistry.registerTools("echo", getEchoTools());
     toolRegistry.registerTools("math", getMathTools());
   });
@@ -115,8 +115,8 @@ describe("Skill Pipeline — Tool Execution", () => {
   let mathTool: CoreTool;
 
   beforeAll(async () => {
-    const { getTools: getEchoTools } = await import("./_test/echo");
-    const { getTools: getMathTools } = await import("./_test/math");
+    const { getTools: getEchoTools } = await import("../tools/_test/echo");
+    const { getTools: getMathTools } = await import("../tools/_test/math");
     echoTool = getEchoTools().test_echo;
     mathTool = getMathTools().test_calculate;
   });
@@ -167,13 +167,13 @@ describe("Skill Pipeline — Tool Execution", () => {
 describe("Skill Pipeline — Agent Integration", () => {
   it("agent loads test skills and exposes their tools", async () => {
     // Register test tools in the global ToolRegistry
-    const { getTools: getEchoTools } = await import("./_test/echo");
-    const { getTools: getMathTools } = await import("./_test/math");
+    const { getTools: getEchoTools } = await import("../tools/_test/echo");
+    const { getTools: getMathTools } = await import("../tools/_test/math");
     defaultToolRegistry.registerTools("echo", getEchoTools());
     defaultToolRegistry.registerTools("math", getMathTools());
 
     // Create an Agent with both test skills
-    const { Agent } = await import("../viber/agent");
+    const { Agent } = await import("../worker/agent");
     const agent = new Agent({
       id: "test-agent",
       name: "Test Agent",
@@ -212,7 +212,7 @@ describe("Skill Pipeline — Full Streaming", () => {
     "runTask streams a response that uses the echo tool",
     async () => {
       // Register test tools
-      const { getTools: getEchoTools } = await import("./_test/echo");
+      const { getTools: getEchoTools } = await import("../tools/_test/echo");
       defaultToolRegistry.registerTools("echo", getEchoTools());
 
       const { runTask } = await import("../daemon/runtime");

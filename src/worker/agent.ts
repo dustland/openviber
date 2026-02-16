@@ -9,7 +9,7 @@
 import { generateText, streamText, stepCountIs } from "ai";
 import type { LanguageModel, ModelMessage } from "ai";
 import { getViberPath } from "./config";
-import { AgentConfig } from "../types";
+import { ViberConfig } from "../types";
 import { ConversationHistory, ViberMessage } from "./message";
 import { getModelProvider } from "./provider";
 import { buildToolMap, CoreTool } from "./tool";
@@ -44,7 +44,7 @@ export class Agent {
   public id: string;
   public name: string;
   public description: string;
-  public config: AgentConfig;
+  public config: ViberConfig;
 
   // LLM configuration
   public provider: string;
@@ -76,7 +76,7 @@ export class Agent {
   // Proxy-aware fetch (set by runtime when proxy is configured)
   public proxyFetch?: typeof fetch;
 
-  constructor(config: AgentConfig) {
+  constructor(config: ViberConfig) {
     this.config = config;
     this.id = config.id || config.name;
     this.name = config.name;
@@ -659,7 +659,7 @@ const MODE_ALIASES: Record<string, WorkingMode> = {
 /**
  * Resolve the configured working mode from supported config keys.
  */
-export function resolveWorkingMode(config: AgentConfig): WorkingMode {
+export function resolveWorkingMode(config: ViberConfig): WorkingMode {
   const rawMode = config.mode ?? config.workingMode;
 
   if (typeof rawMode !== "string") {
@@ -672,7 +672,7 @@ export function resolveWorkingMode(config: AgentConfig): WorkingMode {
 /**
  * Resolve tools that require explicit approval in agent_decides mode.
  */
-export function resolveRequireApprovalTools(config: AgentConfig): Set<string> {
+export function resolveRequireApprovalTools(config: ViberConfig): Set<string> {
   const configured = config.require_approval ?? config.requireApproval;
   if (!Array.isArray(configured)) {
     return new Set<string>();

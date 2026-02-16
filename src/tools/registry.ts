@@ -1,4 +1,4 @@
-import { CoreTool } from "../viber/tool";
+import { CoreTool } from "../worker/tool";
 import { createLogger } from "../utils/logger";
 
 const log = createLogger("ToolRegistry");

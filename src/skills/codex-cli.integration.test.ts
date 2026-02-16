@@ -7,8 +7,8 @@
 
 import { describe, it, expect, beforeAll } from "vitest";
 import { defaultRegistry } from "./registry";
-import { Agent } from "../viber/agent";
-import { getTools as getCodexCliTools } from "./codex-cli";
+import { Agent } from "../worker/agent";
+import { getTools as getCodexCliTools } from "../tools/codex-cli";
 import { registerSkillTools } from "../tools/skill-tools";
 
 // Register tools in the ToolRegistry

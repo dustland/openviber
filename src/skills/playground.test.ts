@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { defaultRegistry } from "./registry";
-import { getTools } from "./playground";
+import { getTools } from "../tools/playground";
 import "./index";
 
 beforeAll(async () => {

@@ -1,6 +1,6 @@
 import * as readline from "readline";
 import { isInteractiveTerminal, question, runSubcommand } from "./common";
-import { hubGetVibers } from "./hub-client";
+import { gatewayGetVibers } from "./gateway-client";
 
 export function shouldRunInteractiveLauncher(): boolean {
   if (process.env.OPENVIBER_NO_LAUNCHER === "1") return false;
@@ -14,7 +14,7 @@ export async function runInteractiveLauncher(): Promise<void> {
     process.env.VIBER_HUB_URL ||
     "http://localhost:6009";
 
-  const vibers = await hubGetVibers(gatewayUrl);
+  const vibers = await gatewayGetVibers(gatewayUrl);
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,

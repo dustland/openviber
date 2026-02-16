@@ -8,8 +8,8 @@
 
 import { describe, it, expect, beforeAll } from "vitest";
 import { defaultRegistry } from "./registry";
-import { Agent } from "../viber/agent";
-import { getTools as getCursorAgentTools } from "./cursor-agent";
+import { Agent } from "../worker/agent";
+import { getTools as getCursorAgentTools } from "../tools/cursor-agent";
 import { registerSkillTools } from "../tools/skill-tools";
 
 // Register tools in the ToolRegistry

@@ -47,6 +47,12 @@ export function registerBuiltinChannels(): void {
       id: "wechat",
       displayName: "WeChat",
       description: "WeChat integration via proxy webhook",
+      capabilities: {
+        transport: "webhook",
+        supportsInboundAttachments: false,
+        auth: "proxy webhook",
+        productionReadiness: "ready",
+      },
       create: (config, context) => new WeChatChannel(config as any, context),
     });
   }

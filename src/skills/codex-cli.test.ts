@@ -18,7 +18,7 @@ vi.mock("fs", async () => {
   };
 });
 
-import { __private, getTools } from "./codex-cli";
+import { __private, getTools } from "../tools/codex-cli";
 
 type ProcOptions = {
   stdout?: string;

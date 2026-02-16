@@ -14,7 +14,7 @@
 import { EventEmitter } from "events";
 import WebSocket from "ws";
 import { spawnSync } from "child_process";
-import type { ViberOptions } from "../viber/viber-agent";
+import type { ViberOptions } from "../worker/viber-agent";
 import { runTask, appendDailyMemory } from "./runtime";
 import { consolidateMemory } from "./memory";
 import { createLogger } from "../utils/logger";

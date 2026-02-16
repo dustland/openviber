@@ -19,7 +19,6 @@ interface LogEntry {
   msg: string;
   viberId?: string;
   taskId?: string;
-  viberId?: string;
   data?: Record<string, unknown>;
 }
 

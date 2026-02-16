@@ -416,7 +416,7 @@ function formatResult(args: {
 
 // ==================== Tool exports ====================
 
-export function getTools(): Record<string, import("../../viber/tool").CoreTool> {
+export function getTools(): Record<string, import("../worker/tool").CoreTool> {
   return {
     railway_status: {
       description:

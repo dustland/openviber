@@ -13,7 +13,7 @@ import {
   AgentStreamEvent,
   InterruptSignal,
 } from "./channel";
-import { ViberAgent } from "../viber/viber-agent";
+import { ViberAgent } from "../worker/viber-agent";
 import { createLogger } from "../utils/logger";
 
 const log = createLogger("ChannelManager");

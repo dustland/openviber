@@ -19,7 +19,7 @@ import fs from "fs/promises";
 import path from "path";
 import { getViberRoot } from "./config";
 import { MessageQueue, ConversationHistory } from "./message";
-import type { SpaceModel, SpaceState, SpaceConfig, AgentConfig } from "../types";
+import type { SpaceModel, SpaceState, SpaceConfig, ViberConfig } from "../types";
 import {
   AgentCollaborationManager,
   ParallelExecutionEngine,
@@ -385,7 +385,7 @@ export async function startSpace({
   });
 
   // Create ViberAgent for the space (includes CLI skills so Viber Board can verify skills)
-  const viberAgentConfig: AgentConfig = {
+  const viberViberConfig: ViberConfig = {
     name: "Viber",
     description: "I manage this space and coordinate all work.",
     llm: {
@@ -399,7 +399,7 @@ export async function startSpace({
     skills: ["terminal", "cursor-agent", "codex-cli", "skill-playground"],
   };
 
-  const viberAgent = new ViberAgent(viberAgentConfig, space, {
+  const viberAgent = new ViberAgent(viberViberConfig, space, {
     model,
     spaceId: id,
   });

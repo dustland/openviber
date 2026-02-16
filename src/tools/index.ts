@@ -5,7 +5,7 @@
  * Tools are discovered from tool classes using decorators.
  */
 
-import { CoreTool } from "../viber/tool";
+import { CoreTool } from "../worker/tool";
 import { Tool } from "./base";
 
 // Import all tools

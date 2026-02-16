@@ -3,10 +3,10 @@ import * as fs from "fs";
 import * as fsPromises from "fs/promises";
 import * as path from "path";
 import { z } from "zod";
-import { defaultRegistry } from "../registry";
-import { defaultToolRegistry } from "../../tools/registry";
-import type { SkillPlaygroundSpec } from "../types";
-import { ViberPaths } from "../../utils/paths";
+import { defaultRegistry } from "../skills/registry";
+import { defaultToolRegistry } from "./registry";
+import type { SkillPlaygroundSpec } from "../skills/types";
+import { ViberPaths } from "../utils/paths";
 
 const DEFAULT_WAIT_SECONDS = 120;
 const MIN_WAIT_SECONDS = 10;
@@ -241,7 +241,7 @@ async function runCursorAgentPlayground(args: {
 /**
  * Build tools for running skill playground verifications.
  */
-export function getTools(): Record<string, import("../../viber/tool").CoreTool> {
+export function getTools(): Record<string, import("../worker/tool").CoreTool> {
   return {
     skill_playground_verify: {
       description:

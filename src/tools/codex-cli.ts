@@ -252,7 +252,7 @@ function formatResult(
   };
 }
 
-export function getTools(): Record<string, import("../../viber/tool").CoreTool> {
+export function getTools(): Record<string, import("../worker/tool").CoreTool> {
   return {
     codex_run: {
       description:

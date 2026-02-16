@@ -153,6 +153,51 @@ Or through the Viber Board UI — toggle skills on/off per task.
 
 ---
 
+## Skill Health Checks
+
+Some skills require external dependencies (CLI tools, API keys, OAuth tokens). OpenViber can verify these prerequisites automatically.
+
+### Health Indicators
+
+In the Viber Board, each skill shows a health badge:
+
+| Badge | Meaning |
+|-------|---------|
+| ✓ **Ready** | All prerequisites satisfied |
+| ⚠ **Setup Needed** | Missing dependencies (binary, auth, env var) |
+
+### What Gets Checked
+
+| Check Type | Example |
+|------------|---------|
+| **Binary** | Is `gh` CLI installed? Is `tmux` available? |
+| **CLI Auth** | Is `gh auth login` complete? Is `codex` authenticated? |
+| **OAuth** | Is Google account connected? |
+| **Env Var** | Is `OPENAI_API_KEY` set? |
+
+### Fixing Health Issues
+
+Click on a skill with a setup warning to see:
+- What's missing
+- The fix (install command, auth flow, or env var to set)
+- One-click fixes where possible
+
+### Example
+
+```bash
+# Check health via CLI
+openviber skill health github
+
+# Output:
+# github: NOT_AVAILABLE
+#   ✗ gh-cli: Not found in PATH
+#     Hint: brew install gh
+#   ✗ gh-auth: Not authenticated
+#     Hint: gh auth login
+```
+
+---
+
 ## Installing Skills
 
 The **Skill Hub** is a marketplace for discovering skills from external sources:

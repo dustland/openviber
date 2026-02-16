@@ -236,30 +236,20 @@ Present the results in a clear, readable format.`,
 - If all deployments are healthy, confirm the current status`,
   },
   {
-    id: "gmail-deployment-errors",
-    name: "Gmail Deployment Error Triage",
-    description: "Scan Gmail alerts and summarize deployment failures",
-    icon: "bug",
+    id: "research-topic",
+    name: "Research a Topic",
+    description: "Search the web and compile a concise research brief",
+    icon: "sparkles",
     builtin: true,
-    skills: ["gmail"],
-    body: `Check my Gmail for recent deployment failure alerts and summarize what is broken.
+    body: `Research a topic and compile a concise brief with key findings.
 
-- Use gmail_search with targeted queries like:
-  - newer_than:7d (subject:(deploy OR deployment OR build OR failed OR error OR crashed) OR from:(noreply@railway.app OR notifications@github.com OR alerts@))
-  - Add is:unread when needed to focus on new incidents
-- Read the most relevant messages with gmail_read (prioritize newest and clearly failed runs)
-- Extract key details for each incident:
-  - service/app name
-  - environment (prod/staging/dev)
-  - timestamp
-  - error signature and likely root cause
-  - direct links or IDs (run/deploy/build) if present
-- Group duplicate alerts for the same failure chain to avoid noise
-- Produce a concise triage report with:
-  - active failures
-  - probable causes
-  - immediate next actions
-  - what appears resolved or stale
-- If no deployment errors are found, state that clearly and include which query windows were checked`,
+- Search the web for recent, authoritative information on the topic
+- Identify the most relevant sources and extract key facts
+- Organize findings into a clear summary with sections:
+  - Overview — what it is and why it matters
+  - Key findings — the most important facts, stats, or developments
+  - Notable sources — links to the best references found
+- Highlight any conflicting information or areas of uncertainty
+- Keep the brief focused and actionable — aim for clarity over completeness`,
   },
 ];

@@ -120,10 +120,10 @@
                 </div>
                 <DropdownMenuItem
                   class="w-full rounded px-2.5 py-2 text-left text-sm hover:bg-accent flex items-center gap-2.5 outline-none cursor-pointer"
-                  onSelect={() => goto("/hub")}
+                  onSelect={() => goto("/settings/skills")}
                 >
                   <Sparkles class="size-4" />
-                  Skill Hub
+                  Skills
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   class="w-full rounded px-2.5 py-2 text-left text-sm hover:bg-accent flex items-center gap-2.5 outline-none cursor-pointer"

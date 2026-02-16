@@ -917,6 +917,8 @@ export async function listSkills(userId: string): Promise<SkillRow[]> {
 
 /**
  * Upsert a single skill for a user (insert or update on conflict).
+ * Uses select-then-insert/update because the skills table has partial unique
+ * indexes which aren't compatible with Supabase .upsert()'s onConflict.
  */
 export async function upsertSkill(
   userId: string,
@@ -924,8 +926,32 @@ export async function upsertSkill(
 ): Promise<void> {
   const now = new Date().toISOString();
   const supabase = getServerSupabase();
-  const { error } = await supabase.from("skills").upsert(
-    {
+
+  // Check if the skill already exists for this user
+  const { data: existing } = await supabase
+    .from("skills")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("skill_id", skill.skill_id)
+    .maybeSingle();
+
+  if (existing) {
+    // Update existing
+    const { error } = await supabase
+      .from("skills")
+      .update({
+        name: skill.name,
+        description: skill.description ?? "",
+        source: skill.source ?? null,
+        version: skill.version ?? null,
+        updated_at: now,
+      })
+      .eq("user_id", userId)
+      .eq("skill_id", skill.skill_id);
+    if (error) throw error;
+  } else {
+    // Insert new
+    const { error } = await supabase.from("skills").insert({
       user_id: userId,
       skill_id: skill.skill_id,
       name: skill.name,
@@ -933,33 +959,22 @@ export async function upsertSkill(
       source: skill.source ?? null,
       version: skill.version ?? null,
       updated_at: now,
-    },
-    { onConflict: "user_id,skill_id" },
-  );
-  if (error) throw error;
+    });
+    if (error) throw error;
+  }
 }
 
 /**
  * Batch-upsert multiple skills for a user (e.g. syncing from node-reported skills).
+ * Uses individual upserts since the skills table has partial unique indexes.
  */
 export async function upsertSkillsBatch(
   userId: string,
   skills: SkillInput[],
 ): Promise<void> {
   if (skills.length === 0) return;
-  const now = new Date().toISOString();
-  const rows = skills.map((skill) => ({
-    user_id: userId,
-    skill_id: skill.skill_id,
-    name: skill.name,
-    description: skill.description ?? "",
-    source: skill.source ?? null,
-    version: skill.version ?? null,
-    updated_at: now,
-  }));
-  const supabase = getServerSupabase();
-  const { error } = await supabase
-    .from("skills")
-    .upsert(rows, { onConflict: "user_id,skill_id" });
-  if (error) throw error;
+  for (const skill of skills) {
+    await upsertSkill(userId, skill);
+  }
 }
+

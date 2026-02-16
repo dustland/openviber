@@ -474,7 +474,7 @@
       >
       <Button variant="outline" size="sm" onclick={openHub}>
         <Sparkles class="size-3.5" />
-        Browse Hub
+        Install Skills
       </Button>
     </div>
   </header>
@@ -514,10 +514,10 @@
     <div class="empty-state">
       <Puzzle class="size-14 empty-icon" />
       <h2>No skills installed</h2>
-      <p>Browse the Skill Hub to get started.</p>
+      <p>Install skills to get started.</p>
       <button type="button" class="empty-action" onclick={openHub}>
         <Sparkles class="size-4" />
-        Browse Skill Hub
+        Install Skills
       </button>
     </div>
   {:else}

@@ -73,7 +73,11 @@ function generateToken(): string {
 /**
  * Create a new viber with a one-time onboard token.
  */
-export async function createViber(userId: string, name: string): Promise<Viber> {
+export async function createViber(
+    userId: string,
+    name: string,
+    opts?: { viber_id?: string; config?: Record<string, unknown> },
+): Promise<Viber> {
     const onboardToken = generateToken();
     const tokenExpiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString(); // 15 min
     const authToken = generateToken(); // persistent token for daemon reconnection
@@ -81,25 +85,30 @@ export async function createViber(userId: string, name: string): Promise<Viber> 
     const url = restUrl("vibers");
     url.searchParams.set("select", "*");
 
+    const row: Record<string, unknown> = {
+        user_id: userId,
+        name: name || "My Viber",
+        onboard_token: onboardToken,
+        token_expires_at: tokenExpiresAt,
+        auth_token: authToken,
+        config: opts?.config ?? {
+            provider: "openrouter",
+            model: "anthropic/claude-sonnet-4-20250514",
+            tools: ["file", "terminal", "browser"],
+            skills: [],
+        },
+    };
+    if (opts?.viber_id) {
+        row.viber_id = opts.viber_id;
+    }
+
     const response = await fetch(url, {
         method: "POST",
         headers: {
             ...serviceHeaders(),
             Prefer: "return=representation",
         },
-        body: JSON.stringify([{
-            user_id: userId,
-            name: name || "My Viber",
-            onboard_token: onboardToken,
-            token_expires_at: tokenExpiresAt,
-            auth_token: authToken,
-            config: {
-                provider: "openrouter",
-                model: "anthropic/claude-sonnet-4-20250514",
-                tools: ["file", "terminal", "browser"],
-                skills: [],
-            },
-        }]),
+        body: JSON.stringify([row]),
     });
 
     if (!response.ok) {
@@ -225,6 +234,47 @@ export async function getViber(userId: string, viberId: string): Promise<Viber |
 }
 
 /**
+ * Get a viber by either its primary key (UUID) or its gateway viber_id.
+ * Does NOT filter by user_id — intended for E2E/admin use only.
+ */
+export async function getViberByAnyId(viberId: string): Promise<Viber | null> {
+    const url = restUrl("vibers", {
+        or: `(id.eq.${viberId},viber_id.eq.${viberId})`,
+        select: "*",
+    });
+
+    const response = await fetch(url, {
+        headers: serviceHeaders(),
+    });
+
+    if (!response.ok) return null;
+
+    const rows = (await response.json()) as Viber[];
+    return rows[0] ?? null;
+}
+
+/**
+ * Get the first viber row in the DB (any user).
+ * Used by E2E mode to find a viber to adopt for config persistence.
+ */
+export async function getFirstViber(): Promise<Viber | null> {
+    const url = restUrl("vibers", {
+        select: "*",
+        limit: "1",
+        order: "created_at.asc",
+    });
+
+    const response = await fetch(url, {
+        headers: serviceHeaders(),
+    });
+
+    if (!response.ok) return null;
+
+    const rows = (await response.json()) as Viber[];
+    return rows[0] ?? null;
+}
+
+/**
  * Claim a viber by its onboard token (called by CLI).
  * Returns the viber with all config needed for the daemon. Consumes the token.
  */
@@ -275,13 +325,14 @@ export async function claimViberByToken(onboardToken: string): Promise<Viber | n
 
 /**
  * Update a viber's config.
+ * Accepts either the DB primary key (UUID) or the gateway viber_id.
  */
 export async function updateViberConfig(
     viberId: string,
     config: Record<string, unknown>,
 ): Promise<Viber | null> {
     const url = restUrl("vibers", {
-        id: `eq.${viberId}`,
+        or: `(id.eq.${viberId},viber_id.eq.${viberId})`,
         select: "*",
     });
 

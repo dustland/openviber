@@ -354,10 +354,10 @@
     <div class="empty-state">
       <Puzzle class="size-14 empty-icon" />
       <h2>No skills installed</h2>
-      <p>Browse the Skill Hub to discover and import skills.</p>
+      <p>Discover and import skills from configured sources.</p>
       <button type="button" class="empty-action" onclick={openHub}>
         <Sparkles class="size-4" />
-        Browse Skill Hub
+        Install Skills
       </button>
     </div>
   {:else}

@@ -1,12 +1,16 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import {
+    CalendarClock,
     Check,
+    ChevronRight,
     Clock,
     Copy,
     Cpu,
+    ListTodo,
     MemoryStick,
     Plus,
+    Radio,
     RefreshCw,
     Server,
     Trash2,
@@ -15,7 +19,6 @@
     Globe,
     Puzzle,
     Activity,
-    ExternalLink,
   } from "@lucide/svelte";
   import { Button } from "$lib/components/ui/button";
   import { Skeleton } from "$lib/components/ui/skeleton";
@@ -365,273 +368,248 @@
         </h2>
         <div class="space-y-4">
           {#each activeVibers as viber (viber.id)}
-            <a
-              href={getViberHref(viber)}
-              class="block rounded-xl border border-border bg-card overflow-hidden transition-all hover:border-primary/30 hover:shadow-sm"
+            {@const effectiveId = viber.viber_id || viber.id}
+            <div
+              class="rounded-xl border border-border bg-card overflow-hidden transition-all hover:shadow-sm"
             >
               <!-- Card Header -->
-              <div class="px-5 py-4 flex items-start justify-between gap-4">
-                <div class="min-w-0 flex-1">
-                  <div class="flex items-center gap-3 flex-wrap">
-                    <h3 class="text-lg font-semibold text-foreground truncate">
-                      {viber.name}
-                    </h3>
-                    <span
-                      class={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${statusBadgeClass(viber.status)}`}
-                    >
-                      {statusLabel(viber.status)}
-                    </span>
-                    {#if getConfigSyncBadge(viber.config_sync_state)}
-                      {@const badge = getConfigSyncBadge(
-                        viber.config_sync_state,
-                      )}
-                      {#if badge}
-                        <div class="mt-1.5">
+              <a
+                href={getViberHref(viber)}
+                class="block px-5 py-4 hover:bg-muted/30 transition-colors"
+              >
+                <div class="flex items-start justify-between gap-4">
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-3 flex-wrap">
+                      <h3
+                        class="text-lg font-semibold text-foreground truncate"
+                      >
+                        {viber.name}
+                      </h3>
+                      <span
+                        class={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${statusBadgeClass(viber.status)}`}
+                      >
+                        {statusLabel(viber.status)}
+                      </span>
+                      {#if getConfigSyncBadge(viber.config_sync_state)}
+                        {@const badge = getConfigSyncBadge(
+                          viber.config_sync_state,
+                        )}
+                        {#if badge}
                           <span
                             class={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-medium ${badge.class}`}
                           >
                             {badge.label}
                           </span>
-                        </div>
+                        {/if}
                       {/if}
-                    {/if}
-                  </div>
-                  <div
-                    class="flex items-center gap-3 mt-1.5 text-sm text-muted-foreground flex-wrap"
-                  >
-                    {#if viber.machine?.hostname}
-                      <span class="inline-flex items-center gap-1.5">
-                        <Monitor class="size-3.5" />
-                        {viber.machine.hostname}
-                      </span>
-                    {/if}
-                    {#if viber.version}
-                      <span>v{viber.version}</span>
-                    {/if}
-                    {#if viber.platform}
-                      <span class="inline-flex items-center gap-1.5">
-                        <Globe class="size-3.5" />
-                        {viber.platform}
-                      </span>
-                    {/if}
-                    {#if viber.machine?.arch}
-                      <span>{viber.machine.arch}</span>
-                    {/if}
-                    {#if viber.lastHeartbeat}
-                      <span class="text-muted-foreground/60">
-                        heartbeat {formatTimeAgo(viber.lastHeartbeat)}
-                      </span>
-                    {/if}
-                  </div>
-                </div>
-                <div class="flex items-center gap-2 shrink-0">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    class="gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10 hover:border-destructive/30"
-                    onclick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      deleteViber(viber.id);
-                    }}
-                  >
-                    <Trash2 class="size-3.5" />
-                    Delete
-                  </Button>
-                  <ExternalLink class="size-4 text-muted-foreground/50" />
-                </div>
-              </div>
-
-              <!-- Resource Metrics -->
-              {#if viber.machine || viber.viber}
-                <div class="border-t border-border px-5 py-4">
-                  <div
-                    class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5"
-                  >
-                    <!-- CPU -->
-                    {#if viber.machine}
-                      <div class="space-y-2">
-                        <div class="flex items-center justify-between">
-                          <span
-                            class="text-xs text-muted-foreground inline-flex items-center gap-1.5"
-                          >
-                            <Cpu class="size-3.5" />
-                            CPU
-                            {#if viber.machine.cpu.cores}
-                              <span class="text-muted-foreground/50"
-                                >({viber.machine.cpu.cores} cores)</span
-                              >
-                            {/if}
-                          </span>
-                          <span
-                            class={`text-sm font-semibold tabular-nums ${usageTextColor(viber.machine.cpu.averageUsage)}`}
-                          >
-                            {viber.machine.cpu.averageUsage.toFixed(0)}%
-                          </span>
-                        </div>
-                        <div class="h-2 rounded-full bg-muted overflow-hidden">
-                          <div
-                            class={`h-full rounded-full transition-all duration-500 ${usageColor(viber.machine.cpu.averageUsage)}`}
-                            style="width: {Math.min(
-                              viber.machine.cpu.averageUsage,
-                              100,
-                            )}%"
-                          ></div>
-                        </div>
-                        {#if viber.machine.loadAverage}
-                          <p
-                            class="text-[11px] text-muted-foreground/60 tabular-nums"
-                          >
-                            Load: {viber.machine.loadAverage
-                              .map((l) => l.toFixed(2))
-                              .join("  ")}
-                          </p>
-                        {/if}
-                      </div>
-
-                      <!-- Memory -->
-                      <div class="space-y-2">
-                        <div class="flex items-center justify-between">
-                          <span
-                            class="text-xs text-muted-foreground inline-flex items-center gap-1.5"
-                          >
-                            <MemoryStick class="size-3.5" />
-                            Memory
-                          </span>
-                          <span
-                            class={`text-sm font-semibold tabular-nums ${usageTextColor(viber.machine.memory.usagePercent)}`}
-                          >
-                            {viber.machine.memory.usagePercent.toFixed(0)}%
-                          </span>
-                        </div>
-                        <div class="h-2 rounded-full bg-muted overflow-hidden">
-                          <div
-                            class={`h-full rounded-full transition-all duration-500 ${usageColor(viber.machine.memory.usagePercent)}`}
-                            style="width: {Math.min(
-                              viber.machine.memory.usagePercent,
-                              100,
-                            )}%"
-                          ></div>
-                        </div>
-                        <p
-                          class="text-[11px] text-muted-foreground/60 tabular-nums"
-                        >
-                          {formatBytes(viber.machine.memory.usedBytes)} / {formatBytes(
-                            viber.machine.memory.totalBytes,
-                          )}
-                        </p>
-                      </div>
-                    {/if}
-
-                    <!-- Daemon / Tasks -->
-                    {#if viber.viber}
-                      <div class="space-y-3">
-                        <div class="flex items-center justify-between">
-                          <span
-                            class="text-xs text-muted-foreground inline-flex items-center gap-1.5"
-                          >
-                            <Zap class="size-3.5" />
-                            Tasks
-                          </span>
-                          <span
-                            class="text-sm font-semibold tabular-nums text-foreground"
-                          >
-                            {viber.viber.runningTaskCount} running
-                          </span>
-                        </div>
-                        <div
-                          class="text-[11px] text-muted-foreground/60 space-y-1"
-                        >
-                          <div class="flex justify-between">
-                            <span>Total executed</span>
-                            <span class="tabular-nums"
-                              >{viber.viber.totalTasksExecuted}</span
-                            >
-                          </div>
-                          <div class="flex justify-between">
-                            <span>Process RSS</span>
-                            <span class="tabular-nums"
-                              >{formatBytes(
-                                viber.viber.processMemory.rss,
-                              )}</span
-                            >
-                          </div>
-                        </div>
-                      </div>
-
-                      <!-- Uptime -->
-                      <div class="space-y-3">
-                        <div class="flex items-center justify-between">
-                          <span
-                            class="text-xs text-muted-foreground inline-flex items-center gap-1.5"
-                          >
-                            <Activity class="size-3.5" />
-                            Daemon Uptime
-                          </span>
-                          <span class="text-sm font-semibold text-foreground">
-                            {formatUptime(viber.viber.daemonUptimeSeconds)}
-                          </span>
-                        </div>
-                        {#if viber.machine?.systemUptimeSeconds}
-                          <div class="text-[11px] text-muted-foreground/60">
-                            <div class="flex justify-between">
-                              <span>System uptime</span>
-                              <span
-                                >{formatUptime(
-                                  viber.machine.systemUptimeSeconds,
-                                )}</span
-                              >
-                            </div>
-                          </div>
-                        {/if}
-                      </div>
-                    {/if}
-                  </div>
-                </div>
-              {/if}
-
-              <!-- Skills & Capabilities -->
-              {#if (viber.skills && viber.skills.length > 0) || (viber.capabilities && viber.capabilities.length > 0)}
-                <div class="border-t border-border px-5 py-3">
-                  <div class="flex items-start gap-4 flex-wrap">
-                    {#if viber.skills && viber.skills.length > 0}
-                      <div class="flex items-center gap-2 flex-wrap">
-                        <span
-                          class="text-xs text-muted-foreground inline-flex items-center gap-1"
-                        >
-                          <Puzzle class="size-3" />
-                          Skills
+                    </div>
+                    <div
+                      class="flex items-center gap-3 mt-1.5 text-sm text-muted-foreground flex-wrap"
+                    >
+                      {#if viber.machine?.hostname}
+                        <span class="inline-flex items-center gap-1.5">
+                          <Monitor class="size-3.5" />
+                          {viber.machine.hostname}
                         </span>
-                        {#each viber.skills as skill (skill.id)}
-                          <Badge
-                            variant="secondary"
-                            class="text-[11px] font-normal"
-                            title={skill.description}
-                          >
-                            {skill.name}
-                          </Badge>
-                        {/each}
-                      </div>
-                    {/if}
-                    {#if viber.capabilities && viber.capabilities.length > 0}
-                      <div class="flex items-center gap-2 flex-wrap">
-                        <span class="text-xs text-muted-foreground"
-                          >Capabilities</span
+                      {/if}
+                      {#if viber.version}
+                        <span>v{viber.version}</span>
+                      {/if}
+                      {#if viber.platform}
+                        <span class="inline-flex items-center gap-1.5">
+                          <Globe class="size-3.5" />
+                          {viber.platform}
+                        </span>
+                      {/if}
+                      {#if viber.machine?.arch}
+                        <span>{viber.machine.arch}</span>
+                      {/if}
+                      {#if viber.viber}
+                        <span
+                          class="inline-flex items-center gap-1 text-muted-foreground/70"
                         >
-                        {#each viber.capabilities as cap}
-                          <Badge
-                            variant="outline"
-                            class="text-[11px] font-normal"
-                          >
-                            {cap}
-                          </Badge>
-                        {/each}
+                          <Activity class="size-3" />
+                          up {formatUptime(viber.viber.daemonUptimeSeconds)}
+                        </span>
+                      {/if}
+                      {#if viber.lastHeartbeat}
+                        <span class="text-muted-foreground/50">
+                          heartbeat {formatTimeAgo(viber.lastHeartbeat)}
+                        </span>
+                      {/if}
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-2 shrink-0">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      class="gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10 hover:border-destructive/30"
+                      onclick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        deleteViber(viber.id);
+                      }}
+                    >
+                      <Trash2 class="size-3.5" />
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              </a>
+
+              <!-- Compact Resource Metrics (CPU + Memory) -->
+              {#if viber.machine}
+                <div class="border-t border-border px-5 py-3">
+                  <div class="grid grid-cols-2 gap-6">
+                    <!-- CPU -->
+                    <div class="space-y-1.5">
+                      <div class="flex items-center justify-between">
+                        <span
+                          class="text-xs text-muted-foreground inline-flex items-center gap-1.5"
+                        >
+                          <Cpu class="size-3.5" />
+                          CPU
+                          {#if viber.machine.cpu.cores}
+                            <span class="text-muted-foreground/50"
+                              >({viber.machine.cpu.cores} cores)</span
+                            >
+                          {/if}
+                        </span>
+                        <span
+                          class={`text-sm font-semibold tabular-nums ${usageTextColor(viber.machine.cpu.averageUsage)}`}
+                        >
+                          {viber.machine.cpu.averageUsage.toFixed(0)}%
+                        </span>
                       </div>
-                    {/if}
+                      <div class="h-1.5 rounded-full bg-muted overflow-hidden">
+                        <div
+                          class={`h-full rounded-full transition-all duration-500 ${usageColor(viber.machine.cpu.averageUsage)}`}
+                          style="width: {Math.min(
+                            viber.machine.cpu.averageUsage,
+                            100,
+                          )}%"
+                        ></div>
+                      </div>
+                    </div>
+                    <!-- Memory -->
+                    <div class="space-y-1.5">
+                      <div class="flex items-center justify-between">
+                        <span
+                          class="text-xs text-muted-foreground inline-flex items-center gap-1.5"
+                        >
+                          <MemoryStick class="size-3.5" />
+                          Memory
+                          <span class="text-muted-foreground/50"
+                            >{formatBytes(viber.machine.memory.usedBytes)} / {formatBytes(
+                              viber.machine.memory.totalBytes,
+                            )}</span
+                          >
+                        </span>
+                        <span
+                          class={`text-sm font-semibold tabular-nums ${usageTextColor(viber.machine.memory.usagePercent)}`}
+                        >
+                          {viber.machine.memory.usagePercent.toFixed(0)}%
+                        </span>
+                      </div>
+                      <div class="h-1.5 rounded-full bg-muted overflow-hidden">
+                        <div
+                          class={`h-full rounded-full transition-all duration-500 ${usageColor(viber.machine.memory.usagePercent)}`}
+                          style="width: {Math.min(
+                            viber.machine.memory.usagePercent,
+                            100,
+                          )}%"
+                        ></div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               {/if}
-            </a>
+
+              <!-- Quick Links Strip -->
+              <div
+                class="border-t border-border grid grid-cols-4 divide-x divide-border"
+              >
+                <!-- Tasks -->
+                <a
+                  href="/vibers/{effectiveId}/tasks"
+                  class="flex items-center gap-2 px-4 py-3 text-sm hover:bg-muted/40 transition-colors group"
+                >
+                  <ListTodo
+                    class="size-4 text-muted-foreground group-hover:text-foreground transition-colors"
+                  />
+                  <span
+                    class="text-muted-foreground group-hover:text-foreground transition-colors"
+                    >Tasks</span
+                  >
+                  {#if viber.viber}
+                    <span
+                      class="ml-auto text-xs font-medium tabular-nums text-muted-foreground/70"
+                    >
+                      {viber.viber.runningTaskCount} active · {viber.viber
+                        .totalTasksExecuted} total
+                    </span>
+                  {/if}
+                  <ChevronRight
+                    class="size-3.5 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors shrink-0"
+                  />
+                </a>
+                <!-- Skills -->
+                <a
+                  href="/vibers/{effectiveId}/skills"
+                  class="flex items-center gap-2 px-4 py-3 text-sm hover:bg-muted/40 transition-colors group"
+                >
+                  <Puzzle
+                    class="size-4 text-muted-foreground group-hover:text-foreground transition-colors"
+                  />
+                  <span
+                    class="text-muted-foreground group-hover:text-foreground transition-colors"
+                    >Skills</span
+                  >
+                  {#if viber.skills && viber.skills.length > 0}
+                    <span
+                      class="ml-auto text-xs font-medium tabular-nums text-muted-foreground/70"
+                    >
+                      {viber.skills.length}
+                    </span>
+                  {/if}
+                  <ChevronRight
+                    class="size-3.5 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors shrink-0"
+                  />
+                </a>
+                <!-- Jobs -->
+                <a
+                  href="/vibers/{effectiveId}/jobs"
+                  class="flex items-center gap-2 px-4 py-3 text-sm hover:bg-muted/40 transition-colors group"
+                >
+                  <CalendarClock
+                    class="size-4 text-muted-foreground group-hover:text-foreground transition-colors"
+                  />
+                  <span
+                    class="text-muted-foreground group-hover:text-foreground transition-colors"
+                    >Jobs</span
+                  >
+                  <ChevronRight
+                    class="size-3.5 ml-auto text-muted-foreground/40 group-hover:text-muted-foreground transition-colors shrink-0"
+                  />
+                </a>
+                <!-- Channels -->
+                <a
+                  href="/vibers/{effectiveId}/channels"
+                  class="flex items-center gap-2 px-4 py-3 text-sm hover:bg-muted/40 transition-colors group"
+                >
+                  <Radio
+                    class="size-4 text-muted-foreground group-hover:text-foreground transition-colors"
+                  />
+                  <span
+                    class="text-muted-foreground group-hover:text-foreground transition-colors"
+                    >Channels</span
+                  >
+                  <ChevronRight
+                    class="size-3.5 ml-auto text-muted-foreground/40 group-hover:text-muted-foreground transition-colors shrink-0"
+                  />
+                </a>
+              </div>
+            </div>
           {/each}
         </div>
       </div>

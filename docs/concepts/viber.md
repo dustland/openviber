@@ -53,15 +53,11 @@ Multiple tasks coordinate through **external systems** (GitHub issues, email) ra
 
 ## Tasks
 
-A **Task** is the unit of work in OpenViber. It combines:
+A **Task** is a specialized AI worker with a defined role. One Viber can run multiple tasks.
 
-| Element                 | What It Gives You                                                            |
-| ----------------------- | ---------------------------------------------------------------------------- |
-| **Persona & Goals**     | Role focus — not a generic assistant, but a specialist with clear objectives |
-| **Machine Runtime**     | Real execution — terminal, browser, files, apps on your machine              |
-| **Identity & Accounts** | Agency — acts on your behalf across GitHub, email, cloud services            |
+Tasks share the Viber's workspace and memory — they belong to the same user and workflow.
 
-This is what separates tasks from chatbots: they don't just answer questions, they **do the work**.
+**See**: [Tasks](/docs/concepts/tasks) for complete task documentation.
 
 ## Intent-Driven Creation (Viber Board)
 
@@ -124,6 +120,7 @@ Your Viber works autonomously but you always have oversight:
 
 ## Next Steps
 
+- [Tasks](/docs/concepts/tasks) — The unit of work in OpenViber
 - [Tools](/docs/concepts/tools) — What tasks can do
 - [Skills](/docs/concepts/skills) — Domain knowledge bundles with specialized tools
 - [Jobs](/docs/concepts/jobs) — Schedule recurring tasks

@@ -253,6 +253,8 @@
   function backfillInstalledFromVibers() {
     if (installed.length > 0 || !currentViber) return;
     const derived: InstalledSkill[] = [];
+
+    // Try viber.skills first
     for (const s of (currentViber as any).skills ?? []) {
       const id = s.id || s.name;
       if (!id) continue;
@@ -263,6 +265,19 @@
         usedByVibers: [{ id: currentViber.id, name: currentViber.name }],
       });
     }
+
+    // Fallback: derive from skillHealthMap (viber status heartbeat)
+    if (derived.length === 0 && skillHealthMap.size > 0) {
+      for (const [id, health] of skillHealthMap) {
+        derived.push({
+          id,
+          name: health.name || id,
+          description: "",
+          usedByVibers: [{ id: currentViber.id, name: currentViber.name }],
+        });
+      }
+    }
+
     if (derived.length > 0) {
       installed = derived;
       installedError = null;

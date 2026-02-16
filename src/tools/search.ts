@@ -211,7 +211,7 @@ export class SearchTool extends Tool {
     const provider = this.configManager.selectProvider();
 
     if (!provider) {
-      throw new Error('No search provider available. Please configure EXA_API_KEY, TAVILY_API_KEY, or SERPER_API_KEY.');
+      throw new Error('No search provider available. Configure EXA_API_KEY, TAVILY_API_KEY, or SERPER_API_KEY for best results, or DuckDuckGo will be used as a zero-config fallback.');
     }
 
     // Apply config defaults for missing parameters
@@ -252,7 +252,7 @@ export class SearchTool extends Tool {
     }
   ): Promise<SearchResponse> {
     const apiKey = this.configManager.getApiKey(provider);
-    if (!apiKey) {
+    if (!apiKey && provider !== 'duckduckgo') {
       throw new Error(`${provider} API key is not configured`);
     }
 
@@ -260,11 +260,13 @@ export class SearchTool extends Tool {
 
     switch (provider) {
       case 'exa':
-        return await this.searchWithExa(endpoint, apiKey, input);
+        return await this.searchWithExa(endpoint, apiKey!, input);
       case 'tavily':
-        return await this.searchWithTavily(endpoint, apiKey, input);
+        return await this.searchWithTavily(endpoint, apiKey!, input);
       case 'serper':
-        return await this.searchWithSerper(endpoint, apiKey, input);
+        return await this.searchWithSerper(endpoint, apiKey!, input);
+      case 'duckduckgo':
+        return await this.searchWithDuckDuckGo(endpoint, input);
       default:
         throw new Error(`Search provider ${provider} is not implemented`);
     }
@@ -611,6 +613,127 @@ export class SearchTool extends Tool {
         };
       }),
       totalResults: data.searchInformation?.totalResults,
+    };
+  }
+
+  /**
+   * DuckDuckGo HTML search — zero-config fallback (no API key needed).
+   *
+   * Uses the DuckDuckGo HTML endpoint to scrape search results.
+   * Lower quality than keyed providers but always available.
+   */
+  private async searchWithDuckDuckGo(
+    endpoint: string,
+    input: {
+      query: string;
+      maxResults?: number;
+      searchType?: 'general' | 'news';
+      days?: number;
+      language?: string;
+      country?: string;
+      includeDomains?: string[];
+      excludeDomains?: string[];
+    }
+  ): Promise<SearchResponse> {
+    const maxResults = input.maxResults || 10;
+
+    // Build the query, incorporating domain filters if specified
+    let query = input.query;
+    if (input.includeDomains && input.includeDomains.length > 0) {
+      const siteFilters = input.includeDomains.map(d => `site:${d}`).join(' OR ');
+      query = `${query} (${siteFilters})`;
+    }
+    if (input.excludeDomains && input.excludeDomains.length > 0) {
+      const excludeFilters = input.excludeDomains.map(d => `-site:${d}`).join(' ');
+      query = `${query} ${excludeFilters}`;
+    }
+
+    // DuckDuckGo HTML form POST
+    const body = new URLSearchParams({ q: query, b: '' });
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'OpenViber/1.0 (search fallback)',
+      },
+      body: body.toString(),
+      signal: AbortSignal.timeout(10000),
+    });
+
+    if (!response.ok) {
+      throw new Error(`DuckDuckGo search failed: ${response.status} ${response.statusText}`);
+    }
+
+    const html = await response.text();
+
+    // Parse results from the HTML response
+    const results: SearchResult[] = [];
+
+    // DuckDuckGo HTML results are in <div class="result"> blocks
+    // Each contains an <a class="result__a"> for title+url and
+    // <a class="result__snippet"> for the snippet
+    const resultBlocks = html.split(/class="result\s/);
+
+    for (let i = 1; i < resultBlocks.length && results.length < maxResults; i++) {
+      const block = resultBlocks[i];
+
+      // Extract URL from result__a href
+      const urlMatch = block.match(/class="result__a"\s+href="([^"]+)"/);
+      if (!urlMatch) continue;
+
+      let url = urlMatch[1];
+      // DuckDuckGo wraps URLs in a redirect; extract the actual URL
+      const uddgMatch = url.match(/uddg=([^&]+)/);
+      if (uddgMatch) {
+        url = decodeURIComponent(uddgMatch[1]);
+      }
+
+      // Extract title from result__a inner text
+      const titleMatch = block.match(/class="result__a"[^>]*>([^<]+)/);
+      const title = titleMatch
+        ? titleMatch[1].replace(/&#x27;/g, "'").replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').trim()
+        : url;
+
+      // Extract snippet from result__snippet
+      const snippetMatch = block.match(/class="result__snippet"[^>]*>([\s\S]*?)(?:<\/a>|<\/td>)/);
+      const snippet = snippetMatch
+        ? snippetMatch[1]
+          .replace(/<\/?b>/g, '')
+          .replace(/<[^>]+>/g, '')
+          .replace(/&#x27;/g, "'")
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&quot;/g, '"')
+          .trim()
+        : '';
+
+      // Extract domain for favicon
+      let domain = '';
+      let favicon = '';
+      try {
+        const urlObj = new URL(url);
+        domain = urlObj.hostname.replace('www.', '');
+        favicon = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+      } catch {
+        // Invalid URL, skip favicon
+      }
+
+      if (url && title) {
+        results.push({
+          title,
+          url,
+          snippet,
+          content: snippet,
+        });
+      }
+    }
+
+    return {
+      provider: 'duckduckgo',
+      query: input.query,
+      results,
+      totalResults: results.length,
     };
   }
 }

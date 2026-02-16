@@ -5,13 +5,13 @@
 
 import { z } from 'zod';
 
-export type SearchProvider = 'exa' | 'tavily' | 'serper';
+export type SearchProvider = 'exa' | 'tavily' | 'serper' | 'duckduckgo';
 
 export const SearchConfigSchema = z.object({
   exaApiKey: z.string().optional(),
   tavilyApiKey: z.string().optional(),
   serperApiKey: z.string().optional(),
-  defaultProvider: z.enum(['exa', 'tavily', 'serper', 'auto']).default('auto'),
+  defaultProvider: z.enum(['exa', 'tavily', 'serper', 'duckduckgo', 'auto']).default('auto'),
   enableFallback: z.boolean().default(true),
 });
 
@@ -36,6 +36,12 @@ export const SEARCH_PROVIDERS = {
     endpoint: 'https://google.serper.dev/search',
     envVar: 'SERPER_API_KEY',
     priority: 2,
+  },
+  duckduckgo: {
+    name: 'DuckDuckGo',
+    endpoint: 'https://html.duckduckgo.com/html/',
+    envVar: '', // No API key required — zero-config fallback
+    priority: 10, // Lowest priority: keyed providers always preferred
   },
 } as const;
 
@@ -66,6 +72,8 @@ export class SearchConfigManager {
   }
 
   isProviderAvailable(provider: SearchProvider): boolean {
+    // DuckDuckGo is always available (no API key required)
+    if (provider === 'duckduckgo') return true;
     return !!this.getApiKey(provider);
   }
 

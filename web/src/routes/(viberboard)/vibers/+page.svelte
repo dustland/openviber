@@ -84,8 +84,10 @@
   let loading = $state(true);
   let creating = $state(false);
   let copiedId = $state<string | null>(null);
+  let copiedGuideCommand = $state(false);
   let showCreateDialog = $state(false);
   let newViberName = $state("My Viber");
+  let onboardingViber = $state<Viber | null>(null);
 
   const activeVibers = $derived(vibers.filter((v) => v.status === "active"));
   const inactiveVibers = $derived(vibers.filter((v) => v.status !== "active"));
@@ -180,8 +182,7 @@
       });
       const payload = await response.json();
       if (payload?.viber) {
-        showCreateDialog = false;
-        newViberName = "My Viber";
+        onboardingViber = payload.viber;
         await fetchVibers();
       }
     } catch (error) {
@@ -221,6 +222,29 @@
     } catch (error) {
       console.error("Failed to copy command:", error);
     }
+  }
+
+  async function copyGuideCommand() {
+    if (!onboardingViber?.onboard_token) return;
+
+    try {
+      await navigator.clipboard.writeText(
+        getOnboardCommand(onboardingViber.onboard_token),
+      );
+      copiedGuideCommand = true;
+      setTimeout(() => {
+        copiedGuideCommand = false;
+      }, 1800);
+    } catch (error) {
+      console.error("Failed to copy onboard guide command:", error);
+    }
+  }
+
+  function closeCreateDialog() {
+    showCreateDialog = false;
+    newViberName = "My Viber";
+    onboardingViber = null;
+    copiedGuideCommand = false;
   }
 
   function getViberHref(viber: Viber): string {
@@ -295,7 +319,7 @@
         onclick={() => (showCreateDialog = true)}
       >
         <Plus class="size-4" />
-        Add Viber
+        Onboard Viber
       </Button>
       <Button variant="outline" size="icon" onclick={() => fetchVibers()}>
         <RefreshCw class="size-4" />
@@ -352,8 +376,8 @@
         Create a viber and onboard your first machine.
       </p>
       <Button class="mt-4" onclick={() => (showCreateDialog = true)}>
-        <Plus class="size-4 mr-1" />
-        Create Viber
+        <Plus class="size-4" />
+        Onboard Viber
       </Button>
     </div>
   {:else}
@@ -708,35 +732,67 @@
     <div
       class="w-full max-w-sm rounded-xl border border-border bg-card p-5 shadow-xl"
     >
-      <h3 class="text-lg font-semibold text-foreground">Create Viber</h3>
-      <p class="mt-1 text-sm text-muted-foreground">
-        Register a new machine for OpenViber.
-      </p>
-      <div class="mt-4 space-y-2">
-        <label for="new-viber-name" class="text-xs text-muted-foreground"
-          >Viber name</label
-        >
-        <input
-          id="new-viber-name"
-          type="text"
-          class="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
-          bind:value={newViberName}
-        />
-      </div>
-      <div class="mt-5 flex justify-end gap-2">
-        <Button
-          variant="outline"
-          onclick={() => {
-            showCreateDialog = false;
-            newViberName = "My Viber";
-          }}
-        >
-          Cancel
-        </Button>
-        <Button disabled={creating} onclick={createViber}>
-          {creating ? "Creating..." : "Create"}
-        </Button>
-      </div>
+      {#if onboardingViber?.onboard_token}
+        <h3 class="text-lg font-semibold text-foreground">Connection Guide</h3>
+        <p class="mt-1 text-sm text-muted-foreground">
+          Run this command on the machine you want to connect.
+        </p>
+        <div class="mt-4 rounded-lg border border-border bg-muted/30 p-3">
+          <div class="flex items-center gap-2">
+            <code class="flex-1 overflow-x-auto text-xs text-foreground">
+              {getOnboardCommand(onboardingViber.onboard_token)}
+            </code>
+            <Button
+              size="icon"
+              variant="outline"
+              class="shrink-0"
+              onclick={copyGuideCommand}
+              aria-label="Copy onboard command"
+            >
+              {#if copiedGuideCommand}
+                <Check class="size-4" />
+              {:else}
+                <Copy class="size-4" />
+              {/if}
+            </Button>
+          </div>
+          {#if onboardingViber.token_expires_at}
+            <p class="mt-2 text-xs text-muted-foreground">
+              Token expires {new Date(onboardingViber.token_expires_at).toLocaleString()}
+            </p>
+          {/if}
+        </div>
+        <div class="mt-5 flex justify-end gap-2">
+          <Button variant="outline" onclick={closeCreateDialog}>Done</Button>
+        </div>
+      {:else}
+        <h3 class="text-lg font-semibold text-foreground">Onboard Viber</h3>
+        <p class="mt-1 text-sm text-muted-foreground">
+          Create a viber and get the connection command.
+        </p>
+        <div class="mt-4 space-y-2">
+          <label for="new-viber-name" class="text-xs text-muted-foreground"
+            >Viber name</label
+          >
+          <input
+            id="new-viber-name"
+            type="text"
+            class="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
+            bind:value={newViberName}
+          />
+        </div>
+        <div class="mt-5 flex justify-end gap-2">
+          <Button
+            variant="outline"
+            onclick={closeCreateDialog}
+          >
+            Cancel
+          </Button>
+          <Button disabled={creating} onclick={createViber}>
+            {creating ? "Creating..." : "Create"}
+          </Button>
+        </div>
+      {/if}
     </div>
   </div>
 {/if}

@@ -96,7 +96,7 @@
           <Sidebar.MenuItem>
             <Sidebar.MenuButton
               isActive={isSkillsRoute}
-              tooltipContent="Skill sources"
+              tooltipContent="Skills"
             >
               <a
                 href="/settings/skills"
@@ -104,7 +104,7 @@
               >
                 <Puzzle class="size-4 shrink-0" />
                 <span class="truncate group-data-[collapsible=icon]:hidden"
-                  >Skill sources</span
+                  >Skills</span
                 >
               </a>
             </Sidebar.MenuButton>

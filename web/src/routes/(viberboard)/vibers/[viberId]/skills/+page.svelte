@@ -330,7 +330,7 @@
       params.set("sort", sortOrder);
       params.set("page", String(nextPage));
       params.set("limit", String(limit));
-      const res = await fetch(`/api/skill-hub?${params.toString()}`);
+      const res = await fetch(`/api/hub/skills/search?${params.toString()}`);
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || "Failed to search");
@@ -354,7 +354,7 @@
     const key = getSkillKey(skill);
     importStates = { ...importStates, [key]: { status: "importing" } };
     try {
-      const res = await fetch("/api/skill-hub", {
+      const res = await fetch("/api/skills", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

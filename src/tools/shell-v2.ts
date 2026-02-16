@@ -62,7 +62,7 @@ export class ShellTool extends BaseTool {
       return {
         success: false,
         output: "",
-        error: validated.error,
+        error: (validated as { success: false; error: string }).error,
       };
     }
 
@@ -132,7 +132,7 @@ export function createShellCoreTool(): import("../worker/tool").CoreTool {
     execute: async (args: any, context?: any) => {
       const toolContext: ToolContext = {
         security: DEFAULT_SECURITY_POLICY,
-        runtime: (await import("../worker/tool-trait")).NativeRuntime,
+        runtime: new (await import("../worker/tool-trait")).NativeRuntime(),
         spaceId: context?.spaceId,
         userId: context?.userId,
         oauthTokens: context?.oauthTokens,

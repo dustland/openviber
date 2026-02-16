@@ -258,7 +258,7 @@
       if (selectedCategoryTag) {
         params.set("category", selectedCategoryTag);
       }
-      const res = await fetch(`/api/skill-hub?${params.toString()}`);
+      const res = await fetch(`/api/hub/skills/search?${params.toString()}`);
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || "Failed to load skills");
@@ -324,7 +324,7 @@
         params.set("category", selectedCategoryTag);
       }
 
-      const res = await fetch(`/api/skill-hub?${params.toString()}`);
+      const res = await fetch(`/api/hub/skills/search?${params.toString()}`);
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || "Failed to search skills");
@@ -518,7 +518,7 @@
         skillId: skill.importId || skill.id,
       });
       if (skill.url) params.set("skillUrl", skill.url);
-      const res = await fetch(`/api/skill-hub/readme?${params.toString()}`);
+      const res = await fetch(`/api/hub/skills/readme?${params.toString()}`);
       if (!res.ok) return;
       const data = await res.json().catch(() => ({}));
       if (typeof data.markdown !== "string") return;
@@ -567,7 +567,7 @@
       });
       if (skill.url) params.set("skillUrl", skill.url);
 
-      const res = await fetch(`/api/skill-hub/readme?${params.toString()}`);
+      const res = await fetch(`/api/hub/skills/readme?${params.toString()}`);
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         throw new Error(data.error || "Failed to load SKILL.md");
@@ -609,7 +609,7 @@
     const key = getSkillKey(skill);
     importStates = { ...importStates, [key]: { status: "importing" } };
     try {
-      const res = await fetch("/api/skill-hub", {
+      const res = await fetch("/api/skills", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

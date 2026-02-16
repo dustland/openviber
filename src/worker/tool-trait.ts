@@ -160,8 +160,8 @@ export class NativeRuntime implements RuntimeAdapter {
   }
 
   async fileExists(path: string): Promise<boolean> {
-    const { exists } = await import("fs/promises");
-    return exists(path).catch(() => false);
+    const { access } = await import("fs/promises");
+    return access(path).then(() => true).catch(() => false);
   }
 
   async readFile(path: string): Promise<string> {
@@ -290,7 +290,7 @@ export abstract class BaseTool implements Tool {
 /**
  * Create a CoreTool from a Tool (for AI SDK compatibility)
  */
-export function toolToCoreTool(tool: Tool): import("../../worker/tool").CoreTool {
+export function toolToCoreTool(tool: Tool): import("./tool").CoreTool {
   const spec = tool.getSpec();
   return {
     description: spec.description,

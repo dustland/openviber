@@ -144,7 +144,7 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 
     return json({ error: "SKILL.md not found for this skill" }, { status: 404 });
   } catch (error) {
-    console.error("[Skill Hub API] Readme fetch failed:", error);
+    console.error("[Hub Skills API] Readme fetch failed:", error);
     return json({ error: "Failed to load SKILL.md" }, { status: 500 });
   }
 };

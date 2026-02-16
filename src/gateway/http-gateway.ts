@@ -14,7 +14,7 @@
 
 import { createServer, IncomingMessage, ServerResponse } from "http";
 import { URL } from "url";
-import crypto from "crypto";
+import * as crypto from "crypto";
 
 // ============================================================================
 // Configuration
@@ -113,7 +113,7 @@ export class IdempotencyStore {
     const now = Date.now();
 
     // Clean expired entries
-    for (const [k, timestamp] of this.keys.entries()) {
+    for (const [k, timestamp] of Array.from(this.keys.entries())) {
       if (now - timestamp > this.ttl) {
         this.keys.delete(k);
       }

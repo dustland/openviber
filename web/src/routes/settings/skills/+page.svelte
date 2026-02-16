@@ -2,17 +2,46 @@
   import { onMount } from "svelte";
   import {
     AlertCircle,
+    ArrowLeft,
+    ArrowRight,
     Check,
+    CheckCircle,
+    ChevronDown,
+    Download,
     ExternalLink,
-    Eye,
-    EyeOff,
-    Globe,
-    Key,
     Loader2,
     Puzzle,
-    Save,
-    Shield,
+    Search,
+    Settings2,
+    Sparkles,
   } from "@lucide/svelte";
+  import * as Dialog from "$lib/components/ui/dialog";
+  import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
+  import { Button } from "$lib/components/ui/button";
+  import { Skeleton } from "$lib/components/ui/skeleton";
+
+  interface SkillInfo {
+    id: string;
+    name: string;
+    description: string;
+    source: string | null;
+    version: string | null;
+  }
+
+  interface DiscoverSkill {
+    id: string;
+    importId?: string;
+    name: string;
+    description: string;
+    author: string;
+    version: string;
+    source: string;
+    url: string;
+    tags: string[];
+    popularity?: number;
+    updatedAt?: string;
+    license?: string;
+  }
 
   interface SourceConfig {
     enabled: boolean;
@@ -27,378 +56,941 @@
     docsUrl: string;
   }
 
-  let sources = $state<Record<string, SourceConfig>>({});
-  let loading = $state(true);
-  let saving = $state(false);
-  let error = $state<string | null>(null);
-  let successMessage = $state<string | null>(null);
-  let revealedKeys = $state<Set<string>>(new Set());
-  let editSources = $state<
-    Record<string, { enabled: boolean; url: string; apiKey: string }>
-  >({});
-
-  function initEditState(src: Record<string, SourceConfig>) {
-    const edit: Record<
-      string,
-      { enabled: boolean; url: string; apiKey: string }
-    > = {};
-    for (const [key, cfg] of Object.entries(src)) {
-      edit[key] = {
-        enabled: cfg.enabled,
-        url: cfg.url || "",
-        apiKey: cfg.apiKey || "",
-      };
-    }
-    editSources = edit;
+  interface SourceOption {
+    id: string;
+    label: string;
+    enabled: boolean;
+    docsUrl?: string;
   }
 
-  async function fetchSettings() {
-    loading = true;
-    error = null;
+  interface ImportState {
+    status: "idle" | "importing" | "success" | "error";
+    message?: string;
+  }
+
+  // ── Installed skills state ──
+  let installed = $state<SkillInfo[]>([]);
+  let installedLoading = $state(true);
+  let installedError = $state<string | null>(null);
+
+  // ── Sources state ──
+  let sources = $state<SourceOption[]>([]);
+  let sourcesRaw = $state<Record<string, SourceConfig>>({});
+  let sourcesLoading = $state(true);
+
+  // ── Hub dialog state ──
+  let hubDialogOpen = $state(false);
+  let hubInitialized = $state(false);
+  let searchQuery = $state("");
+  let sourceFilter = $state("");
+  let sortOrder = $state("relevance");
+  let page = $state(1);
+  let limit = $state(12);
+  let discoverSkills = $state<DiscoverSkill[]>([]);
+  let total = $state(0);
+  let totalPages = $state(0);
+  let discoverLoading = $state(false);
+  let discoverError = $state<string | null>(null);
+  let importStates = $state<Record<string, ImportState>>({});
+
+  const sourceLabelMap = $derived(new Map(sources.map((s) => [s.id, s.label])));
+  const enabledSourcesCount = $derived(sources.filter((s) => s.enabled).length);
+
+  function getSkillKey(skill: DiscoverSkill) {
+    return `${skill.source}:${skill.id}`;
+  }
+  function getSourceLabel(source: string) {
+    return sourceLabelMap.get(source) || source;
+  }
+
+  // ── Data fetching ──
+
+  async function fetchInstalled() {
+    installedLoading = true;
+    installedError = null;
     try {
-      const res = await fetch("/api/settings");
+      const res = await fetch("/api/skills");
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Failed to load settings");
+        throw new Error(data.error || "Failed to load skills");
       }
       const data = await res.json();
-      sources = data.sources ?? {};
-      initEditState(sources);
+      installed = data.skills ?? [];
     } catch (e) {
-      error = e instanceof Error ? e.message : "Failed to load settings";
+      installedError = e instanceof Error ? e.message : "Failed to load skills";
+      installed = [];
     } finally {
-      loading = false;
+      installedLoading = false;
     }
   }
 
-  async function saveSettings() {
-    saving = true;
-    error = null;
-    successMessage = null;
+  async function fetchSources() {
+    sourcesLoading = true;
     try {
-      const payload: Record<
-        string,
-        { enabled: boolean; url?: string; apiKey?: string }
-      > = {};
-      for (const [key, edit] of Object.entries(editSources)) {
-        payload[key] = {
-          enabled: edit.enabled,
-          url: edit.url || undefined,
-          apiKey: edit.apiKey || undefined,
-        };
+      const res = await fetch("/api/settings");
+      if (!res.ok) return;
+      const data = await res.json();
+      sourcesRaw = (data.sources ?? {}) as Record<string, SourceConfig>;
+      sources = Object.entries(sourcesRaw).map(([id, meta]) => ({
+        id,
+        label: meta?.displayName || id,
+        enabled: Boolean(meta?.enabled),
+        docsUrl: meta?.docsUrl || undefined,
+      }));
+    } catch {
+      // Non-fatal
+    } finally {
+      sourcesLoading = false;
+    }
+  }
+
+  async function toggleSource(id: string) {
+    const idx = sources.findIndex((s) => s.id === id);
+    if (idx < 0) return;
+    const newEnabled = !sources[idx].enabled;
+    // Optimistic update
+    sources = sources.map((s) =>
+      s.id === id ? { ...s, enabled: newEnabled } : s,
+    );
+    try {
+      const payload: Record<string, { enabled: boolean }> = {};
+      for (const s of sources) {
+        payload[s.id] = { enabled: s.id === id ? newEnabled : s.enabled };
       }
-      const res = await fetch("/api/settings", {
+      await fetch("/api/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sources: payload }),
       });
+    } catch {
+      // Revert on failure
+      sources = sources.map((s) =>
+        s.id === id ? { ...s, enabled: !newEnabled } : s,
+      );
+    }
+  }
+
+  async function searchDiscover(nextPage = 1) {
+    if (enabledSourcesCount === 0) {
+      discoverError = "Enable at least one skill source to search.";
+      discoverSkills = [];
+      total = 0;
+      totalPages = 0;
+      return;
+    }
+    discoverLoading = true;
+    discoverError = null;
+    page = nextPage;
+    try {
+      const params = new URLSearchParams();
+      if (searchQuery.trim()) params.set("q", searchQuery.trim());
+      if (sourceFilter) params.set("source", sourceFilter);
+      params.set("sort", sortOrder);
+      params.set("page", String(nextPage));
+      params.set("limit", String(limit));
+      const res = await fetch(`/api/hub/skills/search?${params.toString()}`);
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Failed to save settings");
+        throw new Error(data.error || "Failed to search");
       }
-      successMessage = "Skill sources saved";
-      await fetchSettings();
-      setTimeout(() => (successMessage = null), 3000);
+      const data = await res.json();
+      discoverSkills = data.skills ?? [];
+      total = data.total ?? 0;
+      totalPages = data.totalPages ?? 1;
+      page = data.page ?? nextPage;
     } catch (e) {
-      error = e instanceof Error ? e.message : "Failed to save settings";
+      discoverError = e instanceof Error ? e.message : "Failed to search";
+      discoverSkills = [];
+      total = 0;
+      totalPages = 0;
     } finally {
-      saving = false;
+      discoverLoading = false;
     }
   }
 
-  function toggleRevealKey(key: string) {
-    const next = new Set(revealedKeys);
-    if (next.has(key)) next.delete(key);
-    else next.add(key);
-    revealedKeys = next;
-  }
-
-  function toggleSource(key: string) {
-    if (editSources[key]) {
-      editSources[key].enabled = !editSources[key].enabled;
+  async function importSkill(skill: DiscoverSkill) {
+    const key = getSkillKey(skill);
+    importStates = { ...importStates, [key]: { status: "importing" } };
+    try {
+      const res = await fetch("/api/skills", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          skillId: skill.importId || skill.id,
+          source: skill.source,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Failed to import");
+      importStates = {
+        ...importStates,
+        [key]: { status: "success", message: data.message },
+      };
+      await fetchInstalled();
+    } catch (e) {
+      importStates = {
+        ...importStates,
+        [key]: {
+          status: "error",
+          message: e instanceof Error ? e.message : "Failed to import",
+        },
+      };
     }
   }
 
-  const enabledCount = $derived(
-    Object.values(editSources).filter((s) => s.enabled).length,
-  );
-
-  const hasChanges = $derived.by(() => {
-    for (const [key, edit] of Object.entries(editSources)) {
-      const orig = sources[key];
-      if (!orig) continue;
-      if (edit.enabled !== orig.enabled) return true;
-      if ((edit.url || "") !== (orig.url || "")) return true;
-      if (edit.apiKey && edit.apiKey !== (orig.apiKey || "")) return true;
+  function handleSearchKeydown(event: KeyboardEvent) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      searchDiscover(1);
     }
-    return false;
-  });
+  }
 
-  onMount(() => {
-    fetchSettings();
+  function openHub() {
+    hubDialogOpen = true;
+    if (!hubInitialized && enabledSourcesCount > 0) {
+      hubInitialized = true;
+      searchDiscover(1);
+    }
+  }
+
+  onMount(async () => {
+    await Promise.all([fetchInstalled(), fetchSources()]);
   });
 </script>
 
 <svelte:head>
-  <title>Skill sources - OpenViber</title>
+  <title>Skills — OpenViber</title>
 </svelte:head>
 
-<div class="flex-1 min-h-0 overflow-y-auto">
-  <div class="w-full px-4 py-6 sm:px-6 lg:px-8">
-    <header class="mb-8">
-      <div class="flex items-center gap-3 mb-2">
-        <div
-          class="flex items-center justify-center size-10 rounded-lg bg-primary/10"
-        >
-          <Puzzle class="size-5 text-primary" />
+<div class="skills-page">
+  <header class="skills-header">
+    <div class="header-text">
+      <div class="title-row">
+        <div class="title-icon">
+          <Puzzle class="size-5" />
         </div>
-        <div>
-          <h1 class="text-2xl font-semibold text-foreground">Skill sources</h1>
-          <p class="text-sm text-muted-foreground">
-            Configure where to discover and import skills. Use the Skills page
-            in the sidebar to browse and import.
-          </p>
-        </div>
+        <h1>Skills</h1>
       </div>
-    </header>
-
-    {#if error}
-      <div
-        class="rounded-lg border border-destructive/50 bg-destructive/10 p-4 flex items-center gap-3 mb-6"
+      <p class="subtitle">Manage installed skills across all vibers.</p>
+    </div>
+    <div class="header-actions">
+      <span class="skill-count"
+        >{installed.length} skill{installed.length === 1 ? "" : "s"}</span
       >
-        <AlertCircle class="size-5 text-destructive shrink-0" />
-        <p class="text-sm text-destructive">{error}</p>
-      </div>
-    {/if}
-
-    {#if successMessage}
-      <div
-        class="rounded-lg border border-emerald-500/50 bg-emerald-500/10 p-4 flex items-center gap-3 mb-6 animate-in fade-in slide-in-from-top-1 duration-200"
-      >
-        <Check class="size-5 text-emerald-600 shrink-0" />
-        <p class="text-sm text-emerald-700 dark:text-emerald-400">
-          {successMessage}
-        </p>
-      </div>
-    {/if}
-
-    {#if loading}
-      <div class="flex items-center justify-center py-20">
-        <div class="animate-pulse flex flex-col items-center gap-3">
-          <Loader2 class="size-8 text-muted-foreground/50 animate-spin" />
-          <p class="text-sm text-muted-foreground">Loading skill sources…</p>
-        </div>
-      </div>
-    {:else}
-      <section class="mb-10">
-        <p class="text-sm text-muted-foreground mb-4">
-          {enabledCount} of {Object.keys(editSources).length} sources enabled. These
-          are used when you search on the Skills page.
-        </p>
-
-        <div class="space-y-3">
-          {#each Object.entries(editSources) as [key, edit] (key)}
-            {@const meta = sources[key]}
-            {#if meta}
-              <div
-                class="rounded-xl border transition-all duration-200 {edit.enabled
-                  ? 'border-border bg-card shadow-sm'
-                  : 'border-border/60 bg-card/50'}"
-              >
-                <div class="flex items-start gap-4 p-4">
-                  <button
-                    type="button"
-                    onclick={() => toggleSource(key)}
-                    role="switch"
-                    aria-checked={edit.enabled}
-                    aria-label={edit.enabled
-                      ? `Disable ${meta.displayName}`
-                      : `Enable ${meta.displayName}`}
-                    class="mt-0.5 relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 {edit.enabled
-                      ? 'bg-primary'
-                      : 'bg-input'}"
-                  >
-                    <span
-                      class="pointer-events-none inline-block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform duration-200 {edit.enabled
-                        ? 'translate-x-5'
-                        : 'translate-x-0'}"
-                    ></span>
-                  </button>
-
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2 mb-1">
-                      <h3
-                        class="text-base font-semibold text-foreground {!edit.enabled
-                          ? 'opacity-60'
-                          : ''}"
-                      >
-                        {meta.displayName}
-                      </h3>
-                      {#if meta.docsUrl}
-                        <a
-                          href={meta.docsUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          class="text-muted-foreground hover:text-foreground transition-colors"
-                          title="Open documentation"
-                        >
-                          <ExternalLink class="size-3.5" />
-                        </a>
-                      {/if}
-                    </div>
-                    <p
-                      class="text-sm text-muted-foreground {!edit.enabled
-                        ? 'opacity-50'
-                        : ''}"
-                    >
-                      {meta.description}
-                    </p>
-                  </div>
-
-                  <div class="shrink-0">
-                    {#if edit.enabled}
-                      <span
-                        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                      >
-                        <span class="size-1.5 rounded-full bg-emerald-500"
-                        ></span>
-                        Enabled
-                      </span>
-                    {:else}
-                      <span
-                        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground"
-                      >
-                        <span
-                          class="size-1.5 rounded-full bg-muted-foreground/40"
-                        ></span>
-                        Disabled
-                      </span>
-                    {/if}
-                  </div>
-                </div>
-
-                {#if edit.enabled}
-                  <div class="border-t border-border/50 px-4 py-3 bg-muted/20">
-                    <div class="grid gap-3 sm:grid-cols-2">
-                      <div>
-                        <label
-                          for="url-{key}"
-                          class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5"
-                        >
-                          <Globe class="size-3.5" />
-                          {meta.urlLabel || "API URL"}
-                        </label>
-                        <input
-                          id="url-{key}"
-                          type="url"
-                          bind:value={edit.url}
-                          placeholder={meta.defaultUrl}
-                          class="w-full h-9 rounded-md border border-input bg-background px-3 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
-                        />
-                        <p class="mt-1 text-[11px] text-muted-foreground/60">
-                          Leave empty to use default: {meta.defaultUrl}
-                        </p>
-                      </div>
-
-                      {#if meta.apiKeyLabel}
-                        <div>
-                          <label
-                            for="key-{key}"
-                            class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5"
-                          >
-                            <Key class="size-3.5" />
-                            {meta.apiKeyLabel}
-                          </label>
-                          <div class="relative">
-                            <input
-                              id="key-{key}"
-                              type={revealedKeys.has(key) ? "text" : "password"}
-                              bind:value={edit.apiKey}
-                              placeholder={meta.apiKeyEnvVar
-                                ? `Or set ${meta.apiKeyEnvVar} env var`
-                                : "Enter API key"}
-                              class="w-full h-9 rounded-md border border-input bg-background px-3 pr-10 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 font-mono"
-                            />
-                            <button
-                              type="button"
-                              onclick={() => toggleRevealKey(key)}
-                              class="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                              title={revealedKeys.has(key) ? "Hide" : "Reveal"}
-                            >
-                              {#if revealedKeys.has(key)}
-                                <EyeOff class="size-4" />
-                              {:else}
-                                <Eye class="size-4" />
-                              {/if}
-                            </button>
-                          </div>
-                          {#if meta.apiKeyEnvVar}
-                            <p
-                              class="mt-1 text-[11px] text-muted-foreground/60"
-                            >
-                              Or set <code
-                                class="rounded bg-muted px-1 py-0.5 text-[10px]"
-                                >{meta.apiKeyEnvVar}</code
-                              >
-                            </p>
-                          {/if}
-                        </div>
-                      {:else}
-                        <div class="flex items-end">
-                          <div
-                            class="flex items-center gap-2 text-xs text-muted-foreground/60 pb-1"
-                          >
-                            <Shield class="size-3.5" />
-                            No auth required
-                          </div>
-                        </div>
-                      {/if}
-                    </div>
-                  </div>
-                {/if}
-              </div>
-            {/if}
+      <DropdownMenu.Root>
+        <DropdownMenu.Trigger>
+          {#snippet child({ props })}
+            <Button variant="outline" size="sm" {...props}>
+              <Settings2 class="size-3.5" />
+              Sources
+              <ChevronDown class="size-3" />
+            </Button>
+          {/snippet}
+        </DropdownMenu.Trigger>
+        <DropdownMenu.Content align="end" class="w-56">
+          <DropdownMenu.Label>Skill Sources</DropdownMenu.Label>
+          <DropdownMenu.Separator />
+          {#each sources as source (source.id)}
+            <DropdownMenu.CheckboxItem
+              checked={source.enabled}
+              onCheckedChange={() => toggleSource(source.id)}
+            >
+              {source.label}
+              {#if source.docsUrl}
+                <a
+                  href={source.docsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="inline-flex ml-auto"
+                  onclick={(e) => e.stopPropagation()}
+                >
+                  <ExternalLink class="size-3 text-muted-foreground" />
+                </a>
+              {/if}
+            </DropdownMenu.CheckboxItem>
           {/each}
-        </div>
-      </section>
-
-      <p class="text-sm text-muted-foreground pb-4">
-        Go to a viber's <strong>Skills</strong> tab to discover and import skills
-        from these sources.
-      </p>
-    {/if}
-  </div>
-
-  <!-- Floating save bar -->
-  {#if hasChanges}
-    <div
-      class="sticky bottom-0 border-t border-border bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/80 px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4 animate-in slide-in-from-bottom-2 duration-200"
-    >
-      <p class="text-sm text-muted-foreground">Unsaved changes</p>
-      <div class="flex items-center gap-3">
-        <button
-          type="button"
-          onclick={() => initEditState(sources)}
-          disabled={saving}
-          class="rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-50"
-        >
-          Discard
-        </button>
-        <button
-          type="button"
-          onclick={saveSettings}
-          disabled={saving}
-          class="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 shadow-sm"
-        >
-          {#if saving}
-            <Loader2 class="size-4 animate-spin" />
-            Saving…
-          {:else}
-            <Save class="size-4" />
-            Save Changes
+          {#if sources.length === 0 && !sourcesLoading}
+            <DropdownMenu.Item disabled>No sources configured</DropdownMenu.Item
+            >
           {/if}
-        </button>
-      </div>
+        </DropdownMenu.Content>
+      </DropdownMenu.Root>
+      <Button variant="default" size="sm" onclick={openHub}>
+        <Sparkles class="size-3.5" />
+        Install Skills
+      </Button>
+    </div>
+  </header>
+
+  {#if installedError}
+    <div class="error-banner">
+      <AlertCircle class="size-4" />
+      <span>{installedError}</span>
+    </div>
+  {/if}
+
+  {#if installedLoading}
+    <div class="skills-grid">
+      {#each Array(4) as _}
+        <div class="skill-card">
+          <div class="card-top">
+            <Skeleton class="size-9 rounded-lg shrink-0" />
+            <div
+              class="card-info"
+              style="display:flex;flex-direction:column;gap:0.375rem;flex:1"
+            >
+              <Skeleton class="h-4 w-28 rounded" />
+              <Skeleton class="h-3 w-full rounded" />
+            </div>
+          </div>
+          <div class="card-meta">
+            <Skeleton class="h-3 w-20 rounded" />
+            <Skeleton class="h-5 w-14 rounded-full" />
+          </div>
+        </div>
+      {/each}
+    </div>
+  {:else if installed.length === 0}
+    <div class="empty-state">
+      <Puzzle class="size-14 empty-icon" />
+      <h2>No skills installed</h2>
+      <p>Browse the Skill Hub to discover and import skills.</p>
+      <button type="button" class="empty-action" onclick={openHub}>
+        <Sparkles class="size-4" />
+        Browse Skill Hub
+      </button>
+    </div>
+  {:else}
+    <div class="skills-grid">
+      {#each installed as skill (skill.id)}
+        <div class="skill-card">
+          <div class="card-top">
+            <div class="card-icon">
+              <Puzzle class="size-5" />
+            </div>
+            <div class="card-info">
+              <h3>{skill.name}</h3>
+              {#if skill.description}
+                <p class="card-desc">{skill.description}</p>
+              {/if}
+            </div>
+          </div>
+          <div class="card-meta">
+            {#if skill.source}
+              <span class="source-badge">{skill.source}</span>
+            {/if}
+            {#if skill.version}
+              <span class="version-badge">v{skill.version}</span>
+            {/if}
+          </div>
+        </div>
+      {/each}
     </div>
   {/if}
 </div>
+
+<!-- ── Hub Dialog ─────────────────────── -->
+<Dialog.Root bind:open={hubDialogOpen}>
+  <Dialog.Content
+    class="max-w-3xl max-h-[80vh] flex flex-col overflow-hidden p-0"
+  >
+    <div class="hub-dialog">
+      <div class="hub-header">
+        <h2>Skill Hub</h2>
+        <p>Discover and import skills from configured sources.</p>
+      </div>
+
+      {#if enabledSourcesCount === 0}
+        <div class="empty-state hub-empty">
+          <AlertCircle class="size-8 empty-icon" />
+          <h2>No sources enabled</h2>
+          <p>Enable at least one skill source using the Sources dropdown.</p>
+        </div>
+      {:else}
+        <div class="search-bar">
+          <div class="search-input-wrap">
+            <Search class="size-4 search-icon" />
+            <input
+              type="text"
+              bind:value={searchQuery}
+              onkeydown={handleSearchKeydown}
+              placeholder="Search skills..."
+            />
+          </div>
+          <select bind:value={sourceFilter} onchange={() => searchDiscover(1)}>
+            <option value="">All sources</option>
+            {#each sources as source (source.id)}
+              <option value={source.id} disabled={!source.enabled}>
+                {source.label}{source.enabled ? "" : " (disabled)"}
+              </option>
+            {/each}
+          </select>
+          <button
+            type="button"
+            class="search-btn"
+            onclick={() => searchDiscover(1)}
+            disabled={discoverLoading}
+          >
+            {#if discoverLoading}<Loader2
+                class="size-4 animate-spin"
+              />{:else}<Search class="size-4" />{/if}
+            Search
+          </button>
+        </div>
+
+        {#if discoverError}
+          <div class="error-banner">
+            <AlertCircle class="size-4" />
+            <span>{discoverError}</span>
+          </div>
+        {:else if discoverLoading && discoverSkills.length === 0}
+          <div class="loading-state compact">
+            <Loader2 class="size-5 animate-spin" />
+          </div>
+        {:else if discoverSkills.length === 0 && !discoverLoading}
+          <div class="empty-state hub-empty">
+            <Search class="size-8 empty-icon" />
+            <h2>Search the Skill Hub</h2>
+            <p>Find and import skills from your configured sources.</p>
+          </div>
+        {:else}
+          <p class="result-count">{total} result{total === 1 ? "" : "s"}</p>
+          <div class="discover-grid">
+            {#each discoverSkills as skill (getSkillKey(skill))}
+              {@const skillKey = getSkillKey(skill)}
+              {@const importState = importStates[skillKey]}
+              {@const isImporting = importState?.status === "importing"}
+              {@const isImported = importState?.status === "success"}
+              {@const hasError = importState?.status === "error"}
+              <div class="discover-card">
+                <div class="discover-card-top">
+                  <h4>{skill.name}</h4>
+                  <span class="source-chip">{getSourceLabel(skill.source)}</span
+                  >
+                </div>
+                {#if skill.description}
+                  <p class="discover-desc-text">{skill.description}</p>
+                {/if}
+                <div class="discover-meta">
+                  <span>{skill.author}</span>
+                  <span>v{skill.version}</span>
+                </div>
+                <div class="discover-actions">
+                  <button
+                    type="button"
+                    onclick={() => importSkill(skill)}
+                    disabled={isImporting || isImported}
+                    class="import-btn"
+                  >
+                    {#if isImported}<CheckCircle class="size-3.5" />Imported
+                    {:else if isImporting}<Loader2
+                        class="size-3.5 animate-spin"
+                      />Importing…
+                    {:else if hasError}<Download class="size-3.5" />Retry
+                    {:else}<Download class="size-3.5" />Import{/if}
+                  </button>
+                  {#if skill.url}
+                    <a
+                      href={skill.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="source-link"
+                    >
+                      <ExternalLink class="size-3.5" />
+                    </a>
+                  {/if}
+                </div>
+                {#if importState?.message}
+                  <p class="import-msg" class:error={hasError}>
+                    {importState.message}
+                  </p>
+                {/if}
+              </div>
+            {/each}
+          </div>
+          <div class="pagination">
+            <button
+              type="button"
+              onclick={() => searchDiscover(page - 1)}
+              disabled={page <= 1 || discoverLoading}
+            >
+              <ArrowLeft class="size-4" />Prev
+            </button>
+            <span class="page-info"
+              >Page {page} of {Math.max(totalPages, 1)}</span
+            >
+            <button
+              type="button"
+              onclick={() => searchDiscover(page + 1)}
+              disabled={page >= totalPages || discoverLoading}
+            >
+              Next<ArrowRight class="size-4" />
+            </button>
+          </div>
+        {/if}
+      {/if}
+    </div>
+  </Dialog.Content>
+</Dialog.Root>
+
+<style>
+  .skills-page {
+    padding: 1.5rem;
+    height: 100%;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .skills-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .header-text h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--foreground);
+    line-height: 1.2;
+  }
+
+  .title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+  }
+
+  .title-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.5rem;
+    background: hsl(var(--primary) / 0.1);
+    color: var(--primary);
+    flex-shrink: 0;
+  }
+
+  .subtitle {
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+    margin-top: 0.25rem;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+  }
+
+  .skill-count {
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    background: var(--muted);
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-weight: 500;
+  }
+
+  /* ── Error / Empty ──────────── */
+
+  .error-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid hsl(var(--destructive) / 0.4);
+    background: hsl(var(--destructive) / 0.08);
+    font-size: 0.875rem;
+    color: var(--destructive);
+  }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 4rem 2rem;
+    text-align: center;
+    flex: 1;
+  }
+
+  .empty-state h2 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--foreground);
+  }
+
+  .empty-state p {
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+    max-width: 24rem;
+  }
+
+  :global(.empty-icon) {
+    color: var(--muted-foreground);
+    opacity: 0.4;
+    margin-bottom: 0.5rem;
+  }
+
+  .empty-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    margin-top: 0.75rem;
+    padding: 0.5rem 1.25rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--primary-foreground);
+    background: var(--primary);
+    border: none;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .empty-action:hover {
+    filter: brightness(0.92);
+  }
+
+  /* ── Skills grid ──────────── */
+
+  .skills-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 0.75rem;
+  }
+
+  .skill-card {
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    background: var(--card);
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    transition:
+      box-shadow 0.15s,
+      border-color 0.15s;
+  }
+  .skill-card:hover {
+    box-shadow: 0 2px 8px hsl(0 0% 0% / 0.06);
+    border-color: var(--border);
+  }
+
+  .card-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.625rem;
+  }
+
+  .card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 0.5rem;
+    background: var(--muted);
+    color: var(--muted-foreground);
+    flex-shrink: 0;
+  }
+
+  .card-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .card-info h3 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--foreground);
+    line-height: 1.3;
+  }
+
+  .card-desc {
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    margin-top: 0.125rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .card-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .source-badge,
+  .version-badge {
+    font-size: 0.6875rem;
+    padding: 0.125rem 0.5rem;
+    border-radius: 9999px;
+    background: var(--muted);
+    color: var(--muted-foreground);
+    font-weight: 500;
+  }
+
+  /* ── Loading state ──────────── */
+
+  .loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 3rem 0;
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+  }
+  .loading-state.compact {
+    padding: 2rem 0;
+  }
+
+  /* ── Hub Dialog ──────────────── */
+
+  .hub-dialog {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1.5rem;
+    overflow-y: auto;
+    max-height: 75vh;
+  }
+
+  .hub-header h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--foreground);
+  }
+  .hub-header p {
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+    margin-top: 0.125rem;
+  }
+
+  .search-bar {
+    display: flex;
+    gap: 0.5rem;
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .search-input-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 160px;
+  }
+  .search-input-wrap input {
+    width: 100%;
+    height: 2.25rem;
+    padding: 0 0.75rem 0 2rem;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    background: var(--background);
+    font-size: 0.8125rem;
+    color: var(--foreground);
+  }
+  .search-input-wrap input:focus {
+    outline: none;
+    border-color: var(--ring);
+    box-shadow: 0 0 0 2px hsl(var(--ring) / 0.2);
+  }
+
+  :global(.search-icon) {
+    position: absolute;
+    left: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted-foreground);
+    pointer-events: none;
+  }
+
+  .search-bar select {
+    height: 2.25rem;
+    padding: 0 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    background: var(--background);
+    font-size: 0.8125rem;
+    color: var(--foreground);
+    cursor: pointer;
+  }
+
+  .search-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0 0.875rem;
+    height: 2.25rem;
+    border-radius: 0.5rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--foreground);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .search-btn:hover:not(:disabled) {
+    background: var(--accent);
+  }
+  .search-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .result-count {
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+  }
+
+  .discover-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 0.625rem;
+  }
+
+  .discover-card {
+    border: 1px solid var(--border);
+    border-radius: 0.625rem;
+    padding: 0.875rem;
+    background: var(--card);
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+  }
+
+  .discover-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .discover-card-top h4 {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--foreground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .source-chip {
+    font-size: 0.625rem;
+    padding: 0.125rem 0.375rem;
+    border-radius: 9999px;
+    background: var(--muted);
+    color: var(--muted-foreground);
+    font-weight: 500;
+    flex-shrink: 0;
+  }
+
+  .discover-desc-text {
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .discover-meta {
+    display: flex;
+    gap: 0.5rem;
+    font-size: 0.6875rem;
+    color: var(--muted-foreground);
+  }
+
+  .discover-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+  }
+
+  .import-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.625rem;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--foreground);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .import-btn:hover:not(:disabled) {
+    background: var(--accent);
+  }
+  .import-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .source-link {
+    display: inline-flex;
+    align-items: center;
+    color: var(--muted-foreground);
+    transition: color 0.15s;
+  }
+  .source-link:hover {
+    color: var(--foreground);
+  }
+
+  .import-msg {
+    font-size: 0.6875rem;
+    color: var(--muted-foreground);
+  }
+  .import-msg.error {
+    color: var(--destructive);
+  }
+
+  .pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding-top: 0.5rem;
+  }
+  .pagination button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.8125rem;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--foreground);
+    cursor: pointer;
+  }
+  .pagination button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .page-info {
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+  }
+
+  .hub-empty {
+    padding: 2rem;
+  }
+</style>

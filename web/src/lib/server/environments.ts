@@ -878,7 +878,7 @@ export async function touchViberActivity(
 
 export interface SkillRow {
   id: string;
-  user_id: string;
+  user_id: string | null;
   skill_id: string;
   name: string;
   description: string;
@@ -897,7 +897,8 @@ export interface SkillInput {
 }
 
 /**
- * List all skills registered for a user account.
+ * List all skills registered for a user account,
+ * including global skills (user_id IS NULL) that apply to all users.
  */
 export async function listSkills(userId: string): Promise<SkillRow[]> {
   try {
@@ -905,7 +906,7 @@ export async function listSkills(userId: string): Promise<SkillRow[]> {
     const { data, error } = await supabase
       .from("skills")
       .select("*")
-      .eq("user_id", userId)
+      .or(`user_id.eq.${userId},user_id.is.null`)
       .order("name", { ascending: true });
     if (error) throw error;
     return (data ?? []) as SkillRow[];

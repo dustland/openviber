@@ -9,6 +9,7 @@ import { spawn, spawnSync, ChildProcess } from "child_process";
 import { EventEmitter } from "events";
 import { randomUUID } from "crypto";
 import { unlinkSync, existsSync } from "fs";
+import { loadRuntimeEnvironmentSnapshotSync } from "../environment";
 
 export interface TerminalPane {
   appId: string;
@@ -49,7 +50,7 @@ export interface TerminalApp {
   detach(target: string): void;
   sendInput(target: string, keys: string): boolean;
   resize(target: string, cols: number, rows: number): boolean;
-  createSession(sessionName: string, windowName?: string, cwd?: string): CreateSessionResult;
+  createSession(sessionName: string, windowName?: string, cwd?: string, envVars?: Record<string, string>): CreateSessionResult;
   detachAll(): void;
 }
 
@@ -296,7 +297,7 @@ class TmuxTerminalApp implements TerminalApp {
     }
   }
 
-  createSession(sessionName: string, windowName = "main", cwd?: string): CreateSessionResult {
+  createSession(sessionName: string, windowName = "main", cwd?: string, envVars?: Record<string, string>): CreateSessionResult {
     const safeSession = sanitizeName(sessionName || "coding");
     const safeWindow = sanitizeName(windowName || "main");
 
@@ -319,6 +320,7 @@ class TmuxTerminalApp implements TerminalApp {
     const result = spawnSync("tmux", args, {
       encoding: "utf8",
       stdio: "pipe",
+      env: { ...process.env, ...(envVars || {}) },
     });
 
     if (result.error) {
@@ -426,7 +428,7 @@ class ShellTerminalApp implements TerminalApp {
     return true;
   }
 
-  createSession(sessionName: string, windowName = "main", cwd?: string): CreateSessionResult {
+  createSession(sessionName: string, windowName = "main", cwd?: string, envVars?: Record<string, string>): CreateSessionResult {
     const safeSession = sanitizeName(sessionName || `shell-${Date.now()}`);
     const shell = process.env.SHELL || "sh";
     const target = `${safeSession}:${randomUUID().slice(0, 8)}`;
@@ -438,7 +440,7 @@ class ShellTerminalApp implements TerminalApp {
     const proc = spawn(shell, [], {
       cwd,
       stdio: ["pipe", "pipe", "pipe"],
-      env: process.env,
+      env: { ...process.env, ...(envVars || {}) },
     });
 
     if (!proc.pid) {
@@ -577,7 +579,16 @@ export class TerminalManager {
     const { appId, rawTarget } = resolveAppTarget(target, appHint);
     const app = this.apps.get(appId);
     if (!app || !app.isAvailable()) return false;
-    return app.attach(rawTarget, onData, onClose);
+    const { secretValues } = loadRuntimeEnvironmentSnapshotSync();
+    const redact = (value: string): string => {
+      let next = value;
+      for (const secret of secretValues) {
+        if (!secret) continue;
+        next = next.split(secret).join("[REDACTED]");
+      }
+      return next;
+    };
+    return app.attach(rawTarget, (data) => onData(redact(data)), onClose);
   }
 
   detach(target: string, appHint?: string): void {
@@ -613,7 +624,8 @@ export class TerminalManager {
         error: `Terminal app '${appId}' is not available`,
       };
     }
-    return app.createSession(sessionName, windowName, cwd);
+    const { runtimeEnv } = loadRuntimeEnvironmentSnapshotSync();
+    return app.createSession(sessionName, windowName, cwd, runtimeEnv);
   }
 
   detachAll(): void {

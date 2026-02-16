@@ -3,6 +3,7 @@ import * as os from "os";
 import * as path from "path";
 import { loadSettings, saveSettings } from "../../skills/hub/settings";
 import { OPENVIBER_DIR, getViberId, loadSavedConfig, isInteractiveTerminal } from "../common";
+import { findRepoRoot, getMissingRequiredVars, resolveEnvironment } from "../../environment";
 
 export const startCommand = new Command("start")
   .description(
@@ -22,6 +23,7 @@ export const startCommand = new Command("start")
   .option("--api-port <port>", "Local API port (embedded gateway)", "6009")
   .option("--reconnect-interval <ms>", "Reconnect interval in ms", "5000")
   .option("--heartbeat-interval <ms>", "Heartbeat interval in ms", "30000")
+  .option("--env <envId>", "Environment ID to apply for terminal sessions")
   .action(async (options) => {
     // Load API keys from ~/.openviber/.env (does not override existing env vars)
     const { loadOpenViberEnv } = await import("../auth");
@@ -29,6 +31,22 @@ export const startCommand = new Command("start")
 
     const { JobScheduler } = await import("../../daemon/scheduler");
     const { ViberController } = await import("../../daemon/controller");
+
+    const repoRoot = findRepoRoot(process.cwd());
+    if (repoRoot) {
+      const environment = await resolveEnvironment(repoRoot, options.env);
+      if (environment) {
+        const missing = getMissingRequiredVars(environment);
+        if (missing.length > 0) {
+          console.error(`[env] Missing required vars: ${missing.join(", ")}`);
+          console.error("[env] Set values with: openviber env set KEY=VALUE");
+          process.exit(1);
+        }
+
+        process.env.OPENVIBER_ENV_ID = environment.envId;
+        console.log(`[env] Using environment '${environment.envId}' for terminal sessions.`);
+      }
+    }
 
     // Import skill tools to register them in the ToolRegistry
     const { registerSkillTools } = await import("../../tools/skill-tools");

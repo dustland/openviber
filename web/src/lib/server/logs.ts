@@ -17,7 +17,6 @@ export interface LogEntry {
   message: string;
   viber_id?: string | null;
   task_id?: string | null;
-  viber_id?: string | null;
   metadata?: Record<string, unknown> | null;
   created_at?: string;
 }
@@ -39,7 +38,6 @@ export interface LogRow {
   message: string;
   viber_id: string | null;
   task_id: string | null;
-  viber_id: string | null;
   metadata: Record<string, unknown> | null;
   created_at: string;
 }
@@ -61,7 +59,6 @@ export function writeLog(entry: LogEntry): void {
       message: entry.message,
       viber_id: entry.viber_id ?? null,
       task_id: entry.task_id ?? null,
-      viber_id: entry.viber_id ?? null,
       metadata: entry.metadata ?? null,
     },
   }).catch((err) => {

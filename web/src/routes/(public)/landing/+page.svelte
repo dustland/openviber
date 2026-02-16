@@ -674,42 +674,6 @@
           &copy; {new Date().getFullYear()} Dustland. All rights reserved.
         </p>
       </div>
-      <nav class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
-        <a
-          href="/docs"
-          class="text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >Docs</a
-        >
-        <a
-          href="/docs/getting-started/quick-start"
-          class="text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >Quick Start</a
-        >
-        <a
-          href="https://github.com/dustland/openviber"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >GitHub</a
-        >
-        <a
-          href="https://www.npmjs.com/package/openviber"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >npm</a
-        >
-        <a
-          href="/docs/legal/terms"
-          class="text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >Terms</a
-        >
-        <a
-          href="/docs/legal/privacy"
-          class="text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >Privacy</a
-        >
-      </nav>
     </div>
   </footer>
 </div>

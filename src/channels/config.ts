@@ -28,7 +28,7 @@ interface SavedCliConfig {
 }
 
 const DEFAULT_GATEWAY: ChannelGatewayConfig = {
-  host: "0.0.0.0",
+  host: "127.0.0.1",
   port: 6009,
   basePath: "",
 };

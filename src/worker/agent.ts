@@ -12,6 +12,7 @@ import { getViberPath } from "./config";
 import { ViberConfig } from "../types";
 import { ConversationHistory, ViberMessage } from "./message";
 import { getModelProvider } from "./provider";
+import { preflightValidate, formatPreflightError } from "./preflight";
 import { buildToolMap, CoreTool } from "./tool";
 import { generateShortId } from "../utils/id";
 
@@ -459,6 +460,17 @@ export class Agent {
   }): Promise<any> {
     await this.ensureSkillsLoaded();
 
+    // Preflight: validate provider + model before expensive AI calls
+    const preflight = await preflightValidate(this.provider, this.model, undefined, {
+      skipModelCheck: true, // Skip network call for speed; key presence is the critical check
+    });
+    if (!preflight.ok) {
+      throw new Error(formatPreflightError(preflight));
+    }
+    if (preflight.warnings.length > 0) {
+      console.warn(`[Agent] Preflight warnings for ${this.name}:`, preflight.warnings.join("; "));
+    }
+
     // Extract context-specific options
     const {
       messages: viberMessages,
@@ -561,6 +573,17 @@ export class Agent {
     [key: string]: any;
   }): Promise<any> {
     await this.ensureSkillsLoaded();
+
+    // Preflight: validate provider + model before expensive AI calls
+    const preflight = await preflightValidate(this.provider, this.model, undefined, {
+      skipModelCheck: true,
+    });
+    if (!preflight.ok) {
+      throw new Error(formatPreflightError(preflight));
+    }
+    if (preflight.warnings.length > 0) {
+      console.warn(`[Agent] Preflight warnings for ${this.name}:`, preflight.warnings.join("; "));
+    }
 
     const {
       messages: viberMessages,

@@ -55,15 +55,19 @@ Tools are independent units registered in the ToolRegistry. Any tool can be used
 | **Desktop** | Interact with desktop applications |
 | **Schedule** | Create, list, and manage recurring job schedules |
 | **Notify** | Send desktop notifications for important events |
-| **Shell** | Execute terminal commands |
+| **Shell** | Execute one-off terminal commands with timeout and security |
+| **Terminal** | Persistent tmux sessions for TTY-dependent CLIs and long-running processes |
 | `gh_*` | GitHub operations: list issues, clone repos, create branches/PRs |
 | `cursor_agent_run` | Run Cursor CLI for software engineering tasks |
 | `codex_run` | Run OpenAI Codex CLI for autonomous coding |
 | `gemini_run` | Run Google Gemini CLI |
-| `terminal_*` | Persistent terminal sessions: create sessions, run commands, read output |
 | `railway_*` | Railway deployment and management |
 | `gmail_*` | Send and search Gmail messages |
 | `system_info_*` | Query OS, CPU, memory, disk information |
+
+**Shell vs Terminal:**
+- Use **Shell** for simple commands (run once, get output)
+- Use **Terminal** for interactive CLIs (Cursor, Codex), long-running processes, or complex multi-terminal layouts
 
 ### Tool Registry
 

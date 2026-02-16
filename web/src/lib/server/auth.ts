@@ -116,10 +116,32 @@ export function supabaseAuthConfigured() {
   return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY && APP_URL);
 }
 
+
+/**
+ * Resolves the public request origin for OAuth callbacks.
+ *
+ * Prefers reverse-proxy forwarded headers when present and falls back to
+ * the request URL origin.
+ */
+export function getRequestOrigin(event: Pick<RequestEvent, "url" | "request">): string {
+  const forwardedHost = event.request.headers.get("x-forwarded-host")?.trim();
+  const forwardedProto = event.request.headers.get("x-forwarded-proto")?.trim();
+
+  if (forwardedHost && forwardedProto) {
+    const protocol = forwardedProto.split(",")[0]?.trim();
+    const host = forwardedHost.split(",")[0]?.trim();
+    if (protocol && host) {
+      return `${protocol}://${host}`;
+    }
+  }
+
+  return event.url.origin;
+}
+
 /**
  * Builds a Supabase-managed GitHub OAuth URL and returns CSRF + PKCE values.
  */
-export function getSupabaseGitHubAuthUrl(nextPath = "/") {
+export function getSupabaseGitHubAuthUrl(nextPath = "/", appOrigin?: string) {
   const { supabaseUrl } = requireSupabaseAuthConfig();
   const state = randomBytes(24).toString("hex");
   const { verifier, challenge } = createPkcePair();
@@ -257,7 +279,10 @@ export async function refreshSupabaseSession(refreshToken: string) {
 }
 
 /**
- * Upserts user profile data into Supabase table `user_profiles`.
+ * Best-effort upsert of user profile data into Supabase table `user_profiles`.
+ *
+ * This should never block authentication success if the table or policies are
+ * not configured yet.
  */
 export async function upsertSupabaseUserProfile(profile: SupabaseOAuthProfile) {
   const { supabaseUrl } = requireSupabaseAuthConfig();
@@ -287,7 +312,10 @@ export async function upsertSupabaseUserProfile(profile: SupabaseOAuthProfile) {
   });
 
   if (!response.ok) {
-    throw new Error("Failed to upsert user profile into Supabase table.");
+    const details = await response.text();
+    console.warn(
+      `[Auth] Failed to upsert user_profiles (${response.status}). Continuing login. ${details}`,
+    );
   }
 }
 

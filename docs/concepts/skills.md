@@ -42,10 +42,12 @@ graph TB
 
 Tools are the executable capabilities that give agents real-world actions. When an agent needs to "create a file" or "search the web", it uses tools.
 
-### Built-in Tools
+Tools are independent units registered in the ToolRegistry. Any tool can be used by any task — skills teach the LLM HOW to use tools effectively, but don't control access.
 
-| Tool | What It Does |
-|------|--------------|
+### Available Tools
+
+| Tool | Description |
+|------|-------------|
 | **File** | Read, write, create, and delete files |
 | **Search** | Find information online |
 | **Web** | Fetch, parse, and crawl web content |
@@ -54,21 +56,14 @@ Tools are the executable capabilities that give agents real-world actions. When 
 | **Schedule** | Create, list, and manage recurring job schedules |
 | **Notify** | Send desktop notifications for important events |
 | **Shell** | Execute terminal commands |
-
-### Skill-Associated Tools
-
-The following tools can be used by any task, but certain skills teach the LLM how to use them effectively:
-
-| Skill | Tools |
-|-------|-------|
-| **github** | `gh_list_issues`, `gh_get_issue`, `gh_clone_repo`, `gh_create_branch`, `gh_commit_and_push`, `gh_create_pr` |
-| **cursor-agent** | `cursor_agent_run` |
-| **codex-cli** | `codex_run` |
-| **gemini-cli** | `gemini_run` |
-| **terminal** | `terminal_check`, `terminal_new_session`, `terminal_run`, `terminal_read`, etc. |
-| **railway** | `railway_up`, `railway_logs`, `railway_env_*` |
-| **gmail** | `gmail_send`, `gmail_list`, `gmail_search` |
-| **system-info** | `system_info_*` |
+| `gh_*` | GitHub operations: list issues, clone repos, create branches/PRs |
+| `cursor_agent_run` | Run Cursor CLI for software engineering tasks |
+| `codex_run` | Run OpenAI Codex CLI for autonomous coding |
+| `gemini_run` | Run Google Gemini CLI |
+| `terminal_*` | Persistent terminal sessions: create sessions, run commands, read output |
+| `railway_*` | Railway deployment and management |
+| `gmail_*` | Send and search Gmail messages |
+| `system_info_*` | Query OS, CPU, memory, disk information |
 
 ### Tool Registry
 

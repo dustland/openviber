@@ -11,4 +11,7 @@ export default defineConfig({
       allow: [".."], // Allow reading from parent directory (for docs/)
     },
   },
+  ssr: {
+    noExternal: ["svelte-sonner"],
+  },
 });

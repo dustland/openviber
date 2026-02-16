@@ -20,6 +20,7 @@
     Wifi,
     WifiOff,
   } from "@lucide/svelte";
+  import { toast } from "svelte-sonner";
   import ViberIcon from "$lib/components/icons/viber-icon.svelte";
   import {
     Collapsible,
@@ -77,16 +78,40 @@
 
   let { children } = $props();
 
+  let archivingTaskIds = $state<Set<string>>(new Set());
+
   async function archiveTask(taskId: string) {
+    // Prevent double-click
+    if (archivingTaskIds.has(taskId)) return;
+    archivingTaskIds = new Set([...archivingTaskIds, taskId]);
     try {
       const response = await fetch(`/api/tasks/${taskId}/archive`, {
         method: "POST",
       });
       if (response.ok) {
         await tasksStore.invalidate();
+        toast.success("Task archived", {
+          description: "You can find it in the archived tasks page.",
+          action: {
+            label: "View archived",
+            onClick: () => goto("/settings/archived"),
+          },
+          duration: 5000,
+        });
+        // If we just archived the currently-viewed task, navigate away
+        if (pathname.startsWith(`/tasks/${taskId}`)) {
+          goto("/tasks/new");
+        }
+      } else {
+        toast.error("Failed to archive task");
       }
     } catch (error) {
       console.error("Failed to archive task:", error);
+      toast.error("Failed to archive task");
+    } finally {
+      const next = new Set(archivingTaskIds);
+      next.delete(taskId);
+      archivingTaskIds = next;
     }
   }
 
@@ -416,13 +441,18 @@
                       type="button"
                       title="Archive task"
                       class="absolute right-1 top-1/2 -translate-y-1/2 flex size-6 items-center justify-center rounded-md text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-all opacity-0 group-hover/taskrow:opacity-100"
+                      disabled={archivingTaskIds.has(task.id)}
                       onclick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
                         archiveTask(task.id);
                       }}
                     >
-                      <Archive class="size-3.5" />
+                      {#if archivingTaskIds.has(task.id)}
+                        <LoaderCircle class="size-3.5 animate-spin" />
+                      {:else}
+                        <Archive class="size-3.5" />
+                      {/if}
                     </button>
                   </div>
                 </Sidebar.MenuItem>
@@ -599,13 +629,18 @@
                               type="button"
                               title="Archive task"
                               class="absolute right-1 top-1/2 -translate-y-1/2 flex size-6 items-center justify-center rounded-md text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-all opacity-0 group-hover/taskrow:opacity-100"
+                              disabled={archivingTaskIds.has(task.id)}
                               onclick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
                                 archiveTask(task.id);
                               }}
                             >
-                              <Archive class="size-3.5" />
+                              {#if archivingTaskIds.has(task.id)}
+                                <LoaderCircle class="size-3.5 animate-spin" />
+                              {:else}
+                                <Archive class="size-3.5" />
+                              {/if}
                             </button>
                           </div>
                         </Sidebar.MenuSubItem>

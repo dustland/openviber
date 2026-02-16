@@ -1,5 +1,6 @@
 <script lang="ts">
   import "../app.css";
+  import { Toaster } from "svelte-sonner";
   import { onMount } from "svelte";
   import { applyTheme, themeStore, type Theme } from "$lib/stores/theme";
   import type { LayoutData } from "./$types";
@@ -57,6 +58,7 @@
       E2E Test Mode — auth and onboarding bypassed
     </div>
   {/if}
+  <Toaster richColors position="top-right" />
   <main class="flex-1 min-h-0 flex flex-col">
     {@render children()}
   </main>

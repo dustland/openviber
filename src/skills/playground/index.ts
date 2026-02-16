@@ -4,6 +4,7 @@ import * as fsPromises from "fs/promises";
 import * as path from "path";
 import { z } from "zod";
 import { defaultRegistry } from "../registry";
+import { defaultToolRegistry } from "../../tools/registry";
 import type { SkillPlaygroundSpec } from "../types";
 import { ViberPaths } from "../../utils/paths";
 
@@ -165,7 +166,7 @@ async function runCursorAgentPlayground(args: {
 
   let terminalStatus: any = undefined;
   try {
-    const terminalTools = await defaultRegistry.getTools("terminal");
+    const terminalTools = defaultToolRegistry.getTools("terminal");
     if (terminalTools.terminal_check) {
       terminalStatus = await terminalTools.terminal_check.execute({});
       if (!terminalStatus?.available) {
@@ -187,7 +188,7 @@ async function runCursorAgentPlayground(args: {
     };
   }
 
-  const cursorTools = await defaultRegistry.getTools("cursor-agent");
+  const cursorTools = defaultToolRegistry.getTools("cursor-agent");
   const cursorRun = cursorTools.cursor_agent_run;
   if (!cursorRun) {
     return {

@@ -2,21 +2,33 @@ import * as fs from "fs/promises";
 import * as fsSync from "fs";
 import * as path from "path";
 import * as yaml from "yaml";
-import { Skill, SkillModule } from "./types";
-import { CoreTool } from "../viber/tool";
+import { Skill, SkillMeta } from "./types";
 import type { SkillRequirements } from "./hub/types";
 import { createLogger } from "../utils/logger";
 
 const log = createLogger("SkillRegistry");
 
+/**
+ * SkillRegistry — discovery and loading of Agent Skills (SKILL.md + _meta.json).
+ *
+ * Following the Agent Skills spec (agentskills.io) and ClawHub convention:
+ *   - Skills are instruction packages, NOT tool containers
+ *   - Each skill dir has SKILL.md (required), _meta.json (optional),
+ *     scripts/ (optional), references/ (optional)
+ *   - Progressive disclosure: only name+description loaded at startup,
+ *     full body loaded when the skill is activated
+ *
+ * Tools are managed separately by the ToolRegistry (src/tools/).
+ */
 export class SkillRegistry {
   private skills: Map<string, Skill> = new Map();
-  private loadedTools: Map<string, Record<string, CoreTool>> = new Map();
 
   constructor(private skillsRoot: string) { }
 
   /**
-   * Scan for skills in the skills directory
+   * Scan for skills in the skills directory.
+   * Only loads metadata (name + description) for each skill — the full
+   * instructions are available on demand via getSkill().
    */
   async loadAll(): Promise<void> {
     try {
@@ -34,25 +46,25 @@ export class SkillRegistry {
   }
 
   /**
-   * Load a specific skill by directory name
+   * Load a specific skill by directory name.
+   * Parses SKILL.md frontmatter + body, and _meta.json if present.
    */
   async loadSkill(dirName: string): Promise<Skill | undefined> {
     const skillDir = path.join(this.skillsRoot, dirName);
     const skillMdPath = path.join(skillDir, "SKILL.md");
 
     try {
-      // Check if SKILL.md exists
+      // Check if SKILL.md exists — a directory without SKILL.md is not a skill
       try {
         await fs.access(skillMdPath);
       } catch {
-        return undefined; // Not a skill
+        return undefined;
       }
 
       // Read SKILL.md
       const content = await fs.readFile(skillMdPath, "utf8");
 
-      // Parse frontmatter
-      // Simple parse: split by ---
+      // Parse frontmatter (--- delimited YAML)
       const parts = content.split(/^---$/m);
       if (parts.length < 3) {
         log.warn("Invalid SKILL.md format", { data: { dirName } });
@@ -65,6 +77,20 @@ export class SkillRegistry {
       const metadata = yaml.parse(frontmatter);
       const id = metadata.name || dirName;
 
+      // Read _meta.json if present (ClawHub registry metadata)
+      let meta: SkillMeta | undefined;
+      const metaPath = path.join(skillDir, "_meta.json");
+      try {
+        const metaContent = await fs.readFile(metaPath, "utf8");
+        meta = JSON.parse(metaContent) as SkillMeta;
+      } catch {
+        // _meta.json is optional
+      }
+
+      // Check for optional directories
+      const hasScripts = await this.dirExists(path.join(skillDir, "scripts"));
+      const hasReferences = await this.dirExists(path.join(skillDir, "references"));
+
       const skill: Skill = {
         id,
         metadata: {
@@ -74,6 +100,9 @@ export class SkillRegistry {
         },
         instructions,
         dir: skillDir,
+        meta,
+        hasScripts,
+        hasReferences,
       };
 
       this.skills.set(id, skill);
@@ -84,67 +113,6 @@ export class SkillRegistry {
         data: { dirName, error: String(error) },
       });
       return undefined;
-    }
-  }
-
-  /**
-   * Get tools for a specific skill (lazy load module)
-   */
-  async getTools(skillId: string, config?: any): Promise<Record<string, CoreTool>> {
-    // Check pre-registered tools first (from preRegisterTools()) before requiring skill metadata
-    if (this.loadedTools.has(skillId)) {
-      return this.loadedTools.get(skillId)!;
-    }
-
-    const skill = this.skills.get(skillId);
-    if (!skill) {
-      throw new Error(`Skill ${skillId} not found`);
-    }
-
-    // Import index.ts
-    const idxPath = path.join(skill.dir, "index.ts"); // or .js
-    try {
-      // Dynamic import
-      // Note: In strict ESM/TS environments we might need full path or file URL
-      const modulePath = path.resolve(idxPath);
-      const mod = await import(modulePath) as SkillModule;
-
-      let tools: Record<string, CoreTool> = {};
-
-      if (mod.getTools) {
-        tools = await mod.getTools(config);
-      } else if (mod.tools) {
-        tools = mod.tools;
-      }
-
-      this.loadedTools.set(skillId, tools);
-      return tools;
-    } catch (error) {
-      log.error("Failed to load tools for skill", {
-        data: { skillId, error: String(error) },
-      });
-      return {};
-    }
-  }
-
-  /**
-   * Pre-register tools for a skill (used for bundled builds where dynamic import of .ts fails)
-   */
-  preRegisterTools(skillId: string, tools: Record<string, CoreTool>): void {
-    this.loadedTools.set(skillId, tools);
-
-    // Ensure pre-registered skills are visible via getAllSkills() even when
-    // SKILL.md discovery is unavailable (e.g. bundled runtime without source files).
-    if (!this.skills.has(skillId)) {
-      this.skills.set(skillId, {
-        id: skillId,
-        metadata: {
-          name: skillId,
-          description: "",
-        },
-        instructions: "",
-        dir: path.join(this.skillsRoot, skillId),
-      });
     }
   }
 
@@ -163,6 +131,15 @@ export class SkillRegistry {
     const skill = this.skills.get(skillId);
     return skill?.metadata?.requires;
   }
+
+  private async dirExists(dirPath: string): Promise<boolean> {
+    try {
+      const stat = await fs.stat(dirPath);
+      return stat.isDirectory();
+    } catch {
+      return false;
+    }
+  }
 }
 
 import { getViberRoot } from "../utils/paths";
@@ -177,10 +154,10 @@ const __dirname = getModuleDirname();
 function getDefaultSkillsPath(): string {
   // Option 1: User's config directory (~/.openviber/skills)
   const userSkillsPath = path.join(getViberRoot(), "skills");
-    try {
-      fsSync.accessSync(userSkillsPath);
-      log.info("Using skills path (user)", { data: { path: userSkillsPath } });
-      return userSkillsPath;
+  try {
+    fsSync.accessSync(userSkillsPath);
+    log.info("Using skills path (user)", { data: { path: userSkillsPath } });
+    return userSkillsPath;
   } catch {
     // Option 2: Bundled skills (relative to this file - works for dist/)
     const bundledPath = path.resolve(__dirname, ".");

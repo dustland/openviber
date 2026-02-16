@@ -10,8 +10,8 @@ export const runCommand = new Command("run")
     const { loadOpenViberEnv } = await import("../auth");
     await loadOpenViberEnv();
 
-    const { registerDefaultSkills } = await import("../../skills");
-    registerDefaultSkills();
+    const { registerSkillTools } = await import("../../tools/skill-tools");
+    registerSkillTools();
 
     const { runTask } = await import("../../daemon/runtime");
 

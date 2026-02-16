@@ -9,10 +9,10 @@ import { describe, it, expect, beforeAll } from "vitest";
 import { defaultRegistry } from "./registry";
 import { Agent } from "../viber/agent";
 import { getTools as getCodexCliTools } from "./codex-cli";
-import { registerDefaultSkills } from "./index";
+import { registerSkillTools } from "../tools/skill-tools";
 
-// Trigger pre-registration so getTools("codex-cli") returns tools
-registerDefaultSkills();
+// Register tools in the ToolRegistry
+registerSkillTools();
 
 beforeAll(async () => {
   await defaultRegistry.loadAll();
@@ -25,7 +25,9 @@ describe("codex-cli skill integration", () => {
     expect(codexSkill).toBeDefined();
     expect(codexSkill?.metadata.name).toBe("codex-cli");
 
-    const tools = await defaultRegistry.getTools("codex-cli");
+    // Tools are in the ToolRegistry now
+    const { defaultToolRegistry } = await import("../tools/registry");
+    const tools = defaultToolRegistry.getTools("codex-cli");
     expect(tools).toHaveProperty("codex_run");
     expect(tools.codex_run.description).toContain("use codex");
     expect(tools.codex_run.execute).toBeTypeOf("function");

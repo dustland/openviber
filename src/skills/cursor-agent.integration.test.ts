@@ -10,10 +10,10 @@ import { describe, it, expect, beforeAll } from "vitest";
 import { defaultRegistry } from "./registry";
 import { Agent } from "../viber/agent";
 import { getTools as getCursorAgentTools } from "./cursor-agent";
-import { registerDefaultSkills } from "./index";
+import { registerSkillTools } from "../tools/skill-tools";
 
-// Trigger pre-registration so getTools("cursor-agent") returns tools
-registerDefaultSkills();
+// Register tools in the ToolRegistry
+registerSkillTools();
 
 beforeAll(async () => {
   await defaultRegistry.loadAll();
@@ -26,7 +26,9 @@ describe("cursor-agent skill integration", () => {
     expect(cursorSkill).toBeDefined();
     expect(cursorSkill?.metadata.name).toBe("cursor-agent");
 
-    const tools = await defaultRegistry.getTools("cursor-agent");
+    // Tools are in the ToolRegistry now, not on the SkillRegistry
+    const { defaultToolRegistry } = await import("../tools/registry");
+    const tools = defaultToolRegistry.getTools("cursor-agent");
     expect(tools).toHaveProperty("cursor_agent_run");
     expect(tools.cursor_agent_run.description).toContain("cursor-agent");
     expect(tools.cursor_agent_run.description).toContain("Call this whenever");

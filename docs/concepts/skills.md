@@ -55,9 +55,9 @@ Tools are the executable capabilities that give agents real-world actions. When 
 | **Notify** | Send desktop notifications for important events |
 | **Shell** | Execute terminal commands |
 
-### Skill-Provided Tools
+### Skill-Associated Tools
 
-Skills can have associated tools that are registered separately. The skill's `SKILL.md` teaches the agent how to use these tools effectively.
+The following tools can be used by any task, but certain skills teach the LLM how to use them effectively:
 
 | Skill | Tools |
 |-------|-------|

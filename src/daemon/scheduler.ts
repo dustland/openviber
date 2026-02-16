@@ -168,7 +168,7 @@ export class JobScheduler extends EventEmitter {
     // If config.schedule starts with "*", assume cron.
     // If it is a number, assume ms?
 
-    // For specific antigravity case: "*/3 * * * * *" is every 3 seconds.
+    // Example: "*/3 * * * * *" is every 3 seconds.
 
     try {
       const job = new Cron(config.schedule, async () => {

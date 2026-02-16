@@ -10,7 +10,6 @@ import { SkillRegistry } from "../skills/registry";
 import path from "path";
 
 // Tool getTools imports (these are now in src/tools/)
-import { getTools as getAntigravityTools } from "./antigravity";
 import { getTools as getCursorAgentTools } from "./cursor-agent";
 import { getTools as getCodexCliTools } from "./codex-cli";
 import { getTools as getGeminiCliTools } from "./gemini-cli";
@@ -25,7 +24,6 @@ const SKILLS_DIR = path.resolve(__dirname, "../skills");
 describe("Post-migration verification", () => {
   it("registers all expected tools in the ToolRegistry", () => {
     const registry = new ToolRegistry();
-    registry.registerTools("antigravity", getAntigravityTools());
     registry.registerTools("cursor-agent", getCursorAgentTools());
     registry.registerTools("codex-cli", getCodexCliTools());
     registry.registerTools("gemini-cli", getGeminiCliTools());
@@ -42,7 +40,6 @@ describe("Post-migration verification", () => {
     console.log(`Tools: ${toolNames.join(", ")}`);
 
     // Verify key tools exist
-    expect(toolNames).toContain("antigravity_check_and_heal");
     expect(toolNames).toContain("cursor_agent_run");
     expect(toolNames).toContain("codex_run");
     expect(toolNames).toContain("gemini_run");

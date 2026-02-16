@@ -507,10 +507,4 @@ describe("HealthCheckActionType annotations", () => {
     expect(authCheck?.actionType).toBe("auth_cli");
   });
 
-  it("antigravity has actionType manual", () => {
-    const ag = report.skills.find((s) => s.id === "antigravity");
-    expect(ag).toBeDefined();
-    const cdpCheck = ag!.checks.find((c) => c.id === "cdp");
-    expect(cdpCheck?.actionType).toBe("manual");
-  });
 });

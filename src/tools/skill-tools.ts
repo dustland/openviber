@@ -11,7 +11,6 @@
  */
 
 import { defaultToolRegistry } from "./registry";
-import { getTools as getAntigravityTools } from "./antigravity";
 import { getTools as getCursorAgentTools } from "./cursor-agent";
 import { getTools as getCodexCliTools } from "./codex-cli";
 import { getTools as getGeminiCliTools } from "./gemini-cli";
@@ -19,7 +18,6 @@ import { getTools as getGithubTools } from "./github";
 import { getTools as getTerminalTools } from "./terminal";
 import { getTools as getRailwayTools } from "./railway";
 import { getTools as getGmailTools } from "./gmail";
-import { getTools as getPlaygroundTools } from "./playground";
 import { getTools as getSystemInfoTools } from "./system-info";
 
 /**
@@ -29,7 +27,6 @@ import { getTools as getSystemInfoTools } from "./system-info";
  * Each namespace corresponds to a skill directory that also has a SKILL.md.
  */
 export function registerSkillTools() {
-  defaultToolRegistry.registerTools("antigravity", getAntigravityTools());
   defaultToolRegistry.registerTools("cursor-agent", getCursorAgentTools());
   defaultToolRegistry.registerTools("codex-cli", getCodexCliTools());
   defaultToolRegistry.registerTools("gemini-cli", getGeminiCliTools());
@@ -37,6 +34,5 @@ export function registerSkillTools() {
   defaultToolRegistry.registerTools("terminal", getTerminalTools());
   defaultToolRegistry.registerTools("railway", getRailwayTools());
   defaultToolRegistry.registerTools("gmail", getGmailTools());
-  defaultToolRegistry.registerTools("skill-playground", getPlaygroundTools());
   defaultToolRegistry.registerTools("system-info", getSystemInfoTools());
 }

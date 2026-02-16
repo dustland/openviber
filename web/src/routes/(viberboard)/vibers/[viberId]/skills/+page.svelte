@@ -19,13 +19,11 @@
     Search,
     Server,
     Sparkles,
-    Play,
     Circle,
   } from "@lucide/svelte";
   import * as Dialog from "$lib/components/ui/dialog";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import { Button } from "$lib/components/ui/button";
-  import { Textarea } from "$lib/components/ui/textarea";
   import { Skeleton } from "$lib/components/ui/skeleton";
 
   interface UnmetRequirement {
@@ -99,16 +97,6 @@
     summary: string;
   }
 
-  interface PlaygroundResult {
-    ok: boolean;
-    status: string;
-    viberId: string;
-    result?: unknown;
-    partialText?: string;
-    error?: string;
-    message?: string;
-  }
-
   interface ImportState {
     status: "idle" | "importing" | "success" | "error";
     message?: string;
@@ -150,14 +138,6 @@
   // Hub dialog
   let hubDialogOpen = $state(false);
   let hubInitialized = false;
-
-  // Playground dialog
-  let playgroundDialogOpen = $state(false);
-  let playgroundSkill = $state<InstalledSkill | null>(null);
-  let playgroundRunning = $state(false);
-  let playgroundError = $state<string | null>(null);
-  let playgroundResult = $state<PlaygroundResult | null>(null);
-  let playgroundScenario = $state("");
 
   const enabledSources = $derived(sources.filter((s) => s.enabled));
   const enabledSourcesCount = $derived(enabledSources.length);
@@ -450,60 +430,6 @@
     }
   }
 
-  function openPlayground(skill: InstalledSkill) {
-    playgroundDialogOpen = true;
-    playgroundSkill = skill;
-    playgroundError = null;
-    playgroundResult = null;
-  }
-
-  async function runPlayground() {
-    if (!playgroundSkill || !currentViber) return;
-    playgroundRunning = true;
-    playgroundError = null;
-    playgroundResult = null;
-    try {
-      const res = await fetch("/api/skills/playground", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          skillId: playgroundSkill.id,
-          viberId: currentViber.viber_id || currentViber.id,
-          scenario: playgroundScenario.trim() || undefined,
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "Failed to run playground");
-      playgroundResult = data;
-      if (!data.ok)
-        playgroundError =
-          data.message ||
-          data.error ||
-          "Playground run did not complete successfully.";
-    } catch (error) {
-      playgroundError =
-        error instanceof Error ? error.message : "Failed to run playground";
-    } finally {
-      playgroundRunning = false;
-    }
-  }
-
-  function closePlaygroundDialog() {
-    playgroundDialogOpen = false;
-    playgroundSkill = null;
-    playgroundError = null;
-    playgroundResult = null;
-    playgroundScenario = "";
-  }
-
-  $effect(() => {
-    if (!playgroundDialogOpen && playgroundSkill) {
-      playgroundSkill = null;
-      playgroundError = null;
-      playgroundResult = null;
-    }
-  });
-
   onMount(async () => {
     await Promise.all([
       fetchInstalled(),
@@ -683,18 +609,6 @@
                 </span>
               {/if}
             </div>
-          </div>
-
-          <div class="card-actions">
-            <Button
-              variant="outline"
-              size="sm"
-              onclick={() => openPlayground(skill)}
-              disabled={!isEnabled}
-            >
-              <Play class="size-3.5" />
-              Test
-            </Button>
           </div>
 
           {#if isExpanded && reqStatus && !reqStatus.ready}
@@ -907,99 +821,6 @@
         {/if}
       {/if}
     </div>
-  </Dialog.Content>
-</Dialog.Root>
-
-<!-- Playground Dialog -->
-<Dialog.Root bind:open={playgroundDialogOpen}>
-  <Dialog.Content class="sm:max-w-2xl">
-    <Dialog.Header>
-      <Dialog.Title class="flex items-center gap-2">
-        <Play class="size-5" />
-        Test: {playgroundSkill?.name || playgroundSkill?.id}
-      </Dialog.Title>
-      <Dialog.Description>
-        Run the <code>{playgroundSkill?.id}</code> skill on this viber and see the
-        output.
-      </Dialog.Description>
-    </Dialog.Header>
-
-    <div class="space-y-4">
-      {#if !currentViber || currentViber.status !== "active"}
-        <div
-          class="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
-        >
-          This viber is not active. Bring it online to test skills.
-        </div>
-      {:else}
-        <div class="space-y-2">
-          <p class="text-xs font-medium text-muted-foreground">
-            Scenario <span class="text-muted-foreground/50">(optional)</span>
-          </p>
-          <Textarea
-            bind:value={playgroundScenario}
-            class="min-h-20"
-            placeholder="Describe what you want the skill to do, or leave blank for a default demo."
-          />
-        </div>
-      {/if}
-
-      {#if playgroundError}
-        <div
-          class="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive"
-        >
-          {playgroundError}
-        </div>
-      {/if}
-
-      {#if playgroundResult}
-        <div class="playground-output">
-          <div class="output-header">
-            <span
-              class="output-status"
-              class:ok={playgroundResult.ok}
-              class:fail={!playgroundResult.ok}
-            >
-              {#if playgroundResult.ok}<CheckCircle
-                  class="size-3.5"
-                />{:else}<AlertCircle class="size-3.5" />{/if}
-              {playgroundResult.status}
-            </span>
-          </div>
-          {#if playgroundResult.partialText}
-            <div class="output-content">
-              <pre>{playgroundResult.partialText}</pre>
-            </div>
-          {/if}
-          {#if playgroundResult.message && !playgroundResult.partialText}
-            <p class="output-message">{playgroundResult.message}</p>
-          {/if}
-          {#if playgroundResult.result}
-            <details class="output-raw">
-              <summary>Raw JSON</summary>
-              <pre>{JSON.stringify(playgroundResult.result, null, 2)}</pre>
-            </details>
-          {/if}
-        </div>
-      {/if}
-    </div>
-
-    <Dialog.Footer>
-      <Button variant="outline" onclick={closePlaygroundDialog}>Close</Button>
-      <Button
-        onclick={runPlayground}
-        disabled={playgroundRunning ||
-          !playgroundSkill ||
-          !currentViber ||
-          currentViber.status !== "active"}
-      >
-        {#if playgroundRunning}
-          <Loader2 class="size-4 animate-spin" />Running…
-        {:else}
-          <Play class="size-4" />Run
-        {/if}
-      </Button>
-    </Dialog.Footer>
   </Dialog.Content>
 </Dialog.Root>
 
@@ -1692,93 +1513,5 @@
   .page-info {
     font-size: 0.75rem;
     color: var(--muted-foreground);
-  }
-
-  /* ── Playground output ────────────────── */
-
-  .playground-output {
-    border-radius: 0.5rem;
-    overflow: hidden;
-    box-shadow:
-      0 12px 24px -20px hsl(var(--foreground) / 0.55),
-      0 2px 8px -6px hsl(var(--foreground) / 0.2);
-  }
-
-  .output-header {
-    display: flex;
-    align-items: center;
-    padding: 0.5rem 0.75rem;
-    background: var(--muted);
-    border-bottom: 1px solid hsl(var(--border) / 0.45);
-  }
-
-  .output-status {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.375rem;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
-  }
-
-  .output-status.ok {
-    color: hsl(142 71% 35%);
-  }
-  :global(.dark) .output-status.ok {
-    color: hsl(142 60% 60%);
-  }
-  .output-status.fail {
-    color: var(--destructive);
-  }
-
-  .output-content {
-    padding: 0.75rem;
-    max-height: 20rem;
-    overflow: auto;
-  }
-
-  .output-content pre {
-    font-size: 0.8125rem;
-    line-height: 1.5;
-    white-space: pre-wrap;
-    word-break: break-word;
-    margin: 0;
-    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
-      monospace;
-  }
-
-  .output-message {
-    padding: 0.75rem;
-    font-size: 0.8125rem;
-    color: var(--muted-foreground);
-  }
-
-  .output-raw {
-    border-top: 1px solid var(--border);
-  }
-
-  .output-raw summary {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.75rem;
-    font-weight: 500;
-    cursor: pointer;
-    color: var(--muted-foreground);
-  }
-
-  .output-raw summary:hover {
-    color: var(--foreground);
-  }
-
-  .output-raw pre {
-    padding: 0.75rem;
-    font-size: 0.6875rem;
-    max-height: 16rem;
-    overflow: auto;
-    white-space: pre-wrap;
-    word-break: break-word;
-    margin: 0;
-    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
-      monospace;
   }
 </style>

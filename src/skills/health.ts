@@ -57,7 +57,6 @@ type CommandResult = {
 
 const COMMAND_TIMEOUT_MS = 3000;
 const DEFAULT_SKILL_IDS = [
-  "antigravity",
   "cursor-agent",
   "codex-cli",
   "gemini-cli",
@@ -261,43 +260,6 @@ function buildAuthCheck(args: {
   };
 }
 
-async function checkAntigravityHealth(skill: SkillInfo): Promise<SkillHealthResult> {
-  const portRaw = process.env.OPENVIBER_ANTIGRAVITY_PORT || "9333";
-  const port = Number.isFinite(Number(portRaw)) ? Number(portRaw) : 9333;
-  const url = `http://127.0.0.1:${port}/json/version`;
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 1500);
-
-  let ok = false;
-  let message = "";
-  try {
-    const res = await fetch(url, { signal: controller.signal });
-    ok = res.ok;
-    if (!res.ok) {
-      message = `HTTP ${res.status}`;
-    }
-  } catch (err: any) {
-    message = formatFirstLine(err?.message || String(err));
-  } finally {
-    clearTimeout(timeout);
-  }
-
-  const checks: SkillHealthCheck[] = [
-    {
-      id: "cdp",
-      label: `CDP endpoint reachable (port ${port})`,
-      ok,
-      required: true,
-      message: ok ? "Reachable" : message || "Not reachable",
-      hint: ok
-        ? undefined
-        : `Start Chrome with --remote-debugging-port=${port}`,
-      actionType: "manual",
-    },
-  ];
-
-  return buildResult(skill, checks);
-}
 
 async function checkCursorAgentHealth(skill: SkillInfo): Promise<SkillHealthResult> {
   const commandCheck = buildCommandCheck({
@@ -511,7 +473,6 @@ const SKILL_CHECKERS: Record<
   string,
   (skill: SkillInfo) => Promise<SkillHealthResult>
 > = {
-  antigravity: checkAntigravityHealth,
   "cursor-agent": checkCursorAgentHealth,
   "codex-cli": checkCodexHealth,
   "gemini-cli": checkGeminiHealth,

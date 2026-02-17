@@ -183,7 +183,7 @@ async function main() {
     skills,
   };
 
-  const outPath = new URL("../web/static/skills-catalog.json", import.meta.url);
+  const outPath = new URL("../web/src/lib/data/skills-catalog.json", import.meta.url);
   const { writeFileSync, mkdirSync } = await import("fs");
   const { dirname } = await import("path");
   const { fileURLToPath } = await import("url");

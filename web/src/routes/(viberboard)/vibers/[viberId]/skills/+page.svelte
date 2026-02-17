@@ -175,10 +175,12 @@
 
   async function fetchViber() {
     try {
-      const res = await fetch("/api/vibers");
+      const res = await fetch("/api/vibers", {
+        signal: AbortSignal.timeout(3000),
+      });
       if (!res.ok) return;
-      const data = await res.json();
-      const vibers: ViberOption[] = data.vibers ?? [];
+      const payload = await res.json();
+      const vibers: ViberOption[] = payload.vibers ?? [];
       currentViber =
         vibers.find((v) => v.viber_id === viberId || v.id === viberId) ?? null;
     } catch {
@@ -190,6 +192,7 @@
     try {
       const res = await fetch(
         `/api/vibers/${encodeURIComponent(viberId)}/config`,
+        { signal: AbortSignal.timeout(3000) },
       );
       if (!res.ok) return;
       const data = await res.json();
@@ -205,6 +208,7 @@
     try {
       const res = await fetch(
         `/api/vibers/${encodeURIComponent(viberId)}/status`,
+        { signal: AbortSignal.timeout(3000) },
       );
       if (!res.ok) return;
       const data = await res.json();

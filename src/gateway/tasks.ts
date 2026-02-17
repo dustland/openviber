@@ -2,16 +2,33 @@
  * Task Manager — handles task CRUD, streaming, and progress lifecycle.
  */
 
-import type { IncomingMessage, ServerResponse } from "http";
 import { randomUUID } from "crypto";
+import type { IncomingMessage, ServerResponse } from "http";
+import { URL } from "url";
 import { readJsonBody } from "../utils/router";
 import type {
-  GatewayTask,
   ConnectedViber,
+  GatewayTask,
   TaskProgressEnvelope,
 } from "./types";
+import type {
+  GatewayTaskStore,
+  PersistedGatewayTask,
+} from "./task-store";
 
 const MAX_STREAM_BUFFER_BYTES = 2_000_000;
+
+interface TaskCreateMetadata {
+  userId?: string;
+  environmentId?: string | null;
+  title?: string;
+  config?: Record<string, unknown>;
+}
+
+interface TaskListQuery {
+  userId?: string;
+  includeArchived: boolean;
+}
 
 export class TaskManager {
   readonly tasks: Map<string, GatewayTask> = new Map();
@@ -19,31 +36,49 @@ export class TaskManager {
   private streamSubscribers: Map<string, ServerResponse[]> = new Map();
 
   constructor(
-    private getVibers: () => Map<string, ConnectedViber>,
-  ) { }
+    private readonly getVibers: () => Map<string, ConnectedViber>,
+    private readonly taskStore: GatewayTaskStore,
+  ) {}
 
   // ==================== HTTP Handlers ====================
 
-  handleListTasks(_req: IncomingMessage, res: ServerResponse): void {
-    const vibers = this.getVibers();
-    const tasks = Array.from(this.tasks.values()).map((t) => {
-      const connectedViber = vibers.get(t.viberId);
-      return {
-        id: t.id,
-        viberId: t.viberId,
-        viberName: connectedViber?.name ?? t.viberId,
-        goal: t.goal,
-        status: t.status,
-        createdAt: t.createdAt.toISOString(),
-        completedAt: t.completedAt?.toISOString(),
-        eventCount: t.events.length,
-        partialText: t.partialText,
-        isConnected: !!connectedViber,
-      };
-    });
+  async handleListTasks(
+    req: IncomingMessage,
+    res: ServerResponse,
+  ): Promise<void> {
+    try {
+      const query = this.readTaskListQuery(req);
+      const persisted = await this.taskStore.listTasks({
+        userId: query.userId,
+        includeArchived: query.includeArchived,
+      });
 
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ tasks }));
+      const persistedById = new Map(persisted.map((row) => [row.id, row]));
+      const tasks = persisted.map((row) =>
+        this.toTaskSummary(this.tasks.get(row.id), row),
+      );
+
+      // Include in-memory tasks that are not persisted yet (fallback behavior).
+      if (!query.userId) {
+        for (const live of this.tasks.values()) {
+          if (!persistedById.has(live.id)) {
+            tasks.push(this.toTaskSummary(live));
+          }
+        }
+      }
+
+      tasks.sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ tasks }));
+    } catch (error) {
+      console.error("[Gateway] Failed to list tasks:", error);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Failed to list tasks" }));
+    }
   }
 
   async handleCreateTask(
@@ -59,7 +94,17 @@ export class TaskManager {
         settings,
         oauthTokens,
         model,
-      } = await readJsonBody(req);
+        metadata,
+      } = await readJsonBody<{
+        goal?: string;
+        viberId?: string;
+        messages?: Array<{ role: string; content: string }>;
+        environment?: unknown;
+        settings?: unknown;
+        oauthTokens?: unknown;
+        model?: string;
+        metadata?: TaskCreateMetadata;
+      }>(req);
 
       if (!goal) {
         res.writeHead(400, { "Content-Type": "application/json" });
@@ -82,14 +127,41 @@ export class TaskManager {
         return;
       }
 
-      // Create task
       const taskId = randomUUID();
+      const displayGoal =
+        typeof metadata?.title === "string" && metadata.title.trim().length > 0
+          ? metadata.title.trim()
+          : goal;
+      const now = new Date();
+
+      await this.taskStore.createTask({
+        id: taskId,
+        userId:
+          typeof metadata?.userId === "string" && metadata.userId.trim().length > 0
+            ? metadata.userId.trim()
+            : null,
+        goal: displayGoal,
+        viberId: connectedViber.id,
+        environmentId:
+          typeof metadata?.environmentId === "string" &&
+          metadata.environmentId.trim().length > 0
+            ? metadata.environmentId.trim()
+            : metadata?.environmentId === null
+              ? null
+              : null,
+        status: "pending",
+        createdAt: now.toISOString(),
+        updatedAt: now.toISOString(),
+        config: metadata?.config ?? null,
+      });
+
+      // Create in-memory runtime state for stream/event buffering.
       const task: GatewayTask = {
         id: taskId,
         viberId: connectedViber.id,
-        goal,
+        goal: displayGoal,
         status: "pending",
-        createdAt: new Date(),
+        createdAt: now,
         events: [],
         partialText: "",
         streamChunks: [],
@@ -97,7 +169,7 @@ export class TaskManager {
       };
       this.tasks.set(taskId, task);
 
-      // Tell the viber daemon to prepare and run this task
+      // Tell the viber daemon to prepare and run this task.
       connectedViber.ws.send(
         JSON.stringify({
           type: "task:create",
@@ -114,46 +186,48 @@ export class TaskManager {
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ taskId }));
     } catch (error) {
+      console.error("[Gateway] Failed to create task:", error);
       res.writeHead(400, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: "Invalid request body" }));
     }
   }
 
-  handleGetTask(
-    _req: IncomingMessage,
+  async handleGetTask(
+    req: IncomingMessage,
     res: ServerResponse,
     params: Record<string, string>,
-  ): void {
+  ): Promise<void> {
     const taskId = params.id;
-    const task = this.tasks.get(taskId);
 
-    if (!task) {
-      res.writeHead(404, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: "Task not found" }));
-      return;
+    try {
+      const query = this.readTaskListQuery(req);
+      const persisted = await this.taskStore.getTask(taskId);
+      const live = this.tasks.get(taskId);
+
+      if (!persisted && !live) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Task not found" }));
+        return;
+      }
+
+      if (
+        query.userId &&
+        persisted?.userId &&
+        persisted.userId !== query.userId
+      ) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Task not found" }));
+        return;
+      }
+
+      const payload = this.toTaskDetail(live, persisted);
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(payload));
+    } catch (error) {
+      console.error("[Gateway] Failed to get task:", error);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Failed to get task" }));
     }
-
-    // Include viber info for connectivity
-    const connectedViber = this.getVibers().get(task.viberId);
-
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(
-      JSON.stringify({
-        id: task.id,
-        viberId: task.viberId,
-        viberName: connectedViber?.name ?? task.viberId,
-        goal: task.goal,
-        status: task.status,
-        result: task.result,
-        error: task.error,
-        createdAt: task.createdAt.toISOString(),
-        completedAt: task.completedAt?.toISOString(),
-        events: task.events,
-        eventCount: task.events.length,
-        partialText: task.partialText,
-        isConnected: !!connectedViber,
-      }),
-    );
   }
 
   async handleSendMessage(
@@ -162,25 +236,54 @@ export class TaskManager {
     params: Record<string, string>,
   ): Promise<void> {
     const taskId = params.id;
-    const task = this.tasks.get(taskId);
-    if (!task) {
-      res.writeHead(404, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: "Task not found" }));
-      return;
-    }
-
-    const connectedViber = this.getVibers().get(task.viberId);
-    if (!connectedViber) {
-      res.writeHead(503, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: "Viber not connected" }));
-      return;
-    }
 
     try {
-      const { messages, goal, environment, settings, oauthTokens, model } =
-        await readJsonBody(req);
+      const persisted = await this.taskStore.getTask(taskId);
+      let task = this.tasks.get(taskId);
 
-      // Reset task state for the new message
+      if (!task && persisted?.viberId) {
+        task = {
+          id: persisted.id,
+          viberId: persisted.viberId,
+          goal: persisted.goal,
+          status: persisted.status,
+          createdAt: new Date(persisted.createdAt),
+          completedAt: persisted.completedAt
+            ? new Date(persisted.completedAt)
+            : undefined,
+          error: persisted.error ?? undefined,
+          events: [],
+          partialText: "",
+          streamChunks: [],
+          streamBytes: 0,
+        };
+        this.tasks.set(taskId, task);
+      }
+
+      if (!task) {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Task not found" }));
+        return;
+      }
+
+      const connectedViber = this.getVibers().get(task.viberId);
+      if (!connectedViber) {
+        res.writeHead(503, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Viber not connected" }));
+        return;
+      }
+
+      const { messages, goal, environment, settings, oauthTokens, model } =
+        await readJsonBody<{
+          messages?: Array<{ role: string; content: string }>;
+          goal?: string;
+          environment?: unknown;
+          settings?: unknown;
+          oauthTokens?: unknown;
+          model?: string;
+        }>(req);
+
+      // Reset runtime state for the new message turn.
       task.status = "pending";
       task.completedAt = undefined;
       task.result = undefined;
@@ -191,10 +294,18 @@ export class TaskManager {
       task.streamBytes = 0;
       if (goal) task.goal = goal;
 
-      // Close old stream subscribers so the new request gets a fresh stream
+      await this.taskStore.updateTask(taskId, {
+        goal: goal ?? undefined,
+        status: "pending",
+        completedAt: null,
+        error: null,
+        updatedAt: new Date().toISOString(),
+      });
+
+      // Close old stream subscribers so the new request gets a fresh stream.
       this.closeStreamSubscribers(taskId);
 
-      // Send message to the viber daemon
+      // Send message to the viber daemon.
       connectedViber.ws.send(
         JSON.stringify({
           type: "task:create",
@@ -211,40 +322,119 @@ export class TaskManager {
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ taskId }));
     } catch (error) {
+      console.error("[Gateway] Failed to send task message:", error);
       res.writeHead(400, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: "Invalid request body" }));
     }
   }
 
-  handleStopTask(
+  async handleStopTask(
     _req: IncomingMessage,
     res: ServerResponse,
     params: Record<string, string>,
-  ): void {
+  ): Promise<void> {
     const taskId = params.id;
     const task = this.tasks.get(taskId);
+    const persisted = await this.taskStore.getTask(taskId);
 
-    if (!task) {
+    if (!task && !persisted) {
       res.writeHead(404, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: "Task not found" }));
       return;
     }
 
-    const connectedViber = this.getVibers().get(task.viberId);
-    if (connectedViber) {
-      connectedViber.ws.send(
-        JSON.stringify({ type: "task:stop", taskId }),
-      );
+    const viberId = task?.viberId ?? persisted?.viberId;
+    if (viberId) {
+      const connectedViber = this.getVibers().get(viberId);
+      if (connectedViber) {
+        connectedViber.ws.send(JSON.stringify({ type: "task:stop", taskId }));
+      }
     }
 
-    task.status = "stopped";
-    task.completedAt = new Date();
+    if (task) {
+      task.status = "stopped";
+      task.completedAt = new Date();
+    }
 
-    // Close any SSE stream subscribers for this task
+    await this.taskStore.updateTask(taskId, {
+      status: "stopped",
+      completedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
+    // Close any SSE stream subscribers for this task.
     this.closeStreamSubscribers(taskId);
 
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ ok: true }));
+  }
+
+  async handleArchiveTask(
+    req: IncomingMessage,
+    res: ServerResponse,
+    params: Record<string, string>,
+  ): Promise<void> {
+    try {
+      const body = await readJsonBody<{ userId?: string }>(req).catch(
+        () => ({}),
+      );
+      const userId =
+        typeof body.userId === "string" && body.userId.trim().length > 0
+          ? body.userId.trim()
+          : undefined;
+
+      await this.taskStore.archiveTask(params.id, userId);
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: true }));
+    } catch (error) {
+      console.error("[Gateway] Failed to archive task:", error);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Failed to archive task" }));
+    }
+  }
+
+  async handleRestoreTask(
+    _req: IncomingMessage,
+    res: ServerResponse,
+    params: Record<string, string>,
+  ): Promise<void> {
+    try {
+      await this.taskStore.restoreTask(params.id);
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: true }));
+    } catch (error) {
+      console.error("[Gateway] Failed to restore task:", error);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Failed to restore task" }));
+    }
+  }
+
+  async handleDeleteTask(
+    _req: IncomingMessage,
+    res: ServerResponse,
+    params: Record<string, string>,
+  ): Promise<void> {
+    try {
+      const taskId = params.id;
+      const task = this.tasks.get(taskId);
+      if (task) {
+        const connectedViber = this.getVibers().get(task.viberId);
+        if (connectedViber) {
+          connectedViber.ws.send(JSON.stringify({ type: "task:stop", taskId }));
+        }
+        this.tasks.delete(taskId);
+      }
+
+      this.closeStreamSubscribers(taskId);
+      await this.taskStore.deleteTask(taskId);
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: true }));
+    } catch (error) {
+      console.error("[Gateway] Failed to delete task:", error);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Failed to delete task" }));
+    }
   }
 
   handleStreamTask(
@@ -260,7 +450,7 @@ export class TaskManager {
       return;
     }
 
-    // Set SSE headers with AI SDK stream protocol marker
+    // Set SSE headers with AI SDK stream protocol marker.
     res.writeHead(200, {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",
@@ -275,7 +465,7 @@ export class TaskManager {
       res.write(chunk);
     }
 
-    // If task is already completed/error/stopped, replay and close immediately.
+    // If task is already terminal, replay and close immediately.
     if (
       task.status === "completed" ||
       task.status === "error" ||
@@ -292,7 +482,7 @@ export class TaskManager {
     const subs = this.streamSubscribers.get(taskId)!;
     subs.push(res);
 
-    // Handle client disconnect
+    // Handle client disconnect.
     req.on("close", () => {
       const idx = subs.indexOf(res);
       if (idx >= 0) subs.splice(idx, 1);
@@ -306,22 +496,28 @@ export class TaskManager {
     const task = this.tasks.get(taskId);
     if (task) {
       task.status = "running";
+      this.persistLifecycle(taskId, { status: "running", error: null });
       console.log(`[Gateway] Task started: ${taskId}`);
     }
   }
 
-  handleTaskCompleted(taskId: string, result: any): void {
+  handleTaskCompleted(taskId: string, result: unknown): void {
     const task = this.tasks.get(taskId);
     if (task) {
       task.status = "completed";
       task.result = result;
       task.completedAt = new Date();
-      if (typeof result?.text === "string") {
-        task.partialText = result.text;
+      if (typeof (result as any)?.text === "string") {
+        task.partialText = (result as any).text;
       }
+      this.persistLifecycle(taskId, {
+        status: "completed",
+        completedAt: task.completedAt.toISOString(),
+        error: null,
+      });
       console.log(`[Gateway] Task completed: ${taskId}`);
 
-      // Close SSE stream subscribers
+      // Close SSE stream subscribers.
       this.closeStreamSubscribers(taskId);
     }
   }
@@ -354,11 +550,17 @@ export class TaskManager {
       task.status = "error";
       task.error = error;
       task.completedAt = new Date();
+      this.persistLifecycle(taskId, {
+        status: "error",
+        completedAt: task.completedAt.toISOString(),
+        error,
+      });
+
       console.log(
         `[Gateway] Task error: ${taskId} - ${error}${model ? ` (model: ${model})` : ""}`,
       );
 
-      // Push an error event so it appears in the /api/events stream (and Logs page)
+      // Push an error event so it appears in the /api/events stream (and Logs page).
       const now = new Date().toISOString();
       task.events.push({
         at: now,
@@ -370,7 +572,7 @@ export class TaskManager {
         },
       });
 
-      // Close SSE stream subscribers
+      // Close SSE stream subscribers.
       this.closeStreamSubscribers(taskId);
     }
   }
@@ -382,10 +584,7 @@ export class TaskManager {
     // Buffer chunks on the task so late subscribers can replay the stream.
     task.streamChunks.push(chunk);
     task.streamBytes += Buffer.byteLength(chunk);
-    while (
-      task.streamChunks.length > 0 &&
-      task.streamBytes > MAX_STREAM_BUFFER_BYTES
-    ) {
+    while (task.streamChunks.length > 0 && task.streamBytes > MAX_STREAM_BUFFER_BYTES) {
       const removed = task.streamChunks.shift();
       if (removed) {
         task.streamBytes -= Buffer.byteLength(removed);
@@ -401,6 +600,91 @@ export class TaskManager {
   }
 
   // ==================== Internal Helpers ====================
+
+  private readTaskListQuery(req: IncomingMessage): TaskListQuery {
+    const parsed = new URL(
+      req.url || "/",
+      `http://${req.headers.host || "localhost"}`,
+    );
+
+    const userIdRaw = parsed.searchParams.get("userId");
+    const userId =
+      typeof userIdRaw === "string" && userIdRaw.trim().length > 0
+        ? userIdRaw.trim()
+        : undefined;
+
+    return {
+      userId,
+      includeArchived: parsed.searchParams.get("includeArchived") === "true",
+    };
+  }
+
+  private toTaskSummary(
+    live?: GatewayTask,
+    persisted?: PersistedGatewayTask,
+  ): Record<string, unknown> {
+    const viberId = live?.viberId ?? persisted?.viberId ?? null;
+    const connectedViber = viberId ? this.getVibers().get(viberId) : undefined;
+
+    return {
+      id: live?.id ?? persisted?.id,
+      userId: persisted?.userId ?? null,
+      viberId,
+      viberName: connectedViber?.name ?? viberId,
+      goal: live?.goal ?? persisted?.goal ?? (live?.id ?? persisted?.id),
+      status: live?.status ?? persisted?.status ?? "pending",
+      createdAt:
+        live?.createdAt.toISOString() ??
+        persisted?.createdAt ??
+        new Date().toISOString(),
+      updatedAt:
+        persisted?.updatedAt ??
+        live?.completedAt?.toISOString() ??
+        live?.createdAt.toISOString() ??
+        new Date().toISOString(),
+      completedAt: live?.completedAt?.toISOString() ?? persisted?.completedAt ?? null,
+      archivedAt: persisted?.archivedAt ?? null,
+      environmentId: persisted?.environmentId ?? null,
+      eventCount: live?.events.length ?? 0,
+      partialText: live?.partialText,
+      isConnected: !!connectedViber,
+      error: live?.error ?? persisted?.error ?? null,
+    };
+  }
+
+  private toTaskDetail(
+    live?: GatewayTask,
+    persisted?: PersistedGatewayTask | null,
+  ): Record<string, unknown> {
+    const summary = this.toTaskSummary(live, persisted ?? undefined);
+    return {
+      ...summary,
+      result: live?.result ?? null,
+      events: live?.events ?? [],
+      eventCount: live?.events.length ?? 0,
+      partialText: live?.partialText ?? "",
+    };
+  }
+
+  private persistLifecycle(
+    taskId: string,
+    patch: {
+      status: "running" | "completed" | "error" | "stopped";
+      completedAt?: string | null;
+      error?: string | null;
+    },
+  ): void {
+    void this.taskStore
+      .updateTask(taskId, {
+        status: patch.status,
+        completedAt: patch.completedAt,
+        error: patch.error,
+        updatedAt: new Date().toISOString(),
+      })
+      .catch((error) => {
+        console.error(`[Gateway] Failed to persist lifecycle for ${taskId}:`, error);
+      });
+  }
 
   private normalizeProgressEvent(
     taskId: string,

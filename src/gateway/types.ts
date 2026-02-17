@@ -4,6 +4,10 @@
 
 import type { WebSocket } from "ws";
 import type {
+  GatewayTaskStore,
+  GatewayTaskStoreMode,
+} from "./task-store";
+import type {
   MachineResourceStatus,
   ViberRunningStatus,
   ViberSystemStatus,
@@ -18,6 +22,16 @@ export interface GatewayConfig {
   webApiUrl?: string;
   /** API token for authenticating with web API (optional) */
   webApiToken?: string;
+  /** Optional explicit task store instance. */
+  taskStore?: GatewayTaskStore;
+  /** Task store mode when taskStore is not provided. */
+  taskStoreMode?: GatewayTaskStoreMode;
+  /** SQLite file path when taskStoreMode=sqlite. */
+  taskStoreSqlitePath?: string;
+  /** Supabase URL when taskStoreMode=supabase. */
+  taskStoreSupabaseUrl?: string;
+  /** Supabase service-role key when taskStoreMode=supabase. */
+  taskStoreSupabaseServiceRoleKey?: string;
 }
 
 export interface JobEntry {

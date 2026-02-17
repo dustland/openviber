@@ -896,6 +896,8 @@ export interface SkillInput {
   version?: string;
 }
 
+const SKILLS_QUERY_TIMEOUT_MS = 10_000;
+
 /**
  * List all skills registered for a user account,
  * including global skills (user_id IS NULL) that apply to all users.
@@ -903,14 +905,17 @@ export interface SkillInput {
 export async function listSkills(userId: string): Promise<SkillRow[]> {
   try {
     const supabase = getServerSupabase();
+    const signal = AbortSignal.timeout(SKILLS_QUERY_TIMEOUT_MS);
     const { data, error } = await supabase
       .from("skills")
       .select("*")
       .or(`user_id.eq.${userId},user_id.is.null`)
+      .abortSignal(signal)
       .order("name", { ascending: true });
     if (error) throw error;
     return (data ?? []) as SkillRow[];
-  } catch {
+  } catch (error) {
+    console.warn("[Skills] Failed to list skills:", error);
     return [];
   }
 }
@@ -977,4 +982,3 @@ export async function upsertSkillsBatch(
     await upsertSkill(userId, skill);
   }
 }
-

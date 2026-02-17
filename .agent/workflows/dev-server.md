@@ -42,3 +42,22 @@ pnpm dev:standalone  # Standalone mode (embedded gateway + viber daemon)
 pnpm dev:chat        # CLI chat (connects to gateway at localhost:6009)
 pnpm dev:setup       # Re-run setup (create default agent config)
 ```
+
+### Testing API Endpoints
+
+To test API endpoints without browser auth (e.g. via `curl`), enable E2E test mode by uncommenting in `web/.env`:
+
+```env
+E2E_TEST_MODE=true
+```
+
+Then restart the dev server. API requests will bypass authentication:
+
+```bash
+curl http://localhost:6006/api/skills
+curl http://localhost:6006/api/vibers
+curl http://localhost:6006/api/settings
+```
+
+> **Important:** Without `E2E_TEST_MODE=true` in `web/.env`, all API endpoints return `401 Unauthorized` and page routes redirect to `/login`. Remember to re-comment it after testing.
+

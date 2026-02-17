@@ -76,6 +76,10 @@
     tasks: SidebarTask[];
   }
 
+  interface SidebarViberSummary {
+    status?: string;
+  }
+
   let { children } = $props();
 
   let archivingTaskIds = $state<Set<string>>(new Set());
@@ -119,6 +123,7 @@
   const tasksState = $derived($tasksStore);
   const tasks = $derived(tasksState.tasks as SidebarTask[]);
   let environments = $state<SidebarEnvironment[]>([]);
+  let activeViberCount = $state(0);
 
   const pinnedIds = $derived($pinnedTasksStore);
 
@@ -148,6 +153,9 @@
   });
 
   const allTasks = $derived(tasks);
+  const activeViberBadge = $derived(
+    activeViberCount > 99 ? "99+" : String(activeViberCount),
+  );
 
   const pathname = $derived($page.url.pathname);
   const isNewTaskRoute = $derived(pathname.startsWith("/tasks/new"));
@@ -179,13 +187,36 @@
     }
   }
 
+  async function fetchActiveViberCount() {
+    try {
+      const response = await fetch("/api/vibers");
+      if (!response.ok) {
+        activeViberCount = 0;
+        return;
+      }
+
+      const payload = await response.json();
+      const vibers = Array.isArray(payload.vibers)
+        ? (payload.vibers as SidebarViberSummary[])
+        : [];
+
+      activeViberCount = vibers.filter((viber) => viber.status === "active")
+        .length;
+    } catch (error) {
+      console.error("Failed to fetch vibers:", error);
+      activeViberCount = 0;
+    }
+  }
+
   onMount(() => {
     void tasksStore.getTasks();
     void fetchEnvironments();
+    void fetchActiveViberCount();
 
     const interval = setInterval(() => {
       void tasksStore.getTasks();
       void fetchEnvironments();
+      void fetchActiveViberCount();
     }, 5000);
 
     return () => clearInterval(interval);
@@ -237,6 +268,7 @@
                 >
               </a>
             </Sidebar.MenuButton>
+            <Sidebar.MenuBadge>{activeViberBadge}</Sidebar.MenuBadge>
           </Sidebar.MenuItem>
 
           <Sidebar.MenuItem>

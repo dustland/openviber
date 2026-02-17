@@ -19,6 +19,9 @@
  *   GET  /api/tasks/:id        - Get task details
  *   POST /api/tasks/:id/message - Send a message to a task
  *   POST /api/tasks/:id/stop   - Stop a task
+ *   POST /api/tasks/:id/archive - Archive a task
+ *   DELETE /api/tasks/:id/archive - Restore a task
+ *   DELETE /api/tasks/:id       - Permanently delete a task
  *   GET  /api/tasks/:id/stream - SSE stream for task output
  *
  * WebSocket (for viber daemons):
@@ -33,6 +36,7 @@ import { TaskManager } from "./tasks";
 import { ViberManager } from "./vibers";
 import { EventManager } from "./events";
 import { SkillsManager } from "./skills";
+import { createGatewayTaskStoreFromEnv } from "./task-store";
 
 export type { GatewayConfig } from "./types";
 
@@ -47,9 +51,31 @@ export class GatewayServer {
   private skillsManager: SkillsManager;
 
   constructor(private config: GatewayConfig) {
+    const taskStore =
+      config.taskStore ??
+      createGatewayTaskStoreFromEnv({
+        ...process.env,
+        ...(config.taskStoreMode
+          ? { VIBER_GATEWAY_TASK_STORE: config.taskStoreMode }
+          : {}),
+        ...(config.taskStoreSqlitePath
+          ? { VIBER_GATEWAY_SQLITE_PATH: config.taskStoreSqlitePath }
+          : {}),
+        ...(config.taskStoreSupabaseUrl
+          ? { VIBER_GATEWAY_SUPABASE_URL: config.taskStoreSupabaseUrl }
+          : {}),
+        ...(config.taskStoreSupabaseServiceRoleKey
+          ? {
+            VIBER_GATEWAY_SUPABASE_SERVICE_ROLE_KEY:
+              config.taskStoreSupabaseServiceRoleKey,
+          }
+          : {}),
+      });
+
     // Wire up managers with cross-references
     this.taskManager = new TaskManager(
       () => this.viberManager.vibers,
+      taskStore,
     );
 
     this.eventManager = new EventManager(
@@ -92,6 +118,9 @@ export class GatewayServer {
     this.router.get("/api/tasks/:id", this.taskManager.handleGetTask.bind(this.taskManager));
     this.router.post("/api/tasks/:id/message", this.taskManager.handleSendMessage.bind(this.taskManager));
     this.router.post("/api/tasks/:id/stop", this.taskManager.handleStopTask.bind(this.taskManager));
+    this.router.post("/api/tasks/:id/archive", this.taskManager.handleArchiveTask.bind(this.taskManager));
+    this.router.delete("/api/tasks/:id/archive", this.taskManager.handleRestoreTask.bind(this.taskManager));
+    this.router.delete("/api/tasks/:id", this.taskManager.handleDeleteTask.bind(this.taskManager));
     this.router.get("/api/tasks/:id/stream", this.taskManager.handleStreamTask.bind(this.taskManager));
   }
 

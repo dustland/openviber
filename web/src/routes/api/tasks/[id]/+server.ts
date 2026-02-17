@@ -8,7 +8,6 @@ import {
   listSkills,
   setViberEnvironmentForUser,
 } from "$lib/server/environments";
-import { supabaseRequest } from "$lib/server/supabase";
 import { writeLog } from "$lib/server/logs";
 
 // GET /api/tasks/[id] - Get task details
@@ -19,7 +18,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 
   try {
     const [viber, enabledSkills, accountSkillRows, environmentId, gatewayNodes] = await Promise.all([
-      gatewayClient.getTask(params.id),
+      gatewayClient.getTask(params.id, locals.user.id),
       getViberSkills(params.id),
       listSkills(locals.user.id),
       getViberEnvironmentForUser(locals.user.id, params.id),
@@ -136,7 +135,7 @@ export const PATCH: RequestHandler = async ({ params, request, locals }) => {
     // Gateway lookup is best-effort — env assignment still works if hub is offline
     let viber: Awaited<ReturnType<typeof gatewayClient.getTask>> | null = null;
     try {
-      viber = await gatewayClient.getTask(params.id);
+      viber = await gatewayClient.getTask(params.id, locals.user.id);
     } catch {
       // Hub may be unreachable; proceed with fallback values
     }
@@ -194,13 +193,20 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
     }
 
     const settings = await getSettingsForUser(locals.user.id);
-    const viber = await gatewayClient.getTask(params.id);
+    const [viber, environmentId] = await Promise.all([
+      gatewayClient.getTask(params.id, locals.user.id),
+      getViberEnvironmentForUser(locals.user.id, params.id),
+    ]);
     const connectedViberId = viber?.viberId;
 
     const result = await gatewayClient.createTask(goal, connectedViberId, messages, undefined, {
       primaryCodingCli: settings.primaryCodingCli ?? undefined,
       proxyUrl: settings.proxyUrl ?? undefined,
       proxyEnabled: settings.proxyEnabled ?? undefined,
+    }, undefined, undefined, {
+      userId: locals.user.id,
+      environmentId: environmentId ?? null,
+      title: goal,
     });
 
     if (!result) {
@@ -241,18 +247,10 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
   }
 
   try {
-    // Try to stop the viber on the gateway first (best-effort)
-    try {
-      await gatewayClient.stopTask(params.id);
-    } catch {
-      // Ignore — viber may already be stopped or hub unreachable
+    const ok = await gatewayClient.deleteTask(params.id);
+    if (!ok) {
+      return json({ error: "Failed to delete task" }, { status: 502 });
     }
-
-    // Delete from tasks table (text PK = gateway session ID)
-    await supabaseRequest("tasks", {
-      method: "DELETE",
-      params: { id: `eq.${params.id}` },
-    });
 
     // Log deletion event
     writeLog({

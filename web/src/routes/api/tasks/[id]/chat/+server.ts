@@ -159,7 +159,10 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
       }
     }
 
-    const existingViber = await gatewayClient.getTask(params.id);
+    const existingViber = await gatewayClient.getTask(
+      params.id,
+      locals.user?.id,
+    );
     let viberId: string;
     const userId = locals.user?.id;
     const modelLabel = typeof model === "string" && model ? model : "default";
@@ -224,6 +227,15 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
           settingsPayload,
           oauthTokens,
           viberModel,
+          {
+            userId: locals.user?.id,
+            environmentId: selectedEnvironmentId,
+            title: goal,
+            config: {
+              ...(Array.isArray(activeSkills) ? { skills: activeSkills } : {}),
+              ...(viberModel ? { model: viberModel } : {}),
+            },
+          },
         );
         if (!result) {
           const errMsg = "Failed to create task on gateway (no response)";

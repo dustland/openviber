@@ -179,6 +179,7 @@ See [Jobs](/docs/concepts/jobs) for the full reference.
 
 ## 7. Persistence
 
-- **Task metadata**: Stored in the gateway's in-memory `Map<string, Task>` (or equivalent). Lost on gateway restart (tasks are ephemeral).
-- **Message history**: Persisted to SQLite in the web app database (via `/api/tasks/[id]/messages`).
+- **Task metadata**: Persisted by the gateway through a pluggable `GatewayTaskStore` backend (`memory`, `sqlite`, or `supabase`).
+- **Gateway runtime state**: Live stream chunks and in-flight events remain in-memory for low-latency SSE replay.
+- **Message history**: Persisted to Supabase (`messages` table) via `/api/tasks/[id]/messages`.
 - **Session memory**: Key decisions and outcomes can be flushed to `memory.md` (see [memory.md](./memory.md)).

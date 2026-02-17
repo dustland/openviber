@@ -201,7 +201,7 @@ Terminal I/O uses the same WebSocket connection between Viber runtime (daemon) a
 | Decision | Rationale |
 |----------|-----------|
 | Passthrough SSE relay | Avoids re-encoding; the AI SDK format is the source of truth |
-| Gateway as stateless coordinator | Gateway can restart without losing Viber runtime (daemon) connections (daemons auto-reconnect) |
+| Gateway as coordinator + persistence boundary | Gateway can persist task metadata to memory/SQLite/Supabase while daemons still auto-reconnect after gateway restarts |
 | WebSocket for Viber runtime, SSE for browser | WebSocket is bidirectional (needed for task control); SSE is simpler for browser consumption |
 | Simple task states | The AI SDK manages the complex agent loop; OpenViber just tracks the outer lifecycle |
 | Chunk buffering in gateway | Late-connecting SSE subscribers need to catch up without data loss |

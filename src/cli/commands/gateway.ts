@@ -1,10 +1,20 @@
 import { Command } from "commander";
 
-const gatewayAction = async (options: { port: string }) => {
+const gatewayAction = async (options: {
+  port: string;
+  taskStore?: "memory" | "sqlite" | "supabase";
+  sqlitePath?: string;
+  supabaseUrl?: string;
+  supabaseServiceRoleKey?: string;
+}) => {
   const { GatewayServer } = await import("../../gateway/server");
 
   const gateway = new GatewayServer({
     port: parseInt(options.port, 10),
+    taskStoreMode: options.taskStore,
+    taskStoreSqlitePath: options.sqlitePath,
+    taskStoreSupabaseUrl: options.supabaseUrl,
+    taskStoreSupabaseServiceRoleKey: options.supabaseServiceRoleKey,
   });
 
   // Handle graceful shutdown
@@ -41,14 +51,62 @@ Press Ctrl+C to stop.
 export const gatewayCommand = new Command("gateway")
   .description("Start the gateway (central coordinator for Viber runtimes)")
   .option("-p, --port <port>", "Port to listen on", "6009")
+  .option(
+    "--task-store <mode>",
+    "Task store backend (memory|sqlite|supabase)",
+  )
+  .option(
+    "--sqlite-path <path>",
+    "SQLite file path (used when --task-store=sqlite)",
+  )
+  .option(
+    "--supabase-url <url>",
+    "Supabase URL (used when --task-store=supabase)",
+  )
+  .option(
+    "--supabase-service-role-key <key>",
+    "Supabase service-role key (used when --task-store=supabase)",
+  )
   .action(gatewayAction);
 
 export const boardCommand = new Command("board")
   .description("(deprecated: use 'gateway') Start the gateway")
   .option("-p, --port <port>", "Port to listen on", "6009")
+  .option(
+    "--task-store <mode>",
+    "Task store backend (memory|sqlite|supabase)",
+  )
+  .option(
+    "--sqlite-path <path>",
+    "SQLite file path (used when --task-store=sqlite)",
+  )
+  .option(
+    "--supabase-url <url>",
+    "Supabase URL (used when --task-store=supabase)",
+  )
+  .option(
+    "--supabase-service-role-key <key>",
+    "Supabase service-role key (used when --task-store=supabase)",
+  )
   .action(gatewayAction);
 
 export const hubCommand = new Command("hub")
   .description("(deprecated: use 'gateway') Start the gateway")
   .option("-p, --port <port>", "Port to listen on", "6009")
+  .option(
+    "--task-store <mode>",
+    "Task store backend (memory|sqlite|supabase)",
+  )
+  .option(
+    "--sqlite-path <path>",
+    "SQLite file path (used when --task-store=sqlite)",
+  )
+  .option(
+    "--supabase-url <url>",
+    "Supabase URL (used when --task-store=supabase)",
+  )
+  .option(
+    "--supabase-service-role-key <key>",
+    "Supabase service-role key (used when --task-store=supabase)",
+  )
   .action(gatewayAction);

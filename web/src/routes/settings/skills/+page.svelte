@@ -68,6 +68,8 @@
     message?: string;
   }
 
+  const REQUEST_TIMEOUT_MS = 10_000;
+
   // ── Installed skills state ──
   let installed = $state<SkillInfo[]>([]);
   let installedLoading = $state(true);
@@ -103,13 +105,43 @@
     return sourceLabelMap.get(source) || source;
   }
 
+  function timeoutMessage(fallback: string) {
+    return `Request timed out after ${Math.round(REQUEST_TIMEOUT_MS / 1000)}s. ${fallback}`;
+  }
+
+  function formatFetchError(
+    error: unknown,
+    fallback = "Please retry.",
+  ): string {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      return timeoutMessage(fallback);
+    }
+    return error instanceof Error ? error.message : fallback;
+  }
+
+  async function fetchWithTimeout(
+    input: RequestInfo | URL,
+    init?: RequestInit,
+  ): Promise<Response> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    try {
+      return await fetch(input, {
+        ...init,
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
   // ── Data fetching ──
 
   async function fetchInstalled() {
     installedLoading = true;
     installedError = null;
     try {
-      const res = await fetch("/api/skills");
+      const res = await fetchWithTimeout("/api/skills");
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || "Failed to load skills");
@@ -117,7 +149,10 @@
       const data = await res.json();
       installed = data.skills ?? [];
     } catch (e) {
-      installedError = e instanceof Error ? e.message : "Failed to load skills";
+      installedError = formatFetchError(
+        e,
+        "Failed to load skills. Please retry.",
+      );
       installed = [];
     } finally {
       installedLoading = false;
@@ -127,7 +162,7 @@
   async function fetchSources() {
     sourcesLoading = true;
     try {
-      const res = await fetch("/api/settings");
+      const res = await fetchWithTimeout("/api/settings");
       if (!res.ok) return;
       const data = await res.json();
       sourcesRaw = (data.sources ?? {}) as Record<string, SourceConfig>;
@@ -139,6 +174,8 @@
       }));
     } catch {
       // Non-fatal
+      sources = [];
+      sourcesRaw = {};
     } finally {
       sourcesLoading = false;
     }

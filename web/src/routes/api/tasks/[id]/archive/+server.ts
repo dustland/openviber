@@ -1,6 +1,6 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { supabaseRequest } from "$lib/server/supabase";
+import { gatewayClient } from "$lib/server/gateway";
 import { writeLog } from "$lib/server/logs";
 
 // POST /api/tasks/[id]/archive - Archive a task
@@ -10,20 +10,10 @@ export const POST: RequestHandler = async ({ params, locals }) => {
   }
 
   try {
-    const now = new Date().toISOString();
-
-    // Upsert: if the task row exists, set archived_at.
-    // If not (legacy tasks created before the tasks table), create a minimal row.
-    await supabaseRequest("tasks", {
-      method: "POST",
-      params: { on_conflict: "id" },
-      prefer: "resolution=merge-duplicates,return=minimal",
-      body: [{
-        id: params.id,
-        user_id: locals.user.id,
-        archived_at: now,
-      }],
-    });
+    const ok = await gatewayClient.archiveTask(params.id, locals.user.id);
+    if (!ok) {
+      return json({ error: "Failed to archive task" }, { status: 502 });
+    }
 
     writeLog({
       user_id: locals.user.id,
@@ -48,11 +38,10 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
   }
 
   try {
-    await supabaseRequest("tasks", {
-      method: "PATCH",
-      params: { id: `eq.${params.id}` },
-      body: { archived_at: null },
-    });
+    const ok = await gatewayClient.restoreTask(params.id);
+    if (!ok) {
+      return json({ error: "Failed to restore task" }, { status: 502 });
+    }
 
     writeLog({
       user_id: locals.user.id,

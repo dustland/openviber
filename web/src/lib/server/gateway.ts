@@ -245,16 +245,20 @@ export interface ViberEnvironmentContext {
 /** A viber session on the gateway */
 export interface GatewayViber {
   id: string;
-  viberId: string;
+  userId?: string | null;
+  viberId: string | null;
   goal: string;
   status: "pending" | "running" | "completed" | "error" | "stopped";
   createdAt: string;
+  updatedAt?: string;
   completedAt?: string;
+  archivedAt?: string | null;
+  environmentId?: string | null;
   result?: unknown;
   error?: string;
   eventCount?: number;
   partialText?: string;
-  viberName?: string;
+  viberName?: string | null;
   isConnected?: boolean;
 }
 
@@ -292,19 +296,29 @@ export const gatewayClient = {
     }
   },
 
-  // List task sessions from the gateway */
-  async getTasks(): Promise<{ vibers: GatewayViber[] }> {
+  /** List task sessions from the gateway. */
+  async getTasks(options?: {
+    userId?: string;
+    includeArchived?: boolean;
+  }): Promise<{ tasks: GatewayViber[] }> {
     try {
-      const response = await gatewayFetch("/api/tasks");
+      const params = new URLSearchParams();
+      if (options?.userId) {
+        params.set("userId", options.userId);
+      }
+      if (options?.includeArchived) {
+        params.set("includeArchived", "true");
+      }
+      const suffix = params.size > 0 ? `?${params.toString()}` : "";
+      const response = await gatewayFetch(`/api/tasks${suffix}`);
       if (!response.ok) {
         throw new Error(`Gateway returned ${response.status}`);
       }
       const data = await response.json();
-      // Gateway returns { tasks } (new) or { vibers } (legacy)
-      return { vibers: data.tasks ?? data.vibers ?? [] };
+      return { tasks: data.tasks ?? data.vibers ?? [] };
     } catch (error) {
       console.error("[GatewayClient] Failed to get tasks:", error);
-      return { vibers: [] };
+      return { tasks: [] };
     }
   },
 
@@ -323,12 +337,27 @@ export const gatewayClient = {
     },
     oauthTokens?: Record<string, { accessToken: string; refreshToken?: string | null }>,
     model?: string,
+    metadata?: {
+      userId?: string;
+      environmentId?: string | null;
+      title?: string;
+      config?: Record<string, unknown>;
+    },
   ): Promise<{ viberId: string; taskId?: string } | null> {
     try {
       const response = await gatewayFetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ goal, viberId, messages, environment, settings, oauthTokens, model }),
+        body: JSON.stringify({
+          goal,
+          viberId,
+          messages,
+          environment,
+          settings,
+          oauthTokens,
+          model,
+          metadata,
+        }),
       });
 
       if (!response.ok) {
@@ -341,31 +370,36 @@ export const gatewayClient = {
       }
 
       const data = await response.json();
-      // Gateway returns { taskId } but callers expect { viberId }
-      return { viberId: data.taskId ?? data.viberId, taskId: data.taskId };
+      const taskId = data.taskId ?? data.viberId;
+      return { viberId: taskId, taskId };
     } catch (error) {
       console.error("[GatewayClient] Failed to create task:", error);
       throw error;
     }
   },
 
-  // Get a specific task by ID */
-  async getTask(viberId: string): Promise<GatewayViber | null> {
+  /** Get a specific task by ID. */
+  async getTask(taskId: string, userId?: string): Promise<GatewayViber | null> {
     try {
-      const response = await gatewayFetch(`/api/tasks/${viberId}`);
+      const params = new URLSearchParams();
+      if (userId) {
+        params.set("userId", userId);
+      }
+      const suffix = params.size > 0 ? `?${params.toString()}` : "";
+      const response = await gatewayFetch(`/api/tasks/${taskId}${suffix}`);
       if (!response.ok) {
         return null;
       }
       return await response.json();
     } catch (error) {
-      console.error("[GatewayClient] Failed to get viber:", error);
+      console.error("[GatewayClient] Failed to get task:", error);
       return null;
     }
   },
 
-  // Send a message to an existing task */
+  /** Send a message to an existing task. */
   async sendMessage(
-    viberId: string,
+    taskId: string,
     messages: { role: string; content: string }[],
     goal?: string,
     environment?: ViberEnvironmentContext,
@@ -379,7 +413,7 @@ export const gatewayClient = {
     model?: string,
   ): Promise<{ viberId: string; taskId?: string } | null> {
     try {
-      const response = await gatewayFetch(`/api/tasks/${viberId}/message`, {
+      const response = await gatewayFetch(`/api/tasks/${taskId}/message`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages, goal, environment, settings, oauthTokens, model }),
@@ -395,23 +429,64 @@ export const gatewayClient = {
       }
 
       const data = await response.json();
-      // Gateway returns { taskId } but callers expect { viberId }
-      return { viberId: data.taskId ?? data.viberId, taskId: data.taskId };
+      const resolvedTaskId = data.taskId ?? data.viberId;
+      return { viberId: resolvedTaskId, taskId: resolvedTaskId };
     } catch (error) {
       console.error("[GatewayClient] Failed to send message:", error);
       throw error;
     }
   },
 
-  // Stop a task */
-  async stopTask(viberId: string): Promise<boolean> {
+  /** Stop a running task. */
+  async stopTask(taskId: string): Promise<boolean> {
     try {
-      const response = await gatewayFetch(`/api/tasks/${viberId}/stop`, {
+      const response = await gatewayFetch(`/api/tasks/${taskId}/stop`, {
         method: "POST",
       });
       return response.ok;
     } catch (error) {
-      console.error("[GatewayClient] Failed to stop viber:", error);
+      console.error("[GatewayClient] Failed to stop task:", error);
+      return false;
+    }
+  },
+
+  /** Archive a task. */
+  async archiveTask(taskId: string, userId?: string): Promise<boolean> {
+    try {
+      const response = await gatewayFetch(`/api/tasks/${taskId}/archive`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+      return response.ok;
+    } catch (error) {
+      console.error("[GatewayClient] Failed to archive task:", error);
+      return false;
+    }
+  },
+
+  /** Restore an archived task. */
+  async restoreTask(taskId: string): Promise<boolean> {
+    try {
+      const response = await gatewayFetch(`/api/tasks/${taskId}/archive`, {
+        method: "DELETE",
+      });
+      return response.ok;
+    } catch (error) {
+      console.error("[GatewayClient] Failed to restore task:", error);
+      return false;
+    }
+  },
+
+  /** Permanently delete a task. */
+  async deleteTask(taskId: string): Promise<boolean> {
+    try {
+      const response = await gatewayFetch(`/api/tasks/${taskId}`, {
+        method: "DELETE",
+      });
+      return response.ok;
+    } catch (error) {
+      console.error("[GatewayClient] Failed to delete task:", error);
       return false;
     }
   },
@@ -477,7 +552,10 @@ export const gatewayClient = {
     source: string;
   } | null> {
     try {
-      const response = await gatewayFetch(`/api/vibers/${encodeURIComponent(viberId)}/status`);
+      const response = await gatewayFetch(
+        `/api/vibers/${encodeURIComponent(viberId)}/status`,
+        { signal: AbortSignal.timeout(8000) },
+      );
       if (!response.ok) {
         return null;
       }

@@ -1,0 +1,118 @@
+
+> @openviber/web@0.1.0 check /app/web
+> svelte-kit sync && svelte-check --tsconfig ./tsconfig.json
+
+Loading svelte-check in workspace: /app/web
+Getting Svelte diagnostics...
+
+/app/web/src/routes/api/jobs/+server.ts:73:9
+Error: Cannot find name 'targetNodeId'.
+        : null;
+    if (targetNodeId) {
+      const pushed = await gatewayClient.pushJobToViber(targetNodeId, {
+
+/app/web/src/routes/api/jobs/+server.ts:74:57
+Error: Cannot find name 'targetNodeId'.
+    if (targetNodeId) {
+      const pushed = await gatewayClient.pushJobToViber(targetNodeId, {
+        name: name.trim(),
+
+/app/web/src/routes/api/jobs/+server.ts:80:9
+Error: Type 'string | null' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+        ...(model != null && String(model).trim() && { model: String(model).trim() }),
+        viberId: targetViberId,
+      });
+
+/app/web/src/routes/api/skills/requirements/+server.ts:72:20
+Error: Cannot find name 'nodes'. Did you mean 'node'?
+      const { vibers } = await gatewayClient.getVibers();
+      const node = nodes.find((n) => n.id === viberId);
+      if (node?.skills) {
+
+/app/web/src/routes/api/skills/requirements/+server.ts:72:32
+Error: Parameter 'n' implicitly has an 'any' type.
+      const { vibers } = await gatewayClient.getVibers();
+      const node = nodes.find((n) => n.id === viberId);
+      if (node?.skills) {
+
+/app/web/src/routes/api/skills/requirements/+server.ts:74:41
+Error: Parameter 's' implicitly has an 'any' type.
+      if (node?.skills) {
+        const skill = node.skills.find((s) => s.id === skillId);
+        if (skill) {
+
+/app/web/src/routes/api/tasks/[id]/config/+server.ts:59:9
+Error: Cannot find name 'nodes'. Did you mean 'Node'?
+      new Set(
+        nodes.flatMap((node) =>
+          (node.skills ?? []).map((skill) => skill.id || skill.name).filter(Boolean),
+
+/app/web/src/routes/api/tasks/[id]/config/+server.ts:59:24
+Error: Parameter 'node' implicitly has an 'any' type.
+      new Set(
+        nodes.flatMap((node) =>
+          (node.skills ?? []).map((skill) => skill.id || skill.name).filter(Boolean),
+
+/app/web/src/routes/api/tasks/[id]/config/+server.ts:60:36
+Error: Parameter 'skill' implicitly has an 'any' type.
+        nodes.flatMap((node) =>
+          (node.skills ?? []).map((skill) => skill.id || skill.name).filter(Boolean),
+        ),
+
+/app/web/src/routes/api/tasks/[id]/config/+server.ts:63:22
+Error: 'a' is of type 'unknown'.
+      ),
+    ).sort((a, b) => a.localeCompare(b));
+
+/app/web/src/lib/components/layout/viberboard-shell.svelte:27:5
+Error: This comparison appears to be unintentional because the types '"/" | "/api" | "/api/board" | "/api/chat" | "/api/environments" | "/api/gateway" | "/api/github" | "/api/github/branches" | "/api/github/repos" | "/api/hub/skills" | "/api/hub/skills/readme" | ... 224 more ... | `/${string}${`/vibers/${string}/tasks/` & {}}`' and '"/environments"' have no overlap. (ts)
+  const isEnvironmentsRoute = $derived(
+    pathname === "/environments" || pathname.startsWith("/environments/"),
+  );
+
+/app/web/src/routes/(viberboard)/vibers/[viberId]/+layout.svelte:23:41
+Warn: This reference only captures the initial value of `viberId`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally (svelte)
+  const tabs = [
+    { label: "Status", href: `/vibers/${viberId}/status` },
+    { label: "Skills", href: `/vibers/${viberId}/skills` },
+
+/app/web/src/routes/(viberboard)/vibers/[viberId]/+layout.svelte:24:41
+Warn: This reference only captures the initial value of `viberId`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally (svelte)
+    { label: "Status", href: `/vibers/${viberId}/status` },
+    { label: "Skills", href: `/vibers/${viberId}/skills` },
+    { label: "Channels", href: `/vibers/${viberId}/channels` },
+
+/app/web/src/routes/(viberboard)/vibers/[viberId]/+layout.svelte:25:43
+Warn: This reference only captures the initial value of `viberId`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally (svelte)
+    { label: "Skills", href: `/vibers/${viberId}/skills` },
+    { label: "Channels", href: `/vibers/${viberId}/channels` },
+    { label: "Jobs", href: `/vibers/${viberId}/jobs` },
+
+/app/web/src/routes/(viberboard)/vibers/[viberId]/+layout.svelte:26:39
+Warn: This reference only captures the initial value of `viberId`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally (svelte)
+    { label: "Channels", href: `/vibers/${viberId}/channels` },
+    { label: "Jobs", href: `/vibers/${viberId}/jobs` },
+    { label: "Tasks", href: `/vibers/${viberId}/tasks` },
+
+/app/web/src/routes/(viberboard)/vibers/[viberId]/+layout.svelte:27:40
+Warn: This reference only captures the initial value of `viberId`. Did you mean to reference it inside a closure instead?
+https://svelte.dev/e/state_referenced_locally (svelte)
+    { label: "Jobs", href: `/vibers/${viberId}/jobs` },
+    { label: "Tasks", href: `/vibers/${viberId}/tasks` },
+  ] as const;
+
+/app/web/src/routes/(viberboard)/vibers/[viberId]/skills/+page.svelte:1154:3
+Warn: Unused CSS selector ".toggle-spinner"
+https://svelte.dev/e/css_unused_selector (svelte)
+
+  .toggle-spinner {
+    color: var(--muted-foreground);
+
+====================================
+svelte-check found 11 errors and 6 warnings in 6 files
+ ELIFECYCLE  Command failed with exit code 1.

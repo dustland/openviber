@@ -225,7 +225,7 @@
       >
         You Imagine It.<br class="hidden sm:block" />
         <span
-          class="bg-gradient-to-r from-primary via-primary/90 to-primary/60 bg-clip-text text-transparent"
+          class="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent"
           >Vibers</span
         >
         <TypewriterEffect
@@ -270,7 +270,7 @@
         {#if data.user}
           <a
             href="/"
-            class="cta-primary group inline-flex items-center gap-2.5 rounded-full bg-primary px-10 py-4 text-base font-bold text-primary-foreground shadow-[0_0_30px_hsl(var(--primary)/0.3)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_40px_hsl(var(--primary)/0.4)]"
+            class="cta-primary group inline-flex items-center gap-2.5 rounded-full bg-gradient-to-r from-blue-600 to-violet-600 px-10 py-4 text-base font-bold text-white shadow-[0_0_30px_hsl(250_90%_60%_/_0.4)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_40px_hsl(250_90%_60%_/_0.6)]"
           >
             Go to Viberboard
             <ArrowRight
@@ -280,7 +280,7 @@
         {:else if data.supabaseAuthEnabled}
           <a
             href={githubAuthUrl}
-            class="cta-primary group inline-flex items-center gap-2.5 rounded-full bg-primary px-10 py-4 text-base font-bold text-primary-foreground shadow-[0_0_30px_hsl(var(--primary)/0.3)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_40px_hsl(var(--primary)/0.4)]"
+            class="cta-primary group inline-flex items-center gap-2.5 rounded-full bg-gradient-to-r from-blue-600 to-violet-600 px-10 py-4 text-base font-bold text-white shadow-[0_0_30px_hsl(250_90%_60%_/_0.4)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_40px_hsl(250_90%_60%_/_0.6)]"
           >
             <svg
               class="size-4"
@@ -504,7 +504,7 @@
           {#if !data.user && data.supabaseAuthEnabled}
             <a
               href={githubAuthUrl}
-              class="cta-primary group inline-flex items-center gap-2.5 rounded-lg bg-primary px-8 py-3 text-sm font-semibold text-primary-foreground transition-all duration-300 hover:-translate-y-1"
+              class="cta-primary group inline-flex items-center gap-2.5 rounded-lg bg-gradient-to-r from-blue-600 to-violet-600 px-8 py-3 text-sm font-semibold text-white transition-all duration-300 hover:-translate-y-1"
             >
               <svg
                 class="size-4"
@@ -524,7 +524,7 @@
           {:else}
             <a
               href="/docs/getting-started/quick-start"
-              class="cta-primary group inline-flex items-center gap-2.5 rounded-lg bg-primary px-8 py-3 text-sm font-semibold text-primary-foreground transition-all duration-300 hover:-translate-y-1"
+              class="cta-primary group inline-flex items-center gap-2.5 rounded-lg bg-gradient-to-r from-blue-600 to-violet-600 px-8 py-3 text-sm font-semibold text-white transition-all duration-300 hover:-translate-y-1"
             >
               Quick Start Guide
               <ArrowRight
@@ -669,8 +669,12 @@
     position: absolute;
     border-radius: 50%;
     filter: blur(100px);
-    opacity: 0.3; /* Increased opacity for screen blend mode */
+    opacity: 0.2;
     will-change: transform;
+    mix-blend-mode: normal;
+  }
+  :global(.dark) .orb {
+    opacity: 0.3;
     mix-blend-mode: screen;
   }
   .orb-1 {
@@ -681,7 +685,7 @@
     transform: translateX(-50%);
     background: radial-gradient(
       circle,
-      hsl(var(--primary) / 0.3),
+      hsl(190 90% 50% / 0.3),
       transparent 65%
     );
     animation: float-1 20s ease-in-out infinite;
@@ -693,7 +697,7 @@
     right: -10rem;
     background: radial-gradient(
       circle,
-      hsl(var(--ring) / 0.22),
+      hsl(270 90% 55% / 0.22),
       transparent 65%
     );
     animation: float-2 25s ease-in-out infinite;
@@ -705,7 +709,7 @@
     left: -8rem;
     background: radial-gradient(
       circle,
-      hsl(var(--primary) / 0.18),
+      hsl(220 90% 55% / 0.25),
       transparent 65%
     );
     animation: float-3 22s ease-in-out infinite;
@@ -798,14 +802,14 @@
   /* ── CTA button glow ── */
   .cta-primary {
     box-shadow:
-      0 4px 20px -4px hsl(var(--primary) / 0.35),
-      0 0 0 0 hsl(var(--primary) / 0);
+      0 4px 20px -4px hsl(250 90% 60% / 0.4),
+      0 0 0 0 hsl(250 90% 60% / 0);
     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .cta-primary:hover {
     box-shadow:
-      0 10px 28px -4px hsl(var(--primary) / 0.45),
-      0 0 0 1px hsl(var(--primary) / 0.18);
+      0 10px 28px -4px hsl(250 90% 60% / 0.5),
+      0 0 0 1px hsl(250 90% 60% / 0.3);
   }
 
   /* ── Section divider gradient ── */
@@ -852,10 +856,10 @@
     transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .use-case-card:hover {
-    border-color: hsl(var(--primary) / 0.5);
+    border-color: hsl(250 90% 60% / 0.5);
     background: hsl(var(--card) / 0.8);
     transform: translateY(-8px) scale(1.03);
-    box-shadow: 0 20px 40px -8px hsl(var(--primary) / 0.25);
+    box-shadow: 0 20px 40px -8px hsl(250 90% 60% / 0.25);
   }
   .use-case-icon {
     background: hsl(var(--primary) / 0.08);
@@ -935,11 +939,11 @@
     transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .glass-card:hover {
-    border-color: hsl(var(--primary) / 0.45);
+    border-color: hsl(190 90% 50% / 0.45);
     transform: translateY(-4px) scale(1.02);
     box-shadow:
-      0 12px 32px -8px hsl(var(--primary) / 0.15),
-      0 0 0 1px hsl(var(--primary) / 0.1);
+      0 12px 32px -8px hsl(190 90% 50% / 0.15),
+      0 0 0 1px hsl(190 90% 50% / 0.1);
   }
 
   /* ── Icon ring ── */
@@ -965,9 +969,9 @@
     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .tool-card:hover {
-    border-color: hsl(var(--primary) / 0.3);
+    border-color: hsl(220 90% 55% / 0.3);
     background: hsl(var(--card) / 0.7);
-    box-shadow: 0 8px 24px -8px hsl(var(--primary) / 0.1);
+    box-shadow: 0 8px 24px -8px hsl(220 90% 55% / 0.1);
   }
 
   /* ── CTA card ── */
@@ -1108,25 +1112,25 @@
     background: radial-gradient(
         circle,
         transparent 8rem,
-        hsl(var(--primary) / 0.04) 8.5rem,
+        hsl(190 90% 50% / 0.06) 8.5rem,
         transparent 9rem
       ),
       radial-gradient(
         circle,
         transparent 14rem,
-        hsl(var(--primary) / 0.035) 14.5rem,
+        hsl(190 90% 50% / 0.05) 14.5rem,
         transparent 15rem
       ),
       radial-gradient(
         circle,
         transparent 20rem,
-        hsl(var(--primary) / 0.03) 20.5rem,
+        hsl(190 90% 50% / 0.04) 20.5rem,
         transparent 21rem
       ),
       radial-gradient(
         circle,
         transparent 26rem,
-        hsl(var(--primary) / 0.02) 26.5rem,
+        hsl(190 90% 50% / 0.03) 26.5rem,
         transparent 27rem
       );
     mask-image: radial-gradient(circle at 50% 50%, black 30%, transparent 65%);

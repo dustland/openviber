@@ -221,11 +221,11 @@
       </div>
 
       <h1
-        class="hero-title pb-3 text-4xl font-extrabold leading-[1.08] tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl"
+        class="hero-title pb-3 text-5xl font-black leading-[1.08] tracking-tighter sm:text-6xl md:text-7xl lg:text-8xl"
       >
         You Imagine It.<br class="hidden sm:block" />
         <span
-          class="bg-gradient-to-r from-primary via-primary/80 to-primary/50 bg-clip-text text-transparent"
+          class="bg-gradient-to-r from-primary via-primary/90 to-primary/60 bg-clip-text text-transparent"
           >Vibers</span
         >
         <TypewriterEffect
@@ -307,7 +307,10 @@
       </div>
 
       <!-- Hero Mockup -->
-      <div class="hero-cta mt-12 md:mt-16">
+      <div class="hero-cta mt-12 md:mt-16 relative z-10">
+        <div
+          class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-primary/10 blur-[100px] -z-10 rounded-full pointer-events-none"
+        ></div>
         <HeroMockup />
       </div>
     </section>
@@ -330,11 +333,11 @@
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {#each useCases as useCase, i}
           <div
-            class="reveal-card use-case-card group rounded-2xl p-5"
+            class="reveal-card use-case-card group rounded-2xl p-5 hover:shadow-xl hover:shadow-primary/10 hover:border-primary/40"
             style="--delay: {i * 100}ms"
           >
             <div
-              class="use-case-icon mb-3 inline-flex size-10 items-center justify-center rounded-xl"
+              class="use-case-icon mb-3 inline-flex size-10 items-center justify-center rounded-xl group-hover:bg-primary group-hover:text-primary-foreground"
             >
               <useCase.icon class="size-5" />
             </div>
@@ -364,7 +367,7 @@
             class="reveal-card how-step group relative rounded-2xl p-6"
             style="--delay: {i * 120}ms"
           >
-            <div class="step-number mb-4">{step.step}</div>
+            <div class="step-number mb-4 drop-shadow-md">{step.step}</div>
             <h3 class="mb-2 text-lg font-semibold text-card-foreground">
               {step.title}
             </h3>
@@ -383,7 +386,7 @@
 
     <!-- Why OpenViber — dark contrast section -->
     <section
-      class="reveal dark-section mx-auto mt-24 max-w-6xl rounded-3xl px-6 py-14 md:mt-32 md:px-10 md:py-20 lg:px-14"
+      class="reveal dark-section mx-auto mt-24 max-w-6xl rounded-3xl px-6 py-14 md:mt-32 md:px-10 md:py-20 lg:px-14 border-primary/20"
     >
       <div class="hex-pattern"></div>
       <h2 class="section-label mb-3 text-center">Why OpenViber</h2>
@@ -397,7 +400,7 @@
       <div class="grid gap-6 md:grid-cols-3">
         {#each valueProps as prop, i}
           <div
-            class="reveal-card glass-card group relative overflow-hidden rounded-3xl p-6 md:p-8 {i ===
+            class="reveal-card glass-card group relative overflow-hidden rounded-3xl p-6 md:p-8 hover:shadow-2xl hover:shadow-primary/20 {i ===
             0
               ? 'md:col-span-2'
               : ''}"
@@ -443,7 +446,7 @@
       <div class="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
         {#each builtinTools as tool, i}
           <div
-            class="reveal-card tool-card group flex flex-col items-center justify-center gap-3 rounded-2xl p-6 text-center"
+            class="reveal-card tool-card group flex flex-col items-center justify-center gap-3 rounded-2xl p-6 text-center hover:bg-card/90 hover:scale-[1.02]"
             style="--delay: {i * 60}ms"
           >
             <div

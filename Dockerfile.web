@@ -1,0 +1,31 @@
+# ───────────────────────────────────────────────────────
+# Dockerfile.web — SvelteKit web frontend
+# ───────────────────────────────────────────────────────
+FROM node:22-alpine AS base
+RUN corepack enable && corepack prepare pnpm@10.28.2 --activate
+WORKDIR /app
+
+# ── Install dependencies ──────────────────────────────
+FROM base AS deps
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY web/package.json web/
+RUN pnpm install --frozen-lockfile
+
+# ── Build web ─────────────────────────────────────────
+FROM deps AS build
+COPY . .
+RUN pnpm build:web
+
+# ── Production image ──────────────────────────────────
+FROM node:22-alpine AS production
+WORKDIR /app
+
+COPY --from=build /app/web/build web/build
+COPY --from=build /app/web/package.json web/
+COPY --from=build /app/node_modules node_modules
+COPY --from=build /app/package.json .
+
+ENV NODE_ENV=production
+EXPOSE 3000
+
+CMD ["sh", "-c", "cd web && node build/index.js"]

@@ -1,0 +1,37 @@
+# Dependencies
+node_modules
+
+# Build artifacts
+dist
+web/build
+web/.svelte-kit
+
+# Development
+.git
+.gitignore
+.env
+.env.*
+
+# Tests
+**/*.test.ts
+**/*.spec.ts
+vitest.config.*
+coverage
+
+# IDE
+.vscode
+.idea
+.cursor
+.agent
+.gemini
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile*
+.dockerignore
+
+# Examples (not needed for production)
+examples

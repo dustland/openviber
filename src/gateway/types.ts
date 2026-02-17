@@ -8,6 +8,10 @@ import type {
   GatewayTaskStoreMode,
 } from "./task-store";
 import type {
+  GatewayViberStore,
+  GatewayViberStoreMode,
+} from "./viber-store";
+import type {
   MachineResourceStatus,
   ViberRunningStatus,
   ViberSystemStatus,
@@ -24,14 +28,24 @@ export interface GatewayConfig {
   webApiToken?: string;
   /** Optional explicit task store instance. */
   taskStore?: GatewayTaskStore;
+  /** Optional explicit viber store instance. */
+  viberStore?: GatewayViberStore;
   /** Task store mode when taskStore is not provided. */
   taskStoreMode?: GatewayTaskStoreMode;
+  /** Viber store mode when viberStore is not provided. Defaults to taskStoreMode. */
+  viberStoreMode?: GatewayViberStoreMode;
   /** SQLite file path when taskStoreMode=sqlite. */
   taskStoreSqlitePath?: string;
   /** Supabase URL when taskStoreMode=supabase. */
   taskStoreSupabaseUrl?: string;
   /** Supabase service-role key when taskStoreMode=supabase. */
   taskStoreSupabaseServiceRoleKey?: string;
+  /** Incoming API bearer token for REST and WS endpoints. */
+  apiToken?: string;
+  /** Allow unauthenticated requests from localhost when apiToken is configured. */
+  allowUnauthenticatedLocalhost?: boolean;
+  /** Optional CORS allow-list. If omitted, default wildcard CORS applies. */
+  allowedOrigins?: string[];
 }
 
 export interface JobEntry {

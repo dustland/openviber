@@ -30,6 +30,29 @@ interface TaskListQuery {
   includeArchived: boolean;
 }
 
+interface TaskSummaryResponse {
+  id: string;
+  userId: string | null;
+  viberId: string | null;
+  viberName: string | null;
+  goal: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  completedAt: string | null;
+  archivedAt: string | null;
+  environmentId: string | null;
+  eventCount: number;
+  partialText?: string;
+  isConnected: boolean;
+  error: string | null;
+}
+
+interface TaskDetailResponse extends TaskSummaryResponse {
+  result: unknown;
+  events: Array<{ at: string; event: unknown }>;
+}
+
 export class TaskManager {
   readonly tasks: Map<string, GatewayTask> = new Map();
   /** Active SSE stream subscribers per task. */
@@ -376,7 +399,7 @@ export class TaskManager {
   ): Promise<void> {
     try {
       const body = await readJsonBody<{ userId?: string }>(req).catch(
-        () => ({}),
+        () => ({}) as { userId?: string },
       );
       const userId =
         typeof body.userId === "string" && body.userId.trim().length > 0
@@ -622,26 +645,30 @@ export class TaskManager {
   private toTaskSummary(
     live?: GatewayTask,
     persisted?: PersistedGatewayTask,
-  ): Record<string, unknown> {
+  ): TaskSummaryResponse {
+    const id = live?.id ?? persisted?.id ?? "";
     const viberId = live?.viberId ?? persisted?.viberId ?? null;
     const connectedViber = viberId ? this.getVibers().get(viberId) : undefined;
+    const createdAt =
+      live?.createdAt.toISOString() ??
+      persisted?.createdAt ??
+      new Date().toISOString();
+    const updatedAt =
+      persisted?.updatedAt ??
+      live?.completedAt?.toISOString() ??
+      live?.createdAt.toISOString() ??
+      createdAt;
+    const goal = live?.goal ?? persisted?.goal ?? id;
 
     return {
-      id: live?.id ?? persisted?.id,
+      id,
       userId: persisted?.userId ?? null,
       viberId,
-      viberName: connectedViber?.name ?? viberId,
-      goal: live?.goal ?? persisted?.goal ?? (live?.id ?? persisted?.id),
+      viberName: connectedViber?.name ?? viberId ?? null,
+      goal,
       status: live?.status ?? persisted?.status ?? "pending",
-      createdAt:
-        live?.createdAt.toISOString() ??
-        persisted?.createdAt ??
-        new Date().toISOString(),
-      updatedAt:
-        persisted?.updatedAt ??
-        live?.completedAt?.toISOString() ??
-        live?.createdAt.toISOString() ??
-        new Date().toISOString(),
+      createdAt,
+      updatedAt,
       completedAt: live?.completedAt?.toISOString() ?? persisted?.completedAt ?? null,
       archivedAt: persisted?.archivedAt ?? null,
       environmentId: persisted?.environmentId ?? null,
@@ -655,12 +682,12 @@ export class TaskManager {
   private toTaskDetail(
     live?: GatewayTask,
     persisted?: PersistedGatewayTask | null,
-  ): Record<string, unknown> {
+  ): TaskDetailResponse {
     const summary = this.toTaskSummary(live, persisted ?? undefined);
     return {
       ...summary,
       result: live?.result ?? null,
-      events: live?.events ?? [],
+      events: (live?.events as Array<{ at: string; event: unknown }>) ?? [],
       eventCount: live?.events.length ?? 0,
       partialText: live?.partialText ?? "",
     };

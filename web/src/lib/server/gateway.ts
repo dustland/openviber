@@ -28,6 +28,7 @@ function gatewayHeaders() {
   const headers: Record<string, string> = {};
   if (GATEWAY_API_TOKEN) {
     headers.Authorization = `Bearer ${GATEWAY_API_TOKEN}`;
+    headers["x-gateway-token"] = GATEWAY_API_TOKEN;
   }
   return headers;
 }

@@ -6,6 +6,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from "http";
+import { URL } from "url";
 import type { WebSocket } from "ws";
 import { readJsonBody } from "../utils/router";
 import type { ViberSystemStatus } from "./types";
@@ -15,10 +16,12 @@ import type {
   JobEntry,
 } from "./types";
 import type { TaskManager } from "./tasks";
+import type { GatewayViberStore } from "./viber-store";
 
 export interface ViberManagerDeps {
   pushSystemEvent: (evt: Omit<SystemEvent, "at" | "category">) => void;
   taskManager: TaskManager;
+  viberStore: GatewayViberStore;
   webApiUrl?: string;
   webApiToken?: string;
 }
@@ -35,8 +38,8 @@ export class ViberManager {
 
   // ==================== HTTP Handlers ====================
 
-  handleListVibers(_req: IncomingMessage, res: ServerResponse): void {
-    const vibers = Array.from(this.vibers.values()).map((n) => ({
+  async handleListVibers(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    const liveVibers = Array.from(this.vibers.values()).map((n) => ({
       id: n.id,
       name: n.name,
       version: n.version,
@@ -73,6 +76,42 @@ export class ViberManager {
         }
         : undefined,
     }));
+
+    const url = new URL(
+      req.url || "/",
+      `http://${req.headers.host || "localhost"}`,
+    );
+    const includeOffline = url.searchParams.get("includeOffline") === "true";
+
+    let vibers = liveVibers;
+    if (includeOffline) {
+      try {
+        const persisted = await this.deps.viberStore.listVibers();
+        const liveById = new Map(liveVibers.map((row) => [row.id, row]));
+
+        const offlineRows = persisted
+          .filter((row) => !liveById.has(row.id))
+          .map((row) => ({
+            id: row.id,
+            name: row.name,
+            version: row.version,
+            platform: row.platform,
+            capabilities: row.capabilities,
+            skills: [],
+            connectedAt: row.connectedAt ?? row.updatedAt,
+            lastHeartbeat: row.lastHeartbeatAt ?? row.updatedAt,
+            runningVibers: [],
+            machine: undefined,
+            viber: undefined,
+            offline: true,
+            lastDisconnectedAt: row.lastDisconnectedAt,
+          }));
+
+        vibers = [...liveVibers, ...offlineRows];
+      } catch (error) {
+        console.warn("[Gateway] Failed to load persisted vibers:", error);
+      }
+    }
 
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ connected: true, vibers }));
@@ -340,6 +379,12 @@ export class ViberManager {
       for (const [id, connectedViber] of this.vibers) {
         if (connectedViber.ws === ws) {
           console.log(`[Gateway] Viber disconnected: ${id}`);
+          void this.deps.viberStore.markDisconnected(id).catch((error) => {
+            console.warn(
+              `[Gateway] Failed to persist viber disconnect (${id}):`,
+              error,
+            );
+          });
           this.deps.pushSystemEvent({
             component: "viber",
             level: "warn",
@@ -442,6 +487,21 @@ export class ViberManager {
       jobs: [],
     });
 
+    void this.deps.viberStore
+      .upsertConnected({
+        id: viberInfo.id,
+        name: viberInfo.name,
+        version: viberInfo.version,
+        platform: viberInfo.platform,
+        capabilities: viberInfo.capabilities || [],
+      })
+      .catch((error) => {
+        console.warn(
+          `[Gateway] Failed to persist viber connection (${viberInfo.id}):`,
+          error,
+        );
+      });
+
     this.deps.pushSystemEvent({
       component: "viber",
       level: "info",
@@ -461,6 +521,17 @@ export class ViberManager {
     for (const connectedViber of this.vibers.values()) {
       if (connectedViber.ws === ws) {
         connectedViber.lastHeartbeat = new Date();
+        void this.deps.viberStore
+          .touchHeartbeat(
+            connectedViber.id,
+            connectedViber.lastHeartbeat.toISOString(),
+          )
+          .catch((error) => {
+            console.warn(
+              `[Gateway] Failed to persist heartbeat (${connectedViber.id}):`,
+              error,
+            );
+          });
 
         if (heartbeatStatus) {
           if (heartbeatStatus.machine) {
@@ -486,6 +557,17 @@ export class ViberManager {
     for (const connectedViber of this.vibers.values()) {
       if (connectedViber.ws === ws) {
         connectedViber.lastHeartbeat = new Date();
+        void this.deps.viberStore
+          .touchHeartbeat(
+            connectedViber.id,
+            connectedViber.lastHeartbeat.toISOString(),
+          )
+          .catch((error) => {
+            console.warn(
+              `[Gateway] Failed to persist status heartbeat (${connectedViber.id}):`,
+              error,
+            );
+          });
 
         if (status.machine) {
           connectedViber.machineStatus = status.machine;

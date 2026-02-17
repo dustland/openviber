@@ -3,18 +3,37 @@ import { Command } from "commander";
 const gatewayAction = async (options: {
   port: string;
   taskStore?: "memory" | "sqlite" | "supabase";
+  viberStore?: "memory" | "sqlite" | "supabase";
   sqlitePath?: string;
   supabaseUrl?: string;
   supabaseServiceRoleKey?: string;
+  apiToken?: string;
+  allowUnauthLocalhost?: string;
+  allowedOrigins?: string;
 }) => {
   const { GatewayServer } = await import("../../gateway/server");
+
+  const allowUnauthenticatedLocalhost =
+    options.allowUnauthLocalhost == null
+      ? undefined
+      : options.allowUnauthLocalhost.toLowerCase() !== "false";
+  const allowedOrigins = options.allowedOrigins
+    ? options.allowedOrigins
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean)
+    : undefined;
 
   const gateway = new GatewayServer({
     port: parseInt(options.port, 10),
     taskStoreMode: options.taskStore,
+    viberStoreMode: options.viberStore,
     taskStoreSqlitePath: options.sqlitePath,
     taskStoreSupabaseUrl: options.supabaseUrl,
     taskStoreSupabaseServiceRoleKey: options.supabaseServiceRoleKey,
+    apiToken: options.apiToken,
+    allowUnauthenticatedLocalhost,
+    allowedOrigins,
   });
 
   // Handle graceful shutdown
@@ -56,6 +75,10 @@ export const gatewayCommand = new Command("gateway")
     "Task store backend (memory|sqlite|supabase)",
   )
   .option(
+    "--viber-store <mode>",
+    "Viber metadata store backend (memory|sqlite|supabase)",
+  )
+  .option(
     "--sqlite-path <path>",
     "SQLite file path (used when --task-store=sqlite)",
   )
@@ -66,6 +89,18 @@ export const gatewayCommand = new Command("gateway")
   .option(
     "--supabase-service-role-key <key>",
     "Supabase service-role key (used when --task-store=supabase)",
+  )
+  .option(
+    "--api-token <token>",
+    "Bearer token required for gateway REST/WS access",
+  )
+  .option(
+    "--allow-unauth-localhost <bool>",
+    "Allow localhost clients without token when api-token is set (default: true)",
+  )
+  .option(
+    "--allowed-origins <origins>",
+    "Comma-separated CORS allow-list (e.g. https://app.example.com)",
   )
   .action(gatewayAction);
 
@@ -77,6 +112,10 @@ export const boardCommand = new Command("board")
     "Task store backend (memory|sqlite|supabase)",
   )
   .option(
+    "--viber-store <mode>",
+    "Viber metadata store backend (memory|sqlite|supabase)",
+  )
+  .option(
     "--sqlite-path <path>",
     "SQLite file path (used when --task-store=sqlite)",
   )
@@ -87,6 +126,18 @@ export const boardCommand = new Command("board")
   .option(
     "--supabase-service-role-key <key>",
     "Supabase service-role key (used when --task-store=supabase)",
+  )
+  .option(
+    "--api-token <token>",
+    "Bearer token required for gateway REST/WS access",
+  )
+  .option(
+    "--allow-unauth-localhost <bool>",
+    "Allow localhost clients without token when api-token is set (default: true)",
+  )
+  .option(
+    "--allowed-origins <origins>",
+    "Comma-separated CORS allow-list (e.g. https://app.example.com)",
   )
   .action(gatewayAction);
 
@@ -98,6 +149,10 @@ export const hubCommand = new Command("hub")
     "Task store backend (memory|sqlite|supabase)",
   )
   .option(
+    "--viber-store <mode>",
+    "Viber metadata store backend (memory|sqlite|supabase)",
+  )
+  .option(
     "--sqlite-path <path>",
     "SQLite file path (used when --task-store=sqlite)",
   )
@@ -108,5 +163,17 @@ export const hubCommand = new Command("hub")
   .option(
     "--supabase-service-role-key <key>",
     "Supabase service-role key (used when --task-store=supabase)",
+  )
+  .option(
+    "--api-token <token>",
+    "Bearer token required for gateway REST/WS access",
+  )
+  .option(
+    "--allow-unauth-localhost <bool>",
+    "Allow localhost clients without token when api-token is set (default: true)",
+  )
+  .option(
+    "--allowed-origins <origins>",
+    "Comma-separated CORS allow-list (e.g. https://app.example.com)",
   )
   .action(gatewayAction);

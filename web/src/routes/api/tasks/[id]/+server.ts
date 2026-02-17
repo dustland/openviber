@@ -199,7 +199,7 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
     ]);
     const connectedViberId = viber?.viberId;
 
-    const result = await gatewayClient.createTask(goal, connectedViberId, messages, undefined, {
+    const result = await gatewayClient.createTask(goal, connectedViberId ?? undefined, messages, undefined, {
       primaryCodingCli: settings.primaryCodingCli ?? undefined,
       proxyUrl: settings.proxyUrl ?? undefined,
       proxyEnabled: settings.proxyEnabled ?? undefined,

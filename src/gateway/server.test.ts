@@ -7,7 +7,7 @@ describe("GatewayServer Integration", () => {
   const port = 6000 + Math.floor(Math.random() * 1000);
 
   beforeAll(async () => {
-    server = new GatewayServer({ port });
+    server = new GatewayServer({ port, taskStoreMode: "memory" });
     await server.start();
   });
 
@@ -26,5 +26,41 @@ describe("GatewayServer Integration", () => {
   it("returns 404 for unknown routes", async () => {
     const res = await fetch(`http://localhost:${port}/unknown`);
     expect(res.status).toBe(404);
+  });
+});
+
+describe("GatewayServer Security", () => {
+  let server: GatewayServer;
+  const port = 7000 + Math.floor(Math.random() * 1000);
+  const apiToken = "test-gateway-token";
+
+  beforeAll(async () => {
+    server = new GatewayServer({
+      port,
+      taskStoreMode: "memory",
+      viberStoreMode: "memory",
+      apiToken,
+      allowUnauthenticatedLocalhost: false,
+    });
+    await server.start();
+  });
+
+  afterAll(async () => {
+    await server.stop();
+  });
+
+  it("rejects unauthorized API access", async () => {
+    const res = await fetch(`http://localhost:${port}/api/tasks`);
+    expect(res.status).toBe(401);
+  });
+
+  it("allows authorized API access", async () => {
+    const res = await fetch(`http://localhost:${port}/api/tasks`, {
+      headers: {
+        Authorization: `Bearer ${apiToken}`,
+        "x-gateway-token": apiToken,
+      },
+    });
+    expect(res.status).toBe(200);
   });
 });

@@ -12,6 +12,10 @@ import { getDecryptedOAuthConnections } from "$lib/server/oauth";
 import { writeLog } from "$lib/server/logs";
 
 const GATEWAY_URL = process.env.VIBER_GATEWAY_URL || process.env.VIBER_BOARD_URL || process.env.VIBER_HUB_URL || "http://localhost:6009";
+const GATEWAY_API_TOKEN =
+  process.env.VIBER_GATEWAY_API_TOKEN ||
+  process.env.VIBER_BOARD_API_TOKEN ||
+  process.env.VIBER_HUB_API_TOKEN;
 
 /**
  * POST /api/tasks/[id]/chat
@@ -282,7 +286,15 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 
     const streamUrl = `${GATEWAY_URL}/api/tasks/${viberId}/stream`;
     const streamResponse = await fetch(streamUrl, {
-      headers: { Accept: "text/event-stream" },
+      headers: {
+        Accept: "text/event-stream",
+        ...(GATEWAY_API_TOKEN
+          ? {
+            Authorization: `Bearer ${GATEWAY_API_TOKEN}`,
+            "x-gateway-token": GATEWAY_API_TOKEN,
+          }
+          : {}),
+      },
     });
 
     if (!streamResponse.ok || !streamResponse.body) {

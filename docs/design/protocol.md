@@ -54,6 +54,9 @@ The gateway exposes a REST API for the web app (via `src/gateway/`):
 | `POST` | `/api/tasks` | Create a new task on a Viber |
 | `GET` | `/api/tasks/:id` | Get task status and events |
 | `POST` | `/api/tasks/:id/stop` | Stop a running task |
+| `POST` | `/api/tasks/:id/archive` | Archive a task |
+| `DELETE` | `/api/tasks/:id/archive` | Restore a task |
+| `DELETE` | `/api/tasks/:id` | Permanently delete a task |
 | `GET` | `/api/tasks/:id/stream` | SSE stream of AI SDK response chunks |
 | `POST` | `/api/vibers/:id/config-push` | Push config to a Viber (triggers config:push WS message) |
 
@@ -190,8 +193,9 @@ Terminal I/O uses the same WebSocket connection between Viber runtime (daemon) a
 ## 7. Security
 
 - **Outbound-only**: Viber runtimes (daemons) connect outbound to the gateway. No inbound ports needed.
-- **Auth headers**: WebSocket connections include `Authorization` and `X-Viber-Id` headers.
-- **CORS**: Gateway sets `Access-Control-Allow-Origin: *` for development (should be restricted in production).
+- **Auth headers**: REST and WebSocket endpoints can require `Authorization: Bearer <token>` via `VIBER_GATEWAY_API_TOKEN` (or `--api-token`).
+- **Local bypass control**: `VIBER_GATEWAY_ALLOW_UNAUTH_LOCALHOST` controls whether localhost can skip token checks (recommended `false` for public gateways).
+- **CORS allow-list**: `VIBER_GATEWAY_ALLOWED_ORIGINS` limits browser origins for public deployments.
 - **No secrets in stream**: The SSE stream contains only AI response content, never API keys or credentials.
 
 ---

@@ -37,12 +37,12 @@ export const GET: RequestHandler = async ({ locals, url }) => {
     const [dbLogs, gatewayResult] = await Promise.all([
       source !== "gateway" && source !== "board" && source !== "hub" // support legacy "hub" source value
         ? queryLogs(locals.user.id, {
-            category: category ?? undefined,
-            level,
-            limit,
-            before,
-            search,
-          })
+          category: category ?? undefined,
+          level,
+          limit,
+          before,
+          search,
+        })
         : Promise.resolve([]),
       source !== "db"
         ? gatewayClient.getEvents(limit)
@@ -74,7 +74,6 @@ export const GET: RequestHandler = async ({ locals, url }) => {
         message: e.message || eventMessage(e),
         viber_id: e.viberId || null,
         task_id: (e.event?.taskId as string) || null,
-        viber_id: e.viberId || null,
         metadata: e.event || e.metadata || null,
         created_at: e.at,
         source: "gateway" as const,

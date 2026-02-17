@@ -249,7 +249,7 @@ name: Weekly Code Review
 description: Automated code quality scan
 schedule: "0 10 * * 1"
 provider: openrouter
-model: anthropic/claude-sonnet-4-20250514
+model: anthropic/claude-3.5-sonnet
 skills:
   - codex-cli
   - github
@@ -270,7 +270,7 @@ name: Auto Fix Issues
 description: Find and fix labeled issues automatically
 schedule: "0 */6 * * *"
 provider: openrouter
-model: anthropic/claude-sonnet-4-20250514
+model: anthropic/claude-3.5-sonnet
 skills:
   - github
   - codex-cli

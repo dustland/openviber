@@ -104,9 +104,9 @@ stateDiagram-v2
 Each task is configured via YAML at `~/.openviber/vibers/{id}.yaml`:
 
 ```yaml
-# ~/.openviber/vibers/dev.yaml
+# ~/.openviber/vibers/dev-task.yaml
 name: dev-task
-model: anthropic/claude-sonnet-4
+model: anthropic/claude-3.5-sonnet
 
 # Which spaces this task can work in
 spaces:
@@ -209,15 +209,18 @@ See [Skills & Tools](/docs/concepts/skills) for the complete reference.
 
 ### Via CLI
 
+To run an ad-hoc task using a specific agent configuration:
+
 ```bash
-# List available tasks
-openviber tasks list
+# Run a task using the "dev-task" configuration
+# (Loads config from ~/.openviber/vibers/dev-task.yaml)
+viber run --agent dev-task "Refactor the authentication module"
+```
 
-# Create a new task
-openviber tasks create --name "dev-task" --viber <viber-id>
+To run a task using the default agent:
 
-# Start a task
-openviber tasks start dev-task
+```bash
+viber run "Check my GitHub notifications"
 ```
 
 ---

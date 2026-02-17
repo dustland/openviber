@@ -758,7 +758,9 @@
           </div>
           {#if onboardingViber.token_expires_at}
             <p class="mt-2 text-xs text-muted-foreground">
-              Token expires {new Date(onboardingViber.token_expires_at).toLocaleString()}
+              Token expires {new Date(
+                onboardingViber.token_expires_at,
+              ).toLocaleString()}
             </p>
           {/if}
         </div>
@@ -782,12 +784,7 @@
           />
         </div>
         <div class="mt-5 flex justify-end gap-2">
-          <Button
-            variant="outline"
-            onclick={closeCreateDialog}
-          >
-            Cancel
-          </Button>
+          <Button variant="outline" onclick={closeCreateDialog}>Cancel</Button>
           <Button disabled={creating} onclick={createViber}>
             {creating ? "Creating..." : "Create"}
           </Button>

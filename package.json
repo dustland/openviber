@@ -17,7 +17,8 @@
       "esbuild"
     ],
     "overrides": {
-      "zod": "^3.23.8"
+      "zod": "^3.23.8",
+      "ai": "^6.0.86"
     }
   },
   "scripts": {

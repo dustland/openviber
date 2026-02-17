@@ -35,8 +35,11 @@ function gatewayHeaders() {
 
 async function gatewayFetch(path: string, init: RequestInit = {}) {
   const base = getGatewayBaseUrl();
+  // Default 8s timeout so slow gateway responses never block the SvelteKit server indefinitely
+  const signal = init.signal ?? AbortSignal.timeout(8000);
   const response = await fetch(new URL(path, base), {
     ...init,
+    signal,
     headers: {
       ...gatewayHeaders(),
       ...(init.headers ? Object.fromEntries(new Headers(init.headers).entries()) : {}),

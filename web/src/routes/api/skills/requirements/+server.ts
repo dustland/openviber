@@ -69,7 +69,7 @@ export const GET: RequestHandler = async ({ url, locals }) => {
   if (viberId) {
     try {
       const { vibers } = await gatewayClient.getVibers();
-      const node = nodes.find((n) => n.id === viberId);
+      const node = vibers.find((n) => n.id === viberId);
       if (node?.skills) {
         const skill = node.skills.find((s) => s.id === skillId);
         if (skill) {

@@ -158,7 +158,9 @@
     installedLoading = true;
     installedError = null;
     try {
-      const res = await fetch("/api/skills");
+      const res = await fetch("/api/skills", {
+        signal: AbortSignal.timeout(10_000),
+      });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || "Failed to load skills");
@@ -166,7 +168,12 @@
       const data = await res.json();
       installed = data.skills ?? [];
     } catch (e) {
-      installedError = e instanceof Error ? e.message : "Failed to load skills";
+      installedError =
+        e instanceof DOMException && e.name === "AbortError"
+          ? "Request timed out. The server may be busy."
+          : e instanceof Error
+            ? e.message
+            : "Failed to load skills";
       installed = [];
     } finally {
       installedLoading = false;
@@ -292,7 +299,9 @@
     sourcesLoading = true;
     sourcesError = null;
     try {
-      const res = await fetch("/api/settings");
+      const res = await fetch("/api/settings", {
+        signal: AbortSignal.timeout(10_000),
+      });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || "Failed to load sources");
@@ -309,7 +318,12 @@
         docsUrl: meta?.docsUrl || undefined,
       }));
     } catch (e) {
-      sourcesError = e instanceof Error ? e.message : "Failed to load sources";
+      sourcesError =
+        e instanceof DOMException && e.name === "AbortError"
+          ? "Request timed out. The server may be busy."
+          : e instanceof Error
+            ? e.message
+            : "Failed to load sources";
     } finally {
       sourcesLoading = false;
     }
@@ -461,7 +475,8 @@
       },
     );
 
-    await checkAllRequirements();
+    // Fire-and-forget: don't block navigation or page interactivity
+    checkAllRequirements();
   });
 </script>
 

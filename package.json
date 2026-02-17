@@ -1,6 +1,6 @@
 {
   "name": "openviber",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "type": "module",
   "description": "OpenViber: You Imagine It. Vibers Build It.",
   "main": "dist/index.cjs",

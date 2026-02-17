@@ -230,59 +230,10 @@ skillCommand
 skillCommand
   .command("verify <skillId>")
   .description("Run a skill playground scenario to verify a skill works")
-  .option("-w, --wait <seconds>", "Max seconds to wait for verification", "120")
-  .option("--no-refresh", "Skip updating the playground repo before running")
-  .action(async (skillId, options) => {
-    // Ensure skill tools are pre-registered
-    await import("../../skills");
-    const { getTools } = await import("../../tools/playground");
-    const tool = getTools().skill_playground_verify;
-
-    const waitSeconds = parseInt(options.wait, 10);
-    const payload = {
-      skillId,
-      waitSeconds: Number.isNaN(waitSeconds) ? undefined : waitSeconds,
-      refreshRepo: options.refresh,
-    };
-
-    console.log(`\nRunning playground for '${skillId}'...\n`);
-    const result = await tool.execute(payload);
-
-    if (result.ok) {
-      console.log(`✓ Playground completed for '${skillId}'`);
-    } else {
-      console.error(`✗ Playground failed for '${skillId}'`);
-      if (result.error) {
-        console.error(`  Error: ${result.error}`);
-      }
-    }
-
-    if (result.playground) {
-      console.log(`\nRepo: ${result.playground.repo}`);
-      console.log(`File: ${result.playground.file}`);
-      if (result.playground.repoPath) {
-        console.log(`Path: ${result.playground.repoPath}`);
-      }
-      if (result.playground.repoStatus) {
-        console.log(`Repo status: ${result.playground.repoStatus}`);
-      }
-    }
-
-    if (result.run?.summary) {
-      console.log(`\nSummary: ${result.run.summary}`);
-    }
-    if (result.run?.outputTail) {
-      console.log(`\n--- Output tail ---\n${result.run.outputTail}`);
-    }
-    if (result.verification) {
-      const markerStatus = result.verification.markerFound ? "found" : "missing";
-      console.log(`\nMarker: ${result.verification.marker} (${markerStatus})`);
-      if (result.verification.warning) {
-        console.log(`Warning: ${result.verification.warning}`);
-      }
-    }
-
-    if (!result.ok) {
-      process.exit(1);
-    }
+  .action(async (skillId) => {
+    console.error(`\n✗ Skill verification is temporarily unavailable for '${skillId}'.`);
+    console.error(
+      "  The playground verifier tool is not bundled in this release.\n",
+    );
+    process.exit(1);
   });

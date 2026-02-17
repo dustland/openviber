@@ -56,7 +56,7 @@
   aria-label={words[currentWordIndex]}
   role="img"
 >
-  <span aria-hidden="true">{currentText}</span><span class="animate-blink text-primary" aria-hidden="true">|</span>
+  <span aria-hidden="true">{currentText}</span><span class="animate-blink text-cyan-400" aria-hidden="true">|</span>
 </span>
 
 <style>

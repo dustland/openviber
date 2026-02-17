@@ -5,34 +5,40 @@
   let terminalLines = $state<string[]>([]);
   const terminalScript = [
     "$ npx openviber start",
-    "\x1b[32m✓\x1b[0m Loading viber config...",
-    "\x1b[32m✓\x1b[0m Connected 3 vibers",
-    "\x1b[36m◆\x1b[0m frontend-dev  \x1b[33m● active\x1b[0m",
-    "\x1b[36m◆\x1b[0m researcher    \x1b[33m● active\x1b[0m",
-    "\x1b[36m◆\x1b[0m devops        \x1b[32m● idle\x1b[0m",
+    "\x1b[32m✓\x1b[0m Loading viber graph...",
+    "\x1b[32m✓\x1b[0m Connected 3 vibers · 12 tools",
+    "\x1b[36m◆\x1b[0m frontend-dev  \x1b[33m● active\x1b[0m  \x1b[90m↻ task-218\x1b[0m",
+    "\x1b[36m◆\x1b[0m researcher    \x1b[33m● active\x1b[0m  \x1b[90m↻ task-219\x1b[0m",
+    "\x1b[36m◆\x1b[0m devops        \x1b[32m● idle\x1b[0m    \x1b[90m✓ standby\x1b[0m",
     "",
-    "\x1b[90m[14:32:01]\x1b[0m Task assigned → frontend-dev",
-    "\x1b[90m[14:32:03]\x1b[0m Browsing docs...",
-    "\x1b[90m[14:32:08]\x1b[0m Writing components...",
+    "\x1b[90m[14:32:11]\x1b[0m researcher posted API notes",
+    "\x1b[90m[14:32:16]\x1b[0m frontend-dev pushed preview on :6006",
+    "\x1b[90m[14:32:21]\x1b[0m Awaiting deploy approval...",
   ];
 
   // Web UI streaming lines
   let streamLines = $state<string[]>([]);
   const streamScript = [
-    { role: "system", text: "Analyzing codebase structure..." },
-    { role: "tool", text: "▸ read_file src/routes/+page.svelte" },
-    { role: "tool", text: '▸ search_files "Button component"' },
+    { role: "system", text: "Plan active: Dashboard + date filter + docs" },
+    {
+      role: "tool",
+      text: "▸ read_file web/src/routes/(public)/landing/+page.svelte",
+    },
+    { role: "tool", text: '▸ search_files "chart" web/src/lib/components' },
     {
       role: "ai",
-      text: "Found 3 existing button variants. Creating a new primary CTA component...",
+      text: "Found reusable chart utilities. Building responsive card grid and toolbar.",
     },
-    { role: "tool", text: "▸ write_file src/lib/components/cta-button.svelte" },
+    {
+      role: "tool",
+      text: "▸ write_file web/src/lib/components/dashboard-grid.svelte",
+    },
     {
       role: "ai",
-      text: "Component created with hover animations and accessibility attributes. Running lint...",
+      text: "Added loading states, empty states, and keyboard shortcuts.",
     },
-    { role: "tool", text: "▸ exec npm run lint -- --fix" },
-    { role: "system", text: "✓ All checks passed" },
+    { role: "tool", text: "▸ exec pnpm --dir web check" },
+    { role: "system", text: "✓ Typecheck clean · preview healthy" },
   ];
 
   // Chat messages
@@ -42,23 +48,23 @@
   const chatScript = [
     {
       from: "you",
-      text: "Build a dashboard page with charts",
+      text: "Build a dashboard page with charts and a date filter",
       time: "2:30 PM",
     },
     {
       from: "viber",
-      text: "On it! I'll use Chart.js for the visualizations. Found 2 existing chart utilities I can reuse.",
+      text: "On it. Reusing existing chart utilities and adding a compact toolbar for filters.",
       time: "2:30 PM",
     },
     {
       from: "viber",
-      text: "✅ Dashboard ready — 3 charts, responsive grid, dark mode support. Preview running on :5173",
+      text: "Dashboard ready. Three charts, responsive layout, keyboard nav, and dark mode support. Preview on localhost:6006",
       time: "2:32 PM",
     },
-    { from: "you", text: "Add a date range filter", time: "2:33 PM" },
+    { from: "you", text: "Polish card spacing and run checks", time: "2:33 PM" },
     {
       from: "viber",
-      text: "Done. Added date picker with last 7/30/90 day presets. All charts update reactively.",
+      text: "Done. Improved spacing scale, added 7/30/90-day presets, and checks pass.",
       time: "2:34 PM",
     },
   ];
@@ -150,6 +156,9 @@
 </script>
 
 <div class="mockup-container">
+  <div class="mockup-halo" aria-hidden="true"></div>
+  <div class="mockup-grid" aria-hidden="true"></div>
+
   <!-- Terminal Panel — macOS terminal frame -->
   <div class="mockup-panel terminal-panel">
     <div class="panel-titlebar terminal-titlebar">
@@ -161,6 +170,10 @@
       <span class="terminal-tab">bash — 80×24</span>
     </div>
     <div class="panel-body terminal-body">
+      <div class="terminal-meta">
+        <span class="terminal-pill">workspace: frontend-dev</span>
+        <span class="terminal-pill terminal-pill-live">live stream</span>
+      </div>
       {#each terminalLines as line}
         <div class="terminal-line">{@html renderAnsi(line)}</div>
       {/each}
@@ -193,6 +206,11 @@
           <div class="webui-status">Working on task...</div>
         </div>
       </div>
+      <div class="webui-toolbar">
+        <span class="webui-pill webui-pill-primary">Plan active</span>
+        <span class="webui-pill">4 tools</span>
+        <span class="webui-pill">1 review gate</span>
+      </div>
       <div class="webui-stream">
         {#each streamLines as line}
           {@const parsed = parseStreamLine(line)}
@@ -207,6 +225,20 @@
             {/if}
           </div>
         {/each}
+      </div>
+      <div class="webui-footer">
+        <div class="webui-metric">
+          <span class="metric-label">Files</span>
+          <span class="metric-value">06</span>
+        </div>
+        <div class="webui-metric">
+          <span class="metric-label">Checks</span>
+          <span class="metric-value">PASS</span>
+        </div>
+        <div class="webui-metric">
+          <span class="metric-label">ETA</span>
+          <span class="metric-value">2m</span>
+        </div>
       </div>
     </div>
   </div>
@@ -236,30 +268,98 @@
           <div class="chat-time">{msg.time}</div>
         </div>
       {/each}
+      {#if chatMessages.length > 0}
+        <div class="chat-typing" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      {/if}
     </div>
   </div>
 </div>
 
 <style>
   .mockup-container {
+    position: relative;
+    isolation: isolate;
     display: grid;
     grid-template-columns: 1fr;
-    gap: 1rem;
+    gap: 0.9rem;
     max-width: 72rem;
     margin: 0 auto;
-    perspective: 1200px;
+    padding: 1rem;
+    border-radius: 1.5rem;
+    border: 1px solid hsl(var(--border) / 0.45);
+    background:
+      radial-gradient(
+        circle at 18% 18%,
+        hsl(var(--primary) / 0.14),
+        transparent 42%
+      ),
+      radial-gradient(
+        circle at 82% 12%,
+        hsl(188 90% 55% / 0.1),
+        transparent 35%
+      ),
+      linear-gradient(
+        150deg,
+        hsl(var(--background) / 0.86),
+        hsl(var(--muted) / 0.35)
+      );
+    box-shadow:
+      inset 0 1px 0 hsl(var(--background) / 0.5),
+      0 24px 70px -40px hsl(var(--background) / 0.85);
+    overflow: hidden;
+  }
+
+  .mockup-halo {
+    position: absolute;
+    inset: -35% -12%;
+    background: radial-gradient(
+      ellipse at center,
+      hsl(var(--primary) / 0.14),
+      transparent 62%
+    );
+    filter: blur(40px);
+    z-index: -2;
+    pointer-events: none;
+  }
+
+  .mockup-grid {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+      repeating-linear-gradient(
+        90deg,
+        transparent 0,
+        transparent 48px,
+        hsl(var(--border) / 0.14) 49px
+      ),
+      repeating-linear-gradient(
+        0deg,
+        transparent 0,
+        transparent 48px,
+        hsl(var(--border) / 0.14) 49px
+      );
+    mask-image: linear-gradient(to bottom, transparent, black 30%, black 85%, transparent);
+    opacity: 0.5;
+    pointer-events: none;
   }
 
   @media (min-width: 768px) {
     .mockup-container {
       grid-template-columns: 1fr 1.4fr 0.7fr;
       gap: 1.25rem;
-      align-items: start;
+      align-items: end;
+      padding: 1.4rem 1.5rem;
     }
   }
 
   /* ── Panel base ── */
   .mockup-panel {
+    position: relative;
     border-radius: 0.75rem;
     border: 1px solid hsl(var(--border) / 0.5);
     background: hsl(var(--card) / 0.6);
@@ -272,20 +372,38 @@
       transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
       box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     animation: panel-enter 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+    z-index: 1;
+  }
+
+  .mockup-panel::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      hsl(var(--primary) / 0.5),
+      transparent
+    );
+    opacity: 0.5;
+    pointer-events: none;
   }
 
   .mockup-panel:hover {
-    transform: translateY(-4px) scale(1.02);
+    transform: translateY(-5px) scale(1.012);
     box-shadow:
-      0 16px 48px -12px hsl(var(--primary) / 0.15),
-      0 0 0 1px hsl(var(--primary) / 0.1);
+      0 20px 54px -22px hsl(var(--primary) / 0.3),
+      0 0 0 1px hsl(var(--primary) / 0.18);
   }
 
   .terminal-panel {
     animation-delay: 0.1s;
+    text-align: left;
   }
   .webui-panel {
     animation-delay: 0.25s;
+    text-align: left;
   }
   .phone-panel {
     animation-delay: 0.4s;
@@ -298,7 +416,7 @@
     }
     to {
       opacity: 1;
-      transform: translateY(0) scale(1);
+      transform: translateY(0) scale(0.999);
     }
   }
 
@@ -325,8 +443,7 @@
 
   .panel-body {
     padding: 0.75rem;
-    min-height: 12rem;
-    max-height: 16rem;
+    min-height: 0;
     overflow: hidden;
   }
 
@@ -334,8 +451,17 @@
      1. TERMINAL — macOS terminal frame
      ═══════════════════════════════════ */
   .terminal-panel {
-    background: hsl(220 16% 8% / 0.95);
-    border-color: hsl(220 10% 20% / 0.6);
+    background:
+      radial-gradient(circle at 75% 15%, hsl(208 80% 52% / 0.16), transparent 40%),
+      radial-gradient(circle at 18% 90%, hsl(187 82% 40% / 0.12), transparent 45%),
+      hsl(223 26% 8% / 0.96);
+    border-color: hsl(220 14% 24% / 0.75);
+  }
+
+  @media (min-width: 768px) {
+    .terminal-panel {
+      margin-bottom: 1.2rem;
+    }
   }
 
   .terminal-titlebar {
@@ -361,6 +487,46 @@
     font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
     font-size: 0.6875rem;
     line-height: 1.6;
+    height: 16.5rem;
+    max-height: 16.5rem;
+    position: relative;
+  }
+
+  .terminal-body::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      180deg,
+      transparent 0,
+      transparent 1px,
+      hsl(0 0% 100% / 0.015) 2px
+    );
+    pointer-events: none;
+  }
+
+  .terminal-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .terminal-pill {
+    padding: 0.125rem 0.375rem;
+    border-radius: 999px;
+    border: 1px solid hsl(215 18% 30% / 0.7);
+    background: hsl(220 20% 15% / 0.65);
+    color: hsl(210 18% 75%);
+    font-size: 0.53rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+
+  .terminal-pill-live {
+    border-color: hsl(146 62% 35% / 0.8);
+    background: hsl(146 62% 28% / 0.15);
+    color: hsl(146 64% 61%);
   }
 
   .terminal-line {
@@ -406,7 +572,7 @@
     gap: 0.5rem;
     padding: 0.5rem 0.75rem;
     border-bottom: 1px solid hsl(var(--border) / 0.4);
-    background: hsl(var(--card) / 0.85);
+    background: hsl(var(--card) / 0.88);
   }
 
   .browser-nav {
@@ -459,7 +625,7 @@
     align-items: center;
     gap: 0.5rem;
     padding-bottom: 0.625rem;
-    margin-bottom: 0.625rem;
+    margin-bottom: 0.5rem;
     border-bottom: 1px solid hsl(var(--border) / 0.3);
   }
   .webui-avatar {
@@ -483,10 +649,59 @@
     color: hsl(var(--muted-foreground));
   }
 
+  .webui-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    height: 17.5rem;
+    max-height: 17.5rem;
+    background: linear-gradient(
+      180deg,
+      hsl(var(--card) / 0.7) 0%,
+      hsl(var(--card) / 0.42) 100%
+    );
+  }
+
+  .webui-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+
+  .webui-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125rem 0.42rem;
+    border-radius: 999px;
+    border: 1px solid hsl(var(--border) / 0.55);
+    background: hsl(var(--muted) / 0.55);
+    color: hsl(var(--muted-foreground));
+    font-size: 0.54rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+
+  .webui-pill-primary {
+    border-color: hsl(var(--primary) / 0.45);
+    background: hsl(var(--primary) / 0.14);
+    color: hsl(var(--primary));
+  }
+
   .webui-stream {
+    flex: 1;
     display: flex;
     flex-direction: column;
     gap: 0.375rem;
+    overflow: hidden;
+    mask-image: linear-gradient(
+      to bottom,
+      transparent 0%,
+      black 6%,
+      black 92%,
+      transparent 100%
+    );
+    padding-top: 0.125rem;
   }
 
   .stream-line {
@@ -523,15 +738,56 @@
     font-size: 0.6875rem;
   }
 
+  .webui-footer {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.35rem;
+    margin-top: 0.125rem;
+  }
+
+  .webui-metric {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    border-radius: 0.45rem;
+    border: 1px solid hsl(var(--border) / 0.45);
+    background: hsl(var(--muted) / 0.4);
+    padding: 0.25rem 0.375rem;
+  }
+
+  .metric-label {
+    font-size: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: hsl(var(--muted-foreground) / 0.7);
+  }
+
+  .metric-value {
+    font-size: 0.625rem;
+    font-weight: 700;
+    color: hsl(var(--foreground));
+  }
+
   /* ═══════════════════════════════════
      3. PHONE — Mobile app frame
      ═══════════════════════════════════ */
   .phone-panel {
-    border-radius: 1.5rem;
-    border: 2px solid hsl(var(--border) / 0.6);
-    background: hsl(var(--card) / 0.7);
+    border-radius: 1.65rem;
+    border: 2px solid hsl(var(--border) / 0.62);
+    background:
+      radial-gradient(circle at 25% 0%, hsl(var(--primary) / 0.12), transparent 35%),
+      hsl(var(--card) / 0.78);
     position: relative;
     padding-top: 0;
+    max-width: 21rem;
+    margin: 0 auto;
+  }
+
+  @media (min-width: 768px) {
+    .phone-panel {
+      margin-bottom: 0.4rem;
+      max-width: none;
+    }
   }
 
   .phone-notch {
@@ -604,6 +860,13 @@
     flex-direction: column;
     gap: 0.5rem;
     padding: 0.625rem;
+    height: 18rem;
+    max-height: 18rem;
+    background: linear-gradient(
+      180deg,
+      hsl(var(--background) / 0.18) 0%,
+      hsl(var(--background) / 0.32) 100%
+    );
   }
 
   .chat-msg {
@@ -625,16 +888,25 @@
     border-radius: 0.875rem;
     font-size: 0.6875rem;
     line-height: 1.45;
+    box-shadow: 0 6px 14px -12px hsl(var(--background) / 0.7);
   }
 
   .chat-bubble-you {
-    background: hsl(var(--primary));
+    background: linear-gradient(
+      135deg,
+      hsl(var(--primary)),
+      hsl(var(--primary) / 0.85)
+    );
     color: hsl(var(--primary-foreground));
     border-bottom-right-radius: 0.25rem;
   }
 
   .chat-bubble-viber {
-    background: hsl(var(--accent));
+    background: linear-gradient(
+      180deg,
+      hsl(var(--accent)),
+      hsl(var(--accent) / 0.82)
+    );
     color: hsl(var(--accent-foreground));
     border-bottom-left-radius: 0.25rem;
   }
@@ -646,6 +918,34 @@
     padding: 0 0.25rem;
   }
 
+  .chat-typing {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    width: fit-content;
+    padding: 0.3rem 0.45rem;
+    border-radius: 999px;
+    border: 1px solid hsl(var(--border) / 0.55);
+    background: hsl(var(--muted) / 0.7);
+    margin-top: 0.2rem;
+  }
+
+  .chat-typing span {
+    width: 0.25rem;
+    height: 0.25rem;
+    border-radius: 50%;
+    background: hsl(var(--muted-foreground) / 0.7);
+    animation: typing-bounce 0.9s ease-in-out infinite;
+  }
+
+  .chat-typing span:nth-child(2) {
+    animation-delay: 0.15s;
+  }
+
+  .chat-typing span:nth-child(3) {
+    animation-delay: 0.3s;
+  }
+
   @keyframes msg-appear {
     from {
       opacity: 0;
@@ -654,6 +954,19 @@
     to {
       opacity: 1;
       transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes typing-bounce {
+    0%,
+    80%,
+    100% {
+      transform: translateY(0);
+      opacity: 0.5;
+    }
+    40% {
+      transform: translateY(-0.15rem);
+      opacity: 1;
     }
   }
 </style>

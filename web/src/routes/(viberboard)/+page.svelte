@@ -8,6 +8,12 @@
     Check,
     ChevronDown,
     Package,
+    ArrowRight,
+    Bot,
+    ListTodo,
+    Cable,
+    Settings2,
+    BookOpen,
   } from "@lucide/svelte";
   import ViberIcon from "$lib/components/icons/viber-icon.svelte";
   import { getTasksStore } from "$lib/stores/tasks";
@@ -177,6 +183,79 @@
   const enabledChannels = $derived(
     channelOptions.filter((channel) => channel.enabled),
   );
+  const statusCards = $derived([
+    {
+      label: "Active vibers",
+      value: String(activeVibers.length),
+      description:
+        activeVibers.length > 0
+          ? "Ready to execute new tasks."
+          : "No active worker yet.",
+    },
+    {
+      label: "Configured environments",
+      value: String(environments.length),
+      description:
+        environments.length > 0
+          ? "Source repositories available for context."
+          : "Add an environment to unlock repo-aware work.",
+    },
+    {
+      label: "Enabled channels",
+      value: String(enabledChannels.length),
+      description:
+        enabledChannels.length > 0
+          ? "Delivery targets for task updates."
+          : "Enable channel connectors in settings.",
+    },
+    {
+      label: "Saved intents",
+      value: intentsLoading ? "…" : String(intents.length),
+      description:
+        intents.length > 0
+          ? "Reusable playbooks for common outcomes."
+          : "Create templates to speed up task kickoff.",
+    },
+  ]);
+
+  const entryLinks = [
+    {
+      title: "Start a new task",
+      description: "Open the focused task builder with presets.",
+      href: "/tasks/new",
+      icon: ListTodo,
+    },
+    {
+      title: "Manage vibers",
+      description: "Connect and monitor your runtime workers.",
+      href: "/vibers",
+      icon: Bot,
+    },
+    {
+      title: "Tune intents",
+      description: "Edit reusable workflows for faster starts.",
+      href: "/settings/intents",
+      icon: Sparkles,
+    },
+    {
+      title: "Channel settings",
+      description: "Configure where progress notifications land.",
+      href: "/settings/channels",
+      icon: Cable,
+    },
+    {
+      title: "Workspace settings",
+      description: "Adjust models, envs, and account preferences.",
+      href: "/settings",
+      icon: Settings2,
+    },
+    {
+      title: "Read docs",
+      description: "Browse guides and architecture references.",
+      href: "/docs",
+      icon: BookOpen,
+    },
+  ];
 
   async function fetchData() {
     try {
@@ -575,7 +654,7 @@
 
 <div class="flex h-full min-h-0 flex-col overflow-hidden">
   <div class="flex-1 overflow-y-auto">
-    <div class="mx-auto w-full max-w-5xl px-6 py-8 md:px-8 md:py-10">
+    <div class="mx-auto w-full max-w-5xl py-4">
       <section class="mb-8">
         <h1 class="text-2xl font-semibold tracking-tight text-foreground">
           {#if user}
@@ -585,9 +664,57 @@
           {/if}
         </h1>
         <p class="mt-1 text-sm text-muted-foreground">
-          Launch a task from chat, pick a quick-start intent, or continue a
-          recent conversation.
+          Command center for quick starts, workspace health, and recent work.
         </p>
+      </section>
+
+      <section class="mb-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {#each statusCards as item (item.label)}
+          <article class="rounded-xl border border-border bg-card p-4">
+            <p
+              class="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
+            >
+              {item.label}
+            </p>
+            <p class="mt-2 text-2xl font-semibold text-foreground">
+              {item.value}
+            </p>
+            <p class="mt-1 text-xs text-muted-foreground">{item.description}</p>
+          </article>
+        {/each}
+      </section>
+
+      <section class="mb-8">
+        <div class="mb-3 flex items-center gap-2">
+          <ArrowRight class="size-4 text-primary" />
+          <h2
+            class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+          >
+            Quick Entrances
+          </h2>
+        </div>
+        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {#each entryLinks as item (item.href)}
+            <a
+              href={item.href}
+              class="group rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/35 hover:bg-accent/40"
+            >
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <p class="text-sm font-medium text-foreground">
+                    {item.title}
+                  </p>
+                  <p class="mt-1 text-xs text-muted-foreground">
+                    {item.description}
+                  </p>
+                </div>
+                <item.icon
+                  class="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary"
+                />
+              </div>
+            </a>
+          {/each}
+        </div>
       </section>
 
       {#if hasLoadedVibers && activeVibers.length === 0}
@@ -612,11 +739,14 @@
 
       <section class="mb-8">
         <div class="mb-3 flex items-center justify-between">
-          <h2
-            class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
-          >
-            Start with Intents
-          </h2>
+          <div class="mb-3 flex items-center gap-2">
+            <ArrowRight class="size-4 text-primary" />
+            <h2
+              class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+            >
+              Start with Intents
+            </h2>
+          </div>
           <div class="flex items-center gap-3">
             {#if selectedIntent}
               <button

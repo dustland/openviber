@@ -446,14 +446,17 @@
   }
 
   onMount(async () => {
-    await Promise.all([
-      fetchInstalled(),
-      fetchSources(),
-      fetchViber(),
-      fetchViberConfig(),
-      fetchViberStatus(),
-    ]);
-    backfillInstalledFromVibers();
+    // Critical path: these control the skeleton UI
+    await Promise.all([fetchInstalled(), fetchSources()]);
+
+    // Non-blocking enrichment: viber-specific calls can be slow (gateway proxy)
+    // Run them in background so the skills list renders immediately
+    Promise.all([fetchViber(), fetchViberConfig(), fetchViberStatus()]).then(
+      () => {
+        backfillInstalledFromVibers();
+      },
+    );
+
     await checkAllRequirements();
   });
 </script>

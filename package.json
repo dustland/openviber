@@ -37,6 +37,7 @@
     "test:run": "vitest run",
     "preview:web": "cd web && pnpm preview",
     "verify:skills": "tsx scripts/verify-skills.ts",
+    "update:skills": "node --import tsx scripts/update-skills-catalog.ts",
     "verify:architecture": "tsx scripts/verify-architecture.ts",
     "docs:channels": "tsx scripts/generate-channel-capability-matrix.ts"
   },

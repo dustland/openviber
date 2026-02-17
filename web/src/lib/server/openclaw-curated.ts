@@ -1,14 +1,17 @@
-import type { ExternalSkillInfo } from "../../../../src/skills/hub";
+/**
+ * OpenClaw curated skills catalog.
+ *
+ * Skills are loaded from the pre-built static JSON catalog at
+ * web/static/skills-catalog.json. The catalog is updated via:
+ *   pnpm update:skills
+ *
+ * This replaces the previous runtime GitHub fetch, making skill
+ * lookups instant and offline-friendly.
+ */
 
-const CURATED_README_URL =
-  "https://raw.githubusercontent.com/VoltAgent/awesome-openclaw-skills/main/README.md";
-const CACHE_TTL_MS = 10 * 60 * 1000;
-const NON_CATEGORY_HEADINGS = new Set([
-  "awesome openclaw skills",
-  "installation",
-  "why this list exists?",
-  "table of contents",
-]);
+import { readFileSync } from "fs";
+import { join } from "path";
+import type { ExternalSkillInfo } from "../../../../src/skills/hub";
 
 type CuratedSkill = ExternalSkillInfo & {
   importId?: string;
@@ -16,10 +19,14 @@ type CuratedSkill = ExternalSkillInfo & {
   rank: number;
 };
 
-let cache: {
-  loadedAt: number;
+interface SkillsCatalog {
+  generatedAt: string;
+  source: string;
+  count: number;
   skills: CuratedSkill[];
-} | null = null;
+}
+
+let cachedSkills: CuratedSkill[] | null = null;
 
 function normalizeText(value: string): string {
   return value.toLowerCase().trim();
@@ -32,156 +39,32 @@ export function slugifyCategory(value: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-function extractImportIdFromUrl(value?: string): string | undefined {
-  if (!value) return undefined;
-  try {
-    const url = new URL(value);
-    const match = url.pathname.match(
-      /\/skills\/([^/]+)\/([^/]+)\/SKILL\.md$/i,
-    );
-    if (!match) return undefined;
-    const owner = decodeURIComponent(match[1]);
-    const skill = decodeURIComponent(match[2]);
-    if (!owner || !skill) return undefined;
-    return `${owner}/${skill}`;
-  } catch {
-    return undefined;
-  }
-}
-
-function parseSkillLine(
-  line: string,
-): { id: string; importId: string; description: string; url?: string } | null {
-  const raw = line.trim();
-  if (!raw.startsWith("* ") && !raw.startsWith("- ")) return null;
-  const body = raw.slice(2).trim();
-
-  const markdownLinkMatch = body.match(/^\[([^\]]+)\]\(([^)]+)\)\s*-\s*(.+)$/);
-  if (markdownLinkMatch) {
-    const id = markdownLinkMatch[1].trim();
-    const url = markdownLinkMatch[2].trim();
-    const description = markdownLinkMatch[3].trim();
-    if (!id) return null;
-    return {
-      id,
-      importId: extractImportIdFromUrl(url) || id,
-      description,
-      url,
-    };
-  }
-
-  const separators = [" - ", " — ", " – "];
-  for (const sep of separators) {
-    const idx = body.indexOf(sep);
-    if (idx <= 0) continue;
-    const id = body.slice(0, idx).trim();
-    const description = body.slice(idx + sep.length).trim();
-    if (!id) return null;
-    return {
-      id,
-      importId: id,
-      description,
-    };
-  }
-
-  return null;
-}
-
-function decodeHtmlEntities(value: string): string {
-  return value
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'");
-}
-
-function parseCategoryHeading(line: string): string | null {
-  const headingMatch = line.match(/^##+\s+(.+)$/);
-  if (headingMatch) {
-    return headingMatch[1].trim();
-  }
-
-  const summaryMatch = line.match(
-    /<summary>\s*<h3[^>]*>\s*(.*?)\s*<\/h3>\s*<\/summary>/i,
-  );
-  if (summaryMatch) {
-    return decodeHtmlEntities(summaryMatch[1].trim());
-  }
-
-  return null;
-}
-
-function mapReadmeToSkills(readme: string): CuratedSkill[] {
-  const lines = readme.split(/\r?\n/);
-  const skills: CuratedSkill[] = [];
-  let currentCategory = "";
-  let rank = 0;
-
-  for (const line of lines) {
-    const heading = parseCategoryHeading(line);
-    if (heading) {
-      const normalized = heading.toLowerCase();
-      currentCategory = NON_CATEGORY_HEADINGS.has(normalized) ? "" : heading;
-      continue;
-    }
-
-    if (line.includes("</details>")) {
-      currentCategory = "";
-      continue;
-    }
-
-    const parsed = parseSkillLine(line);
-    if (!parsed) continue;
-    if (!currentCategory) continue;
-
-    rank += 1;
-    const categoryTag = currentCategory ? slugifyCategory(currentCategory) : "";
-
-    skills.push({
-      id: parsed.id,
-      importId: parsed.importId,
-      name: parsed.id,
-      description: parsed.description,
-      author: "community",
-      version: "curated",
-      source: "openclaw",
-      url:
-        parsed.url ||
-        `https://github.com/openclaw/skills/tree/main/${parsed.importId || parsed.id}`,
-      tags: categoryTag ? [categoryTag] : [],
-      category: currentCategory || undefined,
-      rank,
-    });
-  }
-
-  return skills;
-}
-
+/**
+ * Load the curated skills catalog from the static JSON file.
+ * The catalog is read once and cached in memory for the lifetime
+ * of the server process.
+ */
 export async function loadCuratedOpenClawSkills(): Promise<CuratedSkill[]> {
-  const now = Date.now();
-  if (cache && now - cache.loadedAt < CACHE_TTL_MS) {
-    return cache.skills;
+  if (cachedSkills) {
+    return cachedSkills;
   }
 
-  const response = await fetch(CURATED_README_URL, {
-    headers: { Accept: "text/plain" },
-    signal: AbortSignal.timeout(20000),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to load curated skills index (HTTP ${response.status})`);
+  try {
+    // In SvelteKit, static files are served from web/static/
+    // At runtime, we read the file directly from the filesystem
+    const catalogPath = join(process.cwd(), "static", "skills-catalog.json");
+    const raw = readFileSync(catalogPath, "utf-8");
+    const catalog: SkillsCatalog = JSON.parse(raw);
+    cachedSkills = catalog.skills;
+    console.log(
+      `[Skills] Loaded ${cachedSkills.length} curated skills from static catalog (generated ${catalog.generatedAt})`,
+    );
+    return cachedSkills;
+  } catch (error) {
+    console.warn("[Skills] Failed to load static catalog, returning empty:", error);
+    cachedSkills = [];
+    return cachedSkills;
   }
-
-  const readme = await response.text();
-  const skills = mapReadmeToSkills(readme);
-
-  cache = {
-    loadedAt: now,
-    skills,
-  };
-
-  return skills;
 }
 
 export function scoreForRelevance(skill: CuratedSkill, query: string): number {

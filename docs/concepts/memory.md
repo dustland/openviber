@@ -20,6 +20,8 @@ Each task maintains its own memory:
 
 **Location:** `~/.openviber/vibers/{id}/`
 
+This is part of the **Four-File Personalization Pattern** (along with `IDENTITY.md`, `USER.md`, and `SOUL.md`). See [Personalization Architecture](/docs/design/personalization) for how these files work together.
+
 You can browse, edit, and version-control these files like any project.
 
 ### Working Data (Spaces)

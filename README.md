@@ -21,7 +21,7 @@
 
 ### ⭐ 100% Open Source · 🥇 Local Deployment · 🏆 MCP Integration
 
-- ✅ **Zero Setup** — No servers to host, just `npx openviber start`
+- ✅ **Zero Setup** — No servers to host, just `npx openviber start` (runs the headless runtime, use `pnpm dev` for the Web UI)
 - ✅ **Task Workforce** — Role-scoped tasks working in parallel
 - ✅ **Human-in-the-Loop** — Enterprise messaging channels (DingTalk, WeCom)
 - ✅ **Privacy First** — 100% local execution, data never leaves your machine
@@ -103,17 +103,20 @@ viber channels --port 6010
 
 ---
 
-## 🧠 Personalization (The Three-File Pattern)
+## 🧠 Personalization (The Four-File Pattern)
 
-OpenViber follows a standardized configuration pattern for AI personality. Three markdown files define your task's complete behavior:
+OpenViber follows a standardized configuration pattern for AI personality. Four markdown files define your task's complete behavior (uppercase filenames preferred, e.g., `SOUL.md`):
 
 | File | Scope | Purpose | Update Frequency |
 |------|-------|---------|------------------|
-| **`user.md`** | Shared | Who you are, current projects, priorities | Daily/Weekly |
-| **`soul.md`** | Per-task | Communication style, boundaries, rules | Monthly |
-| **`memory.md`** | Per-task | Decisions, learned patterns, corrections | Grows organically |
+| **`IDENTITY.md`** | Shared | What this machine or deployment represents | Rarely |
+| **`USER.md`** | Shared | Who you are, current projects, priorities | Daily/Weekly |
+| **`SOUL.md`** | Per-task | Communication style, boundaries, rules | Monthly |
+| **`MEMORY.md`** | Per-task | Decisions, learned patterns, corrections | Grows organically |
 
-Location: `~/.openviber/vibers/default/`
+Location: `~/.openviber/vibers/{viberId}/` (e.g., `~/.openviber/vibers/default/`)
+
+See [Personalization Architecture](docs/design/personalization.md) for details.
 
 ---
 

@@ -305,7 +305,7 @@
 </svelte:head>
 
 <div class="p-6 h-full overflow-y-auto flex flex-col">
-  <div class="flex items-center justify-between mb-6">
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
     <div>
       <h1 class="text-2xl font-semibold text-foreground">Vibers</h1>
       <p class="text-sm mt-0.5 text-muted-foreground">

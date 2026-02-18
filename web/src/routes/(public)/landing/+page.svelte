@@ -4,6 +4,7 @@
   import TypewriterEffect from "$lib/components/landing/typewriter-effect.svelte";
   import InfiniteMarquee from "$lib/components/landing/infinite-marquee.svelte";
   import HeroMockup from "$lib/components/landing/hero-mockup.svelte";
+  import CodeTyper from "$lib/components/landing/code-typer.svelte";
 
   import {
     ArrowRight,
@@ -17,6 +18,7 @@
     Github,
     Globe,
     Layers,
+    MessageCircle,
     Monitor,
     Moon,
     Puzzle,
@@ -26,6 +28,8 @@
     Terminal,
     Wrench,
     Zap,
+    GitMerge,
+    Download,
   } from "@lucide/svelte";
 
   let { data } = $props();
@@ -68,24 +72,28 @@
       label: "Development",
       example: '"Build a landing page with dark theme and deploy it"',
       color: "primary",
+      span: "md:col-span-2",
     },
     {
       icon: Search,
       label: "Research",
       example: '"Analyze competitors and write a market report"',
       color: "primary",
+      span: "md:col-span-1",
     },
     {
       icon: Clock,
       label: "Automation",
       example: '"Check GitHub issues every morning and summarize"',
       color: "primary",
+      span: "md:col-span-1",
     },
     {
       icon: Eye,
       label: "Monitoring",
       example: '"Watch CI pipelines and alert me on failures"',
       color: "primary",
+      span: "md:col-span-2",
     },
   ];
 
@@ -147,6 +155,10 @@
     { name: "Any MCP Server", category: "Protocol" },
   ];
 
+  // Mouse position for parallax
+  let mouseX = $state(0);
+  let mouseY = $state(0);
+
   // Scroll-reveal with IntersectionObserver
   // Must use the .homepage scroll container as root (it's the overflow element)
   onMount(() => {
@@ -164,7 +176,17 @@
       { root: scrollRoot, threshold: 0.08, rootMargin: "0px 0px -60px 0px" },
     );
     reveals.forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
+
+    const handleMouseMove = (e: MouseEvent) => {
+      mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+      mouseY = (e.clientY / window.innerHeight) * 2 - 1;
+    };
+    window.addEventListener("mousemove", handleMouseMove);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("mousemove", handleMouseMove);
+    };
   });
 </script>
 
@@ -195,37 +217,52 @@
   <!-- Topographic contour lines -->
   <div class="topo-lines"></div>
 
-  <!-- Animated background orbs -->
+  <!-- Animated background orbs with parallax -->
   <div class="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-    <div class="orb orb-1"></div>
-    <div class="orb orb-2"></div>
-    <div class="orb orb-3"></div>
+    <div class="orb-container orb-1-container">
+      <div
+        class="orb orb-1"
+        style="transform: translate({mouseX * -20}px, {mouseY * -20}px)"
+      ></div>
+    </div>
+    <div class="orb-container orb-2-container">
+      <div
+        class="orb orb-2"
+        style="transform: translate({mouseX * 30}px, {mouseY * 30}px)"
+      ></div>
+    </div>
+    <div class="orb-container orb-3-container">
+      <div
+        class="orb orb-3"
+        style="transform: translate({mouseX * -40}px, {mouseY * -10}px)"
+      ></div>
+    </div>
   </div>
 
   <main class="container relative mx-auto px-6 py-10 md:px-8 md:py-16 lg:py-20">
     <!-- Hero -->
-    <section class="mx-auto max-w-5xl pt-6 text-center md:pt-10 lg:pt-14">
+    <section class="mx-auto max-w-6xl pt-6 text-center md:pt-10 lg:pt-14">
       <div class="hero-logo-wrap mx-auto mb-6 w-fit">
         <img
           src="/favicon.png"
           alt="OpenViber"
-          class="hero-logo size-14 md:size-16 lg:size-20"
+          class="hero-logo size-16 md:size-20 lg:size-24"
         />
       </div>
 
       <div
-        class="hero-badge inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary mb-6"
+        class="hero-badge inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary mb-8"
       >
         <Sparkles class="mr-1.5 size-3" />
         v1.0 Public Beta
       </div>
 
       <h1
-        class="hero-title pb-3 text-5xl font-black leading-[1.08] tracking-tighter sm:text-6xl md:text-7xl lg:text-8xl"
+        class="hero-title pb-4 text-6xl font-black leading-[1.05] tracking-tighter sm:text-7xl md:text-8xl lg:text-9xl"
       >
         You Imagine It.<br class="hidden sm:block" />
         <span
-          class="bg-gradient-to-r from-primary via-primary/90 to-primary/60 bg-clip-text text-transparent"
+          class="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent"
           >Vibers</span
         >
         <TypewriterEffect
@@ -233,7 +270,7 @@
         />
       </h1>
       <p
-        class="hero-subtitle mx-auto mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground md:text-lg lg:max-w-3xl"
+        class="hero-subtitle mx-auto mt-8 max-w-2xl text-lg leading-relaxed text-muted-foreground md:text-xl lg:max-w-4xl"
       >
         Turn your machine into an AI workforce. Deploy role-scoped agents that
         write code, research the web, manage files, and run scheduled jobs — all
@@ -242,48 +279,48 @@
 
       <!-- Open source badge -->
       <div
-        class="hero-badge mx-auto mt-6 flex items-center justify-center gap-2.5"
+        class="hero-badge mx-auto mt-8 flex items-center justify-center gap-3"
       >
         <span
-          class="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/50 px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur-sm"
+          class="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/50 px-3.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm"
         >
-          <Code class="size-3 text-primary" />
+          <Code class="size-3.5 text-primary" />
           100% Open Source
         </span>
         <span
-          class="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/50 px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur-sm"
+          class="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/50 px-3.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm"
         >
-          <Shield class="size-3 text-primary" />
+          <Shield class="size-3.5 text-primary" />
           Local-First
         </span>
         <span
-          class="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/50 px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur-sm"
+          class="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/50 px-3.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm"
         >
-          <Puzzle class="size-3 text-primary" />
+          <Puzzle class="size-3.5 text-primary" />
           MCP Native
         </span>
       </div>
 
       <div
-        class="hero-cta mt-8 flex flex-wrap items-center justify-center gap-3 md:gap-4"
+        class="hero-cta mt-10 flex flex-wrap items-center justify-center gap-4 md:gap-6"
       >
         {#if data.user}
           <a
             href="/"
-            class="cta-primary group inline-flex items-center gap-2.5 rounded-full bg-primary px-10 py-4 text-base font-bold text-primary-foreground shadow-[0_0_30px_hsl(var(--primary)/0.3)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_40px_hsl(var(--primary)/0.4)]"
+            class="cta-primary group inline-flex items-center gap-3 rounded-full bg-primary px-12 py-5 text-lg font-bold text-primary-foreground shadow-[0_0_40px_hsl(var(--primary)/0.4)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_60px_hsl(var(--primary)/0.5)]"
           >
             Go to Viberboard
             <ArrowRight
-              class="size-5 transition-transform duration-300 group-hover:translate-x-0.5"
+              class="size-5 transition-transform duration-300 group-hover:translate-x-1"
             />
           </a>
         {:else if data.supabaseAuthEnabled}
           <a
             href={githubAuthUrl}
-            class="cta-primary group inline-flex items-center gap-2.5 rounded-full bg-primary px-10 py-4 text-base font-bold text-primary-foreground shadow-[0_0_30px_hsl(var(--primary)/0.3)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_40px_hsl(var(--primary)/0.4)]"
+            class="cta-primary group inline-flex items-center gap-3 rounded-full bg-primary px-12 py-5 text-lg font-bold text-primary-foreground shadow-[0_0_40px_hsl(var(--primary)/0.4)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_60px_hsl(var(--primary)/0.5)]"
           >
             <svg
-              class="size-4"
+              class="size-5"
               viewBox="0 0 24 24"
               fill="currentColor"
               xmlns="http://www.w3.org/2000/svg"
@@ -294,22 +331,22 @@
             </svg>
             Sign in with GitHub
             <ArrowRight
-              class="size-4 transition-transform duration-300 group-hover:translate-x-0.5"
+              class="size-5 transition-transform duration-300 group-hover:translate-x-1"
             />
           </a>
         {/if}
         <a
           href="/docs"
-          class="inline-flex items-center gap-2 rounded-full border border-border/80 bg-background/60 px-6 py-3.5 text-sm font-medium text-foreground backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-accent/80"
+          class="inline-flex items-center gap-2 rounded-full border border-border/80 bg-background/60 px-8 py-4 text-base font-medium text-foreground backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-accent/80"
         >
           Read the Docs
         </a>
       </div>
 
       <!-- Hero Mockup -->
-      <div class="hero-cta mt-12 md:mt-16 relative z-10">
+      <div class="hero-cta mt-16 md:mt-24 relative z-10">
         <div
-          class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-primary/10 blur-[100px] -z-10 rounded-full pointer-events-none"
+          class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-primary/10 blur-[120px] -z-10 rounded-full pointer-events-none"
         ></div>
         <HeroMockup />
       </div>
@@ -330,25 +367,94 @@
         reports back — with evidence.
       </p>
 
-      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div class="grid gap-4 md:grid-cols-3">
         {#each useCases as useCase, i}
           <div
-            class="reveal-card use-case-card group rounded-2xl p-5 hover:shadow-xl hover:shadow-primary/10 hover:border-primary/40"
+            class="reveal-card use-case-card group rounded-2xl p-6 md:p-8 hover:shadow-xl hover:shadow-primary/10 hover:border-primary/40 flex flex-col justify-between {useCase.span}"
             style="--delay: {i * 100}ms"
           >
-            <div
-              class="use-case-icon mb-3 inline-flex size-10 items-center justify-center rounded-xl group-hover:bg-primary group-hover:text-primary-foreground"
-            >
-              <useCase.icon class="size-5" />
-            </div>
-            <div class="mb-2 text-sm font-semibold text-card-foreground">
-              {useCase.label}
+            <div>
+              <div
+                class="use-case-icon mb-4 inline-flex size-12 items-center justify-center rounded-xl group-hover:bg-primary group-hover:text-primary-foreground"
+              >
+                <useCase.icon class="size-6" />
+              </div>
+              <div class="mb-3 text-lg font-semibold text-card-foreground">
+                {useCase.label}
+              </div>
             </div>
             <p class="text-sm italic leading-relaxed text-muted-foreground/80">
               {useCase.example}
             </p>
           </div>
         {/each}
+      </div>
+    </section>
+
+    <!-- See it in Action -->
+    <section class="reveal mx-auto mt-24 max-w-5xl md:mt-32">
+      <div class="grid gap-12 lg:grid-cols-2 items-center">
+        <div>
+          <h2 class="section-label mb-3">See it in Action</h2>
+          <h3 class="text-3xl font-bold tracking-tight text-foreground sm:text-4xl mb-4">
+            It writes code, not just text.
+          </h3>
+          <p class="text-base text-muted-foreground leading-relaxed mb-8">
+            Vibers generate valid code, run it in a sandboxed environment, read the errors, and fix them automatically. It's like pair programming with a tireless senior engineer.
+          </p>
+
+          <div class="flex flex-col gap-4">
+             <div class="flex items-start gap-3">
+               <div class="mt-1 flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                 <Terminal class="size-3.5" />
+               </div>
+               <div>
+                 <div class="font-medium text-foreground">Real Execution</div>
+                 <div class="text-sm text-muted-foreground">Runs commands and scripts on your machine.</div>
+               </div>
+             </div>
+             <div class="flex items-start gap-3">
+               <div class="mt-1 flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                 <Zap class="size-3.5" />
+               </div>
+               <div>
+                 <div class="font-medium text-foreground">Self-Correction</div>
+                 <div class="text-sm text-muted-foreground">Reads stderr and fixes bugs without asking you.</div>
+               </div>
+             </div>
+          </div>
+        </div>
+
+        <div class="relative rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm p-2 shadow-2xl">
+           <div class="rounded-lg bg-[#0d1117] p-4 font-mono text-sm shadow-inner min-h-[300px]">
+             <div class="flex gap-1.5 mb-4">
+               <div class="size-3 rounded-full bg-red-500/80"></div>
+               <div class="size-3 rounded-full bg-yellow-500/80"></div>
+               <div class="size-3 rounded-full bg-green-500/80"></div>
+             </div>
+             <CodeTyper lines={[
+                "// defining a new task...",
+                "import { Task } from '@openviber/core';",
+                "",
+                "const deployTask = new Task({",
+                "  name: 'deploy-web',",
+                "  tools: ['git', 'ssh', 'docker'],",
+                "  model: 'claude-3-5-sonnet',",
+                "  system: 'You are a DevOps engineer.'",
+                "});",
+                "",
+                "await deployTask.start();",
+                "// > Task started: deploy-web",
+                "// > Cloning repository...",
+                "// > Building Docker image...",
+                "// > Deploying to production...",
+                "// > Success! App is live."
+             ]} />
+           </div>
+
+           <!-- Decorative elements behind -->
+           <div class="absolute -inset-0.5 -z-10 bg-gradient-to-br from-primary/30 to-purple-600/30 opacity-20 blur-xl rounded-xl"></div>
+        </div>
       </div>
     </section>
 
@@ -477,6 +583,55 @@
       </p>
 
       <InfiniteMarquee items={integrations} />
+    </section>
+
+    <!-- Community -->
+    <section class="reveal mx-auto mt-24 max-w-6xl md:mt-32">
+       <div class="rounded-3xl border border-primary/20 bg-primary/5 px-6 py-12 md:px-12 md:py-16 text-center relative overflow-hidden">
+          <div class="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 mix-blend-overlay"></div>
+          <div class="relative z-10">
+             <h2 class="text-3xl font-bold tracking-tight text-foreground sm:text-4xl mb-6">Join the Community</h2>
+             <p class="mx-auto max-w-2xl text-lg text-muted-foreground mb-10">
+               OpenViber is open source and community-driven. Join thousands of developers building the future of local AI.
+             </p>
+
+             <div class="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-3xl mx-auto">
+                <div class="flex flex-col items-center gap-2">
+                   <div class="text-3xl font-black text-foreground">2.5k+</div>
+                   <div class="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+                      <Github class="size-4" /> Stars
+                   </div>
+                </div>
+                <div class="flex flex-col items-center gap-2">
+                   <div class="text-3xl font-black text-foreground">1.2k+</div>
+                   <div class="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+                      <MessageCircle class="size-4" /> Discord
+                   </div>
+                </div>
+                 <div class="flex flex-col items-center gap-2">
+                   <div class="text-3xl font-black text-foreground">50+</div>
+                   <div class="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+                      <GitMerge class="size-4" /> Contributors
+                   </div>
+                </div>
+                 <div class="flex flex-col items-center gap-2">
+                   <div class="text-3xl font-black text-foreground">10k+</div>
+                   <div class="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+                      <Download class="size-4" /> Downloads
+                   </div>
+                </div>
+             </div>
+
+             <div class="mt-12 flex justify-center gap-4 flex-wrap">
+                <a href="https://discord.gg/openviber" target="_blank" class="inline-flex items-center gap-2 rounded-full bg-[#5865F2] px-6 py-3 text-sm font-medium text-white shadow-lg shadow-[#5865F2]/20 hover:bg-[#4752C4] hover:-translate-y-0.5 transition-all">
+                   <MessageCircle class="size-4" /> Join Discord
+                </a>
+                <a href="https://github.com/dustland/openviber" target="_blank" class="inline-flex items-center gap-2 rounded-full bg-foreground px-6 py-3 text-sm font-medium text-background shadow-lg hover:bg-foreground/90 hover:-translate-y-0.5 transition-all">
+                   <Github class="size-4" /> Star on GitHub
+                </a>
+             </div>
+          </div>
+       </div>
     </section>
 
     <!-- Get Started CTA -->
@@ -665,79 +820,103 @@
   }
 
   /* ── Animated background orbs ── */
-  .orb {
+  .orb-container {
     position: absolute;
-    border-radius: 50%;
-    filter: blur(100px);
-    opacity: 0.3; /* Increased opacity for screen blend mode */
     will-change: transform;
-    mix-blend-mode: screen;
+    /* Animation happens on the container */
   }
-  .orb-1 {
+
+  .orb-1-container {
     width: 40rem;
     height: 40rem;
     top: -12rem;
     left: 50%;
-    transform: translateX(-50%);
+    margin-left: -20rem; /* Center horizontally */
+    animation: float-1 20s ease-in-out infinite;
+  }
+
+  .orb-2-container {
+    width: 26rem;
+    height: 26rem;
+    top: 22rem;
+    right: -10rem;
+    animation: float-2 25s ease-in-out infinite;
+  }
+
+  .orb-3-container {
+    width: 22rem;
+    height: 22rem;
+    top: 64rem;
+    left: -8rem;
+    animation: float-3 22s ease-in-out infinite;
+  }
+
+  .orb {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    filter: blur(100px);
+    opacity: 0.3;
+    mix-blend-mode: screen;
+    will-change: transform;
+    /* Parallax transform is applied inline */
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .orb-1 {
     background: radial-gradient(
       circle,
       hsl(var(--primary) / 0.3),
       transparent 65%
     );
-    animation: float-1 20s ease-in-out infinite;
   }
+
   .orb-2 {
-    width: 26rem;
-    height: 26rem;
-    top: 22rem;
-    right: -10rem;
     background: radial-gradient(
       circle,
       hsl(var(--ring) / 0.22),
       transparent 65%
     );
-    animation: float-2 25s ease-in-out infinite;
   }
+
   .orb-3 {
-    width: 22rem;
-    height: 22rem;
-    top: 64rem;
-    left: -8rem;
     background: radial-gradient(
       circle,
       hsl(var(--primary) / 0.18),
       transparent 65%
     );
-    animation: float-3 22s ease-in-out infinite;
   }
+
   @keyframes float-1 {
     0%,
     100% {
-      transform: translateX(-50%) translateY(0);
+      transform: translate(0, 0);
     }
     33% {
-      transform: translateX(-45%) translateY(30px);
+      transform: translate(20px, 40px);
     }
     66% {
-      transform: translateX(-55%) translateY(-20px);
+      transform: translate(-20px, -20px);
     }
   }
+
   @keyframes float-2 {
     0%,
     100% {
-      transform: translateY(0) translateX(0);
+      transform: translate(0, 0);
     }
     50% {
-      transform: translateY(-40px) translateX(-20px);
+      transform: translate(-40px, -20px);
     }
   }
+
   @keyframes float-3 {
     0%,
     100% {
-      transform: translateY(0) translateX(0);
+      transform: translate(0, 0);
     }
     50% {
-      transform: translateY(30px) translateX(25px);
+      transform: translate(30px, 25px);
     }
   }
 

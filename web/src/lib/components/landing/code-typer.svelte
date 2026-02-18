@@ -7,53 +7,46 @@
 
   let { lines = [] }: Props = $props();
 
-  let visibleLines = $state<string[]>([]);
-  let timer: ReturnType<typeof setTimeout>;
+  let displayedLines = $state<string[]>([]);
+  let currentLine = $state("");
+  let isTyping = $state(true);
 
-  function typeLines() {
-    let index = 0;
-    visibleLines = [];
+  async function typeCode() {
+    displayedLines = [];
+    currentLine = "";
+    isTyping = true;
 
-    function nextLine() {
-      if (index < lines.length) {
-        visibleLines = [...visibleLines, lines[index]];
-        index++;
-        // Variable speed for realism? Or constant? Constant is cleaner for code.
-        timer = setTimeout(nextLine, 100);
+    for (const line of lines) {
+      // Type the line character by character
+      for (let i = 0; i < line.length; i++) {
+        currentLine += line[i];
+        // Random typing delay for realism
+        await new Promise(r => setTimeout(r, Math.random() * 30 + 10));
       }
+      // Line finished, add to displayed and clear current
+      displayedLines = [...displayedLines, currentLine];
+      currentLine = "";
+      // Small pause between lines
+      await new Promise(r => setTimeout(r, 100));
     }
-
-    nextLine();
+    isTyping = false;
   }
 
   onMount(() => {
-    // Start typing after a short delay when component mounts
-    timer = setTimeout(typeLines, 500);
+    // Start typing when visible? Or just on mount.
+    // For now, on mount with a small delay.
+    const timer = setTimeout(typeCode, 500);
     return () => clearTimeout(timer);
   });
 </script>
 
-<div class="font-mono text-sm leading-relaxed text-blue-100">
-  <pre><code>{#each visibleLines as line, i}
-    <div class="line">{@html line}{#if i === visibleLines.length - 1}<span class="cursor">|</span>{/if}</div>
-  {/each}</code></pre>
+<div class="font-mono text-sm leading-relaxed text-blue-100/90 whitespace-pre-wrap font-medium">
+  {#each displayedLines as line}
+    <div class="min-h-[1.5em]">{line}</div>
+  {/each}
+  {#if isTyping}
+    <div class="min-h-[1.5em]">
+      {currentLine}<span class="inline-block w-2 h-4 align-middle bg-primary ml-0.5 animate-pulse"></span>
+    </div>
+  {/if}
 </div>
-
-<style>
-  .line {
-    min-height: 1.5em; /* Ensure empty lines have height */
-    display: block;
-  }
-  .cursor {
-    display: inline-block;
-    color: hsl(var(--primary));
-    animation: blink 1s step-end infinite;
-    margin-left: 2px;
-    font-weight: bold;
-  }
-
-  @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0; }
-  }
-</style>

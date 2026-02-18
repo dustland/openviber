@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { buildToolMap } from './tool';
 import * as config from './config';
+import * as mcpClient from './mcp-client';
 
 // Mock loadGlobalConfig
 vi.mock('./config', async (importOriginal) => {
@@ -10,6 +11,11 @@ vi.mock('./config', async (importOriginal) => {
     loadGlobalConfig: vi.fn(),
   };
 });
+
+// Mock mcp-client
+vi.mock('./mcp-client', () => ({
+  createMcpClient: vi.fn(),
+}));
 
 describe('buildToolMap', () => {
   beforeEach(() => {
@@ -28,19 +34,23 @@ describe('buildToolMap', () => {
       ]
     });
 
-    // Mock console.warn to suppress expected output
-    const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    // Mock createMcpClient to return a dummy client
+    const mockClient = {
+      listTools: vi.fn().mockResolvedValue({ tools: [] }),
+      callTool: vi.fn(),
+    };
+    vi.mocked(mcpClient.createMcpClient).mockResolvedValue(mockClient as any);
 
     // Call buildToolMap with 'github'
     await buildToolMap(['github']);
 
-    // Check if it tried to load MCP client (by checking the warning message)
-    // This confirms it went down the MCP path
-    expect(consoleSpy).toHaveBeenCalledWith(
-      expect.stringContaining('MCP client creation not implemented for: github')
+    // Check if it created the MCP client
+    expect(mcpClient.createMcpClient).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'github' })
     );
 
-    consoleSpy.mockRestore();
+    // Check if it listed tools
+    expect(mockClient.listTools).toHaveBeenCalled();
   });
 
   it('should treat unknown tools as custom tools (and fail to find them)', async () => {

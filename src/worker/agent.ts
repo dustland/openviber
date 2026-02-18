@@ -173,7 +173,7 @@ export class Agent {
   /**
    * Get the system prompt for this agent
    */
-  protected getSystemPrompt(context?: AgentContext): string {
+  public getSystemPrompt(context?: AgentContext): string {
     const segments: string[] = [];
 
     // Base identity

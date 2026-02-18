@@ -193,7 +193,7 @@ A machine running the OpenViber runtime that executes tasks. The Viber is the **
 - **Config** — Identity and settings at `~/.openviber/` (lightweight, portable)
 - **Spaces** — Working data at `~/openviber_spaces/` (repos, research, outputs)
 
-Vibers connect to the OpenViber Board via a one-time token command (`npx openviber connect --token ...`). Multiple tasks on one machine coordinate through external systems (GitHub, email) rather than direct inter-task messaging.
+Vibers connect to the OpenViber Board via a one-time token command (`npx openviber onboard --token ...`). Multiple tasks on one machine coordinate through external systems (GitHub, email) rather than direct inter-task messaging.
 
 ### ViberAgent
 

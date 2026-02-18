@@ -44,7 +44,8 @@ A **Viber** is a single machine running the OpenViber runtime. It provides:
 From the OpenViber Board, click **Add Viber** to generate a start command:
 
 ```bash
-npx openviber start --token eyJub2RlIjoiYTFiMmMz...
+npx openviber onboard --token eyJub2RlIjoiYTFiMmMz...
+npx openviber start
 ```
 
 This bootstraps the Viber, creates `~/.openviber/`, and connects to the Board — no inbound ports needed.

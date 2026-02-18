@@ -438,7 +438,7 @@ export async function loadViberConfig(
       name: "Default",
       description: "General-purpose coding assistant with local skills.",
       provider: "openrouter",
-      model: "anthropic/claude-sonnet-4",
+      model: "anthropic/claude-3.5-sonnet",
       temperature: 0.7,
       maxTokens: 16384,
       maxSteps: 25,

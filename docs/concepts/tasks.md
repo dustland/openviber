@@ -121,7 +121,7 @@ tools:
   - github
 
 # Working mode
-mode: task-decides  # always-ask | task-decides | always-execute
+mode: agent_decides  # always-ask | agent_decides | always-execute
 
 # Budget limits
 budget:

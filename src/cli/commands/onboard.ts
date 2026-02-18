@@ -135,7 +135,7 @@ description: General-purpose assistant
 
 # LLM Provider (openrouter recommended for multi-model access)
 provider: openrouter
-model: anthropic/claude-sonnet-4-20250514
+model: anthropic/claude-3.5-sonnet
 
 # System prompt
 systemPrompt: |

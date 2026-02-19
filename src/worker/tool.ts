@@ -7,6 +7,7 @@
 
 import { z } from "zod";
 import { loadGlobalConfig } from "./config";
+import { createMcpClient } from "./mcp-client";
 
 // Core tool interface that AI SDK expects
 export interface CoreTool {
@@ -111,26 +112,60 @@ async function loadMcpTools(ids: string[]): Promise<Record<string, CoreTool>> {
       let mcpClient = mcpClients.get(serverId);
 
       if (!mcpClient) {
-        // MCP client creation disabled - would require external mcp library
-        // TODO: Implement MCP client when library is available
-        console.warn(`[Tools] MCP client creation not implemented for: ${serverId}`);
-        continue;
+        // Load config
+        const globalConfig = await loadGlobalConfig();
+        const mcpConfig = globalConfig?.mcp_servers?.find((s) => s.name === serverId);
+
+        if (!mcpConfig) {
+          console.error(`[Tools] MCP server '${serverId}' not found in configuration.`);
+          continue;
+        }
+
+        try {
+          // Initialize MCP Client
+          mcpClient = await createMcpClient(mcpConfig);
+          mcpClients.set(serverId, mcpClient);
+        } catch (error) {
+           console.error(`[Tools] Failed to create/connect MCP client for ${serverId}:`, error);
+           continue;
+        }
       }
 
-      // Extract requested tools
-      if (mcpClient && typeof mcpClient === "object") {
+      // Extract tools from the MCP client
+      if (mcpClient) {
         // Get all tools from the MCP client
-        const mcpTools = await mcpClient.tools();
+        // SDK: client.listTools() returns { tools: Tool[] }
+        const result = await mcpClient.listTools();
+        const mcpToolsList = result.tools || [];
 
-        // Return all tools from this server
-        for (const [toolName, tool] of Object.entries(mcpTools)) {
-          if (isValidTool(tool)) {
-            tools[toolName] = tool as CoreTool;
-          }
+        // Map to CoreTool format
+        for (const tool of mcpToolsList) {
+           const toolName = tool.name;
+
+           // Convert MCP tool to CoreTool
+           tools[toolName] = {
+             description: tool.description || "",
+             inputSchema: tool.inputSchema,
+             execute: async (args: any) => {
+               // Execute tool via MCP client
+               // SDK: client.callTool({ name, arguments })
+               const result = await mcpClient.callTool({
+                 name: toolName,
+                 arguments: args,
+               });
+
+               // Result format: { content: ... }
+               // If there is an error, SDK might throw or return isError: true
+               if (result.isError) {
+                  throw new Error(`Tool execution failed: ${JSON.stringify(result.content)}`);
+               }
+               return result.content;
+             }
+           };
         }
       }
     } catch (error) {
-      console.error(`[Tools] Failed to load MCP server ${serverId}:`, error);
+      console.error(`[Tools] Failed to load tools from MCP server ${serverId}:`, error);
     }
   }
 

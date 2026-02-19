@@ -37,8 +37,9 @@ export interface RuntimeConfig {
 export interface McpServerConfig {
   name: string;
   description?: string;
-  command: string;
+  command?: string;
   args?: string[];
+  url?: string;
   env?: Record<string, string>;
   require_approval?: string[];
 }

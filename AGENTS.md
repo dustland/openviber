@@ -139,8 +139,8 @@ The web app supports an **E2E test mode** that bypasses OAuth and onboarding, al
 ## Local Dev URLs (Do Not Guess)
 
 - Web app default: `http://localhost:6006`
-- Gateway REST API: `http://localhost:6007`
-- Gateway WebSocket: `ws://localhost:6007/ws`
+- Gateway REST API: `http://localhost:6009`
+- Gateway WebSocket: `ws://localhost:6009/ws`
 - Viber local WebSocket: `ws://localhost:6008`
 - Never assume Vite default port `5173` in this workspace.
 - Before browser testing, verify active ports from Cursor terminal logs under:

@@ -123,7 +123,7 @@ In this mode, there is no remote registration handshake.
 Viber Board (Web UI :6006)
    │   HTTPS / WS
    ▼
-Viber Gateway (:6007)
+Viber Gateway (:6009)
    │   WS
    ▼
 Your local OpenViber Daemon (Viber)
@@ -136,7 +136,7 @@ Connected mode uses an onboarding token to bind your local Viber to the gateway 
 | Component | Role during onboarding | Role after onboarding |
 | --- | --- | --- |
 | Viber (local daemon) | Creates local runtime state and (in connected mode) exchanges token for persistent connection config. | Executes tasks, streams status/events, manages local memories/skills/tools. |
-| Gateway (`:6007`) | Validates onboarding token and associates Viber identity to backend records. | Routes commands/events between Viber and board. |
+| Gateway (`:6009`) | Validates onboarding token and associates Viber identity to backend records. | Routes commands/events between Viber and board. |
 | Viber Board (`:6006`) | Creates Viber records and issues short-lived onboard tokens. | Operator UI for launching, monitoring, and configuring Vibers. |
 
 ---

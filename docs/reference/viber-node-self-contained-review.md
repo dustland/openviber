@@ -49,7 +49,7 @@ That said, daemon runtime boot (`openviber start`) still initializes the control
 
 ### 3) Daemon start path is still gateway-controller oriented
 
-- `openviber start` still builds `ViberController` and uses server URL resolution logic that defaults to local gateway WebSocket (`ws://localhost:6007/ws`) when no connected config is present.
+- `openviber start` still builds `ViberController` and uses server URL resolution logic that defaults to local gateway WebSocket (`ws://localhost:6009/ws`) when no connected config is present.
 - Therefore, the daemon control loop remains oriented around inbound gateway messages for task submit/stop/message orchestration.
 
 **Assessment:** ⚠️ Core engine can run alone, but daemon orchestration is not yet fully gateway-independent.

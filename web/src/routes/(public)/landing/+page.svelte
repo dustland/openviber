@@ -5,6 +5,7 @@
   import InfiniteMarquee from "$lib/components/landing/infinite-marquee.svelte";
   import HeroMockup from "$lib/components/landing/hero-mockup.svelte";
   import CodeTyper from "$lib/components/landing/code-typer.svelte";
+  import SpotlightCard from "$lib/components/landing/spotlight-card.svelte";
 
   import {
     ArrowRight,
@@ -282,19 +283,19 @@
         class="hero-badge mx-auto mt-8 flex items-center justify-center gap-3"
       >
         <span
-          class="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/50 px-3.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm"
+          class="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/50 px-3.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm transition-all duration-300 hover:border-primary/30 hover:shadow-[0_0_15px_hsl(var(--primary)/0.2)] cursor-default"
         >
           <Code class="size-3.5 text-primary" />
           100% Open Source
         </span>
         <span
-          class="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/50 px-3.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm"
+          class="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/50 px-3.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm transition-all duration-300 hover:border-primary/30 hover:shadow-[0_0_15px_hsl(var(--primary)/0.2)] cursor-default"
         >
           <Shield class="size-3.5 text-primary" />
           Local-First
         </span>
         <span
-          class="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/50 px-3.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm"
+          class="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/50 px-3.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm transition-all duration-300 hover:border-primary/30 hover:shadow-[0_0_15px_hsl(var(--primary)/0.2)] cursor-default"
         >
           <Puzzle class="size-3.5 text-primary" />
           MCP Native
@@ -369,13 +370,13 @@
 
       <div class="grid gap-4 md:grid-cols-3">
         {#each useCases as useCase, i}
-          <div
-            class="reveal-card use-case-card group rounded-2xl p-6 md:p-8 hover:shadow-xl hover:shadow-primary/10 hover:border-primary/40 flex flex-col justify-between {useCase.span}"
-            style="--delay: {i * 100}ms"
+          <SpotlightCard
+            class="reveal-card border-border/50 bg-card/40 backdrop-blur-md group rounded-2xl p-6 md:p-8 hover:shadow-xl hover:shadow-primary/10 hover:border-primary/40 hover:-translate-y-2 hover:scale-[1.03] flex flex-col justify-between {useCase.span}"
+            delay={i * 100}
           >
             <div>
               <div
-                class="use-case-icon mb-4 inline-flex size-12 items-center justify-center rounded-xl group-hover:bg-primary group-hover:text-primary-foreground"
+                class="mb-4 inline-flex size-12 items-center justify-center rounded-xl bg-primary/8 text-primary border border-primary/15 transition-all duration-300 group-hover:bg-primary/14 group-hover:border-primary/25 group-hover:scale-110"
               >
                 <useCase.icon class="size-6" />
               </div>
@@ -386,7 +387,7 @@
             <p class="text-sm italic leading-relaxed text-muted-foreground/80">
               {useCase.example}
             </p>
-          </div>
+          </SpotlightCard>
         {/each}
       </div>
     </section>
@@ -481,7 +482,8 @@
               {step.description}
             </p>
             {#if i < howItWorks.length - 1}
-              <div class="step-connector hidden md:block">
+              <div class="step-connector hidden md:flex items-center gap-1">
+                <div class="h-px w-12 bg-border/60"></div>
                 <ArrowRight class="size-4 text-primary/40" />
               </div>
             {/if}
@@ -505,12 +507,12 @@
 
       <div class="grid gap-6 md:grid-cols-3">
         {#each valueProps as prop, i}
-          <div
-            class="reveal-card glass-card group relative overflow-hidden rounded-3xl p-6 md:p-8 hover:shadow-2xl hover:shadow-primary/20 {i ===
+          <SpotlightCard
+            class="reveal-card border-border/60 bg-card/50 backdrop-blur-md group relative overflow-hidden rounded-3xl p-6 md:p-8 hover:shadow-2xl hover:shadow-primary/20 hover:-translate-y-1 hover:scale-[1.02] {i ===
             0
               ? 'md:col-span-2'
               : ''}"
-            style="--delay: {i * 100}ms"
+            delay={i * 100}
           >
             <!-- Card gradient background -->
             <div
@@ -520,7 +522,7 @@
             <div class="relative z-10 flex flex-col h-full justify-between">
               <div>
                 <div
-                  class="icon-ring mb-5 inline-flex size-12 items-center justify-center rounded-xl"
+                  class="mb-5 inline-flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary shadow-[0_0_0_1px_hsl(var(--primary)/0.2)] transition-all duration-300 group-hover:scale-110 group-hover:bg-primary/15 group-hover:shadow-[0_0_0_1px_hsl(var(--primary)/0.3),0_4px_12px_-2px_hsl(var(--primary)/0.15)]"
                 >
                   <prop.icon class="size-6" />
                 </div>
@@ -534,7 +536,7 @@
                 {prop.description}
               </p>
             </div>
-          </div>
+          </SpotlightCard>
         {/each}
       </div>
     </section>
@@ -1023,30 +1025,6 @@
     color: hsl(var(--primary));
   }
 
-  /* ── Use case card ── */
-  .use-case-card {
-    border: 1px solid hsl(var(--border) / 0.5);
-    background: hsl(var(--card) / 0.4);
-    backdrop-filter: blur(8px);
-    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .use-case-card:hover {
-    border-color: hsl(var(--primary) / 0.5);
-    background: hsl(var(--card) / 0.8);
-    transform: translateY(-8px) scale(1.03);
-    box-shadow: 0 20px 40px -8px hsl(var(--primary) / 0.25);
-  }
-  .use-case-icon {
-    background: hsl(var(--primary) / 0.08);
-    color: hsl(var(--primary));
-    border: 1px solid hsl(var(--primary) / 0.15);
-    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .use-case-card:hover .use-case-icon {
-    background: hsl(var(--primary) / 0.14);
-    border-color: hsl(var(--primary) / 0.25);
-    transform: scale(1.1);
-  }
 
   /* ── How-it-works step card ── */
   .how-step {
@@ -1076,18 +1054,11 @@
   }
   .step-connector {
     position: absolute;
-    right: -1.25rem;
+    right: -2.5rem;
     top: 50%;
     transform: translateY(-50%);
     z-index: 10;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: 50%;
-    background: hsl(var(--background));
-    border: 1px solid hsl(var(--border) / 0.5);
+    pointer-events: none;
   }
 
   /* ── Dark contrast section ── */
@@ -1106,35 +1077,6 @@
     z-index: 1;
   }
 
-  /* ── Glass card ── */
-  .glass-card {
-    border: 1px solid hsl(var(--border) / 0.6);
-    background: hsl(var(--card) / 0.5);
-    backdrop-filter: blur(8px);
-    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .glass-card:hover {
-    border-color: hsl(var(--primary) / 0.45);
-    transform: translateY(-4px) scale(1.02);
-    box-shadow:
-      0 12px 32px -8px hsl(var(--primary) / 0.15),
-      0 0 0 1px hsl(var(--primary) / 0.1);
-  }
-
-  /* ── Icon ring ── */
-  .icon-ring {
-    background: hsl(var(--primary) / 0.1);
-    color: hsl(var(--primary));
-    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.2);
-    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .glass-card:hover .icon-ring {
-    transform: scale(1.12);
-    background: hsl(var(--primary) / 0.15);
-    box-shadow:
-      0 0 0 1px hsl(var(--primary) / 0.3),
-      0 4px 12px -2px hsl(var(--primary) / 0.15);
-  }
 
   /* ── Tool card ── */
   .tool-card {

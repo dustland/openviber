@@ -257,6 +257,34 @@
     },
   ];
 
+  function formatTaskStatus(status: string): string {
+    return status
+      .replace(/[_-]+/g, " ")
+      .trim()
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  }
+
+  function getTaskStatusClass(status: string): string {
+    const normalized = status.toLowerCase();
+    if (
+      normalized.includes("done") ||
+      normalized.includes("success") ||
+      normalized.includes("complete")
+    ) {
+      return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-200";
+    }
+
+    if (normalized.includes("fail") || normalized.includes("error")) {
+      return "bg-red-500/10 text-red-700 dark:text-red-200";
+    }
+
+    if (normalized.includes("run") || normalized.includes("progress")) {
+      return "bg-amber-500/10 text-amber-700 dark:text-amber-200";
+    }
+
+    return "bg-muted text-muted-foreground";
+  }
+
   async function fetchData() {
     try {
       const [nodesRes, envsRes, settingsRes, skillsRes, tasksRes] =
@@ -654,7 +682,7 @@
 
 <div class="flex h-full min-h-0 flex-col overflow-hidden">
   <div class="flex-1 overflow-y-auto">
-    <div class="mx-auto w-full max-w-5xl py-4">
+    <div class="mx-auto w-full max-w-5xl px-3 py-4 sm:px-4">
       <section class="mb-8">
         <h1 class="text-2xl font-semibold tracking-tight text-foreground">
           {#if user}
@@ -690,14 +718,17 @@
           <h2
             class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
           >
-            Quick Entrances
+            Quick actions
           </h2>
         </div>
+        <p class="mb-3 text-xs text-muted-foreground">
+          Common destinations so you can jump into the next step faster.
+        </p>
         <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {#each entryLinks as item (item.href)}
             <a
               href={item.href}
-              class="group rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/35 hover:bg-accent/40"
+              class="group rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/35 hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             >
               <div class="flex items-start justify-between gap-2">
                 <div>
@@ -738,8 +769,8 @@
       {/if}
 
       <section class="mb-8">
-        <div class="mb-3 flex items-center justify-between">
-          <div class="mb-3 flex items-center gap-2">
+        <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
             <ArrowRight class="size-4 text-primary" />
             <h2
               class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
@@ -796,11 +827,12 @@
                   ? 'border-primary/40 bg-primary/5 ring-1 ring-primary/20'
                   : 'border-border bg-card hover:border-primary/30 hover:bg-accent/40'}"
                 onclick={() => selectIntent(intent)}
+                aria-pressed={selectedIntentId === intent.id}
               >
                 <p class="truncate text-sm font-medium text-foreground">
                   {intent.name}
                 </p>
-                <p class="mt-0.5 truncate text-xs text-muted-foreground">
+                <p class="mt-0.5 line-clamp-2 min-h-8 text-xs text-muted-foreground">
                   {intent.description}
                 </p>
               </button>
@@ -825,6 +857,7 @@
                     ? 'border-primary/35 bg-primary/10 text-primary'
                     : 'border-border bg-background text-muted-foreground hover:text-foreground'}"
                   onclick={() => toggleChannel(channel.id)}
+                  aria-pressed={selectedChannelIds.includes(channel.id)}
                 >
                   {channel.label}
                 </button>
@@ -855,12 +888,16 @@
             {#each recentTasks as task (task.id)}
               <a
                 href={`/tasks/${task.id}`}
-                class="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground hover:bg-accent"
+                class="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
               >
-                <p class="truncate font-medium">{task.goal}</p>
-                <p class="mt-0.5 text-xs text-muted-foreground">
-                  {task.status}
-                </p>
+                <div class="flex items-start justify-between gap-3">
+                  <p class="truncate font-medium">{task.goal}</p>
+                  <span
+                    class={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${getTaskStatusClass(task.status)}`}
+                  >
+                    {formatTaskStatus(task.status)}
+                  </span>
+                </div>
               </a>
             {/each}
           </div>
@@ -869,10 +906,15 @@
     </div>
   </div>
 
-  <div class="shrink-0 p-3 sm:p-4">
+  <div
+    class="shrink-0 border-t border-border/70 bg-background/95 p-3 backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:p-4"
+  >
     <div class="mx-auto w-full max-w-5xl">
       <!-- Viber & Environment selectors -->
       <div class="mb-3 flex flex-wrap items-center gap-2">
+        <p class="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          Task routing
+        </p>
         <!-- Viber selector -->
         {#if vibers.length > 0}
           <DropdownMenu.Root>
@@ -911,7 +953,7 @@
                     ></span>
                     {viber.name}
                     {#if viber.status !== "active"}
-                      <span class="text-xs text-muted-foreground ml-1"
+                      <span class="ml-1 text-xs text-muted-foreground"
                         >({viber.status})</span
                       >
                     {/if}

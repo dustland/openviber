@@ -366,7 +366,7 @@ Approval requests include:
 Viber registration follows a **Cloudflare Zero Trust** pattern — the Board generates a one-time token, the operator runs a single command, and the Viber connects outbound. See also [viber.md](./viber.md) for the full onboarding flow.
 
 ```bash
-npx openviber connect --token eyJub2RlIjoiYTFiMmMz...
+npx openviber onboard --token eyJub2RlIjoiYTFiMmMz...
 ```
 
 ### Security Properties

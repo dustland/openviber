@@ -211,7 +211,7 @@ sequenceDiagram
     B->>B: Generate Viber ID + one-time token
     B->>U: Show command in dialog
     U->>V: Paste & run command
-    V->>V: npx openviber connect --token <TOKEN>
+    V->>V: npx openviber onboard --token <TOKEN>
     V->>B: WebSocket handshake (token auth)
     B->>V: Viber registered ✓
 ```
@@ -219,7 +219,7 @@ sequenceDiagram
 ### The Command
 
 ```bash
-npx openviber connect --token eyJub2RlIjoiYTFiMmMz...
+npx openviber onboard --token eyJub2RlIjoiYTFiMmMz...
 ```
 
 This single command:

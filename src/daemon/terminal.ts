@@ -9,7 +9,7 @@ import { spawn, spawnSync, ChildProcess } from "child_process";
 import { EventEmitter } from "events";
 import { randomUUID } from "crypto";
 import { unlinkSync, existsSync } from "fs";
-import { loadRuntimeEnvironmentSnapshotSync } from "../environment";
+import { loadRuntimeEnvironmentSnapshotSync } from "../config/environment";
 
 export interface TerminalPane {
   appId: string;

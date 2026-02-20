@@ -258,7 +258,7 @@
       </div>
 
       <h1
-        class="hero-title pb-4 text-6xl font-black leading-[1.05] tracking-tighter sm:text-7xl md:text-8xl lg:text-9xl"
+        class="hero-title pb-4 text-5xl font-black leading-tight tracking-tighter sm:text-7xl sm:leading-[1.05] md:text-8xl lg:text-9xl"
       >
         You Imagine It.<br class="hidden sm:block" />
         <span
@@ -279,7 +279,7 @@
 
       <!-- Open source badge -->
       <div
-        class="hero-badge mx-auto mt-8 flex items-center justify-center gap-3"
+        class="hero-badge mx-auto mt-8 flex flex-wrap items-center justify-center gap-3"
       >
         <span
           class="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/50 px-3.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm"

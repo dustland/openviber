@@ -2,103 +2,27 @@
  * AI Provider Management
  * Handles initialization and configuration of different AI providers
  *
- * Philosophy: Keep it simple - agents specify their provider and model explicitly.
- *
- * To add a new provider (e.g., Google, Mistral, Cohere):
- * 1. Install: `pnpm add @ai-sdk/google`
- * 2. Import: `import { createGoogleGenerativeAI } from "@ai-sdk/google";`
- * 3. Add case: `case "google": return createGoogleGenerativeAI({...})`
- * 4. Add environment variable handling
+ * Refactored to use dynamic ProviderRegistry for extensibility.
  */
 
-import { createAnthropic } from "@ai-sdk/anthropic";
-import { createOpenAI } from "@ai-sdk/openai";
-import { deepseek } from "@ai-sdk/deepseek";
-import { createOpenRouter } from "@openrouter/ai-sdk-provider";
+import { defaultProviderRegistry } from "../viber/provider";
+import { ModelConfig, ModelProvider } from "../viber/model-types";
 
-export type ModelProvider = string; // Allow any provider string for extensibility
-
-export interface ModelConfig {
-  provider: ModelProvider;
-  modelName: string;
-  apiKey?: string;
-  baseURL?: string;
-  /** Optional proxy-aware fetch to route API calls through an HTTP proxy */
-  proxyFetch?: typeof fetch;
-  // Viber-specific options
-  spaceId?: string;
-  userId?: string; // For usage tracking (e.g., Helicone)
-  storageRoot?: string;
-  teamConfig?: string;
-  defaultGoal?: string;
-}
+// Re-export types for backward compatibility
+export type { ModelConfig, ModelProvider };
 
 /**
  * Get the appropriate AI provider instance
+ * Delegates to the global ProviderRegistry
  */
 export function getModelProvider(config: ModelConfig) {
-  const {
-    provider,
-    apiKey,
-    baseURL,
-    spaceId,
-    userId,
-    storageRoot,
-    teamConfig,
-    defaultGoal,
-  } = config;
-
-  switch (provider) {
-    case "anthropic":
-      return createAnthropic({
-        apiKey: apiKey || process.env.ANTHROPIC_API_KEY,
-        baseURL: baseURL || process.env.ANTHROPIC_BASE_URL,
-        fetch: config.proxyFetch,
-      });
-
-    case "openai":
-      return createOpenAI({
-        apiKey: apiKey || process.env.OPENAI_API_KEY,
-        baseURL: baseURL || process.env.OPENAI_BASE_URL,
-        fetch: config.proxyFetch,
-      });
-
-    case "deepseek":
-      return deepseek;
-
-    case "openrouter":
-      // Use the official OpenRouter SDK (v2.0.2+ for AI SDK 6 compatibility)
-      const openrouterConfig: any = {
-        apiKey: apiKey || process.env.OPENROUTER_API_KEY,
-        fetch: config.proxyFetch,
-      };
-
-      // Use Helicone gateway for observability if configured
-      if (process.env.HELICONE_API_KEY) {
-        openrouterConfig.baseURL =
-          baseURL || "https://openrouter.helicone.ai/api/v1";
-        openrouterConfig.headers = {
-          "Helicone-Auth": `Bearer ${process.env.HELICONE_API_KEY}`,
-          "Helicone-Property-User": userId || "anonymous",
-          "Helicone-Property-Space": spaceId || "default",
-        };
-      }
-
-      return createOpenRouter(openrouterConfig);
-
-    default:
-      // For other providers, assume they follow the standard pattern
-      // This allows users to add support for Google, Mistral, Cohere, etc.
-      // by providing the appropriate imports and configuration
-      throw new Error(
-        `Provider '${provider}' is not configured. ` +
-        `To use ${provider}, add the appropriate AI SDK provider import and configuration to core/provider.ts`,
-      );
-  }
+  return defaultProviderRegistry.get(config);
 }
 
 /**
  * Check if a provider is properly configured
+ * Note: This checks environment variables for known default providers.
+ * Custom providers might handle their own validation.
  */
 export function isProviderConfigured(provider: string): boolean {
   switch (provider) {
@@ -111,14 +35,11 @@ export function isProviderConfigured(provider: string): boolean {
     case "openrouter":
       return !!process.env.OPENROUTER_API_KEY;
     case "google":
-      // Google provider needs to be imported and configured
-      return false; // Not yet implemented
-    case "mistral":
-      return false; // Not yet implemented
-    case "cohere":
-      return false; // Not yet implemented
+      return !!process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     default:
-      return false;
+      // For unknown providers, we assume they are configured or don't need env vars
+      // Ideally, the registry would have a `validate()` method.
+      return defaultProviderRegistry.has(provider);
   }
 }
 
@@ -126,16 +47,11 @@ export function isProviderConfigured(provider: string): boolean {
  * Get list of configured providers
  */
 export function getConfiguredProviders(): string[] {
-  const providers = [
-    "anthropic",
-    "openai",
-    "deepseek",
-    "openrouter",
-    "google",
-    "mistral",
-    "cohere",
-  ];
-  return providers.filter(isProviderConfigured);
+  // Start with the list from registry
+  const available = defaultProviderRegistry.list();
+
+  // Filter by configuration status
+  return available.filter(isProviderConfigured);
 }
 
 /**
@@ -143,11 +59,6 @@ export function getConfiguredProviders(): string[] {
  * Examples: "gpt-4o" -> { provider: "openai", modelName: "gpt-4o" }
  */
 export function parseModelString(model: string): ModelConfig {
-  // Viber models are handled differently - not through this parser
-  // if (model.startsWith("viber-") || model === "viber") {
-  //   return { provider: "viber", modelName: model };
-  // }
-
   // Anthropic models (direct access)
   if (model.startsWith("claude-")) {
     return { provider: "anthropic", modelName: model };

@@ -36,7 +36,10 @@ The fastest way to get started is using `npx`:
 # 1. Set your API key (OpenRouter recommended)
 export OPENROUTER_API_KEY="your_api_key_here"
 
-# 2. Start OpenViber (Standalone Mode)
+# 2. Run Onboarding (Creates config & downloads skills)
+npx openviber onboard
+
+# 3. Start OpenViber (Standalone Mode)
 npx openviber start
 ```
 

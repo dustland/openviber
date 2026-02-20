@@ -7,6 +7,13 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { SkillHubManager } from "./manager";
+import * as path from "path";
+import * as os from "os";
+
+vi.mock("../../utils/paths", () => ({
+  getViberRoot: () => path.join(os.tmpdir(), `openviber-test-manager-${process.pid}`),
+}));
+
 import type {
   SkillHubProvider,
   SkillSearchQuery,
@@ -72,7 +79,16 @@ describe("SkillHubManager", () => {
   let manager: SkillHubManager;
 
   beforeEach(() => {
-    manager = new SkillHubManager();
+    // Initialize with all disabled to prevent real network calls from unmocked providers
+    manager = new SkillHubManager({
+      openclaw: { enabled: false },
+      github: { enabled: false },
+      npm: { enabled: false },
+      huggingface: { enabled: false },
+      smithery: { enabled: false },
+      composio: { enabled: false },
+      glama: { enabled: false },
+    });
   });
 
   it("should register default providers", () => {
@@ -90,6 +106,13 @@ describe("SkillHubManager", () => {
 
   describe("search", () => {
     it("should search a specific provider when source is specified", async () => {
+      // Enable specific providers for this test
+      manager.updateSourcesConfig({
+        ...manager.getSourcesConfig(),
+        github: { enabled: true },
+        npm: { enabled: true },
+      });
+
       const githubSkills = [
         makeSkill({ id: "gh-skill-1", name: "gh-skill-1", source: "github" }),
       ];
@@ -106,6 +129,14 @@ describe("SkillHubManager", () => {
     });
 
     it("should search all providers when no source is specified", async () => {
+      // Enable relevant providers
+      manager.updateSourcesConfig({
+        ...manager.getSourcesConfig(),
+        github: { enabled: true },
+        npm: { enabled: true },
+        openclaw: { enabled: true },
+      });
+
       const githubSkills = [
         makeSkill({ id: "gh-1", name: "gh-browser", source: "github" }),
       ];
@@ -131,6 +162,13 @@ describe("SkillHubManager", () => {
     });
 
     it("should sort merged results by popularity", async () => {
+      // Enable providers
+      manager.updateSourcesConfig({
+        ...manager.getSourcesConfig(),
+        github: { enabled: true },
+        npm: { enabled: true },
+      });
+
       const skills1 = [
         makeSkill({ id: "a", name: "a", popularity: 10, source: "github" }),
       ];
@@ -150,6 +188,13 @@ describe("SkillHubManager", () => {
     });
 
     it("should handle provider errors gracefully", async () => {
+      // Enable providers
+      manager.updateSourcesConfig({
+        ...manager.getSourcesConfig(),
+        github: { enabled: true },
+        npm: { enabled: true },
+      });
+
       const failing: SkillHubProvider = {
         type: "github",
         displayName: "Failing GitHub",

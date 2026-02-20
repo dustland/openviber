@@ -12,7 +12,7 @@ import * as path from "path";
 import * as http from "http";
 
 // Mock config module so settings use a temp directory
-vi.mock("../core/config-runtime", () => ({
+vi.mock("../utils/paths", () => ({
   getViberRoot: () => "/tmp/openviber-test-auth",
 }));
 

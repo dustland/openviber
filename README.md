@@ -185,6 +185,8 @@ Maintain control with approval gates. Tasks can be configured to pause and ask f
 | **Privacy** | 100% Local | Data Leaves | Limited |
 | **Channels** | Multi-channel | Web only | Chat only |
 
+> Curious how OpenViber compares to other open-source agents like **Nanobot**? Check out our [Architecture Comparison](./ARCHITECTURE_COMPARISON.md).
+
 ---
 
 ## 🤝 Contributing

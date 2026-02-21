@@ -5,6 +5,7 @@
   import InfiniteMarquee from "$lib/components/landing/infinite-marquee.svelte";
   import HeroMockup from "$lib/components/landing/hero-mockup.svelte";
   import CodeTyper from "$lib/components/landing/code-typer.svelte";
+  import SpotlightCard from "$lib/components/landing/spotlight-card.svelte";
 
   import {
     ArrowRight,
@@ -155,12 +156,7 @@
     { name: "Any MCP Server", category: "Protocol" },
   ];
 
-  // Mouse position for parallax
-  let mouseX = $state(0);
-  let mouseY = $state(0);
-
   // Scroll-reveal with IntersectionObserver
-  // Must use the .homepage scroll container as root (it's the overflow element)
   onMount(() => {
     const scrollRoot = document.querySelector(".homepage") as Element;
     const reveals = document.querySelectorAll(".reveal");
@@ -177,15 +173,8 @@
     );
     reveals.forEach((el) => observer.observe(el));
 
-    const handleMouseMove = (e: MouseEvent) => {
-      mouseX = (e.clientX / window.innerWidth) * 2 - 1;
-      mouseY = (e.clientY / window.innerHeight) * 2 - 1;
-    };
-    window.addEventListener("mousemove", handleMouseMove);
-
     return () => {
       observer.disconnect();
-      window.removeEventListener("mousemove", handleMouseMove);
     };
   });
 </script>
@@ -199,8 +188,9 @@
 </svelte:head>
 
 <div class="homepage relative h-full overflow-x-hidden overflow-y-auto">
-  <!-- Edge glow frame -->
-  <div class="edge-glow"></div>
+  <!-- Subtle Background Gradient -->
+  <div class="fixed inset-0 -z-10 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.1),rgba(255,255,255,0))] dark:bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.2),rgba(0,0,0,0))] pointer-events-none"></div>
+  <div class="fixed inset-0 -z-10 bg-[radial-gradient(circle_at_bottom_left,rgba(56,189,248,0.05),transparent_40%)] pointer-events-none"></div>
 
   <!-- Grain texture overlay -->
   <div class="grain"></div>
@@ -208,41 +198,10 @@
   <!-- Dot grid pattern -->
   <div class="dot-grid"></div>
 
-  <!-- Hero radial grid rings -->
-  <div class="hero-grid-rings"></div>
-
-  <!-- Diagonal light beams -->
-  <div class="light-beams"></div>
-
-  <!-- Topographic contour lines -->
-  <div class="topo-lines"></div>
-
-  <!-- Animated background orbs with parallax -->
-  <div class="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-    <div class="orb-container orb-1-container">
-      <div
-        class="orb orb-1"
-        style="transform: translate({mouseX * -20}px, {mouseY * -20}px)"
-      ></div>
-    </div>
-    <div class="orb-container orb-2-container">
-      <div
-        class="orb orb-2"
-        style="transform: translate({mouseX * 30}px, {mouseY * 30}px)"
-      ></div>
-    </div>
-    <div class="orb-container orb-3-container">
-      <div
-        class="orb orb-3"
-        style="transform: translate({mouseX * -40}px, {mouseY * -10}px)"
-      ></div>
-    </div>
-  </div>
-
-  <main class="container relative mx-auto px-6 py-10 md:px-8 md:py-16 lg:py-20">
+  <main class="container relative mx-auto px-6 py-12 md:px-8 md:py-20 lg:py-24">
     <!-- Hero -->
-    <section class="mx-auto max-w-6xl pt-6 text-center md:pt-10 lg:pt-14">
-      <div class="hero-logo-wrap mx-auto mb-6 w-fit">
+    <section class="mx-auto max-w-7xl pt-8 text-center md:pt-16 lg:pt-20">
+      <div class="hero-logo-wrap mx-auto mb-8 w-fit">
         <img
           src="/favicon.png"
           alt="OpenViber"
@@ -251,18 +210,18 @@
       </div>
 
       <div
-        class="hero-badge inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary mb-8"
+        class="hero-badge inline-flex items-center rounded-full border border-primary/10 bg-primary/5 px-3 py-1 text-xs font-medium text-primary/80 mb-10 backdrop-blur-sm"
       >
         <Sparkles class="mr-1.5 size-3" />
         v1.0 Public Beta
       </div>
 
       <h1
-        class="hero-title pb-4 text-6xl font-black leading-[1.05] tracking-tighter sm:text-7xl md:text-8xl lg:text-9xl"
+        class="hero-title pb-6 text-6xl font-black leading-[0.95] tracking-tighter sm:text-7xl md:text-8xl lg:text-9xl"
       >
         You Imagine It.<br class="hidden sm:block" />
         <span
-          class="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent"
+          class="bg-gradient-to-br from-primary to-primary/60 bg-clip-text text-transparent"
           >Vibers</span
         >
         <TypewriterEffect
@@ -270,7 +229,7 @@
         />
       </h1>
       <p
-        class="hero-subtitle mx-auto mt-8 max-w-2xl text-lg leading-relaxed text-muted-foreground md:text-xl lg:max-w-4xl"
+        class="hero-subtitle mx-auto mt-8 max-w-2xl text-lg leading-relaxed text-muted-foreground md:text-xl lg:max-w-3xl"
       >
         Turn your machine into an AI workforce. Deploy role-scoped agents that
         write code, research the web, manage files, and run scheduled jobs — all
@@ -279,35 +238,35 @@
 
       <!-- Open source badge -->
       <div
-        class="hero-badge mx-auto mt-8 flex items-center justify-center gap-3"
+        class="hero-badge mx-auto mt-10 flex items-center justify-center gap-3"
       >
         <span
-          class="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/50 px-3.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm"
+          class="inline-flex items-center gap-1.5 rounded-full border border-border/40 bg-background/40 px-3.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm shadow-sm"
         >
-          <Code class="size-3.5 text-primary" />
+          <Code class="size-3.5 text-primary/80" />
           100% Open Source
         </span>
         <span
-          class="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/50 px-3.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm"
+          class="inline-flex items-center gap-1.5 rounded-full border border-border/40 bg-background/40 px-3.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm shadow-sm"
         >
-          <Shield class="size-3.5 text-primary" />
+          <Shield class="size-3.5 text-primary/80" />
           Local-First
         </span>
         <span
-          class="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/50 px-3.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm"
+          class="inline-flex items-center gap-1.5 rounded-full border border-border/40 bg-background/40 px-3.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-sm shadow-sm"
         >
-          <Puzzle class="size-3.5 text-primary" />
+          <Puzzle class="size-3.5 text-primary/80" />
           MCP Native
         </span>
       </div>
 
       <div
-        class="hero-cta mt-10 flex flex-wrap items-center justify-center gap-4 md:gap-6"
+        class="hero-cta mt-12 flex flex-wrap items-center justify-center gap-4 md:gap-6"
       >
         {#if data.user}
           <a
             href="/"
-            class="cta-primary group inline-flex items-center gap-3 rounded-full bg-primary px-12 py-5 text-lg font-bold text-primary-foreground shadow-[0_0_40px_hsl(var(--primary)/0.4)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_60px_hsl(var(--primary)/0.5)]"
+            class="cta-primary group inline-flex items-center gap-3 rounded-full bg-primary px-10 py-4 text-lg font-bold text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/30"
           >
             Go to Viberboard
             <ArrowRight
@@ -317,7 +276,7 @@
         {:else if data.supabaseAuthEnabled}
           <a
             href={githubAuthUrl}
-            class="cta-primary group inline-flex items-center gap-3 rounded-full bg-primary px-12 py-5 text-lg font-bold text-primary-foreground shadow-[0_0_40px_hsl(var(--primary)/0.4)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_60px_hsl(var(--primary)/0.5)]"
+            class="cta-primary group inline-flex items-center gap-3 rounded-full bg-primary px-10 py-4 text-lg font-bold text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/30"
           >
             <svg
               class="size-5"
@@ -337,100 +296,99 @@
         {/if}
         <a
           href="/docs"
-          class="inline-flex items-center gap-2 rounded-full border border-border/80 bg-background/60 px-8 py-4 text-base font-medium text-foreground backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-accent/80"
+          class="inline-flex items-center gap-2 rounded-full border border-border/80 bg-background/50 px-8 py-3.5 text-base font-medium text-foreground backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:bg-accent/50"
         >
           Read the Docs
         </a>
       </div>
 
       <!-- Hero Mockup -->
-      <div class="hero-cta mt-16 md:mt-24 relative z-10">
+      <div class="hero-cta mt-20 md:mt-28 relative z-10">
         <div
-          class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-primary/10 blur-[120px] -z-10 rounded-full pointer-events-none"
+          class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-primary/5 blur-[100px] -z-10 rounded-full pointer-events-none"
         ></div>
         <HeroMockup />
       </div>
     </section>
 
     <!-- Divider -->
-    <div class="section-divider mx-auto mt-24 md:mt-32">
+    <div class="section-divider mx-auto mt-32 md:mt-40">
       <div class="divider-glow"></div>
     </div>
 
     <!-- What Vibers Can Do -->
-    <section class="reveal mx-auto mt-16 max-w-6xl md:mt-20">
-      <h2 class="section-label mb-3 text-center">What Vibers Can Do</h2>
+    <section class="reveal mx-auto mt-20 max-w-6xl md:mt-32">
+      <h2 class="section-label mb-4 text-center">What Vibers Can Do</h2>
       <p
-        class="mx-auto mb-14 max-w-2xl text-center text-base text-muted-foreground md:text-lg"
+        class="mx-auto mb-16 max-w-2xl text-center text-lg text-muted-foreground"
       >
         Give a viber a goal in plain language. It plans, executes, verifies, and
         reports back — with evidence.
       </p>
 
-      <div class="grid gap-4 md:grid-cols-3">
+      <div class="grid gap-6 md:grid-cols-3">
         {#each useCases as useCase, i}
-          <div
-            class="reveal-card use-case-card group rounded-2xl p-6 md:p-8 hover:shadow-xl hover:shadow-primary/10 hover:border-primary/40 flex flex-col justify-between {useCase.span}"
-            style="--delay: {i * 100}ms"
-          >
-            <div>
-              <div
-                class="use-case-icon mb-4 inline-flex size-12 items-center justify-center rounded-xl group-hover:bg-primary group-hover:text-primary-foreground"
-              >
-                <useCase.icon class="size-6" />
-              </div>
-              <div class="mb-3 text-lg font-semibold text-card-foreground">
-                {useCase.label}
-              </div>
-            </div>
-            <p class="text-sm italic leading-relaxed text-muted-foreground/80">
-              {useCase.example}
-            </p>
+          <div class="reveal-card {useCase.span}" style="--delay: {i * 100}ms">
+             <SpotlightCard class="h-full flex flex-col justify-between">
+                <div>
+                  <div
+                    class="mb-6 inline-flex size-12 items-center justify-center rounded-xl bg-primary/5 text-primary border border-primary/10"
+                  >
+                    <useCase.icon class="size-6" />
+                  </div>
+                  <div class="mb-3 text-xl font-bold text-foreground tracking-tight">
+                    {useCase.label}
+                  </div>
+                </div>
+                <p class="text-sm font-medium leading-relaxed text-muted-foreground/90">
+                  {useCase.example}
+                </p>
+             </SpotlightCard>
           </div>
         {/each}
       </div>
     </section>
 
     <!-- See it in Action -->
-    <section class="reveal mx-auto mt-24 max-w-5xl md:mt-32">
-      <div class="grid gap-12 lg:grid-cols-2 items-center">
+    <section class="reveal mx-auto mt-32 max-w-5xl md:mt-40">
+      <div class="grid gap-16 lg:grid-cols-2 items-center">
         <div>
-          <h2 class="section-label mb-3">See it in Action</h2>
-          <h3 class="text-3xl font-bold tracking-tight text-foreground sm:text-4xl mb-4">
+          <h2 class="section-label mb-4">See it in Action</h2>
+          <h3 class="text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl mb-6">
             It writes code, not just text.
           </h3>
-          <p class="text-base text-muted-foreground leading-relaxed mb-8">
+          <p class="text-lg text-muted-foreground leading-relaxed mb-10">
             Vibers generate valid code, run it in a sandboxed environment, read the errors, and fix them automatically. It's like pair programming with a tireless senior engineer.
           </p>
 
-          <div class="flex flex-col gap-4">
-             <div class="flex items-start gap-3">
-               <div class="mt-1 flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                 <Terminal class="size-3.5" />
+          <div class="flex flex-col gap-6">
+             <div class="flex items-start gap-4">
+               <div class="mt-1 flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20">
+                 <Terminal class="size-4" />
                </div>
                <div>
-                 <div class="font-medium text-foreground">Real Execution</div>
-                 <div class="text-sm text-muted-foreground">Runs commands and scripts on your machine.</div>
+                 <div class="font-bold text-foreground text-lg">Real Execution</div>
+                 <div class="text-sm text-muted-foreground mt-1">Runs commands and scripts on your machine.</div>
                </div>
              </div>
-             <div class="flex items-start gap-3">
-               <div class="mt-1 flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                 <Zap class="size-3.5" />
+             <div class="flex items-start gap-4">
+               <div class="mt-1 flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20">
+                 <Zap class="size-4" />
                </div>
                <div>
-                 <div class="font-medium text-foreground">Self-Correction</div>
-                 <div class="text-sm text-muted-foreground">Reads stderr and fixes bugs without asking you.</div>
+                 <div class="font-bold text-foreground text-lg">Self-Correction</div>
+                 <div class="text-sm text-muted-foreground mt-1">Reads stderr and fixes bugs without asking you.</div>
                </div>
              </div>
           </div>
         </div>
 
-        <div class="relative rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm p-2 shadow-2xl">
-           <div class="rounded-lg bg-[#0d1117] p-4 font-mono text-sm shadow-inner min-h-[300px]">
-             <div class="flex gap-1.5 mb-4">
-               <div class="size-3 rounded-full bg-red-500/80"></div>
-               <div class="size-3 rounded-full bg-yellow-500/80"></div>
-               <div class="size-3 rounded-full bg-green-500/80"></div>
+        <div class="relative rounded-2xl border border-border/50 bg-card/50 backdrop-blur-sm p-2 shadow-2xl">
+           <div class="rounded-xl bg-[#0d1117] p-5 font-mono text-sm shadow-inner min-h-[340px]">
+             <div class="flex gap-2 mb-6 opacity-70">
+               <div class="size-3 rounded-full bg-red-500"></div>
+               <div class="size-3 rounded-full bg-yellow-500"></div>
+               <div class="size-3 rounded-full bg-green-500"></div>
              </div>
              <CodeTyper lines={[
                 "// defining a new task...",
@@ -453,36 +411,36 @@
            </div>
 
            <!-- Decorative elements behind -->
-           <div class="absolute -inset-0.5 -z-10 bg-gradient-to-br from-primary/30 to-purple-600/30 opacity-20 blur-xl rounded-xl"></div>
+           <div class="absolute -inset-1 -z-10 bg-gradient-to-br from-primary/30 to-purple-600/30 opacity-20 blur-2xl rounded-2xl"></div>
         </div>
       </div>
     </section>
 
     <!-- How it Works -->
-    <section class="reveal mx-auto mt-24 max-w-6xl md:mt-32">
-      <h2 class="section-label mb-3 text-center">How it Works</h2>
+    <section class="reveal mx-auto mt-32 max-w-6xl md:mt-40">
+      <h2 class="section-label mb-4 text-center">How it Works</h2>
       <p
-        class="mx-auto mb-14 max-w-2xl text-center text-base text-muted-foreground md:text-lg"
+        class="mx-auto mb-16 max-w-2xl text-center text-lg text-muted-foreground"
       >
         From YAML config to autonomous execution in three steps.
       </p>
 
-      <div class="grid gap-6 md:grid-cols-3">
+      <div class="grid gap-8 md:grid-cols-3">
         {#each howItWorks as step, i}
           <div
-            class="reveal-card how-step group relative rounded-2xl p-6"
+            class="reveal-card how-step group relative rounded-2xl p-8 bg-card/30 border border-border/40 backdrop-blur-sm hover:bg-card/50 transition-all duration-300"
             style="--delay: {i * 120}ms"
           >
-            <div class="step-number mb-4 drop-shadow-md">{step.step}</div>
-            <h3 class="mb-2 text-lg font-semibold text-card-foreground">
+            <div class="step-number mb-6 text-4xl font-black text-primary/20 group-hover:text-primary/40 transition-colors">{step.step}</div>
+            <h3 class="mb-3 text-xl font-bold text-foreground">
               {step.title}
             </h3>
             <p class="text-sm leading-relaxed text-muted-foreground">
               {step.description}
             </p>
             {#if i < howItWorks.length - 1}
-              <div class="step-connector hidden md:block">
-                <ArrowRight class="size-4 text-primary/40" />
+              <div class="step-connector hidden md:flex items-center justify-center absolute -right-4 top-1/2 -translate-y-1/2 z-10 size-8 rounded-full bg-background border border-border text-muted-foreground">
+                <ArrowRight class="size-4" />
               </div>
             {/if}
           </div>
@@ -492,142 +450,140 @@
 
     <!-- Why OpenViber — dark contrast section -->
     <section
-      class="reveal dark-section mx-auto mt-24 max-w-6xl rounded-3xl px-6 py-14 md:mt-32 md:px-10 md:py-20 lg:px-14 border-primary/20"
+      class="reveal dark-section mx-auto mt-32 max-w-7xl rounded-[2.5rem] px-8 py-16 md:mt-40 md:px-12 md:py-24 border border-border/40 bg-card/30 backdrop-blur-3xl overflow-hidden relative"
     >
       <div class="hex-pattern"></div>
-      <h2 class="section-label mb-3 text-center">Why OpenViber</h2>
-      <p
-        class="mx-auto mb-14 max-w-2xl text-center text-base text-[hsl(var(--muted-foreground)/0.8)] md:text-lg"
-      >
-        A local-first AI platform for people who want their agents to actually
-        do things — not just chat.
-      </p>
+      <div class="relative z-10">
+        <h2 class="section-label mb-4 text-center">Why OpenViber</h2>
+        <p
+          class="mx-auto mb-16 max-w-2xl text-center text-lg text-muted-foreground/80"
+        >
+          A local-first AI platform for people who want their agents to actually
+          do things — not just chat.
+        </p>
 
-      <div class="grid gap-6 md:grid-cols-3">
-        {#each valueProps as prop, i}
-          <div
-            class="reveal-card glass-card group relative overflow-hidden rounded-3xl p-6 md:p-8 hover:shadow-2xl hover:shadow-primary/20 {i ===
-            0
-              ? 'md:col-span-2'
-              : ''}"
-            style="--delay: {i * 100}ms"
-          >
-            <!-- Card gradient background -->
+        <div class="grid gap-8 md:grid-cols-3">
+          {#each valueProps as prop, i}
             <div
-              class="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100"
-            ></div>
-
-            <div class="relative z-10 flex flex-col h-full justify-between">
-              <div>
-                <div
-                  class="icon-ring mb-5 inline-flex size-12 items-center justify-center rounded-xl"
-                >
-                  <prop.icon class="size-6" />
+              class="reveal-card glass-card group relative overflow-hidden rounded-3xl p-8 hover:bg-white/5 transition-colors {i ===
+              0
+                ? 'md:col-span-2'
+                : ''}"
+              style="--delay: {i * 100}ms"
+            >
+              <div class="relative z-10 flex flex-col h-full justify-between gap-8">
+                <div>
+                  <div
+                    class="mb-6 inline-flex size-14 items-center justify-center rounded-2xl bg-white/5 text-foreground border border-white/10 shadow-inner"
+                  >
+                    <prop.icon class="size-7" />
+                  </div>
+                  <h3 class="text-2xl font-bold text-foreground">
+                    {prop.title}
+                  </h3>
                 </div>
-                <h3 class="text-xl font-semibold text-card-foreground">
-                  {prop.title}
-                </h3>
+                <p
+                  class="text-base leading-relaxed text-muted-foreground"
+                >
+                  {prop.description}
+                </p>
               </div>
-              <p
-                class="mt-4 text-sm leading-relaxed text-muted-foreground/90 md:text-base"
-              >
-                {prop.description}
-              </p>
             </div>
-          </div>
-        {/each}
+          {/each}
+        </div>
       </div>
     </section>
 
     <!-- Built-in Tools -->
-    <section class="reveal mx-auto mt-24 max-w-6xl md:mt-32">
-      <h2 class="section-label mb-3 text-center">Built-in Tools</h2>
+    <section class="reveal mx-auto mt-32 max-w-6xl md:mt-40">
+      <h2 class="section-label mb-4 text-center">Built-in Tools</h2>
       <p
-        class="mx-auto mb-14 max-w-2xl text-center text-base text-muted-foreground md:text-lg"
+        class="mx-auto mb-16 max-w-2xl text-center text-lg text-muted-foreground"
       >
         Every viber ships with real tools — file ops, web search, browser
         automation, terminal sessions, and more.
       </p>
 
-      <div class="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
+      <div class="grid gap-6 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
         {#each builtinTools as tool, i}
-          <div
-            class="reveal-card tool-card group flex flex-col items-center justify-center gap-3 rounded-2xl p-6 text-center hover:bg-card/90 hover:scale-[1.02]"
-            style="--delay: {i * 60}ms"
+          <SpotlightCard
+            class="flex flex-col items-center justify-center gap-4 p-8 text-center hover:bg-card/60 transition-colors"
           >
             <div
-              class="tool-icon flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary/5 text-primary group-hover:bg-primary/10 group-hover:scale-110 transition-all duration-300"
+              class="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-primary/5 text-primary border border-primary/10 group-hover:scale-110 transition-transform duration-300"
             >
-              <tool.icon class="size-6" />
+              <tool.icon class="size-7" />
             </div>
             <div>
-              <div class="text-sm font-semibold text-card-foreground">
+              <div class="text-base font-bold text-foreground mb-1">
                 {tool.name}
               </div>
-              <p class="mt-1 text-xs text-muted-foreground leading-relaxed">
+              <p class="text-xs text-muted-foreground leading-relaxed">
                 {tool.desc}
               </p>
             </div>
-          </div>
+          </SpotlightCard>
         {/each}
       </div>
     </section>
 
     <!-- Works With -->
-    <section class="reveal mx-auto mt-24 max-w-6xl md:mt-32 overflow-hidden">
-      <h2 class="section-label mb-3 text-center">Integrations</h2>
+    <section class="reveal mx-auto mt-32 max-w-6xl md:mt-40 overflow-hidden">
+      <h2 class="section-label mb-4 text-center">Integrations</h2>
       <p
-        class="mx-auto mb-12 max-w-xl text-center text-base text-muted-foreground md:text-lg"
+        class="mx-auto mb-12 max-w-xl text-center text-lg text-muted-foreground"
       >
         Vibers drive your favorite dev tools through skills and MCP servers.
       </p>
 
-      <InfiniteMarquee items={integrations} />
+      <div class="py-8">
+        <InfiniteMarquee items={integrations} />
+      </div>
     </section>
 
     <!-- Community -->
-    <section class="reveal mx-auto mt-24 max-w-6xl md:mt-32">
-       <div class="rounded-3xl border border-primary/20 bg-primary/5 px-6 py-12 md:px-12 md:py-16 text-center relative overflow-hidden">
+    <section class="reveal mx-auto mt-32 max-w-6xl md:mt-40">
+       <div class="rounded-[2.5rem] border border-primary/10 bg-primary/5 px-8 py-16 md:px-16 md:py-24 text-center relative overflow-hidden">
           <div class="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 mix-blend-overlay"></div>
           <div class="relative z-10">
-             <h2 class="text-3xl font-bold tracking-tight text-foreground sm:text-4xl mb-6">Join the Community</h2>
-             <p class="mx-auto max-w-2xl text-lg text-muted-foreground mb-10">
+             <h2 class="text-3xl font-bold tracking-tight text-foreground sm:text-4xl md:text-5xl mb-6">Join the Community</h2>
+             <p class="mx-auto max-w-2xl text-xl text-muted-foreground mb-12">
                OpenViber is open source and community-driven. Join thousands of developers building the future of local AI.
              </p>
 
-             <div class="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-3xl mx-auto">
+             <div class="grid grid-cols-2 md:grid-cols-4 gap-10 max-w-4xl mx-auto mb-16">
                 <div class="flex flex-col items-center gap-2">
-                   <div class="text-3xl font-black text-foreground">2.5k+</div>
-                   <div class="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+                   <div class="text-4xl font-black text-foreground tracking-tight">2.5k+</div>
+                   <div class="text-sm font-medium text-muted-foreground flex items-center gap-1.5 uppercase tracking-wide">
                       <Github class="size-4" /> Stars
                    </div>
                 </div>
                 <div class="flex flex-col items-center gap-2">
-                   <div class="text-3xl font-black text-foreground">1.2k+</div>
-                   <div class="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+                   <div class="text-4xl font-black text-foreground tracking-tight">1.2k+</div>
+                   <div class="text-sm font-medium text-muted-foreground flex items-center gap-1.5 uppercase tracking-wide">
                       <MessageCircle class="size-4" /> Discord
                    </div>
                 </div>
                  <div class="flex flex-col items-center gap-2">
-                   <div class="text-3xl font-black text-foreground">50+</div>
-                   <div class="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+                   <div class="text-4xl font-black text-foreground tracking-tight">50+</div>
+                   <div class="text-sm font-medium text-muted-foreground flex items-center gap-1.5 uppercase tracking-wide">
                       <GitMerge class="size-4" /> Contributors
                    </div>
                 </div>
                  <div class="flex flex-col items-center gap-2">
-                   <div class="text-3xl font-black text-foreground">10k+</div>
-                   <div class="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+                   <div class="text-4xl font-black text-foreground tracking-tight">10k+</div>
+                   <div class="text-sm font-medium text-muted-foreground flex items-center gap-1.5 uppercase tracking-wide">
                       <Download class="size-4" /> Downloads
                    </div>
                 </div>
              </div>
 
-             <div class="mt-12 flex justify-center gap-4 flex-wrap">
-                <a href="https://discord.gg/openviber" target="_blank" class="inline-flex items-center gap-2 rounded-full bg-[#5865F2] px-6 py-3 text-sm font-medium text-white shadow-lg shadow-[#5865F2]/20 hover:bg-[#4752C4] hover:-translate-y-0.5 transition-all">
-                   <MessageCircle class="size-4" /> Join Discord
+             <div class="flex justify-center gap-4 flex-wrap">
+                <a href="https://discord.gg/openviber" target="_blank" class="inline-flex items-center gap-2 rounded-full bg-[#5865F2] px-8 py-4 text-base font-medium text-white shadow-lg shadow-[#5865F2]/20 hover:bg-[#4752C4] hover:-translate-y-1 transition-all">
+                   <MessageCircle class="size-5" /> Join Discord
                 </a>
-                <a href="https://github.com/dustland/openviber" target="_blank" class="inline-flex items-center gap-2 rounded-full bg-foreground px-6 py-3 text-sm font-medium text-background shadow-lg hover:bg-foreground/90 hover:-translate-y-0.5 transition-all">
-                   <Github class="size-4" /> Star on GitHub
+                <a href="https://github.com/dustland/openviber" target="_blank" class="inline-flex items-center gap-2 rounded-full bg-foreground px-8 py-4 text-base font-medium text-background shadow-lg hover:bg-foreground/90 hover:-translate-y-1 transition-all">
+                   <Github class="size-5" /> Star on GitHub
                 </a>
              </div>
           </div>
@@ -635,31 +591,31 @@
     </section>
 
     <!-- Get Started CTA -->
-    <section class="reveal mx-auto mt-24 max-w-3xl text-center md:mt-32">
-      <div class="cta-card rounded-2xl px-8 py-12 md:px-14 md:py-16">
+    <section class="reveal mx-auto mt-32 max-w-3xl text-center md:mt-40 mb-20">
+      <div class="cta-card rounded-3xl px-8 py-16 md:px-16 md:py-20 border border-border/60 bg-card/40 backdrop-blur-xl">
         <div class="cta-cross-hatch"></div>
-        <Bot class="mx-auto mb-4 size-8 text-primary" />
-        <h2 class="text-2xl font-semibold text-card-foreground md:text-3xl">
+        <Bot class="mx-auto mb-6 size-10 text-primary" />
+        <h2 class="text-3xl font-bold text-foreground md:text-4xl tracking-tight">
           Your first viber, running in 5 minutes
         </h2>
         <p
-          class="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-muted-foreground"
+          class="mx-auto mt-4 max-w-lg text-base leading-relaxed text-muted-foreground"
         >
           Install OpenViber, run the onboarding wizard, and deploy your first
           viber — all from the terminal.
         </p>
 
-        <div class="code-block mx-auto mt-8 max-w-sm rounded-lg px-5 py-3.5">
-          <code class="text-sm text-foreground">npx openviber onboard</code>
+        <div class="code-block mx-auto mt-10 max-w-sm rounded-xl px-6 py-4 shadow-inner bg-muted/50 border border-border/50">
+          <code class="text-base font-mono text-foreground font-semibold">npx openviber onboard</code>
         </div>
 
         <div
-          class="mt-8 flex flex-wrap items-center justify-center gap-3 md:gap-4"
+          class="mt-10 flex flex-wrap items-center justify-center gap-4"
         >
           {#if !data.user && data.supabaseAuthEnabled}
             <a
               href={githubAuthUrl}
-              class="cta-primary group inline-flex items-center gap-2.5 rounded-lg bg-primary px-8 py-3 text-sm font-semibold text-primary-foreground transition-all duration-300 hover:-translate-y-1"
+              class="cta-primary group inline-flex items-center gap-2.5 rounded-full bg-primary px-8 py-3.5 text-sm font-bold text-primary-foreground transition-all duration-300 hover:-translate-y-1"
             >
               <svg
                 class="size-4"
@@ -679,7 +635,7 @@
           {:else}
             <a
               href="/docs/getting-started/quick-start"
-              class="cta-primary group inline-flex items-center gap-2.5 rounded-lg bg-primary px-8 py-3 text-sm font-semibold text-primary-foreground transition-all duration-300 hover:-translate-y-1"
+              class="cta-primary group inline-flex items-center gap-2.5 rounded-full bg-primary px-8 py-3.5 text-sm font-bold text-primary-foreground transition-all duration-300 hover:-translate-y-1"
             >
               Quick Start Guide
               <ArrowRight
@@ -691,7 +647,7 @@
             href="https://github.com/dustland/openviber"
             target="_blank"
             rel="noopener noreferrer"
-            class="inline-flex items-center gap-2 rounded-lg border border-border/80 bg-background/60 px-6 py-3 text-sm font-medium text-foreground backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-accent/80"
+            class="inline-flex items-center gap-2 rounded-full border border-border/80 bg-background/50 px-6 py-3.5 text-sm font-medium text-foreground backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-accent/80"
           >
             <Github class="size-4" />
             View on GitHub
@@ -703,42 +659,42 @@
 
   <!-- Footer -->
   <footer
-    class="relative border-t border-border/40 bg-card/20 backdrop-blur-sm mt-24"
+    class="relative border-t border-border/40 bg-card/30 backdrop-blur-md"
   >
-    <div class="container mx-auto px-6 py-16 md:px-8">
-      <div class="grid grid-cols-2 gap-10 md:grid-cols-4 lg:grid-cols-5">
+    <div class="container mx-auto px-6 py-20 md:px-8">
+      <div class="grid grid-cols-2 gap-12 md:grid-cols-4 lg:grid-cols-5">
         <div class="col-span-2 lg:col-span-2">
-          <div class="flex items-center gap-2 mb-4">
-            <img src="/favicon.png" alt="OpenViber" class="size-6" />
-            <span class="text-base font-bold text-foreground">OpenViber</span>
+          <div class="flex items-center gap-2 mb-6">
+            <img src="/favicon.png" alt="OpenViber" class="size-8" />
+            <span class="text-xl font-bold text-foreground tracking-tight">OpenViber</span>
           </div>
           <p
-            class="text-sm text-muted-foreground max-w-xs leading-relaxed mb-6"
+            class="text-sm text-muted-foreground max-w-xs leading-relaxed mb-8"
           >
             The local-first AI workforce for developers. Private, autonomous,
             and capable.
           </p>
-          <p class="text-xs text-muted-foreground mt-6">
+          <p class="text-xs text-muted-foreground/60">
             &copy; {new Date().getFullYear()} Dustland. All rights reserved.
           </p>
         </div>
 
         <div>
-          <h3 class="font-semibold text-foreground mb-4 text-sm">Product</h3>
-          <ul class="space-y-3 text-sm text-muted-foreground">
+          <h3 class="font-semibold text-foreground mb-6 text-sm uppercase tracking-wider">Product</h3>
+          <ul class="space-y-4 text-sm text-muted-foreground">
             <li>
               <a
                 href="/docs/getting-started/quick-start"
-                class="hover:text-primary transition-colors">Quick Start</a
+                class="hover:text-foreground transition-colors">Quick Start</a
               >
             </li>
             <li>
-              <a href="/hub" class="hover:text-primary transition-colors"
+              <a href="/hub" class="hover:text-foreground transition-colors"
                 >Skill Hub</a
               >
             </li>
             <li>
-              <a href="/docs" class="hover:text-primary transition-colors"
+              <a href="/docs" class="hover:text-foreground transition-colors"
                 >Documentation</a
               >
             </li>
@@ -746,14 +702,14 @@
         </div>
 
         <div>
-          <h3 class="font-semibold text-foreground mb-4 text-sm">Community</h3>
-          <ul class="space-y-3 text-sm text-muted-foreground">
+          <h3 class="font-semibold text-foreground mb-6 text-sm uppercase tracking-wider">Community</h3>
+          <ul class="space-y-4 text-sm text-muted-foreground">
             <li>
               <a
                 href="https://github.com/dustland/openviber"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="hover:text-primary transition-colors">GitHub</a
+                class="hover:text-foreground transition-colors">GitHub</a
               >
             </li>
             <li>
@@ -761,22 +717,22 @@
                 href="https://discord.gg/openviber"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="hover:text-primary transition-colors">Discord</a
+                class="hover:text-foreground transition-colors">Discord</a
               >
             </li>
           </ul>
         </div>
 
         <div>
-          <h3 class="font-semibold text-foreground mb-4 text-sm">Legal</h3>
-          <ul class="space-y-3 text-sm text-muted-foreground">
+          <h3 class="font-semibold text-foreground mb-6 text-sm uppercase tracking-wider">Legal</h3>
+          <ul class="space-y-4 text-sm text-muted-foreground">
             <li>
-              <a href="/privacy" class="hover:text-primary transition-colors"
+              <a href="/privacy" class="hover:text-foreground transition-colors"
                 >Privacy</a
               >
             </li>
             <li>
-              <a href="/terms" class="hover:text-primary transition-colors"
+              <a href="/terms" class="hover:text-foreground transition-colors"
                 >Terms</a
               >
             </li>
@@ -819,107 +775,6 @@
     background-size: 256px 256px;
   }
 
-  /* ── Animated background orbs ── */
-  .orb-container {
-    position: absolute;
-    will-change: transform;
-    /* Animation happens on the container */
-  }
-
-  .orb-1-container {
-    width: 40rem;
-    height: 40rem;
-    top: -12rem;
-    left: 50%;
-    margin-left: -20rem; /* Center horizontally */
-    animation: float-1 20s ease-in-out infinite;
-  }
-
-  .orb-2-container {
-    width: 26rem;
-    height: 26rem;
-    top: 22rem;
-    right: -10rem;
-    animation: float-2 25s ease-in-out infinite;
-  }
-
-  .orb-3-container {
-    width: 22rem;
-    height: 22rem;
-    top: 64rem;
-    left: -8rem;
-    animation: float-3 22s ease-in-out infinite;
-  }
-
-  .orb {
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    filter: blur(100px);
-    opacity: 0.3;
-    mix-blend-mode: screen;
-    will-change: transform;
-    /* Parallax transform is applied inline */
-    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .orb-1 {
-    background: radial-gradient(
-      circle,
-      hsl(var(--primary) / 0.3),
-      transparent 65%
-    );
-  }
-
-  .orb-2 {
-    background: radial-gradient(
-      circle,
-      hsl(var(--ring) / 0.22),
-      transparent 65%
-    );
-  }
-
-  .orb-3 {
-    background: radial-gradient(
-      circle,
-      hsl(var(--primary) / 0.18),
-      transparent 65%
-    );
-  }
-
-  @keyframes float-1 {
-    0%,
-    100% {
-      transform: translate(0, 0);
-    }
-    33% {
-      transform: translate(20px, 40px);
-    }
-    66% {
-      transform: translate(-20px, -20px);
-    }
-  }
-
-  @keyframes float-2 {
-    0%,
-    100% {
-      transform: translate(0, 0);
-    }
-    50% {
-      transform: translate(-40px, -20px);
-    }
-  }
-
-  @keyframes float-3 {
-    0%,
-    100% {
-      transform: translate(0, 0);
-    }
-    50% {
-      transform: translate(30px, 25px);
-    }
-  }
-
   /* ── Hero entrance animations ── */
   .hero-logo-wrap {
     animation: hero-fade-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -940,7 +795,7 @@
     color: transparent;
     animation: hero-fade-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
     animation-delay: 0.25s;
-    text-shadow: 0 0 40px hsl(var(--primary) / 0.15);
+    text-shadow: 0 0 40px hsl(var(--primary) / 0.05);
   }
   .hero-subtitle {
     animation: hero-fade-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -976,26 +831,18 @@
 
   /* ── CTA button glow ── */
   .cta-primary {
-    box-shadow:
-      0 4px 20px -4px hsl(var(--primary) / 0.35),
-      0 0 0 0 hsl(var(--primary) / 0);
     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .cta-primary:hover {
-    box-shadow:
-      0 10px 28px -4px hsl(var(--primary) / 0.45),
-      0 0 0 1px hsl(var(--primary) / 0.18);
   }
 
   /* ── Section divider gradient ── */
   .section-divider {
     position: relative;
     height: 1px;
-    max-width: 20rem;
+    max-width: 24rem;
     background: linear-gradient(
       90deg,
       transparent,
-      hsl(var(--primary) / 0.4),
+      hsl(var(--border)),
       transparent
     );
   }
@@ -1004,11 +851,11 @@
     top: -8px;
     left: 50%;
     transform: translateX(-50%);
-    width: 12rem;
+    width: 16rem;
     height: 17px;
     background: radial-gradient(
       ellipse at center,
-      hsl(var(--primary) / 0.12),
+      hsl(var(--primary) / 0.08),
       transparent 70%
     );
     pointer-events: none;
@@ -1017,149 +864,29 @@
   /* ── Section label ── */
   .section-label {
     font-size: 0.875rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: hsl(var(--primary));
-  }
-
-  /* ── Use case card ── */
-  .use-case-card {
-    border: 1px solid hsl(var(--border) / 0.5);
-    background: hsl(var(--card) / 0.4);
-    backdrop-filter: blur(8px);
-    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .use-case-card:hover {
-    border-color: hsl(var(--primary) / 0.5);
-    background: hsl(var(--card) / 0.8);
-    transform: translateY(-8px) scale(1.03);
-    box-shadow: 0 20px 40px -8px hsl(var(--primary) / 0.25);
-  }
-  .use-case-icon {
-    background: hsl(var(--primary) / 0.08);
-    color: hsl(var(--primary));
-    border: 1px solid hsl(var(--primary) / 0.15);
-    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .use-case-card:hover .use-case-icon {
-    background: hsl(var(--primary) / 0.14);
-    border-color: hsl(var(--primary) / 0.25);
-    transform: scale(1.1);
-  }
-
-  /* ── How-it-works step card ── */
-  .how-step {
-    border: 1px solid hsl(var(--border) / 0.5);
-    background: hsl(var(--card) / 0.4);
-    backdrop-filter: blur(8px);
-    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .how-step:hover {
-    border-color: hsl(var(--primary) / 0.4);
-    background: hsl(var(--card) / 0.7);
-    transform: translateY(-4px) scale(1.02);
-    box-shadow: 0 12px 32px -8px hsl(var(--primary) / 0.15);
-  }
-  .step-number {
-    font-size: 2rem;
     font-weight: 700;
-    line-height: 1;
-    background: linear-gradient(
-      135deg,
-      hsl(var(--primary)),
-      hsl(var(--primary) / 0.4)
-    );
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
-  .step-connector {
-    position: absolute;
-    right: -1.25rem;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 10;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: 50%;
-    background: hsl(var(--background));
-    border: 1px solid hsl(var(--border) / 0.5);
-  }
-
-  /* ── Dark contrast section ── */
-  .dark-section {
-    position: relative;
-    overflow: hidden;
-    background: hsl(var(--card) / 0.5);
-    border: 1px solid hsl(var(--border) / 0.5);
-    backdrop-filter: blur(16px);
-    box-shadow:
-      0 0 0 1px hsl(var(--primary) / 0.04),
-      0 20px 60px -12px hsl(var(--background) / 0.3);
-  }
-  .dark-section > :not(.hex-pattern) {
-    position: relative;
-    z-index: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: hsl(var(--primary));
   }
 
   /* ── Glass card ── */
   .glass-card {
-    border: 1px solid hsl(var(--border) / 0.6);
-    background: hsl(var(--card) / 0.5);
+    border: 1px solid hsl(var(--border) / 0.3);
+    background: hsl(var(--card) / 0.2);
     backdrop-filter: blur(8px);
     transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .glass-card:hover {
-    border-color: hsl(var(--primary) / 0.45);
-    transform: translateY(-4px) scale(1.02);
-    box-shadow:
-      0 12px 32px -8px hsl(var(--primary) / 0.15),
-      0 0 0 1px hsl(var(--primary) / 0.1);
-  }
-
-  /* ── Icon ring ── */
-  .icon-ring {
-    background: hsl(var(--primary) / 0.1);
-    color: hsl(var(--primary));
-    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.2);
-    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .glass-card:hover .icon-ring {
-    transform: scale(1.12);
-    background: hsl(var(--primary) / 0.15);
-    box-shadow:
-      0 0 0 1px hsl(var(--primary) / 0.3),
-      0 4px 12px -2px hsl(var(--primary) / 0.15);
-  }
-
-  /* ── Tool card ── */
-  .tool-card {
-    border: 1px solid hsl(var(--border) / 0.5);
-    background: hsl(var(--card) / 0.4);
-    backdrop-filter: blur(6px);
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .tool-card:hover {
     border-color: hsl(var(--primary) / 0.3);
-    background: hsl(var(--card) / 0.7);
-    box-shadow: 0 8px 24px -8px hsl(var(--primary) / 0.1);
+    background: hsl(var(--card) / 0.4);
+    transform: translateY(-4px);
   }
 
   /* ── CTA card ── */
   .cta-card {
     position: relative;
     overflow: hidden;
-    border: 1px solid hsl(var(--border) / 0.6);
-    background: linear-gradient(
-      135deg,
-      hsl(var(--card)),
-      hsl(var(--card) / 0.6)
-    );
-    backdrop-filter: blur(12px);
   }
   .cta-card::before {
     content: "";
@@ -1168,18 +895,14 @@
     border-radius: inherit;
     background: linear-gradient(
       135deg,
-      hsl(var(--primary) / 0.12),
+      hsl(var(--primary) / 0.1),
       transparent 40%,
       transparent 60%,
-      hsl(var(--primary) / 0.08)
+      hsl(var(--primary) / 0.05)
     );
-    opacity: 0;
-    transition: opacity 0.6s ease;
+    opacity: 0.5;
     pointer-events: none;
     z-index: 0;
-  }
-  .cta-card:hover::before {
-    opacity: 1;
   }
   .cta-card > :global(*) {
     position: relative;
@@ -1190,8 +913,6 @@
   .code-block {
     position: relative;
     overflow: hidden;
-    background: hsl(var(--muted) / 0.7);
-    border: 1px solid hsl(var(--border) / 0.4);
   }
   .code-block::after {
     content: "";
@@ -1203,7 +924,7 @@
     background: linear-gradient(
       90deg,
       transparent,
-      hsl(var(--primary) / 0.07),
+      hsl(var(--primary) / 0.05),
       transparent
     );
     animation: shimmer 5s ease-in-out 2s infinite;
@@ -1253,10 +974,10 @@
     inset: 0;
     pointer-events: none;
     z-index: -1;
-    opacity: 0.35;
+    opacity: 0.3;
     background-image: radial-gradient(
       circle,
-      hsl(var(--foreground) / 0.12) 1px,
+      hsl(var(--foreground) / 0.1) 1px,
       transparent 1px
     );
     background-size: 32px 32px;
@@ -1272,131 +993,6 @@
     );
   }
 
-  /* ── Hero radial grid rings ── */
-  .hero-grid-rings {
-    position: absolute;
-    top: -20rem;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 60rem;
-    height: 60rem;
-    pointer-events: none;
-    z-index: -1;
-    opacity: 0;
-    animation: rings-fade-in 2s ease-out 0.3s forwards;
-    background: radial-gradient(
-        circle,
-        transparent 8rem,
-        hsl(var(--primary) / 0.04) 8.5rem,
-        transparent 9rem
-      ),
-      radial-gradient(
-        circle,
-        transparent 14rem,
-        hsl(var(--primary) / 0.035) 14.5rem,
-        transparent 15rem
-      ),
-      radial-gradient(
-        circle,
-        transparent 20rem,
-        hsl(var(--primary) / 0.03) 20.5rem,
-        transparent 21rem
-      ),
-      radial-gradient(
-        circle,
-        transparent 26rem,
-        hsl(var(--primary) / 0.02) 26.5rem,
-        transparent 27rem
-      );
-    mask-image: radial-gradient(circle at 50% 50%, black 30%, transparent 65%);
-    -webkit-mask-image: radial-gradient(
-      circle at 50% 50%,
-      black 30%,
-      transparent 65%
-    );
-  }
-  @keyframes rings-fade-in {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
-  }
-
-  /* ── Diagonal light beams ── */
-  .light-beams {
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: -1;
-    opacity: 0.4;
-    overflow: hidden;
-  }
-  .light-beams::before,
-  .light-beams::after {
-    content: "";
-    position: absolute;
-    width: 1px;
-    height: 200%;
-    top: -50%;
-    background: linear-gradient(
-      to bottom,
-      transparent,
-      hsl(var(--primary) / 0.06),
-      hsl(var(--primary) / 0.1),
-      hsl(var(--primary) / 0.06),
-      transparent
-    );
-    animation: beam-drift 30s ease-in-out infinite;
-  }
-  .light-beams::before {
-    left: 20%;
-    transform: rotate(15deg);
-    animation-delay: 0s;
-  }
-  .light-beams::after {
-    right: 25%;
-    transform: rotate(-12deg);
-    animation-delay: -15s;
-  }
-  @keyframes beam-drift {
-    0%,
-    100% {
-      transform: rotate(15deg) translateX(0);
-    }
-    50% {
-      transform: rotate(15deg) translateX(40px);
-    }
-  }
-
-  /* ── Topographic contour lines ── */
-  .topo-lines {
-    position: absolute;
-    top: 50rem;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 80rem;
-    height: 50rem;
-    pointer-events: none;
-    z-index: -1;
-    opacity: 0.25;
-    background-image: url("data:image/svg+xml,%3Csvg width='800' height='500' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M-50 250 Q100 180 200 220 Q350 280 450 200 Q550 140 650 210 Q750 260 850 190' fill='none' stroke='%239ca3af' stroke-width='0.5' opacity='0.5'/%3E%3Cpath d='M-50 290 Q120 220 230 260 Q360 310 470 240 Q580 170 670 250 Q770 300 870 230' fill='none' stroke='%239ca3af' stroke-width='0.5' opacity='0.4'/%3E%3Cpath d='M-50 330 Q80 270 190 300 Q330 350 440 270 Q560 200 660 280 Q780 340 880 260' fill='none' stroke='%239ca3af' stroke-width='0.5' opacity='0.3'/%3E%3Cpath d='M-50 210 Q140 150 240 180 Q370 240 480 160 Q590 100 700 170 Q800 230 880 150' fill='none' stroke='%239ca3af' stroke-width='0.5' opacity='0.3'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: contain;
-    animation: topo-float 40s ease-in-out infinite;
-  }
-  @keyframes topo-float {
-    0%,
-    100% {
-      transform: translateX(-50%) translateY(0);
-    }
-    50% {
-      transform: translateX(-50%) translateY(20px);
-    }
-  }
-
   /* ── Hex pattern (for dark section) ── */
   .hex-pattern {
     position: absolute;
@@ -1405,7 +1001,7 @@
     z-index: 0;
     border-radius: inherit;
     overflow: hidden;
-    opacity: 0.5;
+    opacity: 0.3;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='49' viewBox='0 0 28 49'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.06'%3E%3Cpath d='M13.99 9.25l13 7.5v15l-13 7.5L1 31.75v-15l12.99-7.5zM3 17.9v12.7l10.99 6.34 11-6.35V17.9l-11-6.34L3 17.9zM0 15l12.98-7.5V0h-2v6.35L0 12.69v2.3zm0 18.5L12.98 41v8h-2v-6.85L0 35.81v-2.3zM15 0v7.5L27.99 15H28v-2.31h-.01L17 6.35V0h-2zm0 49v-8l12.99-7.5H28v2.31h-.01L17 42.15V49h-2z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
     mask-image: radial-gradient(
       ellipse 80% 70% at 50% 50%,
@@ -1427,7 +1023,7 @@
     z-index: 0;
     border-radius: inherit;
     overflow: hidden;
-    opacity: 0.5;
+    opacity: 0.3;
     background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 40L40 0M-10 10L10-10M30 50L50 30' stroke='%239C92AC' stroke-opacity='0.05' stroke-width='0.5'/%3E%3C/svg%3E");
     mask-image: radial-gradient(
       ellipse 90% 80% at 50% 50%,
@@ -1441,34 +1037,8 @@
     );
   }
 
-  /* ── Floating connection nodes (constellation) ── */
-  .homepage::after {
-    content: "";
-    position: fixed;
-    top: 0;
-    right: 5%;
-    width: 40rem;
-    height: 100%;
-    pointer-events: none;
-    z-index: -1;
-    opacity: 0.15;
-    background-image: url("data:image/svg+xml,%3Csvg width='400' height='800' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='80' cy='120' r='1.5' fill='%239ca3af' opacity='0.6'/%3E%3Ccircle cx='250' cy='200' r='1' fill='%239ca3af' opacity='0.4'/%3E%3Ccircle cx='150' cy='350' r='1.5' fill='%239ca3af' opacity='0.5'/%3E%3Ccircle cx='320' cy='450' r='1' fill='%239ca3af' opacity='0.3'/%3E%3Ccircle cx='60' cy='550' r='1.5' fill='%239ca3af' opacity='0.4'/%3E%3Ccircle cx='280' cy='650' r='1' fill='%239ca3af' opacity='0.5'/%3E%3Ccircle cx='180' cy='750' r='1.5' fill='%239ca3af' opacity='0.3'/%3E%3Cline x1='80' y1='120' x2='250' y2='200' stroke='%239ca3af' stroke-width='0.3' opacity='0.25'/%3E%3Cline x1='250' y1='200' x2='150' y2='350' stroke='%239ca3af' stroke-width='0.3' opacity='0.2'/%3E%3Cline x1='150' y1='350' x2='320' y2='450' stroke='%239ca3af' stroke-width='0.3' opacity='0.15'/%3E%3Cline x1='320' y1='450' x2='60' y2='550' stroke='%239ca3af' stroke-width='0.3' opacity='0.2'/%3E%3Cline x1='60' y1='550' x2='280' y2='650' stroke='%239ca3af' stroke-width='0.3' opacity='0.15'/%3E%3Cline x1='280' y1='650' x2='180' y2='750' stroke='%239ca3af' stroke-width='0.3' opacity='0.1'/%3E%3C/svg%3E");
-    background-repeat: repeat-y;
-    background-size: 400px 800px;
-    animation: constellation-drift 50s linear infinite;
-  }
-  @keyframes constellation-drift {
-    0% {
-      background-position: 0 0;
-    }
-    100% {
-      background-position: 0 800px;
-    }
-  }
-
   /* Reduce motion for accessibility */
   @media (prefers-reduced-motion: reduce) {
-    .orb,
     .hero-logo-wrap,
     .hero-logo,
     .hero-title,
@@ -1477,12 +1047,7 @@
     .hero-cta,
     .reveal,
     .reveal-card,
-    .edge-glow,
-    .hero-grid-rings,
-    .topo-lines,
-    .light-beams::before,
-    .light-beams::after,
-    .homepage::after {
+    .edge-glow {
       animation: none !important;
       opacity: 1 !important;
       transform: none !important;

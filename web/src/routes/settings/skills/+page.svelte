@@ -585,6 +585,7 @@
     align-items: flex-start;
     justify-content: space-between;
     gap: 1rem;
+    flex-wrap: wrap;
   }
 
   .header-text h1 {
@@ -623,6 +624,16 @@
     align-items: center;
     gap: 0.5rem;
     flex-shrink: 0;
+  }
+
+  @media (max-width: 640px) {
+    .skills-header {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .header-actions {
+      justify-content: space-between;
+    }
   }
 
   .skill-count {

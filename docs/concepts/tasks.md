@@ -137,7 +137,7 @@ budget:
 | Mode | Description | When to Use |
 |------|-------------|-------------|
 | **Always Ask** | Task asks before each execution action | Building trust, learning |
-| **Task Decides** | Active execution within policy boundaries | Daily work, established workflows |
+| **Agent Decides** | Active execution within policy boundaries | Daily work, established workflows |
 | **Always Execute** | High autonomy; intervene by exception | Overnight runs, trusted tasks |
 
 The mode controls how much autonomy the task has. Start with "Always Ask" and graduate as you build confidence.

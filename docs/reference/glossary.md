@@ -106,7 +106,7 @@ Additional information attached to messages, Spaces, or artifacts. Used for trac
 The operational mode for task interactions:
 
 - **Always Ask**: Task asks before each action
-- **Task Decides** (or Viber Decides): Task acts within policy boundaries
+- **Agent Decides**: Task acts within policy boundaries
 - **Always Execute**: Maximum autonomy, minimal interruption
 
 ## P

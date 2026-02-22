@@ -5,6 +5,7 @@
   import InfiniteMarquee from "$lib/components/landing/infinite-marquee.svelte";
   import HeroMockup from "$lib/components/landing/hero-mockup.svelte";
   import CodeTyper from "$lib/components/landing/code-typer.svelte";
+  import SpotlightCard from "$lib/components/landing/spotlight-card.svelte";
 
   import {
     ArrowRight,
@@ -369,13 +370,14 @@
 
       <div class="grid gap-4 md:grid-cols-3">
         {#each useCases as useCase, i}
-          <div
-            class="reveal-card use-case-card group rounded-2xl p-6 md:p-8 hover:shadow-xl hover:shadow-primary/10 hover:border-primary/40 flex flex-col justify-between {useCase.span}"
+          <SpotlightCard
+            class="reveal-card flex flex-col justify-between rounded-2xl p-6 md:p-8 hover:shadow-xl hover:shadow-primary/10 {useCase.span}"
             style="--delay: {i * 100}ms"
+            radius="1rem"
           >
             <div>
               <div
-                class="use-case-icon mb-4 inline-flex size-12 items-center justify-center rounded-xl group-hover:bg-primary group-hover:text-primary-foreground"
+                class="use-case-icon mb-4 inline-flex size-12 items-center justify-center rounded-xl transition-all duration-300 group-hover:scale-110 group-hover:bg-primary group-hover:text-primary-foreground"
               >
                 <useCase.icon class="size-6" />
               </div>
@@ -386,7 +388,7 @@
             <p class="text-sm italic leading-relaxed text-muted-foreground/80">
               {useCase.example}
             </p>
-          </div>
+          </SpotlightCard>
         {/each}
       </div>
     </section>
@@ -469,9 +471,10 @@
 
       <div class="grid gap-6 md:grid-cols-3">
         {#each howItWorks as step, i}
-          <div
-            class="reveal-card how-step group relative rounded-2xl p-6"
+          <SpotlightCard
+            class="reveal-card relative rounded-2xl p-6"
             style="--delay: {i * 120}ms"
+            radius="1rem"
           >
             <div class="step-number mb-4 drop-shadow-md">{step.step}</div>
             <h3 class="mb-2 text-lg font-semibold text-card-foreground">
@@ -485,7 +488,7 @@
                 <ArrowRight class="size-4 text-primary/40" />
               </div>
             {/if}
-          </div>
+          </SpotlightCard>
         {/each}
       </div>
     </section>
@@ -505,22 +508,18 @@
 
       <div class="grid gap-6 md:grid-cols-3">
         {#each valueProps as prop, i}
-          <div
-            class="reveal-card glass-card group relative overflow-hidden rounded-3xl p-6 md:p-8 hover:shadow-2xl hover:shadow-primary/20 {i ===
+          <SpotlightCard
+            class="reveal-card rounded-3xl p-6 md:p-8 hover:shadow-2xl hover:shadow-primary/20 {i ===
             0
               ? 'md:col-span-2'
               : ''}"
             style="--delay: {i * 100}ms"
+            radius="1.5rem"
           >
-            <!-- Card gradient background -->
-            <div
-              class="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100"
-            ></div>
-
-            <div class="relative z-10 flex flex-col h-full justify-between">
+            <div class="flex flex-col h-full justify-between">
               <div>
                 <div
-                  class="icon-ring mb-5 inline-flex size-12 items-center justify-center rounded-xl"
+                  class="icon-ring mb-5 inline-flex size-12 items-center justify-center rounded-xl transition-all duration-300 group-hover:scale-110 group-hover:bg-primary/15 group-hover:shadow-[0_0_0_1px_hsl(var(--primary)/0.3),0_4px_12px_-2px_hsl(var(--primary)/0.15)]"
                 >
                   <prop.icon class="size-6" />
                 </div>
@@ -534,7 +533,7 @@
                 {prop.description}
               </p>
             </div>
-          </div>
+          </SpotlightCard>
         {/each}
       </div>
     </section>
@@ -551,9 +550,10 @@
 
       <div class="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
         {#each builtinTools as tool, i}
-          <div
-            class="reveal-card tool-card group flex flex-col items-center justify-center gap-3 rounded-2xl p-6 text-center hover:bg-card/90 hover:scale-[1.02]"
+          <SpotlightCard
+            class="reveal-card flex flex-col items-center justify-center gap-3 rounded-2xl p-6 text-center hover:scale-[1.02]"
             style="--delay: {i * 60}ms"
+            radius="1rem"
           >
             <div
               class="tool-icon flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary/5 text-primary group-hover:bg-primary/10 group-hover:scale-110 transition-all duration-300"
@@ -568,7 +568,7 @@
                 {tool.desc}
               </p>
             </div>
-          </div>
+          </SpotlightCard>
         {/each}
       </div>
     </section>
@@ -1024,43 +1024,13 @@
   }
 
   /* ── Use case card ── */
-  .use-case-card {
-    border: 1px solid hsl(var(--border) / 0.5);
-    background: hsl(var(--card) / 0.4);
-    backdrop-filter: blur(8px);
-    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .use-case-card:hover {
-    border-color: hsl(var(--primary) / 0.5);
-    background: hsl(var(--card) / 0.8);
-    transform: translateY(-8px) scale(1.03);
-    box-shadow: 0 20px 40px -8px hsl(var(--primary) / 0.25);
-  }
   .use-case-icon {
     background: hsl(var(--primary) / 0.08);
     color: hsl(var(--primary));
     border: 1px solid hsl(var(--primary) / 0.15);
     transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   }
-  .use-case-card:hover .use-case-icon {
-    background: hsl(var(--primary) / 0.14);
-    border-color: hsl(var(--primary) / 0.25);
-    transform: scale(1.1);
-  }
 
-  /* ── How-it-works step card ── */
-  .how-step {
-    border: 1px solid hsl(var(--border) / 0.5);
-    background: hsl(var(--card) / 0.4);
-    backdrop-filter: blur(8px);
-    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .how-step:hover {
-    border-color: hsl(var(--primary) / 0.4);
-    background: hsl(var(--card) / 0.7);
-    transform: translateY(-4px) scale(1.02);
-    box-shadow: 0 12px 32px -8px hsl(var(--primary) / 0.15);
-  }
   .step-number {
     font-size: 2rem;
     font-weight: 700;
@@ -1106,47 +1076,12 @@
     z-index: 1;
   }
 
-  /* ── Glass card ── */
-  .glass-card {
-    border: 1px solid hsl(var(--border) / 0.6);
-    background: hsl(var(--card) / 0.5);
-    backdrop-filter: blur(8px);
-    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .glass-card:hover {
-    border-color: hsl(var(--primary) / 0.45);
-    transform: translateY(-4px) scale(1.02);
-    box-shadow:
-      0 12px 32px -8px hsl(var(--primary) / 0.15),
-      0 0 0 1px hsl(var(--primary) / 0.1);
-  }
-
   /* ── Icon ring ── */
   .icon-ring {
     background: hsl(var(--primary) / 0.1);
     color: hsl(var(--primary));
     box-shadow: 0 0 0 1px hsl(var(--primary) / 0.2);
     transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .glass-card:hover .icon-ring {
-    transform: scale(1.12);
-    background: hsl(var(--primary) / 0.15);
-    box-shadow:
-      0 0 0 1px hsl(var(--primary) / 0.3),
-      0 4px 12px -2px hsl(var(--primary) / 0.15);
-  }
-
-  /* ── Tool card ── */
-  .tool-card {
-    border: 1px solid hsl(var(--border) / 0.5);
-    background: hsl(var(--card) / 0.4);
-    backdrop-filter: blur(6px);
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .tool-card:hover {
-    border-color: hsl(var(--primary) / 0.3);
-    background: hsl(var(--card) / 0.7);
-    box-shadow: 0 8px 24px -8px hsl(var(--primary) / 0.1);
   }
 
   /* ── CTA card ── */
@@ -1234,14 +1169,14 @@
   }
 
   /* ── Staggered card reveal ── */
-  .reveal-card {
+  :global(.reveal-card) {
     opacity: 0;
     transform: translateY(16px);
     transition:
       opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
       transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
   }
-  :global(.revealed) .reveal-card {
+  :global(.revealed) :global(.reveal-card) {
     opacity: 1;
     transform: translateY(0);
     transition-delay: var(--delay, 0ms);
@@ -1476,7 +1411,7 @@
     .hero-badge,
     .hero-cta,
     .reveal,
-    .reveal-card,
+    :global(.reveal-card),
     .edge-glow,
     .hero-grid-rings,
     .topo-lines,

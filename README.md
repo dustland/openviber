@@ -23,7 +23,7 @@
 
 - ✅ **Zero Setup** — No servers to host, just `npx openviber start`
 - ✅ **Task Workforce** — Role-scoped tasks working in parallel
-- ✅ **Human-in-the-Loop** — Enterprise messaging channels (DingTalk, WeCom)
+- ✅ **Human-in-the-Loop** — Enterprise messaging channels (DingTalk, WeCom, Discord, Telegram)
 - ✅ **Privacy First** — 100% local execution, data never leaves your machine
 
 ---
@@ -93,7 +93,7 @@ viber chat
 A modern, visual interface to manage your tasks, monitor jobs, and chat in real-time. Accessible at `http://localhost:6006` when running `pnpm dev`.
 
 ### 🏢 Enterprise Channels
-Deploy your tasks to where your team works. Support for **DingTalk** and **WeCom** is built-in.
+Deploy your tasks to where your team works. Support for **DingTalk**, **WeCom**, **Discord**, **Telegram**, **Feishu**, and **WeChat** is built-in.
 
 ```bash
 # Start the enterprise channel server
@@ -168,7 +168,7 @@ Maintain control with approval gates. Tasks can be configured to pause and ask f
 │        │                                        │
 │   ┌────┴─────────────────────┐                  │
 │   │        Channels          │                  │
-│   │  Board │ DingTalk │ CLI  │                  │
+│   │  Board │ Chat Apps│ CLI  │                  │
 │   └──────────────────────────┘                  │
 └─────────────────────────────────────────────────┘
           ↓                    ↓

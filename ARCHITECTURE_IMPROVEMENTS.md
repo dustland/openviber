@@ -161,3 +161,21 @@ If you want to continue improving:
 2. **Phase 5**: Consolidate config into single schema
 3. **Migrate**: Update all existing tools to use new Tool interface
 4. **Runtime**: Implement DockerRuntimeAdapter
+
+---
+
+## Phase 6: Usability & Simplicity (Nanobot-Inspired)
+
+To match the "elegance of simplicity" found in Nanobot, we are implementing improvements to the CLI and onboarding experience.
+
+### 1. Interactive Standalone Mode
+**Goal:** Enable users to chat with an agent immediately without starting a daemon or web UI.
+**Action:** Update `viber run` to support an interactive REPL mode when no goal argument is provided. This mimics `nanobot agent` behavior.
+
+### 2. Unified Configuration
+**Goal:** Simplify the "Getting Started" experience by offering a single-file configuration option for simple use cases.
+**Action:** Draft a schema that consolidates `viber.yaml`, `providers`, and `skills` configuration into a single file, reducing the cognitive load of the multi-file structure.
+
+### 3. Documentation "Time-to-Hello-World"
+**Goal:** Reduce the time from `npm install` to first successful interaction.
+**Action:** Update documentation to prioritize the standalone `viber run` command as the entry point for new users.

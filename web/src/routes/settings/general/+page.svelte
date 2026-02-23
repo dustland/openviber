@@ -497,13 +497,13 @@
             <select
               id="chat-model"
               bind:value={editChatModel}
-              class="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background"
+              class="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background max-w-full text-ellipsis"
             >
               {#each MODEL_OPTIONS as opt (opt.id)}
                 <option value={opt.id}>{opt.label}</option>
               {/each}
             </select>
-            <p class="mt-2 text-[11px] text-muted-foreground/60">
+            <p class="mt-2 text-[11px] text-muted-foreground/60 break-words">
               Uses <code class="rounded bg-muted px-1 py-0.5 text-[10px]"
                 >provider/model-name</code
               > format. The model must be accessible via your configured API keys
@@ -604,7 +604,7 @@
             <select
               id="primary-coding-cli"
               bind:value={editPrimaryCodingCli}
-              class="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background"
+              class="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background max-w-full text-ellipsis"
             >
               <option value="">Let agent choose</option>
               {#each codingCliOptions as opt (opt.id)}
@@ -636,13 +636,13 @@
             <select
               id="timezone"
               bind:value={editTimezone}
-              class="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background"
+              class="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background max-w-full text-ellipsis"
             >
               {#each POPULAR_TIMEZONES as tz (tz.id)}
                 <option value={tz.id}>{tz.label}</option>
               {/each}
             </select>
-            <p class="mt-2 text-[11px] text-muted-foreground/60">
+            <p class="mt-2 text-[11px] text-muted-foreground/60 break-words">
               Auto-detect uses your browser's timezone: <code
                 class="rounded bg-muted px-1 py-0.5 text-[10px]"
                 >{Intl.DateTimeFormat().resolvedOptions().timeZone}</code

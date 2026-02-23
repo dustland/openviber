@@ -40,10 +40,10 @@ Run one-off tasks or interact via terminal:
 
 ```bash
 # Start a task (on your local Viber)
-openviber run "Create a README for this project"
+npx openviber run "Create a README for this project"
 
 # Interactive terminal chat (tmux-friendly)
-openviber chat
+npx openviber chat
 ```
 
 ### 3. Enterprise Channels
@@ -52,7 +52,7 @@ Connect to DingTalk or WeCom for team collaboration:
 
 ```bash
 # Start the enterprise channel server
-openviber channels
+npx openviber channels
 ```
 
 > **Note:** Requires configuration of API keys in environment variables. See documentation for details.
@@ -74,7 +74,7 @@ OpenViber supports three levels of autonomy:
 | Mode | Behavior |
 |------|----------|
 | **Always Ask** | Task asks before each action — you approve everything |
-| **Task Decides** | Task acts within policy, escalates risky actions |
+| **Agent Decides** | Task acts within policy, escalates risky actions |
 | **Always Execute** | Maximum autonomy, intervene by exception |
 
 Start with "Always Ask" and gradually increase autonomy as you build trust.

@@ -31,9 +31,17 @@
     Zap,
     GitMerge,
     Download,
+    Loader2,
+    Check,
   } from "@lucide/svelte";
 
   let { data } = $props();
+
+  let deploymentSteps = $state([
+    { label: "Building Docker Image...", status: "pending" },
+    { label: "Deploying to Production...", status: "pending" },
+    { label: "Running Health Checks...", status: "pending" },
+  ]);
 
   const redirectTo = $derived(data.redirectTo || "/");
   const githubAuthUrl = $derived(
@@ -189,6 +197,39 @@
       window.removeEventListener("mousemove", handleMouseMove);
     };
   });
+
+  onMount(() => {
+    let mounted = true;
+
+    async function runDeploymentAnimation() {
+      while (mounted) {
+        deploymentSteps = deploymentSteps.map((s) => ({
+          ...s,
+          status: "pending",
+        }));
+        await new Promise((r) => setTimeout(r, 1000));
+        if (!mounted) break;
+
+        for (let i = 0; i < deploymentSteps.length; i++) {
+          if (!mounted) break;
+          deploymentSteps[i].status = "loading";
+          await new Promise((r) => setTimeout(r, 1500));
+          if (!mounted) break;
+          deploymentSteps[i].status = "done";
+          await new Promise((r) => setTimeout(r, 500));
+        }
+
+        if (!mounted) break;
+        await new Promise((r) => setTimeout(r, 4000));
+      }
+    }
+
+    runDeploymentAnimation();
+
+    return () => {
+      mounted = false;
+    };
+  });
 </script>
 
 <svelte:head>
@@ -271,7 +312,7 @@
         />
       </h1>
       <p
-        class="hero-subtitle mx-auto mt-8 max-w-2xl text-lg leading-relaxed text-muted-foreground md:text-xl lg:max-w-4xl"
+        class="hero-subtitle mx-auto mt-8 max-w-2xl text-lg leading-relaxed text-foreground/80 md:text-xl lg:max-w-4xl"
       >
         Turn your machine into an AI workforce. Deploy role-scoped agents that
         write code, research the web, manage files, and run scheduled jobs — all
@@ -359,10 +400,10 @@
     </div>
 
     <!-- What Vibers Can Do -->
-    <section class="reveal mx-auto mt-16 max-w-6xl md:mt-20">
+    <section class="reveal mx-auto mt-24 max-w-6xl md:mt-32">
       <h2 class="section-label mb-3 text-center">What Vibers Can Do</h2>
       <p
-        class="mx-auto mb-14 max-w-2xl text-center text-base text-muted-foreground md:text-lg"
+        class="mx-auto mb-14 max-w-2xl text-center text-base text-foreground/80 md:text-lg"
       >
         Give a viber a goal in plain language. It plans, executes, verifies, and
         reports back — with evidence.
@@ -394,68 +435,136 @@
     </section>
 
     <!-- See it in Action -->
-    <section class="reveal mx-auto mt-24 max-w-5xl md:mt-32">
+    <section class="reveal mx-auto mt-24 max-w-6xl md:mt-32">
       <div class="grid gap-12 lg:grid-cols-2 items-center">
         <div>
           <h2 class="section-label mb-3">See it in Action</h2>
-          <h3 class="text-3xl font-bold tracking-tight text-foreground sm:text-4xl mb-4">
+          <h3
+            class="text-3xl font-bold tracking-tight text-foreground sm:text-4xl mb-4"
+          >
             It writes code, not just text.
           </h3>
           <p class="text-base text-muted-foreground leading-relaxed mb-8">
-            Vibers generate valid code, run it in a sandboxed environment, read the errors, and fix them automatically. It's like pair programming with a tireless senior engineer.
+            Vibers generate valid code, run it in a sandboxed environment, read
+            the errors, and fix them automatically. It's like pair programming
+            with a tireless senior engineer.
           </p>
 
           <div class="flex flex-col gap-4">
-             <div class="flex items-start gap-3">
-               <div class="mt-1 flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                 <Terminal class="size-3.5" />
-               </div>
-               <div>
-                 <div class="font-medium text-foreground">Real Execution</div>
-                 <div class="text-sm text-muted-foreground">Runs commands and scripts on your machine.</div>
-               </div>
-             </div>
-             <div class="flex items-start gap-3">
-               <div class="mt-1 flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                 <Zap class="size-3.5" />
-               </div>
-               <div>
-                 <div class="font-medium text-foreground">Self-Correction</div>
-                 <div class="text-sm text-muted-foreground">Reads stderr and fixes bugs without asking you.</div>
-               </div>
-             </div>
+            <div class="flex items-start gap-3">
+              <div
+                class="mt-1 flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"
+              >
+                <Terminal class="size-3.5" />
+              </div>
+              <div>
+                <div class="font-medium text-foreground">Real Execution</div>
+                <div class="text-sm text-muted-foreground">
+                  Runs commands and scripts on your machine.
+                </div>
+              </div>
+            </div>
+            <div class="flex items-start gap-3">
+              <div
+                class="mt-1 flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"
+              >
+                <Zap class="size-3.5" />
+              </div>
+              <div>
+                <div class="font-medium text-foreground">Self-Correction</div>
+                <div class="text-sm text-muted-foreground">
+                  Reads stderr and fixes bugs without asking you.
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div class="relative rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm p-2 shadow-2xl">
-           <div class="rounded-lg bg-[#0d1117] p-4 font-mono text-sm shadow-inner min-h-[300px]">
-             <div class="flex gap-1.5 mb-4">
-               <div class="size-3 rounded-full bg-red-500/80"></div>
-               <div class="size-3 rounded-full bg-yellow-500/80"></div>
-               <div class="size-3 rounded-full bg-green-500/80"></div>
-             </div>
-             <CodeTyper lines={[
-                "// defining a new task...",
-                "import { Task } from '@openviber/core';",
-                "",
-                "const deployTask = new Task({",
-                "  name: 'deploy-web',",
-                "  tools: ['git', 'ssh', 'docker'],",
-                "  model: 'claude-3-5-sonnet',",
-                "  system: 'You are a DevOps engineer.'",
-                "});",
-                "",
-                "await deployTask.start();",
-                "// > Task started: deploy-web",
-                "// > Cloning repository...",
-                "// > Building Docker image...",
-                "// > Deploying to production...",
-                "// > Success! App is live."
-             ]} />
-           </div>
+        <div class="flex flex-col gap-6">
+          <div
+            class="relative rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm p-2 shadow-2xl"
+          >
+            <div
+              class="rounded-lg bg-[#0d1117] p-4 font-mono text-sm shadow-inner min-h-[300px]"
+            >
+              <div class="flex gap-1.5 mb-4">
+                <div class="size-3 rounded-full bg-red-500/80"></div>
+                <div class="size-3 rounded-full bg-yellow-500/80"></div>
+                <div class="size-3 rounded-full bg-green-500/80"></div>
+              </div>
+              <CodeTyper
+                lines={[
+                  "// defining a new task...",
+                  "import { Task } from '@openviber/core';",
+                  "",
+                  "const deployTask = new Task({",
+                  "  name: 'deploy-web',",
+                  "  tools: ['git', 'ssh', 'docker'],",
+                  "  model: 'claude-3-5-sonnet',",
+                  "  system: 'You are a DevOps engineer.'",
+                  "});",
+                  "",
+                  "await deployTask.start();",
+                  "// > Task started: deploy-web",
+                  "// > Cloning repository...",
+                  "// > Building Docker image...",
+                  "// > Deploying to production...",
+                  "// > Success! App is live.",
+                ]}
+              />
+            </div>
 
-           <!-- Decorative elements behind -->
-           <div class="absolute -inset-0.5 -z-10 bg-gradient-to-br from-primary/30 to-purple-600/30 opacity-20 blur-xl rounded-xl"></div>
+            <!-- Decorative elements behind -->
+            <div
+              class="absolute -inset-0.5 -z-10 bg-gradient-to-br from-primary/30 to-purple-600/30 opacity-20 blur-xl rounded-xl"
+            ></div>
+          </div>
+
+          <!-- Live Preview Window -->
+          <div
+            class="relative rounded-xl border border-border/50 bg-card/90 p-4 shadow-xl backdrop-blur-sm transition-all duration-500 hover:scale-[1.02]"
+          >
+            <div
+              class="flex items-center gap-2 border-b border-border/40 pb-3 mb-3"
+            >
+              <div class="flex gap-1.5">
+                <div class="size-2.5 rounded-full bg-red-500/80"></div>
+                <div class="size-2.5 rounded-full bg-yellow-500/80"></div>
+                <div class="size-2.5 rounded-full bg-green-500/80"></div>
+              </div>
+              <div
+                class="ml-2 text-xs text-muted-foreground font-medium bg-muted/50 px-2 py-0.5 rounded"
+              >
+                dashboard.vercel.app
+              </div>
+            </div>
+
+            <div class="space-y-3">
+              {#each deploymentSteps as step}
+                <div class="flex items-center gap-3 text-sm">
+                  {#if step.status === "pending"}
+                    <div class="size-4 rounded-full border-2 border-muted"></div>
+                    <span class="text-muted-foreground">{step.label}</span>
+                  {:else if step.status === "loading"}
+                    <Loader2 class="size-4 animate-spin text-blue-400" />
+                    <span class="text-foreground font-medium"
+                      >{step.label}</span
+                    >
+                  {:else}
+                    <div
+                      class="flex size-4 items-center justify-center rounded-full bg-green-500/20 text-green-500"
+                    >
+                      <Check class="size-2.5" strokeWidth={3} />
+                    </div>
+                    <span
+                      class="text-foreground/60 line-through decoration-foreground/30"
+                      >{step.label}</span
+                    >
+                  {/if}
+                </div>
+              {/each}
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -587,7 +696,7 @@
 
     <!-- Community -->
     <section class="reveal mx-auto mt-24 max-w-6xl md:mt-32">
-       <div class="rounded-3xl border border-primary/20 bg-primary/5 px-6 py-12 md:px-12 md:py-16 text-center relative overflow-hidden">
+       <div class="rounded-3xl border border-primary/20 bg-primary/5 bg-gradient-to-br from-primary/5 via-primary/10 to-transparent px-6 py-12 md:px-12 md:py-16 text-center relative overflow-hidden">
           <div class="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 mix-blend-overlay"></div>
           <div class="relative z-10">
              <h2 class="text-3xl font-bold tracking-tight text-foreground sm:text-4xl mb-6">Join the Community</h2>
@@ -597,25 +706,25 @@
 
              <div class="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-3xl mx-auto">
                 <div class="flex flex-col items-center gap-2">
-                   <div class="text-3xl font-black text-foreground">2.5k+</div>
+                   <div class="text-4xl font-extrabold text-foreground">2.5k+</div>
                    <div class="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
                       <Github class="size-4" /> Stars
                    </div>
                 </div>
                 <div class="flex flex-col items-center gap-2">
-                   <div class="text-3xl font-black text-foreground">1.2k+</div>
+                   <div class="text-4xl font-extrabold text-foreground">1.2k+</div>
                    <div class="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
                       <MessageCircle class="size-4" /> Discord
                    </div>
                 </div>
                  <div class="flex flex-col items-center gap-2">
-                   <div class="text-3xl font-black text-foreground">50+</div>
+                   <div class="text-4xl font-extrabold text-foreground">50+</div>
                    <div class="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
                       <GitMerge class="size-4" /> Contributors
                    </div>
                 </div>
                  <div class="flex flex-col items-center gap-2">
-                   <div class="text-3xl font-black text-foreground">10k+</div>
+                   <div class="text-4xl font-extrabold text-foreground">10k+</div>
                    <div class="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
                       <Download class="size-4" /> Downloads
                    </div>
@@ -623,10 +732,10 @@
              </div>
 
              <div class="mt-12 flex justify-center gap-4 flex-wrap">
-                <a href="https://discord.gg/openviber" target="_blank" class="inline-flex items-center gap-2 rounded-full bg-[#5865F2] px-6 py-3 text-sm font-medium text-white shadow-lg shadow-[#5865F2]/20 hover:bg-[#4752C4] hover:-translate-y-0.5 transition-all">
+                <a href="https://discord.gg/openviber" target="_blank" class="transition-transform duration-300 hover:scale-105 inline-flex items-center gap-2 rounded-full bg-[#5865F2] px-6 py-3 text-sm font-medium text-white shadow-lg shadow-[#5865F2]/20 hover:bg-[#4752C4] hover:-translate-y-0.5">
                    <MessageCircle class="size-4" /> Join Discord
                 </a>
-                <a href="https://github.com/dustland/openviber" target="_blank" class="inline-flex items-center gap-2 rounded-full bg-foreground px-6 py-3 text-sm font-medium text-background shadow-lg hover:bg-foreground/90 hover:-translate-y-0.5 transition-all">
+                <a href="https://github.com/dustland/openviber" target="_blank" class="transition-transform duration-300 hover:scale-105 inline-flex items-center gap-2 rounded-full bg-foreground px-6 py-3 text-sm font-medium text-background shadow-lg hover:bg-foreground/90 hover:-translate-y-0.5">
                    <Github class="size-4" /> Star on GitHub
                 </a>
              </div>

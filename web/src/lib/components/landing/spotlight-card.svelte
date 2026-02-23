@@ -42,7 +42,9 @@
   onmousemove={handleMouseMove}
   onmouseenter={handleMouseEnter}
   onmouseleave={handleMouseLeave}
-  class="group relative overflow-hidden border border-border/50 bg-card/40 backdrop-blur-sm transition-all duration-300 {className}"
+  tabindex="0"
+  role="article"
+  class="group relative overflow-hidden border border-border/50 bg-card/40 backdrop-blur-sm transition-all duration-300 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background outline-none {className}"
   style:border-radius={radius}
   {...rest}
 >

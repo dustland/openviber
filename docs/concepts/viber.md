@@ -105,10 +105,10 @@ You can manage built-in and custom intent templates in **Settings → Intents**:
 | Mode               | When to Use                                                    |
 | ------------------ | -------------------------------------------------------------- |
 | **Always Ask**     | Building trust — task asks before each action                  |
-| **Viber Decides**  | Daily work — task acts within policy, escalates risky actions  |
+| **Agent Decides**  | Daily work — task acts within policy, escalates risky actions  |
 | **Always Execute** | Overnight runs — maximum autonomy, intervene by exception      |
 
-Start with "Always Ask" and graduate to "Task Decides" as you build confidence.
+Start with "Always Ask" and graduate to "Agent Decides" as you build confidence.
 
 ## You Stay in Control
 

@@ -15,7 +15,10 @@ The fastest way to get started is using `npx`:
 # 1. Set your API key (OpenRouter recommended)
 export OPENROUTER_API_KEY="your_api_key_here"
 
-# 2. Start OpenViber (Standalone)
+# 2. Initialize configuration
+npx openviber onboard
+
+# 3. Start OpenViber (Standalone)
 npx openviber start
 ```
 
@@ -62,6 +65,5 @@ Open [http://localhost:6006](http://localhost:6006) to see the Viber Board.
 
 - [Introduction](/docs/introduction) — What OpenViber is and how it works
 - [Viber](/docs/concepts/viber) — The Viber Runtime & Tasks
-- [Tools](/docs/concepts/tools) — Available actions
-- [Skills](/docs/concepts/skills) — Add domain knowledge
+- [Skills & Tools](/docs/concepts/skills) — Add domain knowledge and available actions
 - [Jobs](/docs/concepts/jobs) — Set up scheduled tasks

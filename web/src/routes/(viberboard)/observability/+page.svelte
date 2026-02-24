@@ -201,7 +201,7 @@
 <div class="flex h-full flex-col">
   <!-- Header -->
   <div class="border-b border-border px-4 py-4 sm:px-6 lg:px-8">
-    <div class="flex items-center justify-between mb-4">
+    <div class="flex flex-col gap-4 mb-4 sm:flex-row sm:items-center sm:justify-between">
       <div class="flex items-center gap-3">
         <Logs class="size-5 text-muted-foreground" />
         <div>

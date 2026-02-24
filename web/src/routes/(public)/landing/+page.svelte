@@ -259,7 +259,7 @@
       </div>
 
       <h1
-        class="hero-title pb-4 text-6xl font-black leading-[1.05] tracking-tighter sm:text-7xl md:text-8xl lg:text-9xl"
+        class="hero-title pb-4 text-4xl font-black leading-[1.05] tracking-tighter sm:text-7xl md:text-8xl lg:text-9xl"
       >
         You Imagine It.<br class="hidden sm:block" />
         <span
@@ -428,7 +428,7 @@
         </div>
 
         <div class="relative rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm p-2 shadow-2xl">
-           <div class="rounded-lg bg-[#0d1117] p-4 font-mono text-sm shadow-inner min-h-[300px]">
+           <div class="rounded-lg bg-[#0d1117] p-4 font-mono text-sm shadow-inner min-h-[300px] overflow-x-auto">
              <div class="flex gap-1.5 mb-4">
                <div class="size-3 rounded-full bg-red-500/80"></div>
                <div class="size-3 rounded-full bg-yellow-500/80"></div>

@@ -22,7 +22,10 @@
     MessageCircle,
     Monitor,
     Moon,
+    Play,
     Puzzle,
+    Settings,
+    CheckCircle,
     Search,
     Shield,
     Sparkles,
@@ -72,28 +75,32 @@
       icon: Code,
       label: "Development",
       example: '"Build a landing page with dark theme and deploy it"',
-      color: "primary",
+      spotlightColor: "hsl(217 91% 60%)",
+      iconColor: "hsl(217 91% 60%)",
       span: "md:col-span-2",
     },
     {
       icon: Search,
       label: "Research",
       example: '"Analyze competitors and write a market report"',
-      color: "primary",
+      spotlightColor: "hsl(270 95% 60%)",
+      iconColor: "hsl(270 95% 60%)",
       span: "md:col-span-1",
     },
     {
       icon: Clock,
       label: "Automation",
       example: '"Check GitHub issues every morning and summarize"',
-      color: "primary",
+      spotlightColor: "hsl(24 95% 53%)",
+      iconColor: "hsl(24 95% 53%)",
       span: "md:col-span-1",
     },
     {
       icon: Eye,
       label: "Monitoring",
       example: '"Watch CI pipelines and alert me on failures"',
-      color: "primary",
+      spotlightColor: "hsl(160 84% 39%)",
+      iconColor: "hsl(160 84% 39%)",
       span: "md:col-span-2",
     },
   ];
@@ -101,18 +108,21 @@
   const howItWorks = [
     {
       step: "01",
+      icon: Settings,
       title: "Define Your Viber",
       description:
         "Give it a role, persona, tools, and skills in a simple YAML config. Each viber is a specialist — not a generic chatbot.",
     },
     {
       step: "02",
+      icon: Play,
       title: "Assign Work",
       description:
         "Chat from the Board, run a CLI command, or schedule a cron job. Vibers plan, execute, and verify — then report back with evidence.",
     },
     {
       step: "03",
+      icon: CheckCircle,
       title: "Stay in Control",
       description:
         "Watch terminals in real time, approve sensitive actions, set budget limits. Intervene anytime — or let the viber run autonomously.",
@@ -254,7 +264,7 @@
       <div
         class="hero-badge inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary mb-8"
       >
-        <Sparkles class="mr-1.5 size-3" />
+        <Sparkles class="mr-1.5 size-3 animate-pulse" />
         v1.0 Public Beta
       </div>
 
@@ -263,11 +273,11 @@
       >
         You Imagine It.<br class="hidden sm:block" />
         <span
-          class="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent"
+          class="bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent"
           >Vibers</span
         >
         <TypewriterEffect
-          words={["Build It.", "Research It.", "Automate It."]}
+          words={["Write Code.", "Research Markets.", "Automate Tasks.", "Manage Servers."]}
         />
       </h1>
       <p
@@ -371,13 +381,15 @@
       <div class="grid gap-4 md:grid-cols-3">
         {#each useCases as useCase, i}
           <SpotlightCard
-            class="reveal-card flex flex-col justify-between rounded-2xl p-6 md:p-8 hover:shadow-xl hover:shadow-primary/10 {useCase.span}"
+            class="reveal-card flex flex-col justify-between rounded-2xl p-6 md:p-8 hover:shadow-xl {useCase.span}"
             style="--delay: {i * 100}ms"
             radius="1rem"
+            spotlightColor={useCase.spotlightColor}
           >
             <div>
               <div
-                class="use-case-icon mb-4 inline-flex size-12 items-center justify-center rounded-xl transition-all duration-300 group-hover:scale-110 group-hover:bg-primary group-hover:text-primary-foreground"
+                class="use-case-icon mb-4 inline-flex size-12 items-center justify-center rounded-xl transition-all duration-300 group-hover:scale-110"
+                style="--icon-color: {useCase.iconColor}; color: var(--icon-color); border-color: color-mix(in srgb, var(--icon-color), transparent 80%); background: color-mix(in srgb, var(--icon-color), transparent 92%);"
               >
                 <useCase.icon class="size-6" />
               </div>
@@ -435,22 +447,31 @@
                <div class="size-3 rounded-full bg-green-500/80"></div>
              </div>
              <CodeTyper lines={[
-                "// defining a new task...",
-                "import { Task } from '@openviber/core';",
+                "// Defining a new viber task...",
+                "import { Task, z } from '@openviber/core';",
                 "",
-                "const deployTask = new Task({",
-                "  name: 'deploy-web',",
-                "  tools: ['git', 'ssh', 'docker'],",
+                "const marketResearch = new Task({",
+                "  name: 'analyze-competitors',",
+                "  tools: ['search', 'browser', 'file_ops'],",
                 "  model: 'claude-3-5-sonnet',",
-                "  system: 'You are a DevOps engineer.'",
+                "  schema: z.object({",
+                "    report: z.string().describe('Markdown report'),",
+                "    companies: z.array(z.string())",
+                "  }),",
+                "  system: 'You are a senior market analyst.'",
                 "});",
                 "",
-                "await deployTask.start();",
-                "// > Task started: deploy-web",
-                "// > Cloning repository...",
-                "// > Building Docker image...",
-                "// > Deploying to production...",
-                "// > Success! App is live."
+                "// Execute autonomously",
+                "const result = await marketResearch.start({",
+                "  goal: 'Find top 5 AI coding agents and compare features'",
+                "});",
+                "",
+                "console.log(result.report);",
+                "// > Task started: analyze-competitors",
+                "// > Searching: 'top AI coding agents 2024'...",
+                "// > Browsing: https://dev.to/...",
+                "// > Analyzed 5 competitors. Generating report...",
+                "// > Success! Report saved to ./analysis.md"
              ]} />
            </div>
 
@@ -476,7 +497,12 @@
             style="--delay: {i * 120}ms"
             radius="1rem"
           >
-            <div class="step-number mb-4 drop-shadow-md">{step.step}</div>
+            <div class="flex items-center justify-between mb-4">
+              <div class="step-number drop-shadow-md">{step.step}</div>
+              <div class="text-primary/10">
+                <step.icon class="size-10" />
+              </div>
+            </div>
             <h3 class="mb-2 text-lg font-semibold text-card-foreground">
               {step.title}
             </h3>
@@ -556,7 +582,7 @@
             radius="1rem"
           >
             <div
-              class="tool-icon flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary/5 text-primary group-hover:bg-primary/10 group-hover:scale-110 transition-all duration-300"
+              class="tool-icon flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary/5 text-primary group-hover:bg-primary/10 group-hover:scale-110 group-hover:rotate-6 transition-all duration-300"
             >
               <tool.icon class="size-6" />
             </div>

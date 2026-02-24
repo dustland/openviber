@@ -300,8 +300,7 @@ Hot-reloading of job files is planned but not yet implemented.
 
 ## Next Steps
 
-- [Skills](/docs/concepts/skills) — Domain knowledge for job tasks
-- [Tools](/docs/concepts/tools) — Actions available to jobs
+- [Skills & Tools](/docs/concepts/skills) — Domain knowledge and actions for job tasks
 - [Viber](/docs/concepts/viber) — Task configuration and working modes
 - [Config Schema](/docs/reference/config-schema) — Full YAML schema reference
 - [Task Lifecycle](/docs/design/task-lifecycle) — How tasks (including job-triggered tasks) flow through the system

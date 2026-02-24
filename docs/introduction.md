@@ -48,7 +48,7 @@ openviber chat
 
 ### 3. Enterprise Channels
 
-Connect to DingTalk or WeCom for team collaboration:
+Connect to DingTalk, WeCom, Slack, Discord, Feishu, or Telegram for team collaboration:
 
 ```bash
 # Start the enterprise channel server
@@ -74,7 +74,7 @@ OpenViber supports three levels of autonomy:
 | Mode | Behavior |
 |------|----------|
 | **Always Ask** | Task asks before each action — you approve everything |
-| **Task Decides** | Task acts within policy, escalates risky actions |
+| **Agent Decides** | Task acts within policy, escalates risky actions |
 | **Always Execute** | Maximum autonomy, intervene by exception |
 
 Start with "Always Ask" and gradually increase autonomy as you build trust.
@@ -84,5 +84,4 @@ Start with "Always Ask" and gradually increase autonomy as you build trust.
 1. **[Quick Start](/docs/getting-started/quick-start)** — Run your first task in minutes
 2. **[Viber Runtime](/docs/concepts/viber)** — Configure task behavior on your machine
 3. **[Jobs](/docs/concepts/jobs)** — Set up scheduled tasks
-4. **[Tools](/docs/concepts/tools)** — Available actions
-5. **[Skills](/docs/concepts/skills)** — Add domain knowledge
+4. **[Skills & Tools](/docs/concepts/skills)** — Add domain knowledge and available actions

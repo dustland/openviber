@@ -69,6 +69,7 @@
     "@larksuiteoapi/node-sdk": "^1.58.0",
     "@modelcontextprotocol/sdk": "^1.26.0",
     "@openrouter/ai-sdk-provider": "^2.0.2",
+    "@slack/bolt": "^4.6.0",
     "@supabase/supabase-js": "^2.49.1",
     "ai": "^6.0.0",
     "commander": "^14.0.2",

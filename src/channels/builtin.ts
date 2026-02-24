@@ -6,6 +6,7 @@ import { WebChannel } from "./web";
 import { DiscordChannel } from "./discord";
 import { FeishuChannel } from "./feishu";
 import { TelegramChannel } from "./telegram";
+import { SlackChannel } from "./slack";
 import { channelRegistry } from "./registry";
 
 /**
@@ -123,6 +124,22 @@ export function registerBuiltinChannels(): void {
         productionReadiness: "ready",
       },
       create: (config, context) => new TelegramChannel(config as any, context),
+    });
+  }
+
+  if (!channelRegistry.get("slack")) {
+    channelRegistry.register({
+      id: "slack",
+      displayName: "Slack",
+      description: "Slack integration via Socket Mode",
+      capabilities: {
+        transport: "websocket",
+        supportsInboundAttachments: false,
+        auth: "botToken + appToken",
+        controls: ["allowChannelIds", "groupPolicy"],
+        productionReadiness: "ready",
+      },
+      create: (config, context) => new SlackChannel(config as any, context),
     });
   }
 }

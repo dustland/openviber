@@ -170,6 +170,19 @@ export interface TelegramConfig extends ChannelConfig {
   allowUserIds?: string[];
 }
 
+export interface SlackConfig extends ChannelConfig {
+  /** Slack Bot User OAuth Token (xoxb-...) */
+  botToken: string;
+  /** Slack App-Level Token (xapp-...) for Socket Mode */
+  appToken: string;
+  /** Signing Secret (optional for Socket Mode, but recommended) */
+  signingSecret?: string;
+  /** Allowlist of channel IDs to listen in (empty = all) */
+  allowChannelIds?: string[];
+  /** Group chat policy: 'mention' (default) or 'open' */
+  groupPolicy?: "mention" | "open";
+}
+
 export interface WebConfig extends ChannelConfig {
   // No special config needed for web channel
 }
@@ -181,5 +194,6 @@ export interface ChannelsConfig {
   discord?: DiscordConfig;
   feishu?: FeishuConfig;
   telegram?: TelegramConfig;
+  slack?: SlackConfig;
   web?: WebConfig;
 }

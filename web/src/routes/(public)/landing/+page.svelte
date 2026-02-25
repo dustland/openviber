@@ -259,11 +259,11 @@
       </div>
 
       <h1
-        class="hero-title pb-4 text-6xl font-black leading-[1.05] tracking-tighter sm:text-7xl md:text-8xl lg:text-9xl"
+        class="hero-title pb-4 text-6xl font-black leading-[1.05] tracking-tighter sm:text-7xl md:text-8xl lg:text-9xl xl:text-[9rem]"
       >
         You Imagine It.<br class="hidden sm:block" />
         <span
-          class="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent"
+          class="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent drop-shadow-sm"
           >Vibers</span
         >
         <TypewriterEffect
@@ -308,8 +308,9 @@
         {#if data.user}
           <a
             href="/"
-            class="cta-primary group inline-flex items-center gap-3 rounded-full bg-primary px-12 py-5 text-lg font-bold text-primary-foreground shadow-[0_0_40px_hsl(var(--primary)/0.4)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_60px_hsl(var(--primary)/0.5)]"
+            class="cta-primary group relative overflow-hidden inline-flex items-center gap-3 rounded-full bg-primary px-12 py-5 text-lg font-bold text-primary-foreground shadow-[0_0_40px_hsl(var(--primary)/0.4)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_60px_hsl(var(--primary)/0.5)]"
           >
+            <div class="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/25 to-transparent z-10"></div>
             Go to Viberboard
             <ArrowRight
               class="size-5 transition-transform duration-300 group-hover:translate-x-1"
@@ -318,8 +319,9 @@
         {:else if data.supabaseAuthEnabled}
           <a
             href={githubAuthUrl}
-            class="cta-primary group inline-flex items-center gap-3 rounded-full bg-primary px-12 py-5 text-lg font-bold text-primary-foreground shadow-[0_0_40px_hsl(var(--primary)/0.4)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_60px_hsl(var(--primary)/0.5)]"
+            class="cta-primary group relative overflow-hidden inline-flex items-center gap-3 rounded-full bg-primary px-12 py-5 text-lg font-bold text-primary-foreground shadow-[0_0_40px_hsl(var(--primary)/0.4)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_60px_hsl(var(--primary)/0.5)]"
           >
+            <div class="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/25 to-transparent z-10"></div>
             <svg
               class="size-5"
               viewBox="0 0 24 24"
@@ -371,15 +373,15 @@
       <div class="grid gap-4 md:grid-cols-3">
         {#each useCases as useCase, i}
           <SpotlightCard
-            class="reveal-card flex flex-col justify-between rounded-2xl p-6 md:p-8 hover:shadow-xl hover:shadow-primary/10 {useCase.span}"
+            class="reveal-card flex flex-col justify-between rounded-2xl p-8 md:p-10 hover:shadow-xl hover:shadow-primary/10 {useCase.span}"
             style="--delay: {i * 100}ms"
             radius="1rem"
           >
             <div>
               <div
-                class="use-case-icon mb-4 inline-flex size-12 items-center justify-center rounded-xl transition-all duration-300 group-hover:scale-110 group-hover:bg-primary group-hover:text-primary-foreground"
+                class="use-case-icon mb-6 inline-flex size-14 items-center justify-center rounded-2xl transition-all duration-300 group-hover:scale-110 group-hover:bg-primary group-hover:text-primary-foreground group-hover:rotate-3 shadow-sm"
               >
-                <useCase.icon class="size-6" />
+                <useCase.icon class="size-7" />
               </div>
               <div class="mb-3 text-lg font-semibold text-card-foreground">
                 {useCase.label}
@@ -703,8 +705,9 @@
 
   <!-- Footer -->
   <footer
-    class="relative border-t border-border/40 bg-card/20 backdrop-blur-sm mt-24"
+    class="relative border-t border-white/5 bg-card/20 backdrop-blur-sm mt-24 overflow-hidden"
   >
+    <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-50"></div>
     <div class="container mx-auto px-6 py-16 md:px-8">
       <div class="grid grid-cols-2 gap-10 md:grid-cols-4 lg:grid-cols-5">
         <div class="col-span-2 lg:col-span-2">

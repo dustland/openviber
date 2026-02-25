@@ -61,9 +61,11 @@ graph LR
 | **github** | How to automate GitHub workflows (issues, PRs, branches) |
 | **cursor-agent** | How to use the Cursor CLI for coding tasks |
 | **codex-cli** | How to use OpenAI Codex for autonomous coding |
+| **gemini-cli** | How to use Gemini CLI |
 | **terminal** | How to manage persistent terminal sessions for TTY-dependent CLIs |
 | **railway** | How to deploy and manage Railway projects |
 | **gmail** | How to send and search Gmail messages |
+| **system-info** | How to retrieve system information |
 
 ---
 
@@ -72,20 +74,24 @@ graph LR
 | Tool | What It Does |
 |------|--------------|
 | `file.*` | Read, write, create, delete files |
-| `shell.run` | Execute one-off terminal commands |
+| `shell.run` | Execute one-off terminal commands (restricted by allowlist) |
 | `terminal.*` | Persistent tmux sessions for interactive CLIs |
 | `web.*` | Fetch and parse web content |
+| `browser.*` | Control a real browser instance |
 | `search` | Find information online |
 | `gh_*` | GitHub operations (issues, clones, branches, PRs) |
 | `cursor_agent_run` | Run Cursor CLI for coding |
 | `codex_run` | Run OpenAI Codex for coding |
+| `gemini_run` | Run Gemini CLI |
 | `railway_*` | Railway deployment and management |
 | `gmail_*` | Send and search Gmail |
 | `notify` | Send desktop notifications |
+| `desktop.*` | Desktop automation |
+| `schedule.*` | Calendar and scheduling |
 
 **Shell vs Terminal:**
-- `shell.run` — Quick commands, run once and get output
-- `terminal.*` — Interactive CLIs (Cursor, Codex), long-running processes, monitoring
+- `shell.run` — Quick commands, run once and get output. Security policy enforces strict allowlist.
+- `terminal.*` — Interactive CLIs (Cursor, Codex), long-running processes, monitoring.
 
 ---
 
@@ -186,7 +192,7 @@ Click on a skill with a setup warning to see:
 
 ```bash
 # Check health via CLI
-openviber skill health github
+npx openviber status
 
 # Output:
 # github: NOT_AVAILABLE
@@ -204,13 +210,13 @@ The **Skill Hub** is a marketplace for discovering skills from external sources:
 
 ```bash
 # Auto-detect source
-openviber skill add github
+npx openviber skill import github
 
 # From npm
-openviber skill add npm:@openviber-skills/web-search
+npx openviber skill import npm:@openviber-skills/web-search
 
 # From GitHub
-openviber skill add dustland/viber-skills/github
+npx openviber skill import dustland/viber-skills/github
 ```
 
 **Sources:** OpenClaw, npm, GitHub, Hugging Face, Smithery, Composio, Glama

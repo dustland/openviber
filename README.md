@@ -37,13 +37,8 @@ The fastest way to get started is using `npx`:
 export OPENROUTER_API_KEY="your_api_key_here"
 
 # 2. Start OpenViber (Standalone Mode)
+npx openviber onboard
 npx openviber start
-```
-
-If you prefer to install it globally:
-```bash
-npm install -g openviber
-viber start
 ```
 
 ---
@@ -86,34 +81,34 @@ Use OpenViber from any terminal. It integrates deeply with tmux for streaming ou
 
 ```bash
 # Start an interactive chat
-viber chat
+npx openviber chat
 ```
 
 ### 🌐 Viber Board (Web UI)
 A modern, visual interface to manage your tasks, monitor jobs, and chat in real-time. Accessible at `http://localhost:6006` when running `pnpm dev`.
 
 ### 🏢 Enterprise Channels
-Deploy your tasks to where your team works. Support for **DingTalk** and **WeCom** is built-in.
+Deploy your tasks to where your team works. Support for **DingTalk**, **WeCom**, and **Slack** is built-in.
 
 ```bash
-# Start the enterprise channel server
-# Note: Defaults to port 6009. If running alongside 'viber start' (which also uses 6009), use a different port:
-viber channels --port 6010
+# Start the enterprise channel server (port 6009)
+npx openviber channels
 ```
 
 ---
 
-## 🧠 Personalization (The Three-File Pattern)
+## 🧠 Personalization (The Four-File Pattern)
 
-OpenViber follows a standardized configuration pattern for AI personality. Three markdown files define your task's complete behavior:
+OpenViber follows a standardized configuration pattern for AI personality. Four markdown files define your task's complete behavior:
 
 | File | Scope | Purpose | Update Frequency |
 |------|-------|---------|------------------|
-| **`user.md`** | Shared | Who you are, current projects, priorities | Daily/Weekly |
-| **`soul.md`** | Per-task | Communication style, boundaries, rules | Monthly |
-| **`memory.md`** | Per-task | Decisions, learned patterns, corrections | Grows organically |
+| **`IDENTITY.md`** | Shared | Machine/Deployment identity | Rarely |
+| **`USER.md`** | Shared | Who you are, current projects, priorities | Daily/Weekly |
+| **`SOUL.md`** | Per-task | Communication style, boundaries, rules | Monthly |
+| **`MEMORY.md`** | Per-task | Decisions, learned patterns, corrections | Grows organically |
 
-Location: `~/.openviber/vibers/default/`
+Location: `~/.openviber/` and `~/.openviber/vibers/<viber-id>/`
 
 ---
 
@@ -129,13 +124,11 @@ prompt: "Check GitHub notifications, summarize what needs my attention."
 ```
 
 ### 🔧 Zero Configuration Skills
-Capabilities are defined in `SKILL.md` files. No complex code required to extend your tasks.
-```markdown
----
-name: git-commit
-description: Stage and commit changes
----
-git add . && git commit -m "$message"
+Capabilities are defined in `SKILL.md` files. Install skills from the community or create your own.
+
+```bash
+# Import a skill
+npx openviber skill import npm:@openviber-skills/web-search
 ```
 
 ### 🌐 Model Context Protocol (MCP)

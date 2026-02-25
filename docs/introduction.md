@@ -9,7 +9,7 @@ description: "You Imagine It. Tasks Build It."
 
 **OpenViber** is an open-source platform that turns your machine into a **Viber** — a runtime that executes autonomous AI tasks. You describe what you want, and the Viber handles the work autonomously. Runs locally with full privacy, connects to your channels, and works while you sleep.
 
-The CLI is available as both `openviber` and the shorter alias `viber` (when installed).
+The CLI is accessed via `npx openviber` (or `viber` alias if installed globally).
 
 ## What Can OpenViber Do?
 
@@ -40,19 +40,22 @@ Run one-off tasks or interact via terminal:
 
 ```bash
 # Start a task (on your local Viber)
-openviber run "Create a README for this project"
+npx openviber run "Create a README for this project"
 
 # Interactive terminal chat (tmux-friendly)
-openviber chat
+npx openviber chat
+
+# Check system and skill status
+npx openviber status
 ```
 
 ### 3. Enterprise Channels
 
-Connect to DingTalk or WeCom for team collaboration:
+Connect to DingTalk, WeCom, or Slack for team collaboration:
 
 ```bash
 # Start the enterprise channel server
-openviber channels
+npx openviber channels
 ```
 
 > **Note:** Requires configuration of API keys in environment variables. See documentation for details.
@@ -64,7 +67,7 @@ openviber channels
 | **Viber** | Your machine running the OpenViber daemon — executes tasks |
 | **Task** | A role-scoped unit of work assigned to a Viber |
 | **Tools** | Actions the Viber can take (file, search, web, browser, desktop, schedule, notify) |
-| **Skills** | Domain knowledge bundles (`SKILL.md` + optional tools) — antigravity, cursor-agent, codex-cli, github, terminal |
+| **Skills** | Domain knowledge bundles (`SKILL.md`) that teach the agent how to use tools effectively |
 | **Jobs** | Cron-scheduled tasks that run tasks autonomously on a timer |
 
 ## Working Modes
@@ -73,8 +76,8 @@ OpenViber supports three levels of autonomy:
 
 | Mode | Behavior |
 |------|----------|
-| **Always Ask** | Task asks before each action — you approve everything |
-| **Task Decides** | Task acts within policy, escalates risky actions |
+| **Always Ask** | Agent asks before each action — you approve everything |
+| **Agent Decides** | Agent acts within policy, escalates risky actions |
 | **Always Execute** | Maximum autonomy, intervene by exception |
 
 Start with "Always Ask" and gradually increase autonomy as you build trust.

@@ -28,9 +28,9 @@ Guidelines for AI agents working on the OpenViber codebase.
 ```text
 src/
 ├── cli/            # CLI entrypoints and commands
-├── viber/          # Core abstractions (agent, task, plan, provider)
+├── worker/         # Core abstractions (agent, task, plan, swarm)
 ├── daemon/         # Runtime/controller/gateway/hub
-├── channels/       # Channel integrations (web, dingtalk, wecom, discord)
+├── channels/       # Channel integrations (web, dingtalk, wecom, discord, slack)
 ├── skills/         # Skill implementations and registry
 ├── tools/          # Built-in tools (shell, file, browser, etc.)
 ├── types/          # Shared types

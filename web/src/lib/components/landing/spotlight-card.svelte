@@ -42,8 +42,10 @@
   onmousemove={handleMouseMove}
   onmouseenter={handleMouseEnter}
   onmouseleave={handleMouseLeave}
-  class="group relative overflow-hidden border border-border/50 bg-card/40 backdrop-blur-sm transition-all duration-300 {className}"
+  class="group relative overflow-hidden border border-border/50 bg-card/40 backdrop-blur-sm transition-all duration-300 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 {className}"
   style:border-radius={radius}
+  tabindex="0"
+  role="article"
   {...rest}
 >
   <!-- Spotlight background -->

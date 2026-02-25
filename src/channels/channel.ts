@@ -174,6 +174,14 @@ export interface WebConfig extends ChannelConfig {
   // No special config needed for web channel
 }
 
+export interface SlackConfig extends ChannelConfig {
+  botToken: string;
+  appToken: string;
+  signingSecret?: string;
+  allowChannelIds?: string[];
+  groupPolicy?: "mention" | "open" | "allowlist";
+}
+
 export interface ChannelsConfig {
   dingtalk?: DingTalkConfig;
   wecom?: WeComConfig;
@@ -181,5 +189,6 @@ export interface ChannelsConfig {
   discord?: DiscordConfig;
   feishu?: FeishuConfig;
   telegram?: TelegramConfig;
+  slack?: SlackConfig;
   web?: WebConfig;
 }

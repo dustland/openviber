@@ -156,7 +156,7 @@ budget:
   mode: "hard"
 
 # Working mode default
-mode: "viber_decides"            # always_ask | viber_decides | always_execute
+mode: "agent_decides"            # always_ask | agent_decides | always_execute
 
 # Spaces this task works on
 spaces:
@@ -517,7 +517,7 @@ skills:
   - cursor-agent
   - codex-cli
 
-mode: "viber_decides"
+mode: "agent_decides"
 
 spaces:
   - ~/openviber_spaces/my-project
@@ -551,7 +551,7 @@ interface TaskConfig {
   require_approval?: string[];
   skills?: string[];
   budget?: TaskBudgetConfig;
-  mode?: "always_ask" | "viber_decides" | "always_execute";
+  mode?: "always_ask" | "agent_decides" | "always_execute";
   spaces?: string[];
   retry?: RetryConfig;
   fallback_model?: string;

@@ -252,14 +252,14 @@
       </div>
 
       <div
-        class="hero-badge inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary mb-8"
+        class="hero-badge inline-flex items-center rounded-full border border-primary/30 bg-primary/10 animate-pulse px-3 py-1 text-xs font-medium text-primary mb-8"
       >
         <Sparkles class="mr-1.5 size-3" />
         v1.0 Public Beta
       </div>
 
       <h1
-        class="hero-title pb-4 text-6xl font-black leading-[1.05] tracking-tighter sm:text-7xl md:text-8xl lg:text-9xl"
+        class="hero-title pb-4 text-6xl font-extrabold leading-[1.05] tracking-tighter sm:text-7xl md:text-8xl lg:text-9xl"
       >
         You Imagine It.<br class="hidden sm:block" />
         <span
@@ -347,7 +347,7 @@
       <!-- Hero Mockup -->
       <div class="hero-cta mt-16 md:mt-24 relative z-10">
         <div
-          class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-primary/10 blur-[120px] -z-10 rounded-full pointer-events-none"
+          class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-primary/5 blur-[80px] rounded-full -z-10 pointer-events-none"
         ></div>
         <HeroMockup />
       </div>
@@ -371,13 +371,13 @@
       <div class="grid gap-4 md:grid-cols-3">
         {#each useCases as useCase, i}
           <SpotlightCard
-            class="reveal-card flex flex-col justify-between rounded-2xl p-6 md:p-8 hover:shadow-xl hover:shadow-primary/10 {useCase.span}"
+            class="reveal-card flex flex-col justify-between rounded-2xl p-6 md:p-8 hover:shadow-xl hover:shadow-primary/10 hover:border-primary/40 transition-all duration-300 {useCase.span}"
             style="--delay: {i * 100}ms"
             radius="1rem"
           >
             <div>
               <div
-                class="use-case-icon mb-4 inline-flex size-12 items-center justify-center rounded-xl transition-all duration-300 group-hover:scale-110 group-hover:bg-primary group-hover:text-primary-foreground"
+                class="mb-4 inline-flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 p-3 shadow-lg transition-transform duration-300 group-hover:scale-110 text-primary border border-primary/10"
               >
                 <useCase.icon class="size-6" />
               </div>
@@ -427,12 +427,12 @@
           </div>
         </div>
 
-        <div class="relative rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm p-2 shadow-2xl">
-           <div class="rounded-lg bg-[#0d1117] p-4 font-mono text-sm shadow-inner min-h-[300px]">
-             <div class="flex gap-1.5 mb-4">
-               <div class="size-3 rounded-full bg-red-500/80"></div>
-               <div class="size-3 rounded-full bg-yellow-500/80"></div>
-               <div class="size-3 rounded-full bg-green-500/80"></div>
+        <div class="relative rounded-xl border border-primary/20 bg-card/40 backdrop-blur-sm p-3 shadow-2xl overflow-hidden">
+           <div class="rounded-lg bg-[#0d1117] p-4 font-mono text-sm shadow-inner min-h-[300px] border border-white/5">
+             <div class="flex gap-1.5 mb-4 opacity-80">
+               <div class="size-3 rounded-full bg-[#ff5f56]"></div>
+               <div class="size-3 rounded-full bg-[#ffbd2e]"></div>
+               <div class="size-3 rounded-full bg-[#27c93f]"></div>
              </div>
              <CodeTyper lines={[
                 "// defining a new task...",
@@ -472,19 +472,25 @@
       <div class="grid gap-6 md:grid-cols-3">
         {#each howItWorks as step, i}
           <SpotlightCard
-            class="reveal-card relative rounded-2xl p-6"
+            class="reveal-card relative rounded-2xl p-6 overflow-visible"
             style="--delay: {i * 120}ms"
             radius="1rem"
           >
-            <div class="step-number mb-4 drop-shadow-md">{step.step}</div>
-            <h3 class="mb-2 text-lg font-semibold text-card-foreground">
-              {step.title}
-            </h3>
-            <p class="text-sm leading-relaxed text-muted-foreground">
-              {step.description}
-            </p>
+            <div
+              class="absolute -top-6 -right-4 text-9xl font-black opacity-[0.04] pointer-events-none select-none z-0 text-primary"
+            >
+              {step.step}
+            </div>
+            <div class="relative z-10 pt-4">
+              <h3 class="mb-2 text-lg font-semibold text-card-foreground">
+                {step.title}
+              </h3>
+              <p class="text-sm leading-relaxed text-muted-foreground">
+                {step.description}
+              </p>
+            </div>
             {#if i < howItWorks.length - 1}
-              <div class="step-connector hidden md:block">
+              <div class="step-connector hidden md:flex">
                 <ArrowRight class="size-4 text-primary/40" />
               </div>
             {/if}
@@ -747,24 +753,26 @@
 
         <div>
           <h3 class="font-semibold text-foreground mb-4 text-sm">Community</h3>
-          <ul class="space-y-3 text-sm text-muted-foreground">
-            <li>
-              <a
-                href="https://github.com/dustland/openviber"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="hover:text-primary transition-colors">GitHub</a
-              >
-            </li>
-            <li>
-              <a
-                href="https://discord.gg/openviber"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="hover:text-primary transition-colors">Discord</a
-              >
-            </li>
-          </ul>
+          <div class="flex gap-4">
+            <a
+              href="https://github.com/dustland/openviber"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-muted-foreground hover:text-primary transition-colors"
+              aria-label="GitHub"
+            >
+              <Github class="size-5" />
+            </a>
+            <a
+              href="https://discord.gg/openviber"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-muted-foreground hover:text-primary transition-colors"
+              aria-label="Discord"
+            >
+              <MessageCircle class="size-5" />
+            </a>
+          </div>
         </div>
 
         <div>

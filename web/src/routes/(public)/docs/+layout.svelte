@@ -1229,12 +1229,13 @@
   }
 
   :global(.docs-prose table) {
+    display: block;
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
     margin: 1.25rem 0;
     border-radius: 0.5rem;
-    overflow: hidden;
+    overflow-x: auto;
     font-size: 0.93rem;
     background: hsl(var(--background));
     border: 1px solid hsl(var(--border) / 0.6);

@@ -454,7 +454,11 @@
               placeholder="Search skills..."
             />
           </div>
-          <select bind:value={sourceFilter} onchange={() => searchDiscover(1)}>
+          <select
+            bind:value={sourceFilter}
+            onchange={() => searchDiscover(1)}
+            class="max-w-full text-ellipsis"
+          >
             <option value="">All sources</option>
             {#each sources as source (source.id)}
               <option value={source.id} disabled={!source.enabled}>

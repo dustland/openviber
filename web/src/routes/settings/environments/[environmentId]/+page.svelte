@@ -535,7 +535,7 @@
               <select
                 id="env-type"
                 bind:value={type}
-                class="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
+                class="h-10 w-full rounded-md border border-border bg-background px-3 text-sm max-w-full text-ellipsis"
               >
                 <option value="github">GitHub repository</option>
                 <option value="local">Local path</option>

@@ -37,13 +37,16 @@
   }
 </script>
 
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <div
   bind:this={divRef}
   onmousemove={handleMouseMove}
   onmouseenter={handleMouseEnter}
   onmouseleave={handleMouseLeave}
-  class="group relative overflow-hidden border border-border/50 bg-card/40 backdrop-blur-sm transition-all duration-300 {className}"
+  class="group relative overflow-hidden border border-border/50 bg-card/40 backdrop-blur-sm transition-all duration-300 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none {className}"
   style:border-radius={radius}
+  tabindex="0"
+  role="article"
   {...rest}
 >
   <!-- Spotlight background -->

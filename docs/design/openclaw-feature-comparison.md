@@ -116,7 +116,7 @@ OpenViber is designed to **reduce management burden** by making the web app the 
 | Model fallback | Yes (fallback_model config) | Yes (model failover + auth rotation) |
 | Context management | Yes (compaction, pruning) | Yes (session model) |
 | Human-in-the-loop | Yes (approval gates) | Yes (pairing + activation modes) |
-| Working modes | Yes (Always Ask / Viber Decides / Always Execute) | Yes (activation modes, queue modes) |
+| Working modes | Yes (Always Ask / Agent Decides / Always Execute) | Yes (activation modes, queue modes) |
 
 **Strength for OpenViber**: MCP integration is a differentiator. OpenClaw does not have first-class MCP support.
 

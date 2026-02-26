@@ -150,7 +150,7 @@ OpenViber exposes familiar autonomy profiles:
 | Mode | Description |
 |------|-------------|
 | **Always Ask** | Task asks before each execution action. |
-| **Task Decides** | Active execution within policy-based approval boundaries. (also known as "Viber Decides") |
+| **Agent Decides** | Active execution within policy-based approval boundaries. |
 | **Always Execute** | High autonomy; intervene by exception. |
 
 All modes share one loop: **observe → plan → execute → verify → report → request feedback → continue**.

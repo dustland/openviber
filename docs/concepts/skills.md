@@ -186,14 +186,16 @@ Click on a skill with a setup warning to see:
 
 ```bash
 # Check health via CLI
-openviber skill health github
+npx openviber status
 
 # Output:
-# github: NOT_AVAILABLE
-#   ✗ gh-cli: Not found in PATH
-#     Hint: brew install gh
-#   ✗ gh-auth: Not authenticated
-#     Hint: gh auth login
+# ...
+# Skills:
+#   github: NOT_AVAILABLE
+#     ✗ gh-cli: Not found in PATH
+#       Hint: brew install gh
+#     ✗ gh-auth: Not authenticated
+#       Hint: gh auth login
 ```
 
 ---
@@ -204,13 +206,13 @@ The **Skill Hub** is a marketplace for discovering skills from external sources:
 
 ```bash
 # Auto-detect source
-openviber skill add github
+npx openviber skill import github
 
 # From npm
-openviber skill add npm:@openviber-skills/web-search
+npx openviber skill import npm:@openviber-skills/web-search
 
 # From GitHub
-openviber skill add dustland/viber-skills/github
+npx openviber skill import dustland/viber-skills/github
 ```
 
 **Sources:** OpenClaw, npm, GitHub, Hugging Face, Smithery, Composio, Glama

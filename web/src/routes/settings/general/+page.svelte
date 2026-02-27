@@ -680,7 +680,8 @@
             Saving…
           {:else}
             <Save class="size-4" />
-            Save Changes
+            <span class="sm:hidden">Save</span>
+            <span class="hidden sm:inline">Save Changes</span>
           {/if}
         </button>
       </div>

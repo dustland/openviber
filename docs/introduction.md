@@ -74,7 +74,7 @@ OpenViber supports three levels of autonomy:
 | Mode | Behavior |
 |------|----------|
 | **Always Ask** | Task asks before each action — you approve everything |
-| **Task Decides** | Task acts within policy, escalates risky actions |
+| **Agent Decides** | Task acts within policy, escalates risky actions |
 | **Always Execute** | Maximum autonomy, intervene by exception |
 
 Start with "Always Ask" and gradually increase autonomy as you build trust.

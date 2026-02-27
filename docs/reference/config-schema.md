@@ -89,7 +89,7 @@ channels:
     proxyUrl: "${WECHAT_PROXY_URL}"
     accountId: "${WECHAT_ACCOUNT_ID}"
 
-# Channels gateway settings (webhook server for DingTalk, WeCom, etc.; started with `viber channels`)
+# Channels gateway settings (webhook server for DingTalk, WeCom, etc.; started with `npx openviber channels`)
 gateway:
   host: "0.0.0.0"
   port: 6009
@@ -466,7 +466,7 @@ The daemon validates all configuration at startup. Common errors:
 ### Validation Command
 
 ```bash
-openviber config validate
+npx openviber config validate
 ```
 
 ## 10. Example Complete Setup

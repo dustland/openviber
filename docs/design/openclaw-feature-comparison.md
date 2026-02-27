@@ -22,7 +22,7 @@ This document compares OpenViber's feature set and **operator experience** again
 | **Stars** | ~100 | ~175,000 |
 | **Deployment** | Local-first, `npx openviber start` | Local-first, `openclaw onboard --install-daemon` |
 
-Terminology mapping: OpenViber's **Gateway** (`viber gateway`) is the central coordinator (OpenClaw's "gateway control plane"), and OpenViber's **daemon** is the Viber runtime. The **Channels** server (`viber channels`) runs enterprise channel webhooks (DingTalk, WeCom, etc.) and is a separate component.
+Terminology mapping: OpenViber's **Gateway** (`npx openviber gateway`) is the central coordinator (OpenClaw's "gateway control plane"), and OpenViber's **daemon** is the Viber runtime. The **Channels** server (`npx openviber channels`) runs enterprise channel webhooks (DingTalk, WeCom, etc.) and is a separate component.
 
 ---
 
@@ -285,7 +285,7 @@ The following gaps represent the most impactful features that OpenViber should c
 
 6. **Media Pipeline** — Image, audio, and video understanding is table stakes for a modern AI assistant.
 
-7. **Health Check / Doctor Command** — Self-diagnostic tooling (`viber doctor`) for troubleshooting configuration and connectivity issues.
+7. **Health Check / Doctor Command** — Self-diagnostic tooling (`npx openviber status`) for troubleshooting configuration and connectivity issues.
 
 8. **OS-Level Daemon Management** — Install as launchd/systemd service for always-on operation without terminal.
 

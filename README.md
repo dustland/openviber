@@ -43,7 +43,7 @@ npx openviber start
 If you prefer to install it globally:
 ```bash
 npm install -g openviber
-viber start
+openviber start
 ```
 
 ---
@@ -86,7 +86,7 @@ Use OpenViber from any terminal. It integrates deeply with tmux for streaming ou
 
 ```bash
 # Start an interactive chat
-viber chat
+npx openviber chat
 ```
 
 ### 🌐 Viber Board (Web UI)
@@ -97,8 +97,8 @@ Deploy your tasks to where your team works. Support for **DingTalk** and **WeCom
 
 ```bash
 # Start the enterprise channel server
-# Note: Defaults to port 6009. If running alongside 'viber start' (which also uses 6009), use a different port:
-viber channels --port 6010
+# Note: Defaults to port 6009. If running alongside 'openviber start' (which also uses 6009), use a different port:
+openviber channels --port 6010
 ```
 
 ---

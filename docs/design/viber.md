@@ -242,8 +242,8 @@ This single command:
 ## 9. Gateway (Central Coordinator)
 
 After onboarding, the Viber communicates with the Viber Board (web app) via a WebSocket control plane.
-In this repo, that control plane is implemented by the **Gateway** (`viber gateway`). This is distinct
-from the **Channels** server (`viber channels`, enterprise channel webhooks) and from the **Viber runtime**
+In this repo, that control plane is implemented by the **Gateway** (`npx openviber gateway`). This is distinct
+from the **Channels** server (`npx openviber channels`, enterprise channel webhooks) and from the **Viber runtime**
 (often called the daemon).
 
 - **Single gateway per host** — one Viber is the authority for channel connections and tasks run on that machine.

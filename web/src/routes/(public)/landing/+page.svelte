@@ -5,6 +5,7 @@
   import InfiniteMarquee from "$lib/components/landing/infinite-marquee.svelte";
   import HeroMockup from "$lib/components/landing/hero-mockup.svelte";
   import CodeTyper from "$lib/components/landing/code-typer.svelte";
+  import CodeWindow from "$lib/components/landing/code-window.svelte";
   import SpotlightCard from "$lib/components/landing/spotlight-card.svelte";
 
   import {
@@ -263,7 +264,7 @@
       >
         You Imagine It.<br class="hidden sm:block" />
         <span
-          class="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent"
+          class="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 bg-clip-text text-transparent"
           >Vibers</span
         >
         <TypewriterEffect
@@ -427,13 +428,8 @@
           </div>
         </div>
 
-        <div class="relative rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm p-2 shadow-2xl">
-           <div class="rounded-lg bg-[#0d1117] p-4 font-mono text-sm shadow-inner min-h-[300px]">
-             <div class="flex gap-1.5 mb-4">
-               <div class="size-3 rounded-full bg-red-500/80"></div>
-               <div class="size-3 rounded-full bg-yellow-500/80"></div>
-               <div class="size-3 rounded-full bg-green-500/80"></div>
-             </div>
+        <div class="relative">
+          <CodeWindow filename="deploy-agent.ts" class="min-h-[350px]">
              <CodeTyper lines={[
                 "// defining a new task...",
                 "import { Task } from '@openviber/core';",
@@ -452,10 +448,10 @@
                 "// > Deploying to production...",
                 "// > Success! App is live."
              ]} />
-           </div>
+          </CodeWindow>
 
            <!-- Decorative elements behind -->
-           <div class="absolute -inset-0.5 -z-10 bg-gradient-to-br from-primary/30 to-purple-600/30 opacity-20 blur-xl rounded-xl"></div>
+           <div class="absolute -inset-4 -z-10 bg-gradient-to-br from-primary/20 via-purple-500/10 to-pink-500/20 opacity-40 blur-3xl rounded-[3rem]"></div>
         </div>
       </div>
     </section>
@@ -587,15 +583,18 @@
 
     <!-- Community -->
     <section class="reveal mx-auto mt-24 max-w-6xl md:mt-32">
-       <div class="rounded-3xl border border-primary/20 bg-primary/5 px-6 py-12 md:px-12 md:py-16 text-center relative overflow-hidden">
-          <div class="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 mix-blend-overlay"></div>
+       <div class="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-md px-6 py-14 md:px-12 md:py-20 text-center relative overflow-hidden shadow-2xl">
+          <!-- Radial gradient background -->
+          <div class="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none"></div>
+          <div class="absolute -top-24 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-primary/10 blur-[100px] rounded-full pointer-events-none"></div>
+
           <div class="relative z-10">
-             <h2 class="text-3xl font-bold tracking-tight text-foreground sm:text-4xl mb-6">Join the Community</h2>
-             <p class="mx-auto max-w-2xl text-lg text-muted-foreground mb-10">
+             <h2 class="text-3xl font-bold tracking-tight text-foreground sm:text-4xl md:text-5xl mb-6">Join the Community</h2>
+             <p class="mx-auto max-w-2xl text-lg text-muted-foreground/90 mb-12 leading-relaxed">
                OpenViber is open source and community-driven. Join thousands of developers building the future of local AI.
              </p>
 
-             <div class="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-3xl mx-auto">
+             <div class="grid grid-cols-2 md:grid-cols-4 gap-10 max-w-4xl mx-auto mb-12">
                 <div class="flex flex-col items-center gap-2">
                    <div class="text-3xl font-black text-foreground">2.5k+</div>
                    <div class="text-sm font-medium text-muted-foreground flex items-center gap-1.5">

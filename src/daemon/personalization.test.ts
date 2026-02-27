@@ -23,7 +23,7 @@ vi.mock("fs/promises", () => ({
   appendFile: vi.fn(),
 }));
 
-vi.mock("../worker/config", () => ({
+vi.mock("../utils/paths", () => ({
   getViberRoot: () => "/mock/.openviber",
   getViberPath: (...segments: string[]) =>
     ["/mock/.openviber", ...segments].join("/"),
@@ -39,7 +39,7 @@ vi.mock("../skills/hub/settings", () => ({
 }));
 
 // Import after mocks are set up
-import { loadPersonalization } from "./runtime";
+import { loadPersonalization } from "./personalization";
 
 describe("loadPersonalization", () => {
   beforeEach(() => {

@@ -8,7 +8,7 @@ import * as path from "path";
 import * as os from "os";
 
 // Mock fs and config
-vi.mock("../../core/config-runtime", () => ({
+vi.mock("../../utils/paths", () => ({
   getViberRoot: () => "/tmp/openviber-test-settings",
 }));
 

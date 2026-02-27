@@ -5,7 +5,6 @@ import { watch as fsWatch, type FSWatcher } from "fs";
 import * as path from "path";
 import * as yaml from "yaml";
 
-
 export interface CronJobConfig {
   name: string;
   description?: string;
@@ -83,13 +82,17 @@ export class JobScheduler extends EventEmitter {
   /**
    * Watch the jobs directory for file changes and auto-reload.
    * This ensures jobs created by tools (e.g. create_scheduled_job from chat)
-   * are picked up without requiring a daemon restart.
+   * or by editing ROUTINE.md are picked up without requiring a daemon restart.
    */
   private startWatcher(): void {
     try {
       this.watcher = fsWatch(this.jobsDir, (_eventType, filename) => {
         if (!filename) return;
-        if (!filename.endsWith(".yaml") && !filename.endsWith(".yml")) return;
+        if (
+          !filename.endsWith(".yaml") &&
+          !filename.endsWith(".yml") &&
+          !filename.endsWith(".md")
+        ) return;
         this.debouncedReload();
       });
       this.watcher.on("error", () => {
@@ -141,14 +144,28 @@ export class JobScheduler extends EventEmitter {
 
       const files = await fs.readdir(this.jobsDir);
       for (const file of files) {
+        const filePath = path.join(this.jobsDir, file);
         if (file.endsWith(".yaml") || file.endsWith(".yml")) {
-          const content = await fs.readFile(path.join(this.jobsDir, file), "utf8");
+          // Parse YAML job definition
+          const content = await fs.readFile(filePath, "utf8");
           try {
             const config = yaml.parse(content) as CronJobConfig;
             this.loadedConfigs.push(config);
             this.scheduleJob(config);
           } catch (err) {
             console.error(`[Scheduler] Failed to parse job ${file}:`, err);
+          }
+        } else if (file === "ROUTINE.md" || file === "JOBS.md") {
+          // Parse Markdown job definition (Simplicity improvements)
+          try {
+            const content = await fs.readFile(filePath, "utf8");
+            const jobs = this.parseMarkdownRoutine(content);
+            for (const job of jobs) {
+              this.loadedConfigs.push(job);
+              this.scheduleJob(job);
+            }
+          } catch (err) {
+            console.error(`[Scheduler] Failed to parse markdown routine ${file}:`, err);
           }
         }
       }
@@ -158,6 +175,43 @@ export class JobScheduler extends EventEmitter {
 
     // Notify listeners (e.g. the controller) so they can report to the hub
     this.emit("jobs:loaded", this.getLoadedJobs());
+  }
+
+  /**
+   * Parse ROUTINE.md format:
+   * - [ ] (0 9 * * *) Morning Check: Check GitHub notifications
+   */
+  private parseMarkdownRoutine(content: string): CronJobConfig[] {
+    const jobs: CronJobConfig[] = [];
+    const lines = content.split("\n");
+
+    // Regex for: - [ ] (cron_expr) Name: Prompt
+    // Matches:
+    // 1. Cron expression inside parens (captured)
+    // 2. Name part before colon (captured)
+    // 3. Prompt part after colon (captured)
+    const regex = /^\s*-\s*\[\s*\]\s*\(([^)]+)\)\s*([^:]+):\s*(.+)$/;
+
+    for (const line of lines) {
+      const match = line.match(regex);
+      if (match) {
+        const schedule = match[1].trim();
+        const nameRaw = match[2].trim();
+        const prompt = match[3].trim();
+
+        // Sanitize name to be safe ID
+        const name = nameRaw.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+        jobs.push({
+          name,
+          description: nameRaw,
+          schedule,
+          prompt,
+        });
+      }
+    }
+
+    return jobs;
   }
 
   private scheduleJob(config: CronJobConfig) {
@@ -184,7 +238,7 @@ export class JobScheduler extends EventEmitter {
 
   private async executeJob(config: CronJobConfig) {
     // If model is specified, use full Agent
-    if (config.model) {
+    if (config.model || true) { // Default to full agent execution for now
       try {
         const { Agent } = await import("../worker/agent");
 
@@ -195,7 +249,7 @@ export class JobScheduler extends EventEmitter {
           tools: config.tools,
           llm: {
             provider: config.provider || "openrouter",
-            model: config.model
+            model: config.model || "openai/gpt-4o-mini" // Default lightweight model
           },
         });
 
@@ -239,14 +293,6 @@ export class JobScheduler extends EventEmitter {
         console.error(`[${config.name}] Agent execution failed:`, err);
       }
       return;
-    }
-
-    // Fallback: Hardcoded optimization for BrowserCDP if no model specified (Legacy/Fast Path)
-    // This allows "script-like" execution without LLM inference cost if the prompt matches known patterns
-    // (For now, we keep the Healer optimization as a fallback or if user omits model)
-    // Fallback or legacy logic removed for cleaner architecture.
-    if (!config.model) {
-      console.warn(`[${config.name}] No model specified, skipping execution.`);
     }
   }
 }

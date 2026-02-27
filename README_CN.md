@@ -43,7 +43,7 @@ npx openviber start
 如果您希望全局安装：
 ```bash
 npm install -g openviber
-viber start
+openviber start
 ```
 
 ---
@@ -87,7 +87,7 @@ OpenViber 提供多种与 Viber 交互的方式，专为开发者和团队设计
 
 ```bash
 # 启动交互式对话
-viber chat
+npx openviber chat
 ```
 
 ### 🌐 Viber Board (Web UI)
@@ -98,7 +98,7 @@ viber chat
 
 ```bash
 # 启动企业网关
-viber channels
+openviber channels
 ```
 
 ---

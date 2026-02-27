@@ -235,7 +235,7 @@ Practical rule:
 
 ### v1 (recommended)
 
-- Keep current `openviber onboard --token ...` bootstrap.
+- Keep current `npx openviber onboard --token ...` bootstrap.
 - Add remote `environment:prepare` so users never run repo/setup commands manually again.
 
 ### v2 (optional)

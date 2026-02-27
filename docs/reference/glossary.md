@@ -51,7 +51,7 @@ Gateway. In docs, "daemon" and "Viber runtime" are used interchangeably.
 ### Gateway
 
 The central coordinator that routes messages between Viber runtimes (daemons) and the web app.
-Started via `viber gateway`. Vibers connect outbound to the gateway via WebSocket; the web app
+Started via `npx openviber gateway`. Vibers connect outbound to the gateway via WebSocket; the web app
 (Viber Board) talks to the gateway via REST and SSE. This is distinct from the **Channels**
 server (enterprise channel webhooks) and from the **Skill Hub** (external skill registry).
 
@@ -70,7 +70,7 @@ the Gateway (central coordinator).
 ### Channels (enterprise channel server)
 
 The HTTP server that receives webhooks from enterprise channels (DingTalk, WeCom, Discord,
-Feishu). Started via `viber channels`. Implemented by `ChannelGateway` in `src/channels/gateway.ts`.
+Feishu). Started via `npx openviber channels`. Implemented by `ChannelGateway` in `src/channels/gateway.ts`.
 Distinct from the Gateway (central coordinator for Vibers).
 
 ## J

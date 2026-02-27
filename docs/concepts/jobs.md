@@ -293,7 +293,7 @@ The scheduler uses [Croner](https://github.com/hexagon/croner) for cron parsing 
 ### Reloading
 
 Changes to job files require either:
-- Restarting OpenViber (`openviber start`)
+- Restarting OpenViber (`npx openviber start`)
 - A gateway-triggered reload (when a job is pushed from the Viber Board)
 
 Hot-reloading of job files is planned but not yet implemented.

@@ -12,8 +12,8 @@ OpenViber's runtime has three components that communicate:
 3. **Web App (Viber Board)** — SvelteKit frontend that operators use to interact with tasks.
 
 Terminology note: in this doc, "daemon" refers to the Viber runtime process. "Gateway" is the
-central coordinator (started with `viber gateway`). This is distinct from the **Channels** server
-(`viber channels`, enterprise channel webhooks) and the **Skill Hub** (`src/skills/hub/`).
+central coordinator (started with `npx openviber gateway`). This is distinct from the **Channels** server
+(`npx openviber channels`, enterprise channel webhooks) and the **Skill Hub** (`src/skills/hub/`).
 
 The protocol is intentionally simple. The AI SDK handles the complex parts (streaming, tool calls, message formatting). OpenViber's protocol is just the plumbing that connects them.
 

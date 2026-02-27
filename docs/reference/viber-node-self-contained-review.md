@@ -16,11 +16,11 @@ This revision reflects the latest terminology direction:
 
 Compared to the earlier review, there is meaningful progress around standalone onboarding and task-centric language in parts of the stack:
 
-- Onboarding now supports an explicit **standalone mode** (`openviber onboard` without token).
+- Onboarding now supports an explicit **standalone mode** (`npx openviber onboard` without token).
 - Standalone onboarding scaffolds local config and personalization files under `~/.openviber`.
 - The CLI and runtime internals increasingly use task-oriented naming even where external compatibility still uses `viber` terminology.
 
-That said, daemon runtime boot (`openviber start`) still initializes the controller path that expects a gateway WebSocket endpoint (remote or local default).
+That said, daemon runtime boot (`npx openviber start`) still initializes the controller path that expects a gateway WebSocket endpoint (remote or local default).
 
 ## Executive Summary
 
@@ -42,14 +42,14 @@ That said, daemon runtime boot (`openviber start`) still initializes the control
 
 ### 2) Standalone setup has improved materially
 
-- `openviber onboard` now supports standalone setup when no token is passed.
+- `npx openviber onboard` now supports standalone setup when no token is passed.
 - Standalone mode writes `~/.openviber/config.yaml` with `mode: "standalone"` and scaffolds local viber config + personalization files.
 
 **Assessment:** ✅ Significant operational UX improvement for local-only users.
 
 ### 3) Daemon start path is still gateway-controller oriented
 
-- `openviber start` still builds `ViberController` and uses server URL resolution logic that defaults to local gateway WebSocket (`ws://localhost:6009/ws`) when no connected config is present.
+- `npx openviber start` still builds `ViberController` and uses server URL resolution logic that defaults to local gateway WebSocket (`ws://localhost:6009/ws`) when no connected config is present.
 - Therefore, the daemon control loop remains oriented around inbound gateway messages for task submit/stop/message orchestration.
 
 **Assessment:** ⚠️ Core engine can run alone, but daemon orchestration is not yet fully gateway-independent.
@@ -73,21 +73,21 @@ That said, daemon runtime boot (`openviber start`) still initializes the control
 
 | Capability | Gateway required? | Supabase required? | Notes |
 |---|---:|---:|---|
-| Local single task (`openviber run`) | No | No | Fully local task runtime |
+| Local single task (`npx openviber run`) | No | No | Fully local task runtime |
 | Standalone onboarding | No | No | Local config scaffolding + personalization bootstrap |
-| Daemon runtime (`openviber start`) | Practically yes today (remote or local gateway WS) | No | Controller-first orchestration path |
+| Daemon runtime (`npx openviber start`) | Practically yes today (remote or local gateway WS) | No | Controller-first orchestration path |
 | Task status via gateway APIs | Yes | No (local gateway mode) | Today primarily exposed via `/api/vibers/*` compatibility routes |
 | Supabase-backed web persistence | No (for local runtime) | Yes | Optional web/data mode |
 
 ## Gaps to “fully self-contained Viber engine”
 
-1. `openviber start` has not yet fully split into a true local orchestration loop independent of gateway WS semantics.
+1. `npx openviber start` has not yet fully split into a true local orchestration loop independent of gateway WS semantics.
 2. Task ingress/control in daemon mode is still predominantly gateway-message-driven.
 3. Naming migration still spans both task-first and legacy viber vocabulary, which can obscure architecture boundaries.
 
 ## Recommendations (Updated)
 
-1. Introduce a strict **standalone runtime mode** in `openviber start` that does not attempt gateway connection by default.
+1. Introduce a strict **standalone runtime mode** in `npx openviber start` that does not attempt gateway connection by default.
 2. Provide first-class local task ingress in standalone mode (local HTTP/WS/IPC) for submit/stop/message.
 3. Continue API/event contract migration to task-first naming while maintaining explicit compatibility layers.
 4. Document runtime profiles clearly:

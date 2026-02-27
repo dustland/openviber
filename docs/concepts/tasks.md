@@ -214,13 +214,13 @@ To run an ad-hoc task using a specific agent configuration:
 ```bash
 # Run a task using the "dev-task" configuration
 # (Loads config from ~/.openviber/vibers/dev-task.yaml)
-viber run --agent dev-task "Refactor the authentication module"
+npx openviber run --agent dev-task "Refactor the authentication module"
 ```
 
 To run a task using the default agent:
 
 ```bash
-viber run "Check my GitHub notifications"
+npx openviber run "Check my GitHub notifications"
 ```
 
 ---

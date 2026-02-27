@@ -14,7 +14,7 @@ Communication in OpenViber connects operators to their vibers. The primary inter
 | Surface | Transport | Use Case |
 |---------|-----------|----------|
 | **Viber Board** (web UI) | HTTP + SSE via AI SDK | Primary: chat, observe terminals, manage vibers |
-| **CLI** | Direct daemon call | Quick tasks: `openviber run "build the landing page"` |
+| **CLI** | Direct daemon call | Quick tasks: `npx openviber run "build the landing page"` |
 | **Enterprise channels** | Channel APIs (future) | DingTalk, WeCom, Slack — async task management |
 
 ---

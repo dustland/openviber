@@ -31,11 +31,11 @@ openviber env run setup
 openviber env run maintenance
 ```
 
-Before setup/maintenance (and before `openviber run` / `openviber start` when an environment exists), OpenViber validates required vars and reports missing keys.
+Before setup/maintenance (and before `npx openviber run` / `npx openviber start` when an environment exists), OpenViber validates required vars and reports missing keys.
 
 ## 4. Runtime behavior
 
-- `openviber run --env <env-id>` and `openviber start --env <env-id>` select an environment id.
+- `npx openviber run --env <env-id>` and `npx openviber start --env <env-id>` select an environment id.
 - Runtime env vars are injected into terminal/tmux child processes only (not by mutating global `process.env`).
 - Variables with `scope: setup_only` are available during setup/maintenance but not injected into terminal runtime.
 - Values marked `secret: true` are redacted from terminal stream output.

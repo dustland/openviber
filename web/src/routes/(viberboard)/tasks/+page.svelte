@@ -138,7 +138,7 @@
         {/if}
       </p>
     </div>
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-normal">
       <Button
         variant={showArchived ? "secondary" : "outline"}
         size="sm"

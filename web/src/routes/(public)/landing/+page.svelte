@@ -259,7 +259,7 @@
       </div>
 
       <h1
-        class="hero-title pb-4 text-6xl font-black leading-[1.05] tracking-tighter sm:text-7xl md:text-8xl lg:text-9xl"
+        class="hero-title pb-4 text-5xl font-black leading-[1.05] tracking-tighter sm:text-7xl md:text-8xl lg:text-9xl"
       >
         You Imagine It.<br class="hidden sm:block" />
         <span
@@ -308,7 +308,7 @@
         {#if data.user}
           <a
             href="/"
-            class="cta-primary group inline-flex items-center gap-3 rounded-full bg-primary px-12 py-5 text-lg font-bold text-primary-foreground shadow-[0_0_40px_hsl(var(--primary)/0.4)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_60px_hsl(var(--primary)/0.5)]"
+            class="cta-primary group inline-flex items-center gap-3 rounded-full bg-primary px-8 py-4 text-base md:px-12 md:py-5 md:text-lg font-bold text-primary-foreground shadow-[0_0_40px_hsl(var(--primary)/0.4)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_60px_hsl(var(--primary)/0.5)]"
           >
             Go to Viberboard
             <ArrowRight
@@ -318,7 +318,7 @@
         {:else if data.supabaseAuthEnabled}
           <a
             href={githubAuthUrl}
-            class="cta-primary group inline-flex items-center gap-3 rounded-full bg-primary px-12 py-5 text-lg font-bold text-primary-foreground shadow-[0_0_40px_hsl(var(--primary)/0.4)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_60px_hsl(var(--primary)/0.5)]"
+            class="cta-primary group inline-flex items-center gap-3 rounded-full bg-primary px-8 py-4 text-base md:px-12 md:py-5 md:text-lg font-bold text-primary-foreground shadow-[0_0_40px_hsl(var(--primary)/0.4)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_60px_hsl(var(--primary)/0.5)]"
           >
             <svg
               class="size-5"
@@ -428,7 +428,7 @@
         </div>
 
         <div class="relative rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm p-2 shadow-2xl">
-           <div class="rounded-lg bg-[#0d1117] p-4 font-mono text-sm shadow-inner min-h-[300px]">
+           <div class="rounded-lg bg-[#0d1117] p-4 font-mono text-sm shadow-inner min-h-[300px] overflow-x-auto">
              <div class="flex gap-1.5 mb-4">
                <div class="size-3 rounded-full bg-red-500/80"></div>
                <div class="size-3 rounded-full bg-yellow-500/80"></div>

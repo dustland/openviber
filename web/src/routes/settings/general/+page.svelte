@@ -497,7 +497,7 @@
             <select
               id="chat-model"
               bind:value={editChatModel}
-              class="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background"
+              class="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background max-w-full text-ellipsis"
             >
               {#each MODEL_OPTIONS as opt (opt.id)}
                 <option value={opt.id}>{opt.label}</option>
@@ -604,7 +604,7 @@
             <select
               id="primary-coding-cli"
               bind:value={editPrimaryCodingCli}
-              class="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background"
+              class="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background max-w-full text-ellipsis"
             >
               <option value="">Let agent choose</option>
               {#each codingCliOptions as opt (opt.id)}
@@ -636,7 +636,7 @@
             <select
               id="timezone"
               bind:value={editTimezone}
-              class="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background"
+              class="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background max-w-full text-ellipsis"
             >
               {#each POPULAR_TIMEZONES as tz (tz.id)}
                 <option value={tz.id}>{tz.label}</option>

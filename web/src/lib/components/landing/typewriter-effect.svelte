@@ -52,11 +52,11 @@
 </script>
 
 <span
-  class="inline-block min-w-[2ch]"
+  class="inline-flex min-w-[2ch]"
   aria-label={words[currentWordIndex]}
   role="img"
 >
-  <span aria-hidden="true">{currentText}</span><span class="animate-blink text-primary" aria-hidden="true">|</span>
+  <span aria-hidden="true" class="text-foreground">{currentText}</span><span class="animate-blink text-primary" aria-hidden="true">|</span>
 </span>
 
 <style>

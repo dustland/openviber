@@ -263,7 +263,7 @@
       >
         You Imagine It.<br class="hidden sm:block" />
         <span
-          class="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent"
+          class="bg-gradient-to-r from-indigo-500 via-fuchsia-500 to-orange-500 bg-clip-text text-transparent"
           >Vibers</span
         >
         <TypewriterEffect
@@ -308,7 +308,7 @@
         {#if data.user}
           <a
             href="/"
-            class="cta-primary group inline-flex items-center gap-3 rounded-full bg-primary px-12 py-5 text-lg font-bold text-primary-foreground shadow-[0_0_40px_hsl(var(--primary)/0.4)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_60px_hsl(var(--primary)/0.5)]"
+            class="cta-primary group inline-flex items-center gap-3 rounded-full bg-gradient-to-r from-neutral-900 to-neutral-800 dark:from-neutral-100 dark:to-neutral-300 dark:text-neutral-900 border border-neutral-700/50 text-white px-12 py-5 text-lg font-bold shadow-[0_0_40px_rgba(99,102,241,0.2)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_60px_rgba(99,102,241,0.4)]"
           >
             Go to Viberboard
             <ArrowRight
@@ -318,7 +318,7 @@
         {:else if data.supabaseAuthEnabled}
           <a
             href={githubAuthUrl}
-            class="cta-primary group inline-flex items-center gap-3 rounded-full bg-primary px-12 py-5 text-lg font-bold text-primary-foreground shadow-[0_0_40px_hsl(var(--primary)/0.4)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_60px_hsl(var(--primary)/0.5)]"
+            class="cta-primary group inline-flex items-center gap-3 rounded-full bg-gradient-to-r from-neutral-900 to-neutral-800 dark:from-neutral-100 dark:to-neutral-300 dark:text-neutral-900 border border-neutral-700/50 text-white px-12 py-5 text-lg font-bold shadow-[0_0_40px_rgba(99,102,241,0.2)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_60px_rgba(99,102,241,0.4)]"
           >
             <svg
               class="size-5"
@@ -495,12 +495,12 @@
 
     <!-- Why OpenViber — dark contrast section -->
     <section
-      class="reveal dark-section mx-auto mt-24 max-w-6xl rounded-3xl px-6 py-14 md:mt-32 md:px-10 md:py-20 lg:px-14 border-primary/20"
+      class="reveal dark-section mx-auto mt-24 max-w-6xl rounded-3xl px-6 py-14 md:mt-32 md:px-10 md:py-20 lg:px-14 bg-slate-950 text-white border-slate-800/50"
     >
       <div class="hex-pattern"></div>
       <h2 class="section-label mb-3 text-center">Why OpenViber</h2>
       <p
-        class="mx-auto mb-14 max-w-2xl text-center text-base text-[hsl(var(--muted-foreground)/0.8)] md:text-lg"
+        class="mx-auto mb-14 max-w-2xl text-center text-base text-slate-400 md:text-lg"
       >
         A local-first AI platform for people who want their agents to actually
         do things — not just chat.
@@ -515,6 +515,7 @@
               : ''}"
             style="--delay: {i * 100}ms"
             radius="1.5rem"
+            spotlightColor="rgba(255,255,255,0.15)"
           >
             <div class="flex flex-col h-full justify-between">
               <div>
@@ -659,7 +660,7 @@
           {#if !data.user && data.supabaseAuthEnabled}
             <a
               href={githubAuthUrl}
-              class="cta-primary group inline-flex items-center gap-2.5 rounded-lg bg-primary px-8 py-3 text-sm font-semibold text-primary-foreground transition-all duration-300 hover:-translate-y-1"
+              class="cta-primary group inline-flex items-center gap-2.5 rounded-lg bg-gradient-to-r from-neutral-900 to-neutral-800 dark:from-neutral-100 dark:to-neutral-300 dark:text-neutral-900 border border-neutral-700/50 text-white px-8 py-3 text-sm font-semibold transition-all duration-300 hover:-translate-y-1"
             >
               <svg
                 class="size-4"
@@ -679,7 +680,7 @@
           {:else}
             <a
               href="/docs/getting-started/quick-start"
-              class="cta-primary group inline-flex items-center gap-2.5 rounded-lg bg-primary px-8 py-3 text-sm font-semibold text-primary-foreground transition-all duration-300 hover:-translate-y-1"
+              class="cta-primary group inline-flex items-center gap-2.5 rounded-lg bg-gradient-to-r from-neutral-900 to-neutral-800 dark:from-neutral-100 dark:to-neutral-300 dark:text-neutral-900 border border-neutral-700/50 text-white px-8 py-3 text-sm font-semibold transition-all duration-300 hover:-translate-y-1"
             >
               Quick Start Guide
               <ArrowRight
@@ -866,7 +867,7 @@
   .orb-1 {
     background: radial-gradient(
       circle,
-      hsl(var(--primary) / 0.3),
+      rgba(99, 102, 241, 0.3),
       transparent 65%
     );
   }
@@ -874,7 +875,7 @@
   .orb-2 {
     background: radial-gradient(
       circle,
-      hsl(var(--ring) / 0.22),
+      rgba(236, 72, 153, 0.25),
       transparent 65%
     );
   }
@@ -882,7 +883,7 @@
   .orb-3 {
     background: radial-gradient(
       circle,
-      hsl(var(--primary) / 0.18),
+      rgba(6, 182, 212, 0.2),
       transparent 65%
     );
   }

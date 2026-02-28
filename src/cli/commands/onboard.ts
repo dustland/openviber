@@ -149,8 +149,8 @@ tools:
   - terminal
   - browser
 
-# Working mode: "always-ask" | "viber-decides" | "always-execute"
-workingMode: viber-decides
+# Working mode: "always_ask" | "agent_decides" | "always_execute"
+workingMode: agent_decides
 `;
       await fs.writeFile(defaultViberPath, defaultViber);
       console.log(`\n  ✓ Created viber.yaml`);

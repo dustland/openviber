@@ -285,7 +285,7 @@ The following gaps represent the most impactful features that OpenViber should c
 
 6. **Media Pipeline** — Image, audio, and video understanding is table stakes for a modern AI assistant.
 
-7. **Health Check / Doctor Command** — Self-diagnostic tooling (`viber doctor`) for troubleshooting configuration and connectivity issues.
+7. **Health Check / Doctor Command** — Self-diagnostic tooling (`npx openviber status`) for troubleshooting configuration and connectivity issues.
 
 8. **OS-Level Daemon Management** — Install as launchd/systemd service for always-on operation without terminal.
 

@@ -252,7 +252,7 @@
       </div>
 
       <div
-        class="hero-badge inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary mb-8"
+        class="hero-badge inline-flex items-center rounded-full border border-primary/30 bg-primary/20 px-3 py-1 text-xs font-medium text-primary mb-8"
       >
         <Sparkles class="mr-1.5 size-3" />
         v1.0 Public Beta
@@ -308,7 +308,7 @@
         {#if data.user}
           <a
             href="/"
-            class="cta-primary group inline-flex items-center gap-3 rounded-full bg-primary px-12 py-5 text-lg font-bold text-primary-foreground shadow-[0_0_40px_hsl(var(--primary)/0.4)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_60px_hsl(var(--primary)/0.5)]"
+            class="cta-primary group inline-flex items-center gap-3 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 px-12 py-5 text-lg font-bold text-white shadow-[0_0_40px_hsl(var(--primary)/0.4)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_60px_hsl(var(--primary)/0.5)]"
           >
             Go to Viberboard
             <ArrowRight
@@ -318,7 +318,7 @@
         {:else if data.supabaseAuthEnabled}
           <a
             href={githubAuthUrl}
-            class="cta-primary group inline-flex items-center gap-3 rounded-full bg-primary px-12 py-5 text-lg font-bold text-primary-foreground shadow-[0_0_40px_hsl(var(--primary)/0.4)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_60px_hsl(var(--primary)/0.5)]"
+            class="cta-primary group inline-flex items-center gap-3 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 px-12 py-5 text-lg font-bold text-white shadow-[0_0_40px_hsl(var(--primary)/0.4)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_60px_hsl(var(--primary)/0.5)]"
           >
             <svg
               class="size-5"
@@ -519,7 +519,7 @@
             <div class="flex flex-col h-full justify-between">
               <div>
                 <div
-                  class="icon-ring mb-5 inline-flex size-12 items-center justify-center rounded-xl transition-all duration-300 group-hover:scale-110 group-hover:bg-primary/15 group-hover:shadow-[0_0_0_1px_hsl(var(--primary)/0.3),0_4px_12px_-2px_hsl(var(--primary)/0.15)]"
+                  class="icon-ring mb-5 inline-flex size-12 items-center justify-center rounded-xl transition-all duration-300 group-hover:scale-110 group-hover:bg-gradient-to-br group-hover:from-indigo-500/20 group-hover:to-purple-500/20 group-hover:shadow-[0_0_0_1px_hsl(var(--primary)/0.3),0_4px_12px_-2px_hsl(var(--primary)/0.15)]"
                 >
                   <prop.icon class="size-6" />
                 </div>
@@ -587,7 +587,7 @@
 
     <!-- Community -->
     <section class="reveal mx-auto mt-24 max-w-6xl md:mt-32">
-       <div class="rounded-3xl border border-primary/20 bg-primary/5 px-6 py-12 md:px-12 md:py-16 text-center relative overflow-hidden">
+       <div class="rounded-3xl border border-indigo-500/30 bg-gradient-to-br from-indigo-900/40 to-purple-900/40 px-6 py-12 md:px-12 md:py-16 text-center relative overflow-hidden backdrop-blur-md">
           <div class="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 mix-blend-overlay"></div>
           <div class="relative z-10">
              <h2 class="text-3xl font-bold tracking-tight text-foreground sm:text-4xl mb-6">Join the Community</h2>
@@ -1218,23 +1218,23 @@
     pointer-events: none;
     z-index: -1;
     opacity: 0;
-    animation: rings-fade-in 2s ease-out 0.3s forwards;
+    animation: rings-fade-in 1.5s ease-out 0.2s forwards;
     background: radial-gradient(
         circle,
         transparent 8rem,
-        hsl(var(--primary) / 0.04) 8.5rem,
+        hsl(var(--primary) / 0.08) 8.5rem,
         transparent 9rem
       ),
       radial-gradient(
         circle,
         transparent 14rem,
-        hsl(var(--primary) / 0.035) 14.5rem,
+        hsl(var(--primary) / 0.06) 14.5rem,
         transparent 15rem
       ),
       radial-gradient(
         circle,
         transparent 20rem,
-        hsl(var(--primary) / 0.03) 20.5rem,
+        hsl(var(--primary) / 0.04) 20.5rem,
         transparent 21rem
       ),
       radial-gradient(
